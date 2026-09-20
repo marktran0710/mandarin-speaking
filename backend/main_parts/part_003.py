@@ -64,6 +64,88 @@ def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None
         )
 
 
+def save_verified_audio_record(
+    *,
+    record_id: str,
+    student_id: str,
+    attempt_id: str,
+    audio_sha256: str,
+    verification_version: str,
+    topic_id: str,
+    scene_index: int,
+    audio_url: str,
+    audio_name: str,
+    image_url: str,
+    transcription: str,
+    model: str,
+    praat_metrics: dict,
+) -> dict:
+    """Persist a server-owned stable-analysis result.
+
+    This is intentionally separate from ``save_audio_record``: browser
+    clients may still save legacy practice records, but cannot set this
+    route's verification provenance fields.
+    """
+    with connect_db() as db:
+        # ``attempt_id`` has no database uniqueness constraint.  The advisory
+        # lock makes a same-student retry atomic without broadening schema
+        # scope, including when the first request has not inserted a row yet.
+        # Lock by the idempotency key alone, not by student, so two different
+        # identities cannot race to claim the same attempt id.
+        lock_key = f"verified-audio:{attempt_id}"
+        db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (lock_key,))
+        attempts = db.execute(
+            """
+            SELECT id, student_id, audio_sha256, server_verified_at, audio_url, praat_metrics
+            FROM audio_records
+            WHERE attempt_id = %s
+            ORDER BY server_verified_at DESC NULLS LAST, created_at DESC, id DESC
+            FOR UPDATE
+            """,
+            (attempt_id,),
+        ).fetchall()
+        if any(row.get("student_id") != student_id for row in attempts):
+            raise HTTPException(status_code=409, detail="Attempt already belongs to another student.")
+
+        existing = next((row for row in attempts if row.get("server_verified_at") is not None), None)
+        if existing is not None:
+            if existing.get("audio_sha256") != audio_sha256:
+                raise HTTPException(status_code=409, detail="Attempt ID was already used with different audio.")
+            return existing
+        if attempts:
+            # A legacy browser write already claimed this idempotency key, but
+            # its client-supplied metrics are not evidence. Do not append a
+            # second row under the same attempt or silently upgrade the old one.
+            raise HTTPException(status_code=409, detail="Attempt ID already exists without server verification.")
+
+        db.execute(
+            """
+            INSERT INTO audio_records (
+                id, timestamp, duration, transcription, model, topic_id, student_id,
+                image_url, image_index, audio_url, audio_name, praat_metrics,
+                attempt_id, server_verified_at, audio_sha256,
+                server_verification_version
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, NOW(), %s, %s
+            )
+            """,
+            (
+                record_id, datetime.datetime.now(datetime.timezone.utc).isoformat(), 0,
+                transcription, model, topic_id, student_id, image_url, scene_index,
+                audio_url, audio_name, Jsonb(praat_metrics), attempt_id,
+                audio_sha256, verification_version,
+            ),
+        )
+        return {
+            "id": record_id,
+            "audio_sha256": audio_sha256,
+            "server_verified_at": datetime.datetime.now(datetime.timezone.utc),
+            "audio_url": audio_url,
+            "praat_metrics": praat_metrics,
+        }
+
+
 MAX_VOCAB_DISTRACTORS_PER_WORD = 8
 
 
@@ -122,7 +204,7 @@ class GenerateModelVoiceRequest(BaseModel):
 
 
 class GenerateModelVoiceBulkRequest(BaseModel):
-    tiers: List[str] = ["easy", "medium", "hard"]
+    tiers: List[str] = ["easy"]
 
 
 class TTSRequest(BaseModel):
@@ -162,14 +244,8 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
         frame = dict(frame)
-        # Easy/Medium/Hard each carry their own image now — every tier's
-        # field is checked independently so replacing one tier's picture
-        # doesn't touch the others' uploaded files.
-        for field, suffix in (
-            ("imageUrl", ""),
-            ("imageUrlMedium", "-medium"),
-            ("imageUrlHard", "-hard"),
-        ):
+        # Stories carry a single image per frame.
+        for field, suffix in (("imageUrl", ""),):
             image_url = frame.get(field) or ""
             if image_url.startswith("data:image/"):
                 new_url = save_data_url_image(image_url, story_id, f"{index}{suffix}")
@@ -185,9 +261,8 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     return stored_frames
 
 
-# Field-name suffix per difficulty tier, matching routers/stories.py's
-# _TIER_SUFFIX convention (listenAudioUrl/listenAudioUrlMedium/listenAudioUrlHard).
-_AUDIO_TIER_SUFFIXES = ("", "Medium", "Hard")
+# Stories carry a single audio track per frame (listenAudioUrl).
+_AUDIO_TIER_SUFFIXES = ("",)
 
 
 def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
@@ -205,19 +280,25 @@ def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
         for suffix in _AUDIO_TIER_SUFFIXES:
             field = f"listenAudioUrl{suffix}"
             audio_url = frame.get(field) or ""
-            if not audio_url.startswith("data:audio/"):
-                continue
-
-            new_url = save_data_url_audio(audio_url, story_id, f"{index}{suffix.lower()}")
             old_url = old_frame.get(field, "") or ""
-            if old_url and old_url != new_url and old_url.startswith("/uploads/"):
-                remove_uploaded_file(old_url)
-            frame[field] = new_url
 
-            if new_url != old_url:
-                _refresh_scene_reference_curves(
-                    story_id, index - 1, frame, old_frame, suffix, new_url
-                )
+            if audio_url.startswith("data:audio/"):
+                new_url = save_data_url_audio(audio_url, story_id, f"{index}{suffix.lower()}")
+                if old_url and old_url != new_url and old_url.startswith("/uploads/"):
+                    remove_uploaded_file(old_url)
+                frame[field] = new_url
+
+                if new_url != old_url:
+                    _refresh_scene_reference_curves(
+                        story_id, index - 1, frame, old_frame, suffix, new_url
+                    )
+            elif not audio_url and old_url.startswith("/uploads/"):
+                # The teacher cleared this scene's audio (not replaced it) —
+                # without this, the old file stays orphaned on disk and the
+                # curves derived from it keep silently scoring students
+                # against a recording the UI no longer shows as present.
+                remove_uploaded_file(old_url)
+                _clear_scene_reference_curves(old_frame, frame, suffix)
         stored_frames.append(frame)
     return stored_frames
 
@@ -285,6 +366,24 @@ def _refresh_scene_reference_curves(
     frame[f"sentenceReferenceCurves{suffix}"] = json.dumps(
         sentence_curves, ensure_ascii=False
     )
+
+
+def _clear_scene_reference_curves(old_frame: dict, frame: dict, suffix: str) -> None:
+    """Drops a scene's cached per-word audio/curves when its model audio is
+    cleared rather than replaced — mirrors the cleanup half of
+    _refresh_scene_reference_curves, minus the re-derive step since there is
+    no new recording to derive from."""
+    try:
+        old_word_urls = json.loads(old_frame.get(f"vocabularyAudioUrls{suffix}") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        old_word_urls = []
+    for old_word_url in old_word_urls:
+        if isinstance(old_word_url, str):
+            remove_uploaded_file(old_word_url)
+
+    frame[f"vocabularyAudioUrls{suffix}"] = "[]"
+    frame[f"vocabularyReferenceCurves{suffix}"] = "[]"
+    frame[f"sentenceReferenceCurves{suffix}"] = "{}"
 
 
 def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:

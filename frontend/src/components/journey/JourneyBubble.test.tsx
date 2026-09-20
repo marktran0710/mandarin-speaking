@@ -109,13 +109,12 @@ describe("JourneyBubble", () => {
     }
   });
 
-  it("folds tier-suffixed stars onto the base story — best across tiers, never the sum", async () => {
-    // 2⭐ earned in a Medium-tier session, 1⭐ in the base (easy) session:
-    // the story's stars are 2 (best), not 3 (sum) — enough to clear the
-    // ⭐⭐ gate, so the bubble is the quiet dial showing 2.
+  it("reads a story's stars from its base id (no tier suffixes)", async () => {
+    // Stories run one level now — a story's stars come straight from its base
+    // id. 2⭐ clears the ⭐⭐ gate, so the bubble is the quiet dial showing 2.
     window.localStorage.setItem(
       "vocabQuizStars:student",
-      JSON.stringify({ "s-tiered": 1, "s-tiered-medium": 2 }),
+      JSON.stringify({ "s-tiered": 2 }),
     );
     try {
       render(

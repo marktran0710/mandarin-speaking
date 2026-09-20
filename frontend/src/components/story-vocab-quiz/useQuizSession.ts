@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  TIER_CONFIGS,
+  DIAGNOSTIC_ROUNDS,
   attemptEarnsStar,
   loadLocalStars,
   recordLocalStars,
@@ -12,31 +12,51 @@ import {
 import { planQuizSession } from "../../utils/quizSessionPlanner";
 import {
   canUseDatabase,
+  getVocabQuizReviewQueue,
   getVocabQuizWeakWords,
   listVocabQuizAttempts,
+  recordVocabQuizResponse,
+  type ReviewQueueItem,
   type VocabPriorityReviewWord,
 } from "../../services/database";
 import {
   TIMER_TICK_MS,
+  assessmentAnswerIsCorrect,
+  buildMaintenanceAssessmentQuestions,
+  buildDiagnosticRoundQuestions,
+  buildPersonalizedAssessmentQuestions,
   buildQuizQuestion,
   canUseSpeechSynthesis,
   quizConceptId,
   quizItemId,
   shuffle,
+  validateRoundCoverage,
   type VocabQuizEntry,
   type VocabQuizMode,
   type VocabQuizQuestion,
   type VocabQuizQuestionResult,
   type VocabQuizSummary,
 } from "./model";
+import { getStudentScopeKey } from "../../utils/studentSession";
+import {
+  buildLessonVocabularyProgress,
+  loadLessonProgressSnapshot,
+  saveLessonAttempt,
+  type LessonVocabularyProgress,
+} from "./lesson-vocab-progress";
+import type { VocabPriorityReviewResponse, VocabQuizAttempt } from "../../services/api/quiz-analytics";
+import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventName } from "../../utils/measurement";
 
-export type QuizScreen = "mode-select" | "quiz" | "review" | "summary";
+export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
 
 type UseQuizSessionProps = {
   entries: VocabQuizEntry[];
   storyId?: string;
   baseStoryId?: string;
-  level: "easy" | "medium" | "hard";
+  // Story text level. Stories are single-level now, so this is always "easy";
+  // kept as a field only as the fallback response level when a word has no
+  // published bank question (see resultLevel below).
+  level: "easy";
   studentId?: string;
   studentName?: string;
   onComplete?: (summary: VocabQuizSummary) => void;
@@ -51,7 +71,25 @@ export function correctAnswer(question: VocabQuizQuestion) {
     case "synonym": return question.correctSynonym;
     case "reverse":
     case "listening": return question.correctWord;
+    case "assessment": return question.correctAnswer;
   }
+}
+
+export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priorityReviewWords: VocabPriorityReviewWord[]): VocabQuizEntry[] {
+  return priorityReviewWords.flatMap((priorityWord) => {
+    const entry = entries.find((candidate) => candidate.wordId === priorityWord.wordId)
+      ?? entries.find((candidate) => candidate.word === priorityWord.word);
+    if (!entry) return [];
+    return priorityWord.seenQuestionTypes?.length || priorityWord.failedQuestionTypes?.length
+      ? [{
+        ...entry,
+        bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
+        bktFailedQuestionKinds: priorityWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
+        bktObservationCount: priorityWord.observationCount,
+        bktLastResponseAt: priorityWord.lastResponseAt,
+      }]
+      : [entry];
+  });
 }
 
 export function useQuizSession({
@@ -70,8 +108,30 @@ export function useQuizSession({
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
+  const quizIdRef = useRef<string | null>(null);
+  const attemptStartedAtRef = useRef<string | null>(null);
+  const plannedQuestionCountRef = useRef(0);
   const finishedRef = useRef(false);
   const [stars, setStars] = useState<0 | QuizTier>(() => storyId ? loadLocalStars(storyId) : 0);
+  const studentScope = studentId || studentName || getStudentScopeKey();
+  const [attempts, setAttempts] = useState<VocabQuizAttempt[]>(() => (
+    storyId ? loadLessonProgressSnapshot(studentScope, baseStoryId ?? storyId).attempts ?? [] : []
+  ));
+  const recordLessonEvent = (name: MeasurementEventName, properties: Record<string, string | number | boolean | null> = {}) => {
+    if (!storyId) return;
+    recordMeasurementEvent(createMeasurementEvent(name, {
+      studentId,
+      topicId: baseStoryId ?? storyId,
+      attemptId: quizIdRef.current,
+      properties,
+    }));
+  };
+
+  useEffect(() => {
+    recordLessonEvent("lesson_started", { totalWords: entries.length });
+    // This is a session-level event; quiz answer events are emitted below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyId, baseStoryId]);
 
   // starsReady/weakWordsReady: the mode-select screen used to mount
   // immediately with stars=0 and no "弱項複習 Weak words" card, then have
@@ -81,6 +141,9 @@ export function useQuizSession({
   // the same "load fully, then show" discipline used by App.tsx and
   // StoryRecorderRuntime.
   const [starsReady, setStarsReady] = useState(false);
+  const hasApprovedMaterial = entries.some(
+    (entry) => entry.bktValidationStatus === "APPROVED",
+  );
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
       setStarsReady(true);
@@ -88,51 +151,146 @@ export function useQuizSession({
     }
     let cancelled = false;
     listVocabQuizAttempts(storyId, { studentId, studentName })
-      .then((attempts) => {
+      .then((serverAttempts) => {
         if (!cancelled) {
-          const derived = starsFromAttempts(attempts);
+          // Once an approved assessment bank is attached to the story, old
+          // draft-material attempts must not mark the new CSV rounds as
+          // complete. Those attempts are intentionally excluded from BKT by
+          // the server as well, so using them for stars creates the misleading
+          // "all rounds complete, no weak words" state.
+          const progressAttempts = hasApprovedMaterial
+            ? serverAttempts.filter((attempt) =>
+              Boolean(
+                attempt.questionResults?.length &&
+                attempt.questionResults.every(
+                  (result) => result.bktValidationStatus === "APPROVED",
+                ),
+              ),
+            )
+            : serverAttempts;
+          const derived = starsFromAttempts(progressAttempts);
           // Keep the local mirror in sync with the database-derived result,
           // so the picker and recorder agree after a learner returns on this
           // device (including after completing a quiz elsewhere).
           if (derived !== 0) recordLocalStars(storyId, derived);
-          setStars((current) => derived > current ? derived : current);
+          // A successful database read is authoritative for this student and
+          // story. Do not keep a stale local max here: it can mark all rounds
+          // complete even when this learner has no passed round on the server.
+          setStars(derived);
+          setAttempts((localAttempts) => {
+            const serverIds = new Set(serverAttempts.map((attempt) => attempt.id));
+            return [...serverAttempts, ...localAttempts.filter((attempt) => !serverIds.has(attempt.id))];
+          });
         }
       })
       .catch(() => { /* localStorage stars still apply */ })
       .finally(() => { if (!cancelled) setStarsReady(true); });
     return () => { cancelled = true; };
-  }, [storyId, studentId, studentName]);
+  }, [hasApprovedMaterial, storyId, studentId, studentName]);
 
-  const [weakWords, setWeakWords] = useState<string[]>([]);
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
+  // Legacy flat weak-word list — a fallback for payloads that return only word
+  // strings (older data / the compatibility endpoint) without ranked
+  // priorityReview objects.
+  const [weakWords, setWeakWords] = useState<string[]>([]);
+  const [strongWords, setStrongWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [masteryWords, setMasteryWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [diagnosticComplete, setDiagnosticComplete] = useState<boolean | undefined>(undefined);
+  const [roundPresence, setRoundPresence] = useState<VocabPriorityReviewResponse["roundPresence"]>(undefined);
+  // Spaced-repetition maintenance reviews: words the SM-2 schedule says are due
+  // today (may include words that are already strong). Kept apart from weak words so
+  // the UI can label "ôn tập duy trì" separately from "từ cần luyện".
+  const [dueWords, setDueWords] = useState<ReviewQueueItem[]>([]);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
+  const refreshWeakWords = useCallback(async () => {
+    if (!storyId || !canUseDatabase()) return;
+    // Weak Words is a story-wide summary, so the API must receive the source
+    // story id and aggregate into one learner list.
+    const words = await getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName });
+    setPriorityReviewWords(words.priorityReview ?? []);
+    setWeakWords(Array.isArray(words) ? [...words] : []);
+    setMasteryWords(words.mastery ?? []);
+    setStrongWords((words.mastery ?? []).filter((word) => word.vocabularyState?.review.status === "STRONG" || word.status === "STRONG"));
+    const serverDiagnostic = words.diagnostic?.diagnosticComplete
+      ?? (words.diagnostic?.diagnostic?.status === "COMPLETE" ? true : words.diagnostic?.diagnostic?.status === "INCOMPLETE" ? false : undefined);
+    setDiagnosticComplete(serverDiagnostic);
+    setRoundPresence(words.diagnostic?.roundPresence);
+  }, [storyId, baseStoryId, studentId, studentName]);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
       setWeakWordsReady(true);
       return;
     }
     let cancelled = false;
-    // Weak Words is a story-wide summary. Medium/Hard topic ids are only
-    // presentation tiers, so the API must receive the source story id and
-    // aggregate every tier into one learner list.
-    getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName })
-      .then((words) => { if (!cancelled) { setWeakWords(words); setPriorityReviewWords(words.priorityReview ?? []); } })
+    refreshWeakWords()
       .catch(() => { /* the always-visible card falls back to its empty state */ })
       .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
-  }, [storyId, baseStoryId, studentId, studentName]);
+  }, [storyId, refreshWeakWords]);
+
+  // Due-review words (SM-2 schedule) load independently of the weak-word
+  // readiness gate — a slow or failed queue fetch must never delay the mode
+  // screen. Best-effort: empty on any error.
+  const refreshDueWords = useCallback(async () => {
+    if (!storyId || !studentId || !canUseDatabase()) {
+      setDueWords([]);
+      return;
+    }
+    const queue = await getVocabQuizReviewQueue(baseStoryId ?? storyId, studentId, { includeAllWeak: true });
+    setDueWords((queue.queue ?? []).filter((item) => item.reviewReason === "due"));
+  }, [storyId, baseStoryId, studentId]);
+  useEffect(() => {
+    let cancelled = false;
+    refreshDueWords().catch(() => { if (!cancelled) setDueWords([]); });
+    return () => { cancelled = true; };
+  }, [refreshDueWords]);
 
   const sessionReady = starsReady && weakWordsReady;
+  const lessonProgress: LessonVocabularyProgress = useMemo(() => buildLessonVocabularyProgress({
+    lessonId: baseStoryId ?? storyId ?? "lesson",
+    entries,
+    attempts,
+    mastery: masteryWords,
+    priorityReviewWords,
+    diagnosticComplete: diagnosticComplete === true,
+    roundPresence,
+    studentScope,
+  }), [attempts, baseStoryId, diagnosticComplete, entries, masteryWords, priorityReviewWords, roundPresence, storyId, studentScope]);
 
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
   const showFinishButton = mode === "free" && questionLimit === null;
-  const weakEntries = entries.filter((entry) => weakWords.includes(entry.word)).map((entry) => {
-    const reviewWord = priorityReviewWords.find((word) => word.word === entry.word);
-    return reviewWord?.seenQuestionTypes?.length
-      ? { ...entry, bktSeenQuestionKinds: reviewWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"] }
-      : entry;
-  });
+  // The API's wordId is the canonical concept identity. Display text is not:
+  // CSV rows may use variants such as "哪裡 / 哪兒", while the mastery ledger
+  // can return one normalized display form. Keep the text fallback for legacy
+  // stories that have no stable ids, but never let a display-form mismatch
+  // hide a real weak word from the actionable card.
+  // The API returns Bottom-K in final tie-broken order. Keep that order while
+  // joining it to local entries; filtering `entries` would silently reorder it.
+  // Fall back to the flat weak-word list for older payloads (and tests) that
+  // return only word strings without the ranked priorityReview objects.
+  const rankedWeakEntries = entriesInServerPriorityOrder(entries, priorityReviewWords);
+  const weakEntries = rankedWeakEntries.length > 0
+    ? rankedWeakEntries
+    : entries.filter((entry) => weakWords.includes(entry.word));
+  // Provisional review is server-selected before the three-round diagnostic
+  // unlocks the formal weak-word list. The client renders the server review
+  // status and rank; it does not recreate a BKT threshold locally.
+  const masteryByWordId = new Map(masteryWords.map((word) => [word.wordId, word] as const));
+  const masteryByWord = new Map(masteryWords.map((word) => [word.word, word] as const));
+  const interimReviewEntries = entries
+    .map((entry) => {
+      const mastery = (entry.wordId ? masteryByWordId.get(entry.wordId) : undefined) ?? masteryByWord.get(entry.word);
+      // A word leaves this list once its provisional mastery crosses the same
+      const reviewStatus = mastery?.vocabularyState?.review.status ?? mastery?.status;
+      const needsReview = reviewStatus === "PROVISIONAL_REVIEW" || reviewStatus === "NEEDS_PRACTICE";
+      return mastery && needsReview
+        ? { entry, reviewRank: mastery.reviewRank ?? Number.MAX_SAFE_INTEGER }
+        : null;
+    })
+    .filter((row): row is { entry: VocabQuizEntry; reviewRank: number } => row !== null)
+    .sort((a, b) => a.reviewRank - b.reviewRank)
+    .map((row) => row.entry);
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
   const timeLimitMs = tierConfigFromMode(mode)?.timeLimitMs ?? null;
@@ -147,10 +305,38 @@ export function useQuizSession({
         if (storyId) recordLocalStars(storyId, earned);
         setStars((current) => earned > current ? earned : current);
       }
-      onComplete?.({
+      const summary: VocabQuizSummary = {
         mode: mode!, totalQuestions: finalResults.length, correctCount,
         totalTimeMs: Date.now() - quizStartRef.current, questionResults: finalResults,
-      });
+      };
+      const attempt: VocabQuizAttempt = {
+        id: quizIdRef.current ?? `vocab-quiz-${Date.now()}`,
+        storyId: baseStoryId ?? storyId ?? "lesson",
+        studentName: studentName ?? "Student",
+        studentId,
+        mode: summary.mode,
+        level,
+        completedAt: new Date().toISOString(),
+        totalQuestions: summary.totalQuestions,
+        correctCount: summary.correctCount,
+        totalTimeMs: summary.totalTimeMs,
+        questionResults: summary.questionResults,
+      };
+      setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
+      saveLessonAttempt(studentScope, attempt.storyId, attempt);
+      const completedEvent = mode === "tier1"
+        ? "know_it_completed"
+        : mode === "tier2"
+          ? "say_it_completed"
+          : mode === "tier3"
+            ? "use_it_completed"
+            : mode === "weak_words"
+              ? "personalized_completed"
+              : mode === "challenge"
+                ? "challenge_completed"
+                : null;
+      if (completedEvent) recordLessonEvent(completedEvent, { correctCount, totalQuestions: finalResults.length });
+      onComplete?.(summary);
     }
     setScreen("summary");
   };
@@ -158,38 +344,64 @@ export function useQuizSession({
   const choose = (option: string) => {
     if (selected) return;
     const entry = roundEntries.find((candidate) => candidate.word === question.word);
-    const bktType = question.kind === "translation" || question.kind === "reverse" || question.kind === "listening";
     const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
+    const assessment = question.kind === "assessment" ? question.assessment : null;
+    // Assessment-backed lessons use the new three-dimension diagnostic
+    // contract. Legacy story snapshots have no validated assessment bank and
+    // continue through the existing planner for backward compatibility.
+    const diagnosticConfig = diagnosticMode && assessment ? DIAGNOSTIC_ROUNDS[mode] : null;
+    const bktType = diagnosticConfig && assessment
+      ? assessment.questionType === diagnosticConfig.questionKind
+      : question.kind === "translation" || question.kind === "reverse" || question.kind === "listening";
     const isBktEligible = Boolean(
-      !isRetryRound && level === "easy" && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
+      !isRetryRound && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
     );
     const bktEligibilityErrors = isBktEligible ? [] : [
-      ...(level !== "easy" ? ["NON_DIAGNOSTIC_LEVEL"] : []),
+      ...(diagnosticConfig && assessment && assessment.level !== diagnosticConfig.bankLevel ? ["ROUND_LEVEL_MISMATCH"] : []),
       ...(!diagnosticMode ? ["NON_DIAGNOSTIC_MODE"] : []),
       ...(!bktType ? ["UNSUPPORTED_BKT_QUESTION_TYPE"] : []),
       ...(entry?.bktValidationStatus !== "APPROVED" ? ["UNAPPROVED_RESEARCH_ITEM"] : []),
     ];
     const itemVersion = `${level}:v1`;
-    const itemId = quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind, itemVersion);
+    const resultLevel = assessment?.level ?? level;
+    const itemId = assessment?.questionId
+      ?? quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind, itemVersion);
+    // Weak-words/practice questions have no assessment bank, but the entry
+    // still carries the stable wordId the diagnostic recorded under. Prefer it
+    // over the normalized display text, otherwise practice answers accrue to a
+    // different concept id (e.g. "哪裡 / 哪兒" vs "MC1_003") and a weak word can
+    // never be relearned out of the list.
+    const conceptId = assessment?.wordId ?? entry?.wordId ?? quizConceptId(question.word);
+    const resultQuestionKind = assessment?.questionType ?? question.kind;
     const answer = correctAnswer(question);
-    const questionPrompt = question.kind === "cloze"
+    const activityType: VocabQuizQuestionResult["activityType"] = diagnosticConfig
+      ? "diagnostic"
+      : mode === "weak_words" ? "personalized_practice" : mode === "maintenance_review" ? "scheduled_maintenance" : mode === "challenge" ? "challenge" : "practice";
+    const questionPrompt = assessment?.prompt ?? (question.kind === "cloze"
       ? question.sentenceWithBlank
-      : question.kind === "reverse"
-        ? question.translation
-        : question.word;
+        : question.kind === "reverse"
+          ? question.translation
+          : question.word);
     const answeredAt = new Date().toISOString();
+    const quizId = quizIdRef.current ?? `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}`;
+    quizIdRef.current = quizId;
     setSelected(option);
-    setResults([...results, {
+    const nextResults = [...results, {
       word: question.word,
-      correct: option === answer,
+      correct: question.kind === "assessment"
+        ? assessmentAnswerIsCorrect(question, option)
+        : option === answer,
       timeMs: Date.now() - questionStartRef.current,
       itemId,
-      conceptId: quizConceptId(question.word), questionKind: question.kind, level,
+      conceptId, questionKind: resultQuestionKind, level: resultLevel,
+      roundType: diagnosticConfig?.roundType,
+      knowledgeDimension: diagnosticConfig?.knowledgeDimension,
+      activityType,
       baseStoryId: baseStoryId ?? storyId, itemVersion,
       isBktEligible,
       bktEligibilityErrors,
       diagnosticExposureId: diagnosticMode
-        ? `${baseStoryId ?? storyId ?? "unknown-story"}:${level}:${mode}:${itemId}`
+        ? `${baseStoryId ?? storyId ?? "unknown-story"}:${resultLevel}:${mode}:${itemId}`
         : undefined,
       assistedResponse: false,
       bktValidationStatus: entry?.bktValidationStatus,
@@ -200,7 +412,34 @@ export function useQuizSession({
       answeredAt,
       questionIndex: index,
       lessonId: baseStoryId ?? storyId,
-    }]);
+      // The response ledger uses this stable id to upsert the partial answer
+      // and the final attempt without counting the same answer twice.
+      quizId,
+    }];
+    setResults(nextResults);
+
+    // BKT evidence is recorded immediately after each eligible diagnostic
+    // answer. The list remains locked for speaking until all three tiers are
+    // complete, but Weak Words can now reflect the learner's latest answer.
+    const shouldRecordLearningResponse = isBktEligible || mode === "weak_words" || mode === "maintenance_review";
+    if (storyId && studentId && canUseDatabase() && shouldRecordLearningResponse) {
+      void recordVocabQuizResponse({
+        id: quizId,
+        storyId,
+        studentName: studentName ?? "Student",
+        studentId,
+        mode: mode!,
+        baseStoryId: baseStoryId ?? storyId,
+        level,
+        completedAt: attemptStartedAtRef.current ?? answeredAt,
+        totalQuestions: Math.max(1, plannedQuestionCountRef.current),
+        correctCount: nextResults.filter((result) => result.correct).length,
+        totalTimeMs: Date.now() - quizStartRef.current,
+        questionResults: nextResults,
+      })
+      .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
+        .catch(() => { /* final attempt persistence remains the fallback */ });
+    }
   };
 
   const next = () => {
@@ -234,23 +473,98 @@ export function useQuizSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, index, question?.kind]);
 
-  const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null) => {
+  const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
+    const startedEvent = picked === "tier1"
+      ? "know_it_started"
+      : picked === "tier2"
+        ? "say_it_started"
+        : picked === "tier3"
+          ? "use_it_started"
+          : picked === "weak_words"
+            ? "personalized_started"
+            : picked === "challenge"
+              ? "challenge_started"
+              : null;
+    if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
+    const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
+    if ((picked === "weak_words" || picked === "maintenance_review") && hasAssessmentBank) {
+      const questions = picked === "weak_words"
+        ? buildPersonalizedAssessmentQuestions(entriesForRound)
+        : buildMaintenanceAssessmentQuestions(entriesForRound);
+      plannedQuestionCountRef.current = questions.length;
+      setQuestions(questions);
+      setQuestionLimit(questions.length);
+      setRequestedQuestionCount(questions.length);
+      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      attemptStartedAtRef.current = new Date().toISOString();
+      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
+      return;
+    }
+    const importedQuestions = hasAssessmentBank && (picked === "tier1" || picked === "tier2" || picked === "tier3")
+      ? buildDiagnosticRoundQuestions(entriesForRound, picked)
+      : [];
+    if (importedQuestions.length > 0 && (picked === "tier1" || picked === "tier2" || picked === "tier3")) {
+      const coverage = validateRoundCoverage({ lessonVocabulary: entriesForRound, roundQuestions: importedQuestions });
+      if (!coverage.valid) throw new Error(`Diagnostic round coverage failed: ${coverage.errors.join(", ")}`);
+      const questions = importedQuestions.map((assessment) => ({
+        kind: "assessment" as const,
+        word: assessment.targetWord,
+        prompt: assessment.prompt,
+        options: assessment.options,
+        correctAnswer: assessment.correctAnswer,
+        acceptedAnswers: assessment.acceptedAnswers,
+        explanation: assessment.explanation,
+        assessment,
+        isAiGenerated: false as const,
+      }));
+      plannedQuestionCountRef.current = questions.length;
+      setQuestions(questions);
+      setQuestionLimit(questions.length);
+      setRequestedQuestionCount(questions.length);
+      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      attemptStartedAtRef.current = new Date().toISOString();
+      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
+      return;
+    }
     const requestedCount = limit ?? entriesForRound.length;
     const plan = planQuizSession(shuffle(entriesForRound), picked, requestedCount,
-      (entry, planMode, context) => buildQuizQuestion(entry, entriesForRound, planMode, context));
+      (entry, planMode, context) => buildQuizQuestion(entry, distractorPool, planMode, context));
+    plannedQuestionCountRef.current = plan.questions.length;
     setQuestions(plan.questions); setQuestionLimit(plan.questions.length); setRequestedQuestionCount(requestedCount);
+    quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    attemptStartedAtRef.current = new Date().toISOString();
     quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
   };
 
-  const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, TIER_CONFIGS[tierMode].questionCount); };
+  const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, entries.length); };
+  const showChallengeEntry = () => setScreen("challenge-entry");
+  const startChallenge = () => {
+    if (lessonProgress.challenge.attempts > 0) recordLessonEvent("challenge_retried", { attempt: lessonProgress.challenge.attempts + 1 });
+    setIsRetryRound(false); chooseMode("challenge", entries, entries.length);
+  };
   const practiceMissedWords = () => { setIsRetryRound(true); chooseMode("free", missedEntries, missedEntries.length); };
+  // Practice one specific word on demand — e.g. a strong word that dropped
+  // off the weak-word list but the learner still wants to review. Distractors
+  // are drawn from the whole lesson so a single-word round still forms real
+  // multiple-choice questions; the answer still feeds BKT, so getting it wrong
+  // pulls the word back into the weak-word list on its own.
+  const practiceWord = (target: VocabQuizEntry) => { setIsRetryRound(false); chooseMode("weak_words", [target], 1, entries); };
+  const returnToModes = () => {
+    setScreen("mode-select");
+    if (lessonProgress.lessonCompleted) recordLessonEvent("lesson_completed", { strongWords: lessonProgress.strongWords, remainingWords: lessonProgress.remainingWords });
+    // The attempt has been posted before the learner can leave the summary.
+    // Refresh here so the menu reflects that newly rebuilt BKT state without
+    // requiring a route reload or completion of the other diagnostic tiers.
+    void Promise.all([refreshWeakWords(), refreshDueWords()]).catch(() => { /* retain the last known menu state */ });
+  };
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, missedWords,
-    missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, practiceMissedWords, sessionReady,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
+    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
+    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord, returnToModes, sessionReady,
+    lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }

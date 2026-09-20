@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from "react";
 import { canUseDatabase, listCustomStories } from "../../services/database";
-import { loadCustomStories, storyHasTierContent } from "../../utils/teacherStories";
+import { loadCustomStories } from "../../utils/teacherStories";
 import { storyQuizExclusions } from "../../utils/quizExclusions";
 import { storyPendingApprovals } from "../../utils/quizPendingApprovals";
 import { groupStoriesByLesson, lessonKeyFor, pendingKeyFor } from "./model-core";
@@ -18,8 +18,7 @@ export function TeacherQuizReviewController({ jumpToLesson = null }: { jumpToLes
   const [dirtyByStory, setDirtyByStory] = useState<Record<string, boolean>>({});
   const [statusByStory, setStatusByStory] = useState<Record<string, SaveStatus>>({});
   const [importNoteByStory, setImportNoteByStory] = useState<Record<string, string>>({});
-  const [validationByStory, setValidationByStory] = useState<Record<string, QuizValidateResultItem[]>>({});
-  const [validateStatusByStory, setValidateStatusByStory] = useState<Record<string, ValidateStatus>>({});
+  const [uploadNoteByStory, setUploadNoteByStory] = useState<Record<string, string>>({});
   const [approveStatusByStory, setApproveStatusByStory] = useState<Record<string, ApproveStatus>>({});
   // Keyed by `${storyId}:${level}` (see pendingKeyFor) — approvals are
   // tier-specific, unlike exclusions above.
@@ -30,14 +29,10 @@ export function TeacherQuizReviewController({ jumpToLesson = null }: { jumpToLes
   const [addQuestionTarget, setAddQuestionTarget] = useState<AddQuestionTarget | null>(null);
   const [addQuestionDraft, setAddQuestionDraft] = useState<AddQuestionDraft | null>(null);
   const [addQuestionStatus, setAddQuestionStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [pendingCandidatesByStory, setPendingCandidatesByStory] = useState<Record<string, PendingCandidate[]>>({});
-  const [revealedCountByStory, setRevealedCountByStory] = useState<Record<string, number>>({});
-  const [generationGateNoteByStory, setGenerationGateNoteByStory] = useState<Record<string, string>>({});
-  const [generateStatusByStory, setGenerateStatusByStory] = useState<
-    Record<string, "idle" | "generating" | "revealing" | "applying" | "error">
-  >({});
   const importInputRef = useRef<HTMLInputElement>(null);
   const importTargetRef = useRef<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<string | null>(null);
 
   useEffect(() => {
     const local = loadCustomStories();
@@ -115,28 +110,20 @@ export function TeacherQuizReviewController({ jumpToLesson = null }: { jumpToLes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jumpToLesson?.nonce]);
 
-  // A validate pass is tier-specific (it checks that tier's material) — a
-  // leftover result from Easy would otherwise mislabel Medium's pools after
-  // switching, since both share the same word/kind/poolIndex lookup keys.
+  // Clear any prior edit state when the level changes.
   useEffect(() => {
-    setValidationByStory({});
     setEditTarget(null);
     setEditDraft(null);
   }, [level]);
 
   useEffect(() => {
     // Start focused on one story. Batch review remains an explicit choice,
-    // preventing a teacher from accidentally generating a large lesson-wide
-    // draft while they are inspecting a single story.
+    // preventing a teacher from accidentally uploading into the wrong
+    // lesson-wide selection while they are inspecting a single story.
     setStoryFilterId(currentGroup?.stories[0]?.id ?? "all");
   }, [lessonKey, currentGroup]);
 
-  const levels: StoryDifficultyLevel[] = useMemo(() => {
-    if (!currentGroup) return ["easy"];
-    const out: StoryDifficultyLevel[] = ["easy"];
-    if (currentGroup.stories.some((s) => storyHasTierContent(s, "medium"))) out.push("medium");
-    if (currentGroup.stories.some((s) => storyHasTierContent(s, "hard"))) out.push("hard");
-    return out;
-  }, [currentGroup]);
-  return <QuizReviewContext.Provider value={{ stories, setStories, lessonKey, setLessonKey, storyFilterId, setStoryFilterId, level, setLevel, exclusionsByStory, setExclusionsByStory, dirtyByStory, setDirtyByStory, statusByStory, setStatusByStory, importNoteByStory, setImportNoteByStory, validationByStory, setValidationByStory, validateStatusByStory, setValidateStatusByStory, approveStatusByStory, setApproveStatusByStory, pendingApprovalsByKey, setPendingApprovalsByKey, editTarget, setEditTarget, editDraft, setEditDraft, editStatus, setEditStatus, addQuestionTarget, setAddQuestionTarget, addQuestionDraft, setAddQuestionDraft, addQuestionStatus, setAddQuestionStatus, pendingCandidatesByStory, setPendingCandidatesByStory, revealedCountByStory, setRevealedCountByStory, generationGateNoteByStory, setGenerationGateNoteByStory, generateStatusByStory, setGenerateStatusByStory, importInputRef, importTargetRef, lessonGroups, currentGroup, levels }}><QuizReviewPageView /></QuizReviewContext.Provider>;
+  // Stories run a single text level; there is one review tier.
+  const levels: StoryDifficultyLevel[] = ["easy"];
+  return <QuizReviewContext.Provider value={{ stories, setStories, lessonKey, setLessonKey, storyFilterId, setStoryFilterId, level, setLevel, exclusionsByStory, setExclusionsByStory, dirtyByStory, setDirtyByStory, statusByStory, setStatusByStory, importNoteByStory, setImportNoteByStory, uploadNoteByStory, setUploadNoteByStory, approveStatusByStory, setApproveStatusByStory, pendingApprovalsByKey, setPendingApprovalsByKey, editTarget, setEditTarget, editDraft, setEditDraft, editStatus, setEditStatus, addQuestionTarget, setAddQuestionTarget, addQuestionDraft, setAddQuestionDraft, addQuestionStatus, setAddQuestionStatus, importInputRef, importTargetRef, uploadInputRef, uploadTargetRef, lessonGroups, currentGroup, levels }}><QuizReviewPageView /></QuizReviewContext.Provider>;
 }

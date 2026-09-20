@@ -44,7 +44,7 @@ describe("student integration flows", () => {
   it("keeps the learner workspace focused on the practice catalogue", () => {
     render(<StudentWorkspaceShell {...workspaceProps} />);
 
-    expect(screen.getByRole("heading", { name: /選一個生活情境/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Integration Student/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /課程/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /我的學習/ })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Ask teacher for help" })).not.toBeInTheDocument();

@@ -12,9 +12,19 @@ import "./StorySessionSidebar.css";
 
 export type SidebarSummaryStatus = "locked" | "available" | "active" | "done";
 
+type SessionPhase = {
+  key: "prepare" | "speak" | "feedback";
+  status: "active" | "done" | "upcoming";
+  onClick?: () => void;
+};
+
 interface StorySessionSidebarProps {
   topicName: string;
   onExit?: () => void;
+  /** Internal phase controls supplied by StoryRecorderRuntime. They are not
+   * rendered as a second navigation bar; they let the header back button
+   * return to the preceding layout within the current activity. */
+  phases?: SessionPhase[];
   /** Scene stops for the current story, shown as a horizontal strip once
    * practice has started. Empty/omitted hides it (e.g. on the Prepare
    * screen, before there is anything to navigate between). */
@@ -47,6 +57,7 @@ interface StorySessionSidebarProps {
 export default function StorySessionSidebar({
   topicName,
   onExit,
+  phases,
   journeyStops,
   helpPanel,
 }: StorySessionSidebarProps) {
@@ -71,6 +82,26 @@ export default function StorySessionSidebar({
   });
 
   const sceneCount = orderedJourneyStops?.length ?? 0;
+
+  const handleExit = () => {
+    const activePhase = phases?.find((phase) => phase.status === "active");
+    const previousPhaseKey =
+      activePhase?.key === "speak"
+        ? "prepare"
+        : activePhase?.key === "feedback"
+          ? "speak"
+          : null;
+    const previousPhase = previousPhaseKey
+      ? phases?.find((phase) => phase.key === previousPhaseKey)
+      : undefined;
+
+    if (previousPhase?.onClick) {
+      previousPhase.onClick();
+      return;
+    }
+
+    onExit?.();
+  };
 
   useEffect(() => {
     const scrollNode = sceneScrollRef.current;
@@ -135,10 +166,14 @@ export default function StorySessionSidebar({
           <button
             type="button"
             className="btn-story-exit"
-            onClick={onExit}
-            aria-label="Back to previous page"
+            onClick={handleExit}
           >
-            <StudentIcon name="arrow-left" size={17} />
+            {/* Was icon-only, relying on aria-label alone — every other exit
+                control in the vocab quiz (.btn-vocab-quiz-back) shows a
+                visible bilingual label next to its arrow. For A1-A2 readers
+                an arrow icon isn't self-explanatory; match that pattern. */}
+            <StudentIcon name="arrow-left" size={18} aria-hidden="true" />
+            <BiLabel zh="返回" pinyin="Fǎnhuí" en="Back" />
           </button>
         )}
         <span className="ssb-topic-icon" aria-hidden="true">

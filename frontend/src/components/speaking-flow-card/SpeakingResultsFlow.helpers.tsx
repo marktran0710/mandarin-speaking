@@ -37,21 +37,6 @@ import VoiceFeedbackReliabilityNotice, {
 import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";
 import { worstState, type AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
 import { shouldOfferRetry } from "../../utils/retryPolicy";
-import type { AnalysisVersion } from "../../utils/analysisVersion";
-export interface AnalysisRun {
-  version: AnalysisVersion;
-  schemaVersion: string;
-  status: "success" | "failed";
-  latencyMs: number;
-  result: PraatMetrics | null;
-  error?: string;
-}
-
-export interface ComparisonResult {
-  audioAttemptId: string;
-  comparisonGroupId?: string;
-  runs: Partial<Record<AnalysisVersion, AnalysisRun>>;
-}
 
 export interface PracticeTarget {
   /** Stable identity for the word-level record or an unmatched backend part. */
@@ -190,10 +175,6 @@ export interface SpeakingResultsFlowProps {
   /** How many focused retries this attempt has already used; caller-owned
    * (this component has no attempt-scoped state of its own). Defaults to 0. */
   assistiveRetriesUsed?: number;
-  analysisVersion?: AnalysisVersion;
-  comparison?: ComparisonResult | null;
-  /** Retained as an optional compatibility shape for previously stored
-   * analysis records; the student flow no longer populates or renders it. */
 }
 
 /** The results half of the Speaking step, as a guided mini-flow instead of

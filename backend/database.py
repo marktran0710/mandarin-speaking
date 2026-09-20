@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 from contextlib import contextmanager
 from typing import Iterator
@@ -122,6 +124,9 @@ def row_to_audio_record(row: dict) -> dict:
         "attemptId": row.get("attempt_id"),
         "attemptNumber": row.get("attempt_number"),
         "attemptType": row.get("attempt_type"),
+        "serverVerifiedAt": row.get("server_verified_at"),
+        "audioSha256": row.get("audio_sha256"),
+        "serverVerificationVersion": row.get("server_verification_version"),
     }
 
 
@@ -144,12 +149,15 @@ def row_to_story_submission(row: dict) -> dict:
 
 
 def row_to_custom_story(row: dict) -> dict:
+    vocab_assessment = row.get("vocab_assessment")
     return {
         "id": row["id"],
         "title": row["title"],
         "frames": row["frames"] or [],
         "storyVocabulary": row.get("story_vocabulary"),
         "storyPhrases": row.get("story_phrases"),
+        "vocabAssessment": vocab_assessment,
+        "vocabAssessmentRevision": vocab_assessment_revision(vocab_assessment),
         "published": bool(row["published"]),
         "lessonNumber": row["lesson_number"],
         "lessonSubOrder": row.get("lesson_sub_order"),
@@ -195,6 +203,14 @@ def row_to_vocab_quiz_attempt(row: dict) -> dict:
     }
 
 
+def vocab_assessment_revision(value: object) -> str | None:
+    """Return a deterministic revision for optimistic quiz-bank edits."""
+    if not isinstance(value, list):
+        return None
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def row_to_speaking_progress(row: dict) -> dict:
     return {
         "studentId": row["student_id"],
@@ -207,6 +223,8 @@ def row_to_speaking_progress(row: dict) -> dict:
         "contentPassed": row["content_passed"],
         "clearedWords": row["cleared_words"] or [],
         "latestResult": row.get("latest_result"),
+        "verifiedAudioRecordId": row.get("verified_audio_record_id"),
+        "progressionEligible": bool(row.get("verified_audio_record_id")),
         "updatedAt": row["updated_at"],
     }
 
@@ -217,7 +235,38 @@ def row_to_student(row: dict) -> dict:
         "name": row["name"],
         "createdAt": row["created_at"],
         "status": row.get("status") or "active",
+        "isTestAccount": bool(row.get("is_test_account")),
     }
+
+
+# Every table keyed by student_id, i.e. everything a deleted student's account
+# must not leave behind. There is no DB-level FK/cascade for these (students
+# rows predate most of them), so a student delete has to walk this list itself.
+STUDENT_OWNED_TABLES = (
+    "audio_records",
+    "bkt_model_student_folds",
+    "learning_measurement_events",
+    "speaking_progress",
+    "story_submissions",
+    "student_vocab_mastery",
+    "student_vocab_srs",
+    "student_vocab_srs_events",
+    "vocab_quiz_attempts",
+    "vocab_quiz_responses",
+)
+
+
+def delete_student_cascade(db, student_id: str) -> bool:
+    """Delete a student and every row owned by them, in one transaction.
+
+    Returns False (nothing deleted, nothing else touched) if the student
+    doesn't exist, so callers can 404 instead of reporting a false success.
+    """
+    for table in STUDENT_OWNED_TABLES:
+        db.execute(f"DELETE FROM {table} WHERE student_id = %s", (student_id,))  # noqa: S608 (table from a fixed internal tuple, not user input)
+    row = db.execute("DELETE FROM students WHERE id = %s RETURNING id", (student_id,)).fetchone()
+    return row is not None
+
 
 def row_to_teacher(row: dict) -> dict:
     return {"id": row["id"], "name": row["name"], "createdAt": row["created_at"], "status": row["status"]}

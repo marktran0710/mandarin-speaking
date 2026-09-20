@@ -7,6 +7,7 @@ import "./StudentLoginPage.css";
 import { loginStudent } from "../services/database";
 import { signIn } from "../utils/session";
 import StudentIcon from "../components/StudentIcon";
+import SourceAttribution from "../components/SourceAttribution";
 
 /** Dedicated student sign-in. Student accounts are provisioned by an admin;
  * the public student portal never creates roster accounts. */
@@ -175,6 +176,7 @@ export default function StudentLoginPage({
           </form>
         </div>
       </section>
+      <SourceAttribution />
     </main>
   );
 }

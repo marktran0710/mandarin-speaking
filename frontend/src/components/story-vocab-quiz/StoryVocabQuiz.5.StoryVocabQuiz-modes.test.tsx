@@ -97,10 +97,10 @@ describe("StoryVocabQuiz modes", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    expect(screen.getByRole("button", { name: /Tier 1/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Round 1/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Context/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Word list/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
   });
@@ -110,7 +110,7 @@ describe("StoryVocabQuiz modes", () => {
 
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
   });
 
@@ -119,7 +119,7 @@ describe("StoryVocabQuiz modes", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Review/ }));
+    await user.click(screen.getByRole("button", { name: /Word list/ }));
 
     const list = screen.getByRole("list", { name: "Vocabulary list" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(entries.length);
@@ -129,21 +129,32 @@ describe("StoryVocabQuiz modes", () => {
     }
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Back to modes/ }));
-    expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
+    // Returning to the menu is the app header's exit arrow (owned by
+    // StoryRecorderRuntime, not this component). On a sub-screen the quiz
+    // intercepts that click and steps up to the menu instead of exiting.
+    const exitArrow = document.createElement("button");
+    exitArrow.className = "btn-story-exit";
+    document.body.appendChild(exitArrow);
+    await user.click(exitArrow);
+    expect(screen.getByRole("button", { name: /Word list/ })).toBeInTheDocument();
+    exitArrow.remove();
   });
 
   it("tier 3 shows a live countdown of seconds remaining", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
     localStorage.clear();
     recordLocalStars("s-timer", 2);
+    vi.mocked(database.listVocabQuizAttempts).mockResolvedValue([
+      { id: "round-1", storyId: "s-timer", studentName: "Student", mode: "tier1", completedAt: "2026-01-01T00:00:00Z", totalQuestions: 20, correctCount: 20, totalTimeMs: 0, questionResults: [] },
+      { id: "round-2", storyId: "s-timer", studentName: "Student", mode: "tier2", completedAt: "2026-01-01T00:01:00Z", totalQuestions: 22, correctCount: 22, totalTimeMs: 0, questionResults: [] },
+    ]);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-timer" />);
     // Settle the initial data-load gate on real timers first — testing-
     // library's polling can't progress once fake timers replace setTimeout.
     await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Context/ }));
       expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {
@@ -161,51 +172,42 @@ describe("StoryVocabQuiz modes", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     expect(screen.queryByLabelText(/seconds left/)).not.toBeInTheDocument();
   });
 
-  it("offers a missed-words retry after the run, scoped to only the words gotten wrong, and does not record it as a new attempt", async () => {
+  it("splits results into mastered vs keep-learning groups and no longer offers a missed-words retry", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const onDone = vi.fn();
     render(
-      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
-    // Answer every question wrong: all 5 distinct words land in "missed".
+    // Answer every question wrong: all 5 distinct words land in "keep learning".
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, false);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    const missedList = screen.getByRole("list", { name: "Missed words" });
-    expect(within(missedList).getAllByRole("listitem")).toHaveLength(5);
 
-    await user.click(screen.getByRole("button", { name: /Practice missed words/ }));
-
-    // Retry round: exactly the 5 missed words, no mode-select screen, and no
-    // Finish button (it's bounded, unlike the old Free mode's original round).
-    expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
-    for (let i = 0; i < 5; i += 1) {
-      await answerCurrentQuestion(user, true);
-      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+    // The redesigned results screen groups the round: every missed word is in
+    // the "keep learning" group, and nothing was mastered this round.
+    const keepGroup = screen.getByRole("region", { name: "Words to keep learning" });
+    for (const entry of entries) {
+      expect(within(keepGroup).getByText(entry.word)).toBeInTheDocument();
     }
+    expect(screen.queryByRole("region", { name: "Strong words" })).not.toBeInTheDocument();
 
-    // Retry round completing must not fire a second onComplete/attempt, and
-    // its own results screen must not offer yet another retry.
-    expect(onComplete).toHaveBeenCalledTimes(1);
+    // The old missed-words retry button is gone by design; the only exit is
+    // back to the three-round page.
     expect(screen.queryByRole("button", { name: /Practice missed words/ })).not.toBeInTheDocument();
-
-    // A retry reinforces the words but does not earn a star or bypass the
-    // three-star speaking gate.
-    expect(screen.getByRole("button", { name: /Back to menu/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to rounds/i })).toBeInTheDocument();
     expect(onDone).not.toHaveBeenCalled();
   });
 });
-

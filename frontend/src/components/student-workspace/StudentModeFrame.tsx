@@ -10,14 +10,19 @@ export const STUDENT_WORKSPACE_VIEWS: Array<{
   label: { zh: string; pinyin: string; en: string };
 }> = [
   {
+    // zh/en must agree with every other place these two phrases appear
+    // (TopicSelector's "課程完成 / Lessons complete", Navigation's and
+    // MyStoriesPage's "我的學習 / My learning") — a bilingual learner reading
+    // 課程 as "Practice" here and "Lessons" one screen later, for the exact
+    // same characters, undermines the vocabulary the app is teaching them.
     id: "practice",
     icon: "image",
-    label: { zh: "課程", pinyin: "Kèchéng", en: "Practice" },
+    label: { zh: "課程", pinyin: "Kèchéng", en: "Lessons" },
   },
   {
     id: "progress",
     icon: "chart",
-    label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" },
+    label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "My learning" },
   },
 ];
 
@@ -33,6 +38,8 @@ interface StudentModeFrameProps {
   className?: string;
   /** Resets the workspace panel when its view or activity boundary changes. */
   panelScrollKey?: string | number;
+  onOpenPlacementTest?: () => void;
+  placementTestActive?: boolean;
 }
 
 /** Shared student shell for both workspace views and standalone student tools. */
@@ -47,6 +54,8 @@ export default function StudentModeFrame({
   ariaLabel,
   className = "",
   panelScrollKey,
+  onOpenPlacementTest,
+  placementTestActive,
 }: StudentModeFrameProps) {
   const panelRef = useRef<HTMLElement>(null);
 
@@ -55,26 +64,31 @@ export default function StudentModeFrame({
   }, [panelScrollKey]);
 
   return (
-    <main className={`student-workspace student-workspace-v2 ${className}`.trim()}>
-      <StudentSidebar
-        views={STUDENT_WORKSPACE_VIEWS}
-        activeView={activeView}
-        onChange={onChange}
-        studentName={studentName}
-        onLogout={onLogout}
-        totalStars={totalStars}
-        maxStars={maxStars}
-      />
-      <section
-        id="student-workspace-panel"
-        ref={panelRef}
-        className="student-workspace-content student-workspace-content-v2"
-        tabIndex={-1}
-        aria-label={ariaLabel}
-        aria-live="polite"
-      >
-        {children}
-      </section>
-    </main>
+    <>
+      <a className="student-skip-link" href="#student-workspace-panel">Skip to learning content</a>
+      <div className={`student-workspace student-workspace-v2 ${className}`.trim()}>
+        <StudentSidebar
+          views={STUDENT_WORKSPACE_VIEWS}
+          activeView={activeView}
+          onChange={onChange}
+          studentName={studentName}
+          onLogout={onLogout}
+          totalStars={totalStars}
+          maxStars={maxStars}
+          onOpenPlacementTest={onOpenPlacementTest}
+          placementTestActive={placementTestActive}
+        />
+        <main
+          id="student-workspace-panel"
+          ref={panelRef}
+          className="student-workspace-content student-workspace-content-v2"
+          tabIndex={-1}
+          aria-label={ariaLabel}
+          aria-live="polite"
+        >
+          {children}
+        </main>
+      </div>
+    </>
   );
 }

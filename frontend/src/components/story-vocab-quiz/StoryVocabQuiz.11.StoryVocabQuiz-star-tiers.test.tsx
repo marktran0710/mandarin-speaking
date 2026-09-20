@@ -34,8 +34,13 @@ vi.mock("../../services/database", async (importOriginal) => {
 const FORCE_TRANSLATION = 0;
 const FORCE_LAST_AVAILABLE_KIND = 0.999;
 
+function useLocalProgressOnly() {
+  vi.mocked(database.canUseDatabase).mockReturnValue(false);
+}
+
 beforeEach(() => {
   vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+  vi.mocked(database.canUseDatabase).mockReturnValue(true);
   // The component now actually awaits listVocabQuizAttempts on every mount
   // (previously it fired the call but didn't block on it, so a
   // mockResolvedValueOnce a test queued and never triggered could sit
@@ -106,20 +111,21 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    expect(screen.getByRole("button", { name: /Tier 1/ })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Review/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Round 1/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Word list/ })).toBeEnabled();
   });
 
   it("unlocks tier 2 (but not 3) once the story has 1 star recorded locally", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 1);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeEnabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
   });
 
   it("mirrors a database-derived three-star result locally for the next activity view", async () => {
@@ -134,7 +140,54 @@ describe("StoryVocabQuiz star tiers", () => {
 
     const { loadLocalStars } = await import("../../utils/quizTiers");
     await waitFor(() => expect(loadLocalStars("s1")).toBe(3));
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeEnabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeEnabled();
+  });
+
+  it("does not let stale local stars mark rounds complete after an authoritative empty database result", async () => {
+    const { recordLocalStars } = await import("../../utils/quizTiers");
+    recordLocalStars("s1", 3);
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Round 1/ })).not.toHaveClass("is-earned");
+    });
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
+  });
+
+  it("does not count legacy draft attempts after approved assessment material is attached", async () => {
+    vi.mocked(database.listVocabQuizAttempts).mockResolvedValueOnce([
+      {
+        mode: "tier1",
+        correctCount: 20,
+        totalQuestions: 20,
+        questionResults: [{ bktValidationStatus: "DRAFT" }],
+      },
+      {
+        mode: "tier2",
+        correctCount: 22,
+        totalQuestions: 22,
+        questionResults: [{ bktValidationStatus: "DRAFT" }],
+      },
+      {
+        mode: "tier3",
+        correctCount: 25,
+        totalQuestions: 25,
+        questionResults: [{ bktValidationStatus: "DRAFT" }],
+      },
+    ] as any);
+    const approvedEntries = entries.map((entry) => ({
+      ...entry,
+      bktValidationStatus: "APPROVED" as const,
+    }));
+
+    render(<StoryVocabQuiz entries={approvedEntries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+
+    expect(screen.getByRole("button", { name: /Round 1/ })).not.toHaveClass("is-earned");
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
   });
 
   it("keeps practice locked until the learner earns all three stars", async () => {
@@ -146,7 +199,7 @@ describe("StoryVocabQuiz star tiers", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
     await playTierRun(user, 5, 5);
 
@@ -159,10 +212,10 @@ describe("StoryVocabQuiz star tiers", () => {
     const { loadLocalStars } = await import("../../utils/quizTiers");
     expect(loadLocalStars("s1")).toBe(1);
 
-    // One star isn't enough for practice yet — the summary celebrates and
-    // dangles tier 2 as the way in.
+    // One star isn't enough for speaking practice yet — the summary points
+    // directly to the next vocabulary round.
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
     await playTierRun(user, 5, 5);
 
@@ -171,7 +224,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 3/ }));
+      await user.click(screen.getByRole("button", { name: /Continue to Context/ }));
     await playTierRun(user, 5, 5);
 
     expect(loadLocalStars("s1")).toBe(3);
@@ -187,7 +240,7 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     await playTierRun(user, 5, 3);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -196,7 +249,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
     // A quiet exit back to the tier ladder exists so the student is never
     // trapped between retrying and nothing.
-    expect(screen.getByRole("button", { name: /Back to menu/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to rounds/i })).toBeInTheDocument();
 
     // Try again immediately restarts the same tier as a fresh scored run.
     await user.click(screen.getByRole("button", { name: /Try again/ }));
@@ -206,11 +259,11 @@ describe("StoryVocabQuiz star tiers", () => {
   it("does not let a legacy completion flag bypass the three-star requirement", async () => {
     const user = userEvent.setup();
     render(
-      <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" alreadyCompleted />,
+      <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     await playTierRun(user, 5, 0);
 
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
@@ -218,6 +271,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 3 runs against a 150-second overall countdown and ends at the cap", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 2);
     const onComplete = vi.fn();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
@@ -227,7 +281,7 @@ describe("StoryVocabQuiz star tiers", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
+        fireEvent.click(screen.getByRole("button", { name: /Context/ }));
       expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {
@@ -242,6 +296,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 1 ignores AI translation distractors while tier 2 uses them", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     const user = userEvent.setup();
     const aiEntries = entries.map((e) => ({
       ...e,
@@ -250,7 +305,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     const { unmount } = render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     for (const button of optionButtons()) {
       expect(button.textContent).not.toMatch(/ai-trap/);
     }
@@ -259,12 +314,13 @@ describe("StoryVocabQuiz star tiers", () => {
     recordLocalStars("s1", 1);
     render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
     expect(optionButtons().some((b) => /ai-trap/.test(b.textContent ?? ""))).toBe(true);
   });
 
   it("tier 2 pinyin questions use tone-trap distractors (same syllables, different tone)", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 1);
     // A single entry leaves pinyin as the last available kind at tier 2.
     vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
@@ -278,7 +334,7 @@ describe("StoryVocabQuiz star tiers", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
     const options = optionButtons().map((b) => b.textContent);
     expect(options.length).toBeGreaterThan(1);
     const strip = (s: string) => s.normalize("NFD").replace(/\p{Mn}/gu, "");
@@ -289,6 +345,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 2 listening questions speak the word and are answered by picking the heard word", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 1);
     const speak = vi.fn();
     vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });
@@ -318,7 +375,7 @@ describe("StoryVocabQuiz star tiers", () => {
       );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-      await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+      await user.click(screen.getByRole("button", { name: /Round 2/ }));
       // The planner keeps future Chinese-word answers out of earlier
       // options, so the first item is pinyin; listening becomes safe once
       // that first concept has already been tested.
@@ -346,7 +403,7 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     const firstWord = screen.getByRole("heading").textContent!;
     await user.click(
       screen.getByRole("button", {

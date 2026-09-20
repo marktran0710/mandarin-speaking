@@ -34,7 +34,7 @@
 /* Login belongs to the student journey but stays flat and quiet: one card,
    one CTA, one clear next step, with no decorative background treatment. */
 .student-app .login-page.student .login-shell {
-  min-height: calc(100vh - var(--navbar-height));
+  min-height: max(0px, calc(100dvh - var(--navbar-height)));
   padding: var(--space-2xl) var(--content-gutter);
   background: transparent;
 }
@@ -103,5 +103,4 @@
     padding: var(--space-xl) var(--space-sm);
   }
 }
-
 

@@ -23,6 +23,7 @@ JSONB_COLUMNS = [
     ("custom_stories", "frames"),
     ("custom_stories", "quiz_exclusions"),
     ("custom_stories", "quiz_material_snapshot"),
+    ("custom_stories", "vocab_assessment"),
     ("story_submissions", "scenes"),
     ("story_submissions", "story_feedback"),
     ("vocab_quiz_attempts", "question_results"),
@@ -35,6 +36,13 @@ BOOLEAN_COLUMNS = [
     ("custom_stories", "published"),
     ("speaking_progress", "mastery_passed"),
     ("speaking_progress", "content_passed"),
+]
+
+LINKAGE_COLUMNS = [
+    ("audio_records", "server_verified_at"),
+    ("audio_records", "audio_sha256"),
+    ("audio_records", "server_verification_version"),
+    ("speaking_progress", "verified_audio_record_id"),
 ]
 
 REMOVED_CUSTOM_STORY_COLUMNS = (
@@ -79,6 +87,17 @@ def test_flag_columns_are_boolean(conn, table, column):
     ).fetchone()
     assert row is not None, f"{table}.{column} is missing"
     assert row[0] == "boolean"
+
+
+@pytest.mark.parametrize("table,column", LINKAGE_COLUMNS)
+def test_verified_linkage_columns_exist_and_are_nullable(conn, table, column):
+    row = conn.execute(
+        "SELECT is_nullable FROM information_schema.columns "
+        "WHERE table_name = %s AND column_name = %s",
+        (table, column),
+    ).fetchone()
+    assert row is not None, f"{table}.{column} is missing"
+    assert row[0] == "YES"
 
 
 def test_removed_custom_story_metadata_is_absent(conn):

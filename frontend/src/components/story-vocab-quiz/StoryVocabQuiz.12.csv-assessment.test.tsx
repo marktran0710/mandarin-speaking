@@ -1,0 +1,141 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import StoryVocabQuiz from "./StoryVocabQuiz";
+
+vi.mock("../../services/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../services/database")>();
+  return {
+    ...actual,
+    canUseDatabase: vi.fn(() => false),
+  };
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("CSV vocabulary assessment flow", () => {
+  it("runs each CSV level as its own round and attempt", async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+    const entries = [{
+      word: "哪裡 / 哪兒",
+      translation: "where",
+      wordId: "MC1_003",
+      pinyin: "nǎlǐ / nǎr",
+      pos: "N",
+      bktValidationStatus: "APPROVED" as const,
+      assessmentQuestions: [
+        {
+          questionId: "MC1_003_EASY", wordId: "MC1_003", targetWord: "哪裡 / 哪兒",
+          pinyin: "nǎlǐ / nǎr", pos: "N", simpleEnglishMeaning: "where", level: "easy" as const,
+          difficultyWeight: 1 as const, questionType: "basic_meaning_mcq" as const,
+          answerFormat: "single_choice" as const, prompt: "Which Chinese word means “where”?",
+          options: ["哪裡 / 哪兒", "那裡 / 那兒", "這裡 / 這兒", "有空"], correctAnswer: "哪裡 / 哪兒",
+          acceptedAnswers: ["哪裡 / 哪兒"], explanation: "哪裡 or 哪兒 means where.",
+        },
+        {
+          questionId: "MC1_003_MEDIUM", wordId: "MC1_003", targetWord: "哪裡 / 哪兒",
+          pinyin: "nǎlǐ / nǎr", pos: "N", simpleEnglishMeaning: "where", level: "medium" as const,
+          difficultyWeight: 2 as const, questionType: "context_cloze_mcq" as const,
+          answerFormat: "single_choice" as const, prompt: "我的錢包在____？ (Where is my wallet?)",
+          options: ["哪裡", "那裡", "這裡", "半"], correctAnswer: "哪裡",
+          acceptedAnswers: ["哪裡"], explanation: "哪裡 asks about an unknown place.",
+        },
+        {
+          questionId: "MC1_003_HARD", wordId: "MC1_003", targetWord: "哪裡 / 哪兒",
+          pinyin: "nǎlǐ / nǎr", pos: "N", simpleEnglishMeaning: "where", level: "hard" as const,
+          difficultyWeight: 3 as const, questionType: "productive_recall" as const,
+          answerFormat: "free_text" as const, prompt: "我的錢包在____？\nWhere is my wallet?",
+          options: [], correctAnswer: "哪裡", acceptedAnswers: ["哪裡", "哪兒"],
+          explanation: "Both 哪裡 and 哪兒 are accepted for where.",
+        },
+      ],
+    }];
+
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} />);
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
+    await user.click(screen.getByRole("button", { name: "哪裡 / 哪兒" }));
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete.mock.calls[0][0].mode).toBe("tier1");
+    expect(onComplete.mock.calls[0][0].questionResults[0].level).toBe("easy");
+
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
+    await user.type(screen.getByRole("textbox", { name: "Your answer" }), "nǎlǐ");
+    await user.click(screen.getByRole("button", { name: /Check answer/ }));
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+    expect(onComplete).toHaveBeenCalledTimes(2);
+    expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
+    expect(onComplete.mock.calls[1][0].questionResults[0].level).toBe("medium");
+
+      await user.click(screen.getByRole("button", { name: /Continue to Context/ }));
+    await user.click(screen.getByRole("button", { name: "哪裡" }));
+    expect(screen.getByText("Correct!")).toBeInTheDocument();
+    expect(screen.getByText(/Both 哪裡 and 哪兒 are accepted/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+    expect(onComplete).toHaveBeenCalledTimes(3);
+    const summaries = onComplete.mock.calls.map(([summary]) => summary);
+    expect(summaries.map((summary) => summary.mode)).toEqual(["tier1", "tier2", "tier3"]);
+    const results = summaries.map((summary) => summary.questionResults[0]);
+    expect(results.map((result) => result.level)).toEqual(["easy", "medium", "hard"]);
+    expect(results.map((result) => result.itemId)).toEqual([
+      "MC1_003:know_it:v1", "MC1_003:say_it:v1", "MC1_003:use_it:v1",
+    ]);
+    expect(results.map((result) => result.questionKind)).toEqual([
+      "basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq",
+    ]);
+    expect(results.every((result) => result.timeMs >= 0)).toBe(true);
+  });
+
+  it("keeps Round 2's typed-answer feedback visible when submitted with Enter, not just a click", async () => {
+    const user = userEvent.setup();
+    const entries = [{
+      word: "哪裡 / 哪兒",
+      translation: "where",
+      wordId: "MC1_003",
+      pinyin: "nǎlǐ / nǎr",
+      pos: "N",
+      bktValidationStatus: "APPROVED" as const,
+      assessmentQuestions: [
+        {
+          questionId: "MC1_003_EASY", wordId: "MC1_003", targetWord: "哪裡 / 哪兒",
+          pinyin: "nǎlǐ / nǎr", pos: "N", simpleEnglishMeaning: "where", level: "easy" as const,
+          difficultyWeight: 1 as const, questionType: "basic_meaning_mcq" as const,
+          answerFormat: "single_choice" as const, prompt: "Which Chinese word means “where”?",
+          options: ["哪裡 / 哪兒", "那裡 / 那兒", "這裡 / 這兒", "有空"], correctAnswer: "哪裡 / 哪兒",
+          acceptedAnswers: ["哪裡 / 哪兒"], explanation: "哪裡 or 哪兒 means where.",
+        },
+        {
+          questionId: "MC1_003_MEDIUM", wordId: "MC1_003", targetWord: "哪裡 / 哪兒",
+          pinyin: "nǎlǐ / nǎr", pos: "N", simpleEnglishMeaning: "where", level: "medium" as const,
+          difficultyWeight: 2 as const, questionType: "context_cloze_mcq" as const,
+          answerFormat: "single_choice" as const, prompt: "我的錢包在____？ (Where is my wallet?)",
+          options: ["哪裡", "那裡", "這裡", "半"], correctAnswer: "哪裡",
+          acceptedAnswers: ["哪裡"], explanation: "哪裡 asks about an unknown place.",
+        },
+        {
+          questionId: "MC1_003_HARD", wordId: "MC1_003", targetWord: "哪裡 / 哪兒",
+          pinyin: "nǎlǐ / nǎr", pos: "N", simpleEnglishMeaning: "where", level: "hard" as const,
+          difficultyWeight: 3 as const, questionType: "productive_recall" as const,
+          answerFormat: "free_text" as const, prompt: "我的錢包在____？\nWhere is my wallet?",
+          options: [], correctAnswer: "哪裡", acceptedAnswers: ["哪裡", "哪兒"],
+          explanation: "Both 哪裡 and 哪兒 are accepted for where.",
+        },
+      ],
+    }];
+
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
+    await user.click(screen.getByRole("button", { name: "哪裡 / 哪兒" }));
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
+
+    // Submitting via Enter used to move focus to "See results" fast enough
+    // that the same keypress activated it too, jumping straight to the round
+    // summary and skipping the feedback the learner is meant to read.
+    await user.type(screen.getByRole("textbox", { name: "Your answer" }), "nǎlǐ{Enter}");
+    expect(screen.getByText("Correct!")).toBeInTheDocument();
+    expect(screen.queryByText("Perfect score — nice work!")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /See results/ })).toBeInTheDocument();
+  });
+});

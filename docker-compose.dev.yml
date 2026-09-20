@@ -85,7 +85,6 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_PROXY_TARGET: http://backend:8000
-      VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS:-}
       VITE_OPEN_BROWSER: "false"
       CHOKIDAR_USEPOLLING: "true"
     volumes:

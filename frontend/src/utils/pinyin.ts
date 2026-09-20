@@ -80,13 +80,12 @@ function applySyllableTone(syllable: string): string {
   } else if (lower === "ou") {
     marked = TONE_MARKS.o[tone] + "u";
   } else {
-    for (const vowel of ["v", "ü", "u", "i", "o"]) {
-      const index = lower.lastIndexOf(vowel);
-      if (index < 0) continue;
-      const key = vowel === "ü" ? "v" : vowel;
-      marked = nucleus.slice(0, index) + TONE_MARKS[key][tone] + nucleus.slice(index + 1);
-      break;
-    }
+    // No a/e and not "ou": the tone mark falls on the LAST vowel of the
+    // cluster (ui→i, iu→u, uo→o). The earlier a/e/ou rules cover every case
+    // where the mark is not on the final vowel.
+    const index = nucleus.length - 1;
+    const key = lower[index] === "ü" ? "v" : lower[index];
+    marked = nucleus.slice(0, index) + TONE_MARKS[key][tone] + nucleus.slice(index + 1);
   }
   return onset + marked + coda;
 }

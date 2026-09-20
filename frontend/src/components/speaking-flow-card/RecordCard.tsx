@@ -18,7 +18,6 @@ export default function RecordCard({
 }) {
   const savedAudioLabelId = useId();
   const topicLabel = getTopicLabel(record.topicId);
-  const isExperimental = record.praatMetrics?.analysis_version === "phoneme_tone_v2";
   const feedbackReliability = record.praatMetrics
     ? assessVoiceFeedbackReliability({
         feedbackQuality: record.praatMetrics.feedback_quality,
@@ -58,12 +57,6 @@ export default function RecordCard({
       </div>
 
       <div className="story-content">
-        {isExperimental && (
-          <div className="experimental-analysis-panel" role="note">
-            <strong>Experimental V2 — analytics only</strong>
-            <p>This result is excluded from official progression and mastery calculations.</p>
-          </div>
-        )}
         {record.audioUrl && (
           <div className="saved-audio-player">
             <strong id={savedAudioLabelId}><BiLabel zh="已存的錄音" pinyin="Yǐ cún de lùyīn" en="Saved voice recording" /></strong>

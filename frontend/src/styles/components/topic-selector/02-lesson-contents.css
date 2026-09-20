@@ -402,15 +402,20 @@
   text-align: center;
 }
 
-.ts-tier-done { background: var(--jade); }
+.ts-tier-done { background: var(--jade-deep); }
 .ts-tier-done .bi-zh,
 .ts-tier-done .bi-en,
-.ts-tier-done svg { color: #fff; }
+.ts-tier-done svg { color: var(--clay-on-accent); }
+.ts-tier-done .bi-label {
+  --bi-pinyin-color: var(--clay-on-accent);
+  --bi-en-color: var(--clay-on-accent);
+}
 .ts-tier-open {
-  background: var(--seal-soft);
+  background: var(--gold-soft);
 }
 .ts-tier-open .bi-zh,
-.ts-tier-open svg { color: var(--seal-deep); }
+.ts-tier-open svg { color: var(--gold-deep); }
+.ts-tier-open .bi-label { --bi-en-color: var(--gold-deep); }
 .ts-tier-cell + .ts-tier-cell {
   border-left: 1px solid var(--clay-hairline);
 }

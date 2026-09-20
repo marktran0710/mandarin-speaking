@@ -66,6 +66,52 @@ def test_delete_student(admin_client):
     assert admin_client.get("/api/students").json() == []
 
 
+def test_delete_student_removes_related_data(admin_client):
+    from database import connect_db
+
+    created = admin_client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
+    student_id = created["id"]
+    with connect_db() as db:
+        db.execute(
+            "INSERT INTO audio_records (id, timestamp, duration, transcription, model, student_id)"
+            " VALUES (%s, %s, %s, %s, %s, %s)",
+            ("audio-1", "2026-01-01T00:00:00Z", 3, "hi", "whisper", student_id),
+        )
+        db.execute(
+            "INSERT INTO speaking_progress (id, student_id, topic_id, scene_index)"
+            " VALUES (%s, %s, %s, %s)",
+            ("progress-1", student_id, "topic-1", 0),
+        )
+
+    assert admin_client.delete(f"/api/students/{student_id}").json()["deleted"] is True
+
+    with connect_db() as db:
+        assert db.execute("SELECT id FROM audio_records WHERE student_id = %s", (student_id,)).fetchone() is None
+        assert db.execute(
+            "SELECT student_id FROM speaking_progress WHERE student_id = %s", (student_id,)
+        ).fetchone() is None
+
+
+def test_delete_unknown_student_is_404(admin_client):
+    assert admin_client.delete("/api/students/does-not-exist").status_code == 404
+
+
+def test_teacher_roster_excludes_test_accounts(admin_client, logged_in_teacher):
+    from database import connect_db
+
+    real = admin_client.post("/api/students", json={"name": "Real Student", "password": "long-password"}).json()
+    fake = admin_client.post("/api/students", json={"name": "Fake Student", "password": "long-password"}).json()
+    with connect_db() as db:
+        db.execute("UPDATE students SET is_test_account = TRUE WHERE id = %s", (fake["id"],))
+
+    teacher_client, _ = logged_in_teacher
+    teacher_names = [s["name"] for s in teacher_client.get("/api/students").json()]
+    assert teacher_names == ["Real Student"]
+
+    admin_names = [s["name"] for s in admin_client.get("/api/students").json()]
+    assert set(admin_names) == {"Real Student", "Fake Student"}
+
+
 def test_update_student_name_status_and_password(admin_client):
     client = admin_client
     created = client.post(

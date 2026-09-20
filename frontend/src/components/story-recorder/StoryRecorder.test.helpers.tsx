@@ -68,19 +68,27 @@ async function passTierRun(user: UserEvent, questionCount: number) {
  * tier-select screen is showing, then continues past the results screen.
  * Required to advance past a first-time locked-practice quiz. */
 async function completeVocabQuiz(user: UserEvent) {
-  const tierButton = screen.queryByRole("button", { name: /Tier 1/ });
+  const tierButton = screen.queryByRole("button", { name: /Round 1/ });
   if (!tierButton) return;
   await user.click(tierButton);
   await passTierRun(user, 20);
 
-  await user.click(await screen.findByRole("button", { name: /Challenge Tier 2/ }));
+  await user.click(await screen.findByRole("button", { name: /Continue to Round 2/ }));
   await passTierRun(user, 22);
 
-  await user.click(await screen.findByRole("button", { name: /Challenge Tier 3/ }));
+  await user.click(await screen.findByRole("button", { name: /Continue to Context/ }));
   await passTierRun(user, 25);
 
-  const continueButton = await screen.findByRole("button", { name: /Continue to practice/ });
-  await user.click(continueButton);
+  // The current results flow opens the lesson-progress menu after Round 3;
+  // the completion panel then exposes the final Finish action. Keep the
+  // helper tolerant of the legacy direct hand-off copy as well.
+  const progressButton = screen.queryByRole("button", { name: /See My Lesson Progress/ });
+  if (progressButton) {
+    await user.click(progressButton);
+    await user.click(await screen.findByRole("button", { name: /^Finish$/ }));
+  } else {
+    await user.click(await screen.findByRole("button", { name: /Continue to practice/ }));
+  }
 }
 
 vi.mock("../../PitchChart", () => ({

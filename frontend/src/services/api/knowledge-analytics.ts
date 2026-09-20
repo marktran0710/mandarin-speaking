@@ -10,7 +10,7 @@ export interface KnowledgeSkillState {
   successes: number;
   failures: number;
   lastSeenAt: string | null;
-  confidence: "low" | "medium" | "high";
+  evidenceDepth: "low" | "medium" | "high";
 }
 
 export interface KnowledgeStudentState {
@@ -19,8 +19,24 @@ export interface KnowledgeStudentState {
   skills: KnowledgeSkillState[];
 }
 
+export interface KnowledgeEvidenceCheck {
+  name: "training_records" | "evaluation_predictions" | "evaluation_positives" | "evaluation_negatives" | "students" | "concepts";
+  actual: number;
+  minimum: number;
+  passed: boolean;
+}
+
+export interface KnowledgeFitDiagnostics {
+  status: "success" | "failed" | "not_run";
+  optimizer: string;
+  message: string;
+  iterations: number;
+  objective: number | null;
+  finite: boolean;
+}
+
 export interface KnowledgeEvaluation {
-  status: "ready" | "insufficient_data";
+  status: "evidence_ready" | "insufficient_evidence" | "fit_failed";
   responseCount: number;
   predictionCount: number;
   positiveCount: number;
@@ -29,6 +45,8 @@ export interface KnowledgeEvaluation {
   brierScore: number | null;
   calibrationError: number | null;
   auc: number | null;
+  evidenceChecks: KnowledgeEvidenceCheck[];
+  fitDiagnostics: KnowledgeFitDiagnostics;
 }
 
 export interface KnowledgeDataQuality {
@@ -41,11 +59,14 @@ export interface KnowledgeDataQuality {
   attemptsWithoutId: number;
   invalidTimestampAttempts: number;
   skillCount: number;
+  studentCount: number;
+  conceptCount: number;
 }
 
 export interface KnowledgeModelResult {
   model: "pfa" | "bkt";
   modelVersion: string;
+  implementation: "restricted_pooled_baseline" | "pooled_bkt_pilot";
   parameters?: Record<string, number>;
   masteryInterpretation: "predicted_correct_probability" | "latent_mastery_probability";
   scope: { studentId: string | null; storyId: string | null; level: string | null };
@@ -63,7 +84,7 @@ export interface KnowledgeModelComparison {
     pfa: KnowledgeModelResult;
     bkt: KnowledgeModelResult;
   };
-  recommendedModel: "pfa" | "bkt" | null;
+  lowerLossSignal: "pfa" | "bkt" | "no_material_difference" | null;
 }
 
 export type KnowledgeAnalyticsResponse = KnowledgeModelResult | KnowledgeModelComparison;

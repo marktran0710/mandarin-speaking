@@ -13,15 +13,6 @@ import { getBackendUrl } from "../../config/runtimeEnv";
 
 export const BACKEND_URL = getBackendUrl();
 
-// How many phrases to ask the AI for per difficulty tier — a harder tier's
-// suggested-answer sentence is longer/more complex, so it naturally yields
-// more reusable phrase-level chunks.
-export const PHRASE_COUNT_BY_LEVEL: Record<StoryDifficultyLevel, number> = {
-  easy: 1,
-  medium: 2,
-  hard: 3,
-};
-
 export interface CustomStoryValidationErrors {
   title?: string;
   form?: string;
@@ -164,8 +155,6 @@ export type TieredDraftField =
 export function blankTiers(count: number): Record<StoryDifficultyLevel, string[]> {
   return {
     easy: new Array(count).fill(""),
-    medium: new Array(count).fill(""),
-    hard: new Array(count).fill(""),
   };
 }
 
@@ -176,12 +165,12 @@ export function blankStoryVocabulary(): StoryVocabularyByLevel {
     vocabularyPos: "",
     vocabularyTranslation: "",
   });
-  return { easy: blank(), medium: blank(), hard: blank() };
+  return { easy: blank() };
 }
 
 export function blankStoryPhrases(): StoryPhrasesByLevel {
   const blank = () => ({ phrases: "", phrasesTranslation: "" });
-  return { easy: blank(), medium: blank(), hard: blank() };
+  return { easy: blank() };
 }
 
 export const emptyCustomStoryDraft = {
@@ -201,8 +190,6 @@ export const emptyCustomStoryDraft = {
       "Revise the story with one clearer detail.",
       "Finish with a lesson or next step.",
     ],
-    medium: ["", "", "", "", "", ""],
-    hard: ["", "", "", "", "", ""],
   },
   vocabulary: blankTiers(6),
   vocabularyPinyin: blankTiers(6),

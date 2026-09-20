@@ -3,7 +3,13 @@ export interface VocabGroup {
   words: string[];
 }
 
-export type StoryDifficultyLevel = "easy" | "medium" | "hard";
+import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
+
+// Stories run a single text level. The old multi-level story-text system was
+// retired when the quiz moved to one vocabulary set + three rounds; this stays
+// a named type (rather than a bare "easy") so the level-keyed snapshot/diff
+// machinery keeps compiling on one canonical key.
+export type StoryDifficultyLevel = "easy";
 
 /** Learning content shared by every scene in a story tier. */
 export interface StoryVocabulary {
@@ -60,39 +66,6 @@ export interface CustomStoryFrame {
   vocabularyAudioUrls?: string;
   vocabularyReferenceCurves?: string;
   sentenceReferenceCurves?: string;
-  // Medium/Hard tiers of the same scene — progressively more complex text,
-  // and optionally their own image. Absent means that tier hasn't been
-  // authored yet.
-  imageUrlMedium?: string;
-  imageUrlHard?: string;
-  promptMedium?: string;
-  promptHard?: string;
-  vocabularyMedium?: string;
-  vocabularyHard?: string;
-  vocabularyPinyinMedium?: string;
-  vocabularyPinyinHard?: string;
-  vocabularyPosMedium?: string;
-  vocabularyPosHard?: string;
-  vocabularyTranslationMedium?: string;
-  vocabularyTranslationHard?: string;
-  phrasesMedium?: string;
-  phrasesHard?: string;
-  phrasesTranslationMedium?: string;
-  phrasesTranslationHard?: string;
-  suggestedAnswerMedium?: string;
-  suggestedAnswerHard?: string;
-  listenAudioUrlMedium?: string;
-  listenAudioUrlHard?: string;
-  listenAudioSourceMedium?: "teacher" | "tts";
-  listenAudioSourceHard?: "teacher" | "tts";
-  listenScriptMedium?: string;
-  listenScriptHard?: string;
-  vocabularyAudioUrlsMedium?: string;
-  vocabularyAudioUrlsHard?: string;
-  vocabularyReferenceCurvesMedium?: string;
-  vocabularyReferenceCurvesHard?: string;
-  sentenceReferenceCurvesMedium?: string;
-  sentenceReferenceCurvesHard?: string;
 }
 
 export interface CustomTeacherStory {
@@ -122,4 +95,5 @@ export interface CustomTeacherStory {
   /** Quiz Review's in-progress checkbox selections, keyed by tier — see
    * utils/quizPendingApprovals.ts. Not yet published; survives a reload. */
   quizPendingApprovals?: Record<string, unknown>;
+  vocabAssessment?: VocabAssessmentQuestion[];
 }

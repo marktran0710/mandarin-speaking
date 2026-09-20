@@ -374,8 +374,7 @@ upload volume as well as inserting the database rows. Local demo accounts use
 password `123456`. The seed never changes existing materials or account
 passwords by default. For a deliberate fixture/material replacement, add
 `--overwrite`.
-The image-heavy Lessons 6–8 script remains a separate specialist seed:
-`python -m scripts.seed_lessons_6_8`.
+The Lessons 5–8 story seed bundle and specialist image seed were retired and removed; only the remaining development lessons are seeded.
 
 No new Alembic migration is required for this recovery: the database schema is
 already at `0019 (head)`; materials are versioned application seed data.
@@ -490,8 +489,8 @@ or media downloads. The blueprint uses a paid persistent-disk web service and
 
 ### Advanced operations
 
-Migration, reset, testing, and troubleshooting details are kept in
-[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md). The Docker workflow above is the
+Migration, reset, testing, and troubleshooting details are in
+[Quick Start](#quick-start) above — the Docker workflow there is the
 supported path for a clean checkout.
 
 ### Environment variables
@@ -569,7 +568,7 @@ do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 If the backend is unavailable, run `docker compose -f docker-compose.dev.yml ps`
 and wait for `backend` to become `healthy`. Then check
 `http://127.0.0.1:8001/health/ready`. For other setup issues, see
-[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
+[Quick Start](#quick-start) above.
 
 ---
 

@@ -9,22 +9,23 @@ import "./styles/management-login.css";
 type ManagementRole = "teacher" | "admin";
 const ADMIN_KEY = "adminConsoleSession";
 
-export type ManagementSection = "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug";
+export type ManagementSection = "vocabulary" | "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug" | "bkt-debug";
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
-  teacherView?: "today" | "submissions" | "students" | "materials";
-  teacherMaterialsTool?: "builder" | "imageBuilder" | "quizReview";
-  adminNav?: "Admin Home" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
+  teacherView?: "today" | "submissions" | "students";
+  adminNav?: "Vocabulary" | "Admin Home" | "Materials" | "IRT / Student analytics" | "Measurement" | "Practice Debug" | "BKT Debug";
 }> = {
-  stories: { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTool: "builder" },
-  "quiz-review": { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTool: "quizReview" },
+  vocabulary: { requiredRole: "admin", adminNav: "Vocabulary" },
+  stories: { requiredRole: "admin", adminNav: "Materials" },
+  "quiz-review": { requiredRole: "admin", adminNav: "Materials" },
   submissions: { requiredRole: "teacher", teacherView: "submissions" },
   // Help requests live on Today now, so /manage/support lands there.
   support: { requiredRole: "teacher", teacherView: "today" },
   accounts: { requiredRole: "admin", adminNav: "Admin Home" },
   analytics: { requiredRole: "either", teacherView: "students", adminNav: "IRT / Student analytics" },
   "practice-debug": { requiredRole: "admin", adminNav: "Practice Debug" },
+  "bkt-debug": { requiredRole: "admin", adminNav: "BKT Debug" },
 };
 
 function AccessDenied({ role }: { role: ManagementRole }) {
@@ -105,7 +106,7 @@ export default function ManagementApp({ initialRole, initialSection }: { initial
     return <AccessDenied role={role} />;
   }
 
-  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} initialMaterialsTool={sectionConfig?.teacherMaterialsTool} />;
+  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} />;
   if (role === "admin") return <AdminApp embedded onExit={() => setRole(null)} initialNav={sectionConfig?.adminNav} />;
 
   if (loginRole === "teacher") {

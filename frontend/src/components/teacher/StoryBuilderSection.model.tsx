@@ -9,62 +9,20 @@ import type {
 import { buildPhraseRows, buildVocabRows } from "../../utils/myStoriesUtils";
 import { blankStoryPhrases, blankStoryVocabulary, emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
 
-const TIER_BACKEND_FIELD: Record<
-  TieredDraftField,
-  { easy: keyof CustomStoryFrame; medium: keyof CustomStoryFrame; hard: keyof CustomStoryFrame }
-> = {
-  imageUrls: { easy: "imageUrl", medium: "imageUrlMedium", hard: "imageUrlHard" },
-  prompts: { easy: "prompt", medium: "promptMedium", hard: "promptHard" },
-  vocabulary: { easy: "vocabulary", medium: "vocabularyMedium", hard: "vocabularyHard" },
-  vocabularyPinyin: {
-    easy: "vocabularyPinyin",
-    medium: "vocabularyPinyinMedium",
-    hard: "vocabularyPinyinHard",
-  },
-  vocabularyPos: { easy: "vocabularyPos", medium: "vocabularyPosMedium", hard: "vocabularyPosHard" },
-  vocabularyTranslation: {
-    easy: "vocabularyTranslation",
-    medium: "vocabularyTranslationMedium",
-    hard: "vocabularyTranslationHard",
-  },
-  phrases: { easy: "phrases", medium: "phrasesMedium", hard: "phrasesHard" },
-  phrasesTranslation: {
-    easy: "phrasesTranslation",
-    medium: "phrasesTranslationMedium",
-    hard: "phrasesTranslationHard",
-  },
-  suggestedAnswers: {
-    easy: "suggestedAnswer",
-    medium: "suggestedAnswerMedium",
-    hard: "suggestedAnswerHard",
-  },
-  listenAudioUrls: {
-    easy: "listenAudioUrl",
-    medium: "listenAudioUrlMedium",
-    hard: "listenAudioUrlHard",
-  },
-  listenAudioSources: {
-    easy: "listenAudioSource",
-    medium: "listenAudioSourceMedium",
-    hard: "listenAudioSourceHard",
-  },
-  listenScripts: { easy: "listenScript", medium: "listenScriptMedium", hard: "listenScriptHard" },
+const TIER_BACKEND_FIELD: Record<TieredDraftField, { easy: keyof CustomStoryFrame }> = {
+  imageUrls: { easy: "imageUrl" },
+  prompts: { easy: "prompt" },
+  vocabulary: { easy: "vocabulary" },
+  vocabularyPinyin: { easy: "vocabularyPinyin" },
+  vocabularyPos: { easy: "vocabularyPos" },
+  vocabularyTranslation: { easy: "vocabularyTranslation" },
+  phrases: { easy: "phrases" },
+  phrasesTranslation: { easy: "phrasesTranslation" },
+  suggestedAnswers: { easy: "suggestedAnswer" },
+  listenAudioUrls: { easy: "listenAudioUrl" },
+  listenAudioSources: { easy: "listenAudioSource" },
+  listenScripts: { easy: "listenScript" },
 };
-
-const TIERED_DRAFT_FIELDS: TieredDraftField[] = [
-  "imageUrls",
-  "prompts",
-  "vocabulary",
-  "vocabularyPinyin",
-  "vocabularyPos",
-  "vocabularyTranslation",
-  "phrases",
-  "phrasesTranslation",
-  "suggestedAnswers",
-  "listenAudioUrls",
-  "listenAudioSources",
-  "listenScripts",
-];
 
 export function createCustomStory(
   draft: typeof emptyCustomStoryDraft,
@@ -85,15 +43,7 @@ export function createCustomStory(
       if (draft.vocabularyDistractors[index]?.trim()) {
         frame.vocabularyDistractors = draft.vocabularyDistractors[index].trim();
       }
-      TIERED_DRAFT_FIELDS.forEach((field) => {
-        (["medium", "hard"] as const).forEach((level) => {
-          const value = draft[field][level][index]?.trim();
-          if (value) {
-            (frame as any)[TIER_BACKEND_FIELD[field][level]] = value;
-          }
-        });
-      });
-      // Easy's optional fields (beyond prompt/vocabulary, always present)
+      // Optional fields (beyond prompt/vocabulary, always present)
       if (draft.phrases.easy[index]?.trim()) frame.phrases = draft.phrases.easy[index].trim();
       if (draft.phrasesTranslation.easy[index]?.trim())
         frame.phrasesTranslation = draft.phrasesTranslation.easy[index].trim();
@@ -129,15 +79,14 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
 
   const aggregateVocabulary = (): StoryVocabularyByLevel => {
     const result = blankStoryVocabulary();
-    (['easy', 'medium', 'hard'] as const).forEach((level) => {
+    (['easy'] as const).forEach((level) => {
       const seen = new Set<string>();
       const rows = frames.flatMap((frame) => {
-        const suffix = level === 'easy' ? '' : level[0].toUpperCase() + level.slice(1);
         return buildVocabRows(
-          (frame?.[`vocabulary${suffix}`] as string | undefined) || '',
-          (frame?.[`vocabularyPinyin${suffix}`] as string | undefined) || '',
-          (frame?.[`vocabularyPos${suffix}`] as string | undefined) || '',
-          (frame?.[`vocabularyTranslation${suffix}`] as string | undefined) || '',
+          frame?.vocabulary || '',
+          frame?.vocabularyPinyin || '',
+          frame?.vocabularyPos || '',
+          frame?.vocabularyTranslation || '',
         );
       }).filter((row) => {
         const key = row.word.trim();
@@ -157,13 +106,12 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
 
   const aggregatePhrases = (): StoryPhrasesByLevel => {
     const result = blankStoryPhrases();
-    (['easy', 'medium', 'hard'] as const).forEach((level) => {
+    (['easy'] as const).forEach((level) => {
       const seen = new Set<string>();
       const rows = frames.flatMap((frame) => {
-        const suffix = level === 'easy' ? '' : level[0].toUpperCase() + level.slice(1);
         return buildPhraseRows(
-          (frame?.[`phrases${suffix}`] as string | undefined) || '',
-          (frame?.[`phrasesTranslation${suffix}`] as string | undefined) || '',
+          frame?.phrases || '',
+          frame?.phrasesTranslation || '',
         );
       }).filter((row) => {
         const key = row.phrase.trim();
@@ -182,7 +130,7 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
   const aggregatedVocabulary = aggregateVocabulary();
   const storyVocabulary = story.storyVocabulary
     ? (Object.fromEntries(
-        (['easy', 'medium', 'hard'] as const).map((level) => [
+        (['easy'] as const).map((level) => [
           level,
           { ...aggregatedVocabulary[level], ...(story.storyVocabulary?.[level] || {}) },
         ]),
@@ -191,7 +139,7 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
   const aggregatedPhrases = aggregatePhrases();
   const storyPhrases = story.storyPhrases
     ? (Object.fromEntries(
-        (['easy', 'medium', 'hard'] as const).map((level) => [
+        (['easy'] as const).map((level) => [
           level,
           { ...aggregatedPhrases[level], ...(story.storyPhrases?.[level] || {}) },
         ]),
@@ -210,8 +158,6 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
           field === "prompts" ? emptyCustomStoryDraft.prompts.easy[index] ?? "" : "";
         return value || fallback;
       }),
-      medium: frames.map((frame) => (frame?.[backendFields.medium] as string | undefined) || ""),
-      hard: frames.map((frame) => (frame?.[backendFields.hard] as string | undefined) || ""),
     };
   };
 

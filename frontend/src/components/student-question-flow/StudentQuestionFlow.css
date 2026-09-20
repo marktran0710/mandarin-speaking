@@ -1,0 +1,42 @@
+/* StudentQuestionFlow owns the DOM composition; this established quiz
+   stylesheet remains the single owner of the shared question geometry,
+   option states, progress rail, and responsive rules. */
+@import "../../styles/components/story-vocab-quiz/01-quiz-flow.css";
+
+/* The shell provides the available track. On desktop the active question
+   occupies that track and centers its task block between the status chrome
+   and the panel edge; this removes unexplained dead space without inventing a
+   viewport-height shell. Mobile returns to natural page flow. */
+.student-question-flow.story-vocab-quiz.vocab-quiz-question-screen {
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.student-question-flow.story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-content {
+  margin-block: auto;
+}
+
+@media (max-width: 900px) {
+  .student-question-flow.story-vocab-quiz.vocab-quiz-question-screen {
+    min-height: 0;
+  }
+
+  .student-question-flow.story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-content {
+    margin-block: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .student-question-flow .vocab-quiz-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .student-question-flow .vocab-quiz-actions,
+  .student-question-flow .btn-vocab-quiz-next {
+    width: 100%;
+  }
+
+  .student-question-flow .btn-vocab-quiz-next {
+    justify-content: center;
+  }
+}

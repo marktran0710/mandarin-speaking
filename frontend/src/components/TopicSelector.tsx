@@ -2,16 +2,15 @@ import { useEffect, useState } from "react";
 import {
   canUseDatabase,
   createCustomStory,
+  getVocabQuizReviewQueue,
   listCustomStories,
   listStorySubmissions,
 } from "../services/database";
-import { loadBestLocalStars, loadLocalStars, practiceUnlocked } from "../utils/quizTiers";
+import { loadLocalStars } from "../utils/quizTiers";
 import {
-  type StoryDifficultyLevel,
   loadCustomStories,
   loadPublishedTeacherTopics,
   saveCustomStories,
-  storyHasTierContent,
   storyToTopic,
 } from "../utils/teacherStories";
 import {
@@ -24,16 +23,13 @@ import {
   type LessonGroup,
 } from "../utils/lessonGroups";
 import {
-  isStoryLevelUnlocked,
-  loadSubmittedLevels,
   loadSubmittedStoryIds,
   mergeSubmittedStoryLevels,
 } from "../utils/storyLevelProgress";
-import { topicHasQuiz } from "../utils/topicQuiz";
-import { getStudentId, getStudentName, isAdminSession } from "../utils/studentSession";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
-import StudentIcon, { type StudentIconName } from "./StudentIcon";
+import StudentIcon from "./StudentIcon";
 import "./BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
@@ -54,39 +50,43 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
   return topic.vocabulary[imageIndex] || [];
 }
 
-const LEVEL_ICONS: Record<StoryDifficultyLevel, StudentIconName> = {
-  easy: "seedling",
-  medium: "sprout",
-  hard: "tree",
-};
-
-const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; en: string }> = {
-  easy: { zh: "簡單", en: "Easy" },
-  medium: { zh: "中等", en: "Medium" },
-  hard: { zh: "困難", en: "Hard" },
-};
-
-export default function TopicSelector({ onTopicSelect, onLevelSelect, averageToneAccuracy }: TopicSelectorProps) {
+export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
-    loadPublishedTeacherTopics().filter(isStoryModeTopic),
+    (publishedTopics ?? loadPublishedTeacherTopics()).filter(isStoryModeTopic),
   );
-  const [loading, setLoading] = useState(canUseDatabase());
+  const [loading, setLoading] = useState(publishedTopics === undefined && canUseDatabase());
+  // Backend submission hydration updates localStorage, which is the source
+  // used by the lesson progress calculations below. Bump a local revision so
+  // those calculations rerun when the async merge completes.
+  const [, bumpProgressRevision] = useState(0);
   // Which table-of-contents row is open: a lesson number, "other" for the
   // unassigned group, or null for the contents screen itself.
   const [openLesson, setOpenLesson] = useState<number | "other" | null>(null);
 
   useEffect(() => {
-    if (!canUseDatabase()) return;
     let cancelled = false;
     const studentId = getStudentId();
     const studentName = getStudentName();
-    const submissions = listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
     const hydrateSubmittedLevels = async () => {
-      const serverSubmissions = await submissions;
+      if (!canUseDatabase()) return;
+      const serverSubmissions = await listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
       if (!cancelled && serverSubmissions) {
-        mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName });
+        if (mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
+          bumpProgressRevision((revision) => revision + 1);
+        }
       }
     };
+
+    if (publishedTopics !== undefined) {
+      setTopics(publishedTopics.filter(isStoryModeTopic));
+      setLoading(false);
+      void hydrateSubmittedLevels();
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (!canUseDatabase()) return;
+    const submissions = listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
 
     listCustomStories()
       .then(async (dbStories) => {
@@ -101,7 +101,10 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
             .filter((s) => s.published)
             .map((s) => storyToTopic(s as any, "easy", "approved"))
             .filter(isStoryModeTopic);
-          await hydrateSubmittedLevels();
+          const serverSubmissions = await submissions;
+          if (!cancelled && serverSubmissions && mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
+            bumpProgressRevision((revision) => revision + 1);
+          }
           if (cancelled) return;
           setTopics(published);
           return;
@@ -113,7 +116,10 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           .filter((s) => s.published)
           .map((s) => storyToTopic(s as any, "easy", "approved"))
           .filter(isStoryModeTopic);
-        await hydrateSubmittedLevels();
+        const serverSubmissions = await submissions;
+        if (!cancelled && serverSubmissions && mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
+          bumpProgressRevision((revision) => revision + 1);
+        }
         if (cancelled) return;
         setTopics(published);
       })
@@ -122,7 +128,45 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [publishedTopics]);
+
+  // "You are here" — hoisted above the loading/empty early returns below
+  // (a hook needs a stable call order every render) so the pending-review
+  // fetch and the dashboard's continue card can share one computation.
+  const groups = groupTopicsByLesson(topics);
+  const submittedIds = loadSubmittedStoryIds();
+  const nowIndex = groups.findIndex(
+    (group, index) =>
+      group.lessonNumber !== null &&
+      isLessonGroupUnlocked(groups, index, submittedIds) &&
+      lessonCompletion(group, submittedIds).done < group.topics.length,
+  );
+  const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
+  const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
+  const continueGroup =
+    groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
+  const continueTopic =
+    continueGroup?.topics.find((topic) => !isStoryFinished(topic, submittedIds)) ??
+    continueGroup?.topics[0] ??
+    null;
+  const isContinueFallback = nowIndex < 0;
+
+  // A gentle, non-blocking nudge: how many weak/due words are waiting for
+  // the lesson the student would resume next. Best-effort — a slow or
+  // failed fetch just means no badge, never a blocked continue button.
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  useEffect(() => {
+    const studentId = getStudentId();
+    if (!continueTopic || !studentId || !canUseDatabase()) {
+      setPendingReviewCount(0);
+      return;
+    }
+    let cancelled = false;
+    getVocabQuizReviewQueue(continueTopic.id, studentId, { includeAllWeak: true })
+      .then((result) => { if (!cancelled) setPendingReviewCount(result.queue?.length ?? 0); })
+      .catch(() => { if (!cancelled) setPendingReviewCount(0); });
+    return () => { cancelled = true; };
+  }, [continueTopic?.id]);
 
   if (loading) {
     return (
@@ -153,105 +197,19 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
     );
   }
 
-  const groups = groupTopicsByLesson(topics);
-  const submittedIds = loadSubmittedStoryIds();
-  // "You are here": the first unlocked numbered lesson that still has
-  // unsubmitted stories — it gets the gold ring and the 繼續 chip.
-  const nowIndex = groups.findIndex(
-    (group, index) =>
-      group.lessonNumber !== null &&
-      isLessonGroupUnlocked(groups, index, submittedIds) &&
-      lessonCompletion(group, submittedIds).done < group.topics.length,
-  );
-
-  // The per-story 🌱🌿🌳 tier track: which difficulty levels this story
-  // offers, and for each whether it's been submitted, is open, or still
-  // locked behind the previous tier. Only teacher stories carry tiers.
-  // Was a status chip (not a button) on whichever level the card's primary
-  // button already opened, since two controls landing on the same screen
-  // read as one too many. Reverted at the user's request: with only two of
-  // the three cells actually clickable, the row didn't look disabled, it
-  // looked broken — the user reported "can't click Easy" as a bug, not as
-  // an intentional label. All three are buttons again, Easy included.
-  const renderTierTrack = (t: Topic, activityUnlocked: boolean) => {
-    const story = t.sourceStory;
-    if (!story) return null;
-    const submittedLevels = loadSubmittedLevels(story.id);
-    const levels = (["easy", "medium", "hard"] as const).filter(
-      (level) => level === "easy" || storyHasTierContent(story, level),
-    );
-    return (
-      <div
-        className={`ts-tier-track${onLevelSelect ? " ts-tier-track-interactive" : ""}`}
-        aria-label="Difficulty levels"
-      >
-        {levels.map((level) => {
-          const state = !activityUnlocked
-            ? "lock"
-            : submittedLevels[level]
-            ? "done"
-            : isStoryLevelUnlocked(story.id, level)
-              ? "open"
-              : "lock";
-          const tierTopic = storyToTopic(story, level, "approved");
-          const hasQuiz = topicHasQuiz(tierTopic);
-          // "Needs" is only used for the accessibility hint. Opening a tier
-          // now shows the activity chooser first, so students can deliberately
-          // choose Vocabulary Quiz or Speaking Practice.
-          const needsQuiz =
-            hasQuiz &&
-            !isAdminSession() &&
-            !practiceUnlocked(loadLocalStars(tierTopic.id));
-          const copy = LEVEL_COPY[level];
-          const content = (
-            <>
-              <StudentIcon name={LEVEL_ICONS[level]} size={20} />
-              <BiLabel zh={copy.zh} en={copy.en} align="center" />
-            </>
-          );
-          if (!onLevelSelect) {
-            return (
-              <span key={level} className={`ts-tier-cell ts-tier-${state}`}>
-                {content}
-              </span>
-            );
-          }
-          return (
-            <button
-              key={level}
-              type="button"
-              className={`ts-tier-cell ts-tier-${state}`}
-              disabled={state === "lock"}
-              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onLevelSelect(t, level);
-              }}
-            >
-              {content}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-
   const renderTopicCard = (t: Topic, group: LessonGroup, index: number) => {
     const totalScenes = t.images.length;
     const totalWords = Object.values(t.vocabulary).flat().length;
-    const earnedStars = loadBestLocalStars(t.id);
+    const earnedStars = loadLocalStars(t.id);
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
     const subLabel =
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
         : null;
-    // isStoryUnlockedInLesson only needs the previous story SUBMITTED, not
-    // 3-starred — a card can sit locked right next to a 3-star quiz result
-    // on the story before it, which reads as broken with no explanation.
-    // The lesson row already tells the student why IT is locked
-    // ("先完成第 X 課"); a story card had no equivalent, so a click on Easy
-    // or Medium here did nothing and looked like a dead button.
+    // A story now opens only once its predecessor is fully finished — all
+    // three quiz rounds passed (⭐⭐⭐) AND speaking submitted. Surface that
+    // predecessor on the locked card so the lock never reads as a dead button.
     const previousTopic = !unlocked ? group.topics[index - 1] : undefined;
 
     return (
@@ -259,7 +217,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
         {/* Image strip */}
         <div className="ts-card-image">
           {previewImage ? (
-            <img src={previewImage} alt={t.name} />
+            <img src={previewImage} alt={t.name} width={800} height={450} />
           ) : (
             <div className="ts-card-image-placeholder" aria-hidden="true">
               <StudentIcon name="image" size={32} />
@@ -320,47 +278,19 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
             <p className="ts-card-locked-note">
               <StudentIcon name="lock" size={14} />
               <BiLabel
-                zh={previousTopic ? `先交 ${previousTopic.name}` : "先完成上一個故事"}
-                en={previousTopic ? `Submit "${previousTopic.name}" first` : "Finish the previous story first"}
+                zh={previousTopic ? `先完成 ${previousTopic.name}（三關 + 口說）` : "先完成上一個故事"}
+                en={previousTopic ? `Finish "${previousTopic.name}" first (3 rounds + speaking)` : "Finish the previous story first"}
                 align="left"
               />
             </p>
           )}
-
-          {renderTierTrack(t, unlocked)}
         </div>
       </article>
     );
   };
 
-  // ── Lesson table of contents, each row an accordion over its own
-  // stories — no separate "screen 2" navigation. ─────────────────────────
-  const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
-  const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
-  const continueGroup =
-    groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
-  const continueTopic =
-    continueGroup?.topics.find((topic) => !isStoryFinished(topic, submittedIds)) ??
-    continueGroup?.topics[0] ??
-    null;
-  const isContinueFallback = nowIndex < 0;
-
-  // Dashboard headline stats — same sources the rail and the Progress page
-  // use, so the three views can never disagree. Total stars and lessons
-  // complete are cheap to derive here; tone accuracy is threaded in from the
-  // shell (it owns the analysed recordings).
-  const quizTopics = topics.filter((topic) => topicHasQuiz(topic));
-  const totalStars = quizTopics.reduce(
-    (sum, topic) => sum + loadBestLocalStars(topic.id),
-    0,
-  );
-  const maxStars = quizTopics.length * 3;
-  const lessonsDone = numberedGroups.filter((group) => {
-    const { done, total } = lessonCompletion(group, submittedIds);
-    return total > 0 && done === total;
-  }).length;
-  const lessonsTotal = numberedGroups.length;
-
+  // Keep the lesson dashboard focused on the next activity and course index;
+  // progress metrics belong to My learning and the persistent rail.
   const renderDashboard = () => {
     if (!continueTopic || !continueGroup) return null;
 
@@ -382,42 +312,6 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           </p>
         </div>
 
-        <div className="ts-dash-stat-grid" aria-label="Learning progress">
-          <article className="ts-dash-stat-card">
-            <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
-              <StudentIcon name="star" size={24} />
-            </span>
-            <span className="ts-dash-stat-copy">
-              <strong>
-                {totalStars}
-                <span className="ts-dash-stat-max"> / {maxStars}</span>
-              </strong>
-              <BiLabel zh="總星星" en="Total stars" align="left" />
-            </span>
-          </article>
-          <article className="ts-dash-stat-card">
-            <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
-              <StudentIcon name="check-circle" size={24} />
-            </span>
-            <span className="ts-dash-stat-copy">
-              <strong>
-                {lessonsDone}
-                <span className="ts-dash-stat-max"> / {lessonsTotal}</span>
-              </strong>
-              <BiLabel zh="課程完成" en="Lessons complete" align="left" />
-            </span>
-          </article>
-          <article className="ts-dash-stat-card">
-            <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
-              <StudentIcon name="voice" size={24} />
-            </span>
-            <span className="ts-dash-stat-copy">
-              <strong>{averageToneAccuracy == null ? "—" : `${averageToneAccuracy}%`}</strong>
-              <BiLabel zh="發音表現" en="Tone accuracy" align="left" />
-            </span>
-          </article>
-        </div>
-
         <article className="ts-dash-continue-card">
           <div className="ts-dash-continue-copy">
             <span className="ts-dash-kicker">
@@ -428,6 +322,20 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
             </span>
             <h2>{continueTopic.name}</h2>
             <p>{continueTopic.description || "繼續你的故事練習"}</p>
+            {pendingReviewCount > 0 && (
+              // A quiet heads-up, not a gate: rides along the existing
+              // continue button rather than adding a second click target or
+              // blocking the story itself.
+              <p className="ts-dash-review-hint" role="status" aria-label={`${pendingReviewCount} words to review`}>
+                <StudentIcon name="retry" size={14} aria-hidden="true" />
+                <BiLabel
+                  zh={`還有 ${pendingReviewCount} 個生詞待複習`}
+                  pinyin="Hái yǒu shēngcí dài fùxí"
+                  en={`${pendingReviewCount} word${pendingReviewCount === 1 ? "" : "s"} to review`}
+                  align="left"
+                />
+              </p>
+            )}
             <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>
               <BiLabel zh="繼續學習" en="Continue story" />
               <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
@@ -435,7 +343,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           </div>
           <div className="ts-dash-continue-art" aria-hidden="true">
             {continueTopic.images[0] ? (
-              <img src={continueTopic.images[0]} alt="" />
+              <img src={continueTopic.images[0]} alt="" width={800} height={450} />
             ) : (
               <span className="ts-dash-continue-art-placeholder">
                 <StudentIcon name="image" size={28} />
@@ -510,7 +418,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           onClick={unlocked ? toggle : undefined}
         >
           <span className="ts-lesson-cover">
-            {cover ? <img src={cover} alt="" /> : <span className="ts-lesson-cover-fallback" aria-hidden="true">{group.lessonNumber}</span>}
+            {cover ? <img src={cover} alt="" width={800} height={450} /> : <span className="ts-lesson-cover-fallback" aria-hidden="true">{group.lessonNumber}</span>}
           </span>
 
           <span className="ts-lesson-body">
@@ -572,7 +480,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           </h1>
         </div>
         <div className="ts-book-chip">
-          <img className="ts-book-cover" src="/textbook-cover.jpg" alt="" aria-hidden="true" />
+          <img className="ts-book-cover" src="/textbook-cover.jpg" alt="" aria-hidden="true" width={192} height={264} />
           <span className="ts-book-name">
             時代華語 第一冊
             <span className="ts-lesson-sub">Modern Chinese · Book 1</span>

@@ -29,7 +29,7 @@ import {
   topicStoryId,
   type LessonGroup,
 } from "../utils/lessonGroups";
-import { loadBestLocalStars, starsByStory } from "../utils/quizTiers";
+import { loadLocalStars, starsByStory } from "../utils/quizTiers";
 import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
 import type { Topic } from "../components/TopicSelector";
@@ -196,7 +196,7 @@ export default function MyStoriesPage({
       const value = serverStarsByStory[`${topic.id}${suffix}`] ?? 0;
       return value > best ? value : best;
     }, 0);
-    const localBest = loadBestLocalStars(topic.id);
+    const localBest = loadLocalStars(topic.id);
     return Math.max(localBest, serverBest) as 0 | 1 | 2 | 3;
   };
   const groups = groupTopicsByLesson(studentTopics);
@@ -432,7 +432,7 @@ export default function MyStoriesPage({
               return (
                 <div key={topic.id} className="profile-story-row">
                   <div className="profile-story-thumb">
-                    {previewImage ? <img src={previewImage} alt="" /> : <StudentIcon name="image" size={20} aria-hidden="true" />}
+                    {previewImage ? <img src={previewImage} alt="" width={800} height={450} /> : <StudentIcon name="image" size={20} aria-hidden="true" />}
                   </div>
 
                   <div className="profile-story-main">

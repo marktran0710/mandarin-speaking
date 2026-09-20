@@ -5,9 +5,8 @@ import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentModeFrame, { STUDENT_WORKSPACE_VIEWS } from "./StudentModeFrame";
-import { loadBestLocalStars } from "../../utils/quizTiers";
+import { loadLocalStars } from "../../utils/quizTiers";
 import { topicHasQuiz } from "../../utils/topicQuiz";
-import { getAverageMetric } from "../../utils/myStoriesUtils";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -27,6 +26,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     audioRecords,
     onSessionActiveChange,
     onLogout,
+    onOpenPlacementTest,
   } = props;
   const [storyScrollBoundary, setStoryScrollBoundary] = useState(0);
   const handleStoryPanelScrollBoundary = useCallback(() => {
@@ -61,7 +61,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         publishedTopics={storyTopics}
         onSessionActiveChange={onSessionActiveChange}
         onPanelScrollBoundary={handleStoryPanelScrollBoundary}
-        averageToneAccuracy={averageToneAccuracy}
       />
     );
   };
@@ -72,17 +71,10 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
   // the rail and that card can never disagree.
   const quizTopics = (storyTopics ?? []).filter((topic) => topicHasQuiz(topic));
   const totalStars = quizTopics.reduce(
-    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    (sum, topic) => sum + loadLocalStars(topic.id),
     0,
   );
   const maxStars = quizTopics.length * 3;
-
-  // Same "發音表現 Tone accuracy (avg)" figure the Progress page shows, fed to
-  // the dashboard's third stat card so the two never disagree.
-  const averageToneAccuracy = getAverageMetric(
-    (audioRecords ?? []).filter((record) => record.praatMetrics),
-    "tone_accuracy",
-  );
 
   return (
     <StudentModeFrame
@@ -94,6 +86,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
       maxStars={maxStars}
       ariaLabel={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
       panelScrollKey={`${view}:${initialTargetKey ?? "none"}:${storyScrollBoundary}`}
+      onOpenPlacementTest={onOpenPlacementTest}
     >
       {renderView()}
     </StudentModeFrame>

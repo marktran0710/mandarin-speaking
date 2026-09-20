@@ -24,3 +24,4 @@ soundfile==0.14.0
 # which never reads that file) can't accidentally pick them up.
 # transformers>=4.51.3,<5.0.0
 # torch>=2.3.0
+# librosa>=0.10.0

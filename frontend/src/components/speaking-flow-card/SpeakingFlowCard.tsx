@@ -179,7 +179,7 @@ export default function SpeakingFlowCard({
         <div className="practice-workspace">
           <div className="practice-scene-col">
             <div className="practice-scene-image">
-              <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
+              <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} width={800} height={450} />
             </div>
           </div>
 
@@ -229,7 +229,7 @@ export default function SpeakingFlowCard({
         <div className="practice-workspace">
         <div className="practice-scene-col">
           <div className="practice-scene-image">
-            <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
+            <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} width={800} height={450} />
           </div>
           {sceneChip}
         </div>

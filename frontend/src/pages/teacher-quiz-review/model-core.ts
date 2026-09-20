@@ -51,8 +51,8 @@ type ReplaceValue =
  * routers/stories.py's replace_quiz_question just wrote to the database —
  * so storyToTopic recomputes with the new content without waiting on a
  * refetch. Pure: returns a new frame, doesn't mutate the one passed in. */
-type TranslationField = "vocabularyTranslation" | "vocabularyTranslationMedium" | "vocabularyTranslationHard";
-type PinyinField = "vocabularyPinyin" | "vocabularyPinyinMedium" | "vocabularyPinyinHard";
+type TranslationField = "vocabularyTranslation";
+type PinyinField = "vocabularyPinyin";
 
 function applyLocalEdit(
   frame: CustomStoryFrame,
@@ -90,9 +90,7 @@ function applyLocalEdit(
   return { ...frame, [field]: JSON.stringify(pool) };
 }
 
-function translationFieldForLevel(frame: CustomStoryFrame, level: StoryDifficultyLevel): TranslationField {
-  if (level === "medium" && frame.vocabularyTranslationMedium?.trim()) return "vocabularyTranslationMedium";
-  if (level === "hard" && frame.vocabularyTranslationHard?.trim()) return "vocabularyTranslationHard";
+function translationFieldForLevel(_frame: CustomStoryFrame, _level: StoryDifficultyLevel): TranslationField {
   return "vocabularyTranslation";
 }
 
@@ -108,45 +106,8 @@ function invalidateApprovedWord(story: CustomTeacherStory, word: string): Custom
   );
   return { ...story, quizApprovedSnapshot: snapshot };
 }
-function normalizedGeneratedText(value: string, caseInsensitive = false): string {
-  const trimmed = value.trim();
-  return caseInsensitive ? trimmed.toLocaleLowerCase() : trimmed;
-}
-
-function freshGeneratedStrings(values: string[], avoid: string[], caseInsensitive = false): string[] {
-  const seen = new Set(avoid.map((value) => normalizedGeneratedText(value, caseInsensitive)).filter(Boolean));
-  const fresh: string[] = [];
-  for (const value of values) {
-    const trimmed = value.trim();
-    const key = normalizedGeneratedText(trimmed, caseInsensitive);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    fresh.push(trimmed);
-  }
-  return fresh;
-}
-
-/** One quiz entry is built per vocabulary word, using its first live
- * occurrence. Keep generation aligned with that rule and omit any word that
- * is already being regenerated as a replacement in the same update pass. */
-function canonicalGrowthCandidates<
-  T extends { word: string; frameIndex: number; wordIndex: number },
->(candidates: T[], blockedWords: Set<string>): T[] {
-  const seenWords = new Set<string>();
-  return candidates.filter((candidate) => {
-    if (blockedWords.has(candidate.word) || seenWords.has(candidate.word)) return false;
-    seenWords.add(candidate.word);
-    return true;
-  });
-}
-
-interface IndexedPendingCandidate {
-  candidate: PendingCandidate;
-  index: number;
-}
 
 type ReviewTopic = ReturnType<typeof storyToTopic>;
-type ChangedKind = Exclude<QuizValidateResultItem["kind"], "translation">;
 
 interface BuiltInReviewWord {
   word: string;
@@ -154,9 +115,7 @@ interface BuiltInReviewWord {
   pinyin: string;
 }
 
-function pinyinFieldForLevel(frame: CustomStoryFrame, level: StoryDifficultyLevel): PinyinField {
-  if (level === "medium" && frame.vocabularyPinyinMedium?.trim()) return "vocabularyPinyinMedium";
-  if (level === "hard" && frame.vocabularyPinyinHard?.trim()) return "vocabularyPinyinHard";
+function pinyinFieldForLevel(_frame: CustomStoryFrame, _level: StoryDifficultyLevel): PinyinField {
   return "vocabularyPinyin";
 }
 
@@ -187,16 +146,9 @@ function reviewOptions(correct: string, alternatives: string[]): string[] {
   return Array.from(new Set([correct, ...alternatives.filter(Boolean)])).slice(0, 4);
 }
 
-interface ChangedCandidateTarget {
-  frameIndex: number;
-  wordIndex: number;
-  word: string;
-  kind: ChangedKind;
-  poolIndex?: number;
-  currentValue: PendingCandidateValue;
-  growthWord: VocabGrowthWord;
-}
-
+/** Finds a word's current live position in the story so the CSV/JSON bulk
+ * upload can attach parsed pools to the right frame/word without the
+ * teacher having to specify scene/word indices themselves. */
 function findLiveWordOccurrence(topic: ReviewTopic, word: string): { frameIndex: number; wordIndex: number } | null {
   for (let si = 0; si < topic.images.length; si += 1) {
     const wordIndex = (topic.vocabulary[si] || []).indexOf(word);
@@ -205,70 +157,4 @@ function findLiveWordOccurrence(topic: ReviewTopic, word: string): { frameIndex:
   return null;
 }
 
-function changedTargetForValidation(
-  topic: ReviewTopic,
-  result: QuizValidateResultItem,
-): ChangedCandidateTarget | null {
-  if (result.status !== "suspicious") return null;
-  if (result.kind === "translation") return null;
-  const occurrence = findLiveWordOccurrence(topic, result.word);
-  if (!occurrence) return null;
-  const { frameIndex, wordIndex } = occurrence;
-  const translation = topic.vocabularyTranslation?.[frameIndex]?.[wordIndex];
-  if (!translation) return null;
-  const context = topic.suggestedAnswers?.[frameIndex];
-
-  if (result.kind === "distractors") {
-    const currentValue = topic.vocabularyDistractors?.[frameIndex]?.[wordIndex] ?? [];
-    return {
-      frameIndex,
-      wordIndex,
-      word: result.word,
-      kind: result.kind,
-      currentValue,
-      growthWord: { word: result.word, translation, context, avoid: currentValue },
-    };
-  }
-
-  if (typeof result.poolIndex !== "number") return null;
-
-  if (result.kind === "cloze") {
-    const clozePools = topic.vocabularyCloze?.[frameIndex]?.[wordIndex] ?? [];
-    const currentValue = clozePools[result.poolIndex];
-    if (!currentValue) return null;
-    return {
-      frameIndex,
-      wordIndex,
-      word: result.word,
-      kind: result.kind,
-      poolIndex: result.poolIndex,
-      currentValue,
-      growthWord: {
-        word: result.word,
-        translation,
-        context,
-        avoid: clozePools.map((c) => c.sentence),
-      },
-    };
-  }
-
-  const synonymPools = topic.vocabularySynonym?.[frameIndex]?.[wordIndex] ?? [];
-  const currentValue = synonymPools[result.poolIndex];
-  if (!currentValue) return null;
-  return {
-    frameIndex,
-    wordIndex,
-    word: result.word,
-    kind: result.kind,
-    poolIndex: result.poolIndex,
-    currentValue,
-    growthWord: {
-      word: result.word,
-      translation,
-      context,
-      avoid: synonymPools.map((s) => s.synonym),
-    },
-  };
-}
-
-export { lessonKeyFor, lessonOptionLabel, groupStoriesByLesson, pendingKeyFor, applyLocalEdit, translationFieldForLevel, invalidateApprovedWord, normalizedGeneratedText, freshGeneratedStrings, canonicalGrowthCandidates, pinyinFieldForLevel, builtInReviewWords, reviewOptions, findLiveWordOccurrence, changedTargetForValidation };
+export { lessonKeyFor, lessonOptionLabel, groupStoriesByLesson, pendingKeyFor, applyLocalEdit, translationFieldForLevel, invalidateApprovedWord, pinyinFieldForLevel, builtInReviewWords, reviewOptions, findLiveWordOccurrence };

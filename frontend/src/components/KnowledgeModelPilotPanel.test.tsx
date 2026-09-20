@@ -15,30 +15,30 @@ vi.mock("../services/database", async (importOriginal) => ({
 
 const readyData: KnowledgeAnalyticsResponse = {
   model: "compare",
-  modelVersion: "knowledge-pilot-v1",
+  modelVersion: "knowledge-pilot-v2",
   scope: { studentId: null, storyId: null, level: null },
   dataQuality: {
     totalAttempts: 12, totalResponses: 24, eligibleResponses: 24,
     legacyConceptResponses: 2, skippedResponses: 0, duplicateResponses: 0,
-    attemptsWithoutId: 0, invalidTimestampAttempts: 0, skillCount: 4,
+    attemptsWithoutId: 0, invalidTimestampAttempts: 0, skillCount: 4, studentCount: 10, conceptCount: 10,
   },
   models: {
     pfa: {
-      model: "pfa", modelVersion: "knowledge-pilot-v1", masteryInterpretation: "predicted_correct_probability",
+      model: "pfa", modelVersion: "knowledge-pilot-v2", implementation: "restricted_pooled_baseline", masteryInterpretation: "predicted_correct_probability",
       scope: { studentId: null, storyId: null, level: null },
-      dataQuality: { totalAttempts: 12, totalResponses: 24, eligibleResponses: 24, legacyConceptResponses: 2, skippedResponses: 0, duplicateResponses: 0, attemptsWithoutId: 0, invalidTimestampAttempts: 0, skillCount: 4 },
-      students: [{ studentId: "s1", studentName: "Ava", skills: [{ conceptId: "學習", mastery: .42, predictedCorrect: .42, exposures: 3, successes: 1, failures: 2, lastSeenAt: null, confidence: "medium" }] }],
-      evaluation: { status: "ready", responseCount: 24, predictionCount: 12, positiveCount: 8, negativeCount: 4, logLoss: .41, brierScore: .16, calibrationError: .08, auc: .7 },
+      dataQuality: { totalAttempts: 12, totalResponses: 24, eligibleResponses: 24, legacyConceptResponses: 2, skippedResponses: 0, duplicateResponses: 0, attemptsWithoutId: 0, invalidTimestampAttempts: 0, skillCount: 4, studentCount: 10, conceptCount: 10 },
+      students: [{ studentId: "s1", studentName: "Ava", skills: [{ conceptId: "學習", mastery: .42, predictedCorrect: .42, exposures: 3, successes: 1, failures: 2, lastSeenAt: null, evidenceDepth: "medium" }] }],
+      evaluation: { status: "evidence_ready", responseCount: 200, predictionCount: 100, positiveCount: 50, negativeCount: 50, logLoss: .41, brierScore: .16, calibrationError: .08, auc: .7, evidenceChecks: [], fitDiagnostics: { status: "success", optimizer: "test", message: "ok", iterations: 1, objective: .41, finite: true } },
     },
     bkt: {
-      model: "bkt", modelVersion: "knowledge-pilot-v1", masteryInterpretation: "latent_mastery_probability",
+      model: "bkt", modelVersion: "knowledge-pilot-v2", implementation: "pooled_bkt_pilot", masteryInterpretation: "latent_mastery_probability",
       scope: { studentId: null, storyId: null, level: null },
-      dataQuality: { totalAttempts: 12, totalResponses: 24, eligibleResponses: 24, legacyConceptResponses: 2, skippedResponses: 0, duplicateResponses: 0, attemptsWithoutId: 0, invalidTimestampAttempts: 0, skillCount: 4 },
+      dataQuality: { totalAttempts: 12, totalResponses: 24, eligibleResponses: 24, legacyConceptResponses: 2, skippedResponses: 0, duplicateResponses: 0, attemptsWithoutId: 0, invalidTimestampAttempts: 0, skillCount: 4, studentCount: 10, conceptCount: 10 },
       students: [],
-      evaluation: { status: "ready", responseCount: 24, predictionCount: 12, positiveCount: 8, negativeCount: 4, logLoss: .5, brierScore: .2, calibrationError: .1, auc: .65 },
+      evaluation: { status: "evidence_ready", responseCount: 200, predictionCount: 100, positiveCount: 50, negativeCount: 50, logLoss: .5, brierScore: .2, calibrationError: .1, auc: .65, evidenceChecks: [], fitDiagnostics: { status: "success", optimizer: "test", message: "ok", iterations: 1, objective: .5, finite: true } },
     },
   },
-  recommendedModel: "pfa",
+  lowerLossSignal: "pfa",
 };
 
 describe("KnowledgeModelPilotPanel", () => {
@@ -46,13 +46,14 @@ describe("KnowledgeModelPilotPanel", () => {
     getKnowledgeModelAnalytics.mockReset();
   });
 
-  it("renders the comparison and current recommendation", async () => {
+  it("renders the comparison and exploratory lower-loss signal", async () => {
     getKnowledgeModelAnalytics.mockResolvedValue(readyData);
     render(<KnowledgeModelPilotPanel />);
     expect(screen.getByText("Calculating model comparison…")).toBeInTheDocument();
     expect(await screen.findByText("PFA", { selector: "h3" })).toBeInTheDocument();
     expect(screen.getByText("BKT", { selector: "h3" })).toBeInTheDocument();
-    expect(screen.getByText("Current recommendation:")).toBeInTheDocument();
+    expect(screen.getByText("Exploratory lower-loss signal:")).toBeInTheDocument();
+    expect(screen.getByText("PFA has lower held-out log loss")).toBeInTheDocument();
     expect(screen.getByText("Ava")).toBeInTheDocument();
     expect(screen.getByText("Papers & formulas used in this pilot")).toBeInTheDocument();
     expect(screen.getByText(/p\(correct\) = σ\(β₀ \+ βs·successes/)).toBeInTheDocument();
@@ -66,26 +67,27 @@ describe("KnowledgeModelPilotPanel", () => {
     await waitFor(() => expect(screen.getByText("Analytics unavailable")).toBeInTheDocument());
   });
 
-  it("renders an insufficient-data comparison without a skill table", async () => {
+  it("renders an evidence-limited comparison without a skill table", async () => {
     getKnowledgeModelAnalytics.mockResolvedValue({
       ...readyData,
-      recommendedModel: null,
+      lowerLossSignal: "no_material_difference",
       models: {
         pfa: {
           ...readyData.models.pfa,
           students: [],
-          evaluation: { ...readyData.models.pfa.evaluation, status: "insufficient_data", predictionCount: 2 },
+          evaluation: { ...readyData.models.pfa.evaluation, status: "insufficient_evidence", predictionCount: 2, evidenceChecks: [{ name: "evaluation_predictions", actual: 2, minimum: 100, passed: false }] },
         },
         bkt: {
           ...readyData.models.bkt,
           students: [],
-          evaluation: { ...readyData.models.bkt.evaluation, status: "insufficient_data", predictionCount: 2 },
+          evaluation: { ...readyData.models.bkt.evaluation, status: "insufficient_evidence", predictionCount: 2, evidenceChecks: [{ name: "evaluation_predictions", actual: 2, minimum: 100, passed: false }] },
         },
       },
     });
     render(<KnowledgeModelPilotPanel />);
-    expect(await screen.findAllByText("Insufficient data")).toHaveLength(2);
-    expect(screen.getByText("No winner yet")).toBeInTheDocument();
+    expect(await screen.findAllByText("More evidence needed")).toHaveLength(2);
+    expect(screen.getByText("No material difference")).toBeInTheDocument();
+    expect(screen.getAllByText(/Evidence still needed: evaluation predictions 2\/100/)).toHaveLength(2);
     expect(screen.queryByText("Lowest current PFA predicted correctness")).not.toBeInTheDocument();
   });
 });

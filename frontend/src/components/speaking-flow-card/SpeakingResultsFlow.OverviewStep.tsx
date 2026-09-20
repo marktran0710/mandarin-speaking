@@ -30,8 +30,6 @@ export default function SpeakingResultsOverviewStep({
   submittedAudioName,
   practicePartCount,
   assistiveFeedback,
-  analysisVersion,
-  comparison,
   hasFix,
   hasPractice,
   hasPhrasePractice,
@@ -108,30 +106,6 @@ export default function SpeakingResultsOverviewStep({
         const rolledUpState = worstState(assistiveFeedback);
         return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
       })()}
-
-      {analysisVersion === "phoneme_tone_v2" && (
-        <section className="experimental-analysis-panel" aria-label="Experimental analysis">
-          <div className="experimental-analysis-heading"><strong>Experimental V2</strong><span className="analysis-version-badge">Character + phoneme + T1–T5</span></div>
-          <p>This result is for evaluation only and does not change progression or mastery.</p>
-          {praatMetrics.character_prosody?.length ? (
-            <div className="experimental-character-grid">
-              {praatMetrics.character_prosody.map((item) => <div className="experimental-character-card" key={`${item.char_index}-${item.char}`}><strong>{item.char}</strong><span>{item.pinyin}</span><small>Expected T{item.expected_tone ?? "?"} · Detected {item.detected_tone ? `T${item.detected_tone}` : item.tone_status}</small></div>)}
-            </div>
-          ) : <p>Character alignment is not available for this attempt.</p>}
-        </section>
-      )}
-
-      {comparison && (
-        <section className="analysis-compare-panel" aria-label="Stable and experimental comparison">
-          <h3>Comparison</h3>
-          <div className="analysis-compare-grid">
-            {["stable_v1", "phoneme_tone_v2"].map((version) => {
-              const run = comparison.runs[version];
-              return <div className="analysis-compare-card" key={version}><strong>{version === "stable_v1" ? "Stable V1 — Current" : "Experimental V2"}</strong><span>{run?.status ?? "not run"} · {run?.latencyMs ?? 0} ms</span>{run?.error ? <small>{run.error}</small> : run?.result?.character_prosody ? <small>{run.result.character_prosody.length} characters aligned</small> : <small>Current tone and prosody result</small>}</div>;
-            })}
-          </div>
-        </section>
-      )}
 
       {verdict === "meaning" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看怎麼改" en="See how to fix it" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></AppButton>}
       {verdict === "vocab" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看少了的生詞" en="See the missing words" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></AppButton>}

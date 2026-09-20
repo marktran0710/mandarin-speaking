@@ -47,7 +47,7 @@
 - [x] 1.2 Login student profile OK (tài khoản do admin provision); journey bubble hiện 0/2 做測驗 pulse đúng — ✓ 23/07
 - [x] 1.3 Mục lục Book 1: Lesson 5 mở, Lesson 6/7 khóa 先完成第5課 đúng — ✓ 23/07 (⚠️ nhóm 其他 không xuất hiện — chưa rõ do không có story unassigned hay bug, xem bug #2)
 - [x] 1.4 Quiz tier 1: đủ 20 câu (nghĩa xuôi/ngược + pinyin), mỗi câu 1 đáp án đúng; 20/20 → ⭐ hiện ngay — ✓ 23/07
-- [x] 1.4b **Audit quiz toàn diện** (23/07 chiều): test vĩnh viễn `StoryVocabQuiz.audit.test.tsx` sinh ~7.5k câu từ vocab thật cả 7 story × 3 tier, check invariant 1-đáp-án-đúng; + lượt duyệt ngữ nghĩa toàn bộ 397 entry. Tìm & fix 3 bug 🔴 + 146 distractor 🟡 (sổ bug #8-11). Fixture refresh: `Invoke-WebRequest http://127.0.0.1:8000/api/custom-stories -OutFile frontend/src/components/__fixtures__/custom-stories.json`
+- [x] 1.4b **Audit quiz toàn diện** (23/07 chiều): test vĩnh viễn `StoryVocabQuiz.audit.test.tsx` sinh ~7.5k câu từ vocab thật cả 7 story × 3 tier, check invariant 1-đáp-án-đúng; + lượt duyệt ngữ nghĩa toàn bộ 397 entry. Tìm & fix 3 bug 🔴 + 146 distractor 🟡 (sổ bug #8-11). The retired Lesson 5–8 fixture snapshot and refresh command were removed.
 - [x] 1.5 Quiz tier 2: 22 câu (thêm dạng nghe + tone-mark); 22/22 → ⭐⭐; gate Speaking mở đúng lúc, có nút 繼續練習 — ✓ 23/07
 - [x] 1.6 Study step: bảng生詞 theo scene + 練習短語 + ảnh đúng story — ✓ 23/07
 - [x] 1.7 Speaking: upload audio → transcribe → Praat → feedback, không kẹt (~10s/câu trên máy này) — ✓ 23/07

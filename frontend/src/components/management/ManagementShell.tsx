@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import useColorMode from "../../hooks/useColorMode";
 import ToneMark from "../tone/ToneMark";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
+import SourceAttribution from "../SourceAttribution";
 import "./ManagementShell.css";
 
 export type ManagementRole = "teacher" | "admin";
@@ -23,16 +24,19 @@ const DEFAULT_TEACHER_ITEMS: ManagementNavItem[] = [
   // both are "student work to review", so one nav entry owns both.
   { id: "submissions", label: "Submissions", icon: "inbox" },
   { id: "students", label: "Students", icon: "users" },
-  { id: "materials", label: "Materials", icon: "library" },
 ];
 
 const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Admin Home", label: "Admin Home", icon: "dashboard" },
+  { id: "Materials", label: "Materials", icon: "library", group: "Content" },
+  { id: "Vocabulary", label: "Vocabulary", icon: "book", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
   { id: "Measurement", label: "Measurement", icon: "analytics", group: "Insights" },
   { id: "Practice Debug", label: "Practice Debug", icon: "debug", group: "Insights" },
+  { id: "ASR Compare", label: "ASR Compare", icon: "debug", group: "Insights" },
+  { id: "BKT Debug", label: "BKT Debug", icon: "debug", group: "Insights" },
 ];
 
 const legacyIconMap: Record<string, UiIconName> = {
@@ -135,7 +139,7 @@ export default function ManagementShell({
             <span>{colorMode === "dark" ? "Light" : "Dark"}</span>
           </button>
           {onRefresh && (
-            <button type="button" className="management-chip" disabled={refreshing} onClick={onRefresh}>
+            <button type="button" className="management-chip management-refresh" aria-label={refreshing ? "Refreshing" : "Refresh"} title="Refresh" disabled={refreshing} onClick={onRefresh}>
               <Icon name="refresh" size={16} />
               <span>{refreshing ? "Refreshing…" : "Refresh"}</span>
             </button>
@@ -178,7 +182,10 @@ export default function ManagementShell({
             );
           })}
         </nav>
-        <main className="management-main">{children}</main>
+        <main className="management-main">
+          {children}
+          <SourceAttribution className="is-flush" />
+        </main>
       </div>
     </div>
   );

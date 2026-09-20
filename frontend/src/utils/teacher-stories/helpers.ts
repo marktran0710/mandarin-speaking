@@ -1,4 +1,4 @@
-import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel } from "./types";
+import type { CustomStoryFrame, StoryDifficultyLevel } from "./types";
 import { getBackendUrl } from "../../config/runtimeEnv";
 
 const BACKEND_URL = getBackendUrl();
@@ -10,11 +10,8 @@ export function resolveImageUrl(url: string): string {
   return url;
 }
 
-export const TIER_SUFFIX: Record<StoryDifficultyLevel, ""  | "Medium" | "Hard"> = {
-  easy: "",
-  medium: "Medium",
-  hard: "Hard",
-};
+// Stories run one text level; the base fields carry no suffix.
+export const TIER_SUFFIX: Record<StoryDifficultyLevel, ""> = { easy: "" };
 
 export function splitCsvField(value?: string): string[] {
   return (value || "")
@@ -46,47 +43,14 @@ type TieredField =
   | "listenAudioUrl"
   | "listenScript";
 
-/** Read a frame's text for the given tier, falling back to the base (Easy)
- * field when that tier hasn't been authored yet — so a partially-filled-in
- * Medium/Hard story still shows workable content instead of blanks. */
+/** Read a frame's text for the story's single level. Kept as a helper (rather
+ * than inlining `frame[base]`) so the many call sites stay unchanged now that
+ * the extra story-text levels are gone; the `level` argument is accepted and
+ * ignored for the same reason. */
 export function tierText(
   frame: CustomStoryFrame,
   base: TieredField,
-  level: StoryDifficultyLevel,
+  _level: StoryDifficultyLevel = "easy",
 ): string | undefined {
-  const baseValue = frame[base];
-  if (level === "easy") return baseValue;
-  const suffixed = frame[`${base}${TIER_SUFFIX[level]}` as keyof CustomStoryFrame] as
-    | string
-    | undefined;
-  return suffixed && suffixed.trim() ? suffixed : baseValue;
-}
-
-/** Whether a story has any teacher-authored content for Medium/Hard beyond
- * the Easy fields — lets the student-facing tier controls hide tiers that
- * would just silently fall back to Easy text. */
-export function storyHasTierContent(
-  story: CustomTeacherStory,
-  level: "medium" | "hard",
-): boolean {
-  const suffix = TIER_SUFFIX[level];
-  const fields: TieredField[] = [
-    "imageUrl",
-    "prompt",
-    "vocabulary",
-    "vocabularyPinyin",
-    "vocabularyPos",
-    "vocabularyTranslation",
-    "phrases",
-    "phrasesTranslation",
-    "suggestedAnswer",
-    "listenAudioUrl",
-    "listenScript",
-  ];
-  return story.frames.some((frame) =>
-    fields.some((base) => {
-      const value = frame[`${base}${suffix}` as keyof CustomStoryFrame] as string | undefined;
-      return Boolean(value && value.trim());
-    }),
-  );
+  return frame[base];
 }

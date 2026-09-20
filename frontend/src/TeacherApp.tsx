@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import type { MaterialsTool, TeacherView } from "./pages/TeacherDashboardPage";
+import type { TeacherView } from "./pages/TeacherDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -17,7 +17,7 @@ import {
   StoredAudioRecord,
 } from "./services/database";
 
-export default function TeacherApp({ embedded = false, onExit, initialView, initialMaterialsTool }: { embedded?: boolean; onExit?: () => void; initialView?: TeacherView; initialMaterialsTool?: MaterialsTool } = {}) {
+export default function TeacherApp({ embedded = false, onExit, initialView }: { embedded?: boolean; onExit?: () => void; initialView?: TeacherView } = {}) {
   const [activeRole, setActiveRole] = useState<"teacher" | null>(() =>
     embedded && currentRole("teacher") === "teacher" ? "teacher" : null,
   );
@@ -140,7 +140,6 @@ export default function TeacherApp({ embedded = false, onExit, initialView, init
           onRefreshRecords={loadSavedAudioRecords}
           onLogout={handleLogout}
           initialView={initialView}
-          initialMaterialsTool={initialMaterialsTool}
         />
       ) : (
         <div className="app-container">

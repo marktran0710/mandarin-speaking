@@ -47,6 +47,183 @@ def test_speaking_progress_upsert_updates_in_place(logged_in_student):
     assert rows[0]["clearedWords"] == []
 
 
+def test_speaking_progress_rejects_stale_regression(logged_in_student):
+    client, _ = logged_in_student
+    latest_result = {"sceneIndex": 0, "transcription": "newer analysis"}
+    assert client.put(
+        "/api/speaking-progress",
+        json={
+            **PROGRESS,
+            "attempts": 4,
+            "bestTone": 88,
+            "bestFluency": 79,
+            "masteryPassed": True,
+            "latestResult": latest_result,
+        },
+    ).status_code == 200
+
+    response = client.put(
+        "/api/speaking-progress",
+        json={
+            **PROGRESS,
+            "attempts": 2,
+            "bestTone": 20,
+            "bestFluency": 15,
+            "masteryPassed": False,
+            "contentPassed": False,
+            "clearedWords": ["later-word"],
+            "latestResult": {"sceneIndex": 0, "transcription": "stale analysis"},
+        },
+    )
+    assert response.status_code == 200
+
+    row = client.get(
+        "/api/speaking-progress", params={"topic_id": "teacher-story-1"}
+    ).json()[0]
+    assert row["attempts"] == 4
+    assert row["bestTone"] == 88
+    assert row["bestFluency"] == 79
+    assert row["masteryPassed"] is True
+    assert row["contentPassed"] is True
+    assert row["clearedWords"] == ["妳", "週末"]
+    assert row["latestResult"] == latest_result
+
+
+def test_speaking_progress_preserves_same_attempt_enrichment(logged_in_student):
+    client, _ = logged_in_student
+    base_result = {"sceneIndex": 0, "transcription": "saved", "audioUrl": "/audio.wav"}
+    client.put(
+        "/api/speaking-progress",
+        json={**PROGRESS, "attempts": 1, "latestResult": base_result},
+    )
+    response = client.put(
+        "/api/speaking-progress",
+        json={
+            **PROGRESS,
+            "attempts": 1,
+            "latestResult": {
+                "sceneIndex": 0,
+                "transcription": "saved",
+                "audioUrl": "",
+                "selfEvalPronunciation": "good",
+            },
+            "baseStoryId": "story-1",
+            "difficultyLevel": "easy",
+            "promptId": "story-1:scene:0",
+        },
+    )
+    assert response.status_code == 200
+
+    row = client.get(
+        "/api/speaking-progress", params={"topic_id": "teacher-story-1"}
+    ).json()[0]
+    assert row["latestResult"] == {
+        "sceneIndex": 0,
+        "transcription": "saved",
+        "audioUrl": "/audio.wav",
+        "selfEvalPronunciation": "good",
+        "baseStoryId": "story-1",
+        "difficultyLevel": "easy",
+        "promptId": "story-1:scene:0",
+    }
+
+
+def test_speaking_progress_does_not_mix_distinct_equal_attempts(logged_in_student):
+    client, _ = logged_in_student
+    first_result = {
+        "sceneIndex": 0,
+        "transcription": "first recording",
+        "toneAccuracy": 72,
+        "vocabScore": 80,
+    }
+    client.put(
+        "/api/speaking-progress",
+        json={**PROGRESS, "attempts": 1, "latestResult": first_result},
+    )
+    client.put(
+        "/api/speaking-progress",
+        json={
+            **PROGRESS,
+            "attempts": 1,
+            "latestResult": {
+                "sceneIndex": 0,
+                "transcription": "delayed recording",
+                "toneAccuracy": 91,
+                "vocabScore": 100,
+            },
+        },
+    )
+
+    row = client.get(
+        "/api/speaking-progress", params={"topic_id": "teacher-story-1"}
+    ).json()[0]
+    assert row["latestResult"] == first_result
+
+
+def test_speaking_progress_requires_matching_snapshot_id_for_enrichment(logged_in_student):
+    client, _ = logged_in_student
+    first_result = {
+        "sceneIndex": 0,
+        "transcription": "same rounded result",
+        "toneAccuracy": 80,
+        "vocabScore": 90,
+        "snapshotId": "snapshot-first",
+    }
+    client.put(
+        "/api/speaking-progress",
+        json={**PROGRESS, "attempts": 1, "latestResult": first_result},
+    )
+    client.put(
+        "/api/speaking-progress",
+        json={
+            **PROGRESS,
+            "attempts": 1,
+            "latestResult": {
+                **first_result,
+                "snapshotId": "snapshot-second",
+                "selfEvalPronunciation": "good",
+            },
+        },
+    )
+
+    row = client.get(
+        "/api/speaking-progress", params={"topic_id": "teacher-story-1"}
+    ).json()[0]
+    assert row["latestResult"] == first_result
+
+
+def test_speaking_progress_resets_cleared_words_for_new_attempt(logged_in_student):
+    client, _ = logged_in_student
+    client.put(
+        "/api/speaking-progress",
+        json={**PROGRESS, "attempts": 1, "clearedWords": ["old-word"]},
+    )
+    client.put(
+        "/api/speaking-progress",
+        json={**PROGRESS, "attempts": 2, "clearedWords": ["new-word"]},
+    )
+
+    row = client.get(
+        "/api/speaking-progress", params={"topic_id": "teacher-story-1"}
+    ).json()[0]
+    assert row["clearedWords"] == ["new-word"]
+
+
+def test_speaking_progress_requires_scene_index(logged_in_student):
+    client, _ = logged_in_student
+    payload = {key: value for key, value in PROGRESS.items() if key != "sceneIndex"}
+    assert client.put("/api/speaking-progress", json=payload).status_code == 422
+
+
+def test_speaking_progress_rejects_invalid_scores(logged_in_student):
+    client, _ = logged_in_student
+    response = client.put(
+        "/api/speaking-progress",
+        json={**PROGRESS, "bestTone": 101},
+    )
+    assert response.status_code == 422
+
+
 def test_speaking_progress_scoped_by_scene_index(logged_in_student):
     client, _ = logged_in_student
     client.put("/api/speaking-progress", json=PROGRESS)

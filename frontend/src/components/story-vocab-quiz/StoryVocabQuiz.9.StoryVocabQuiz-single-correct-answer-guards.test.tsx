@@ -75,6 +75,20 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
   async function startTier2() {
     const { recordLocalStars } = await import("../../utils/quizTiers");
     recordLocalStars("s1", 1);
+    // The database is authoritative when it is available. Seed the same
+    // passed Round 1 state that a real student would have before opening
+    // Round 2; localStorage alone is intentionally not enough.
+    vi.mocked(database.listVocabQuizAttempts).mockResolvedValueOnce([{
+      id: "round-1",
+      storyId: "s1",
+      studentName: "Student",
+      mode: "tier1",
+      completedAt: "2026-01-01T00:00:00Z",
+      totalQuestions: 1,
+      correctCount: 1,
+      totalTimeMs: 0,
+      questionResults: [],
+    }]);
   }
 
   it("drops an AI translation distractor that differs from the correct answer only by case/punctuation", async () => {
@@ -94,7 +108,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
     const options = optionButtons().map((b) => b.textContent);
     expect(options).toContain("restaurant");
@@ -116,7 +130,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     const options = optionButtons().map((b) => b.textContent);
     expect(options).toHaveLength(1);
@@ -151,7 +165,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
         />,
       );
     await screen.findByRole("group", { name: "Quiz mode" });
-      await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+      await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
       const options = optionButtons().map((b) => b.textContent);
       expect(options).toHaveLength(1);
@@ -183,7 +197,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
     // Whichever word the blank asks for, the other "happy" word would fit
     // the sentence just as well — it must never appear alongside it.
@@ -203,7 +217,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
     const group = screen.getByRole("group", { name: /How do you read/ });
     expect(group.className).toContain("vocab-quiz-options-pinyin");

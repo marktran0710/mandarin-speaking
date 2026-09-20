@@ -46,7 +46,7 @@
 }
 
 .student-app {
-  min-height: 100vh;
+  height: auto;
   background: var(--student-canvas);
   color: var(--student-ink);
   font-family: var(--font-student);

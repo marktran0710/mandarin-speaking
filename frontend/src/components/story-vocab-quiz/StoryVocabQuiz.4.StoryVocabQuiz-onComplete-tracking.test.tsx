@@ -82,11 +82,11 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     // alreadyCompleted: this test drives onComplete/onDone sequencing, not
     // the ⭐⭐ practice gate (covered in the star-tier describe).
     render(
-      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
@@ -109,10 +109,9 @@ describe("StoryVocabQuiz onComplete tracking", () => {
       expect(result.timeMs).toBeGreaterThanOrEqual(0);
     }
 
-    // Speaking practice opens only after all three stars, so the road to
-    // onDone continues through tier 2 and tier 3. Each scored round reports
-    // its own onComplete along the way.
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
+    // Speaking practice opens after the completed diagnostic. The standalone
+    // quiz also returns to its mode menu when the parent callback is a no-op.
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
@@ -120,7 +119,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2));
     expect(onDone).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 3/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Context/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
@@ -128,6 +127,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(3));
     await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
     expect(onDone).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("group", { name: "Quiz mode" })).toBeInTheDocument();
     // A 42-question UI walk legitimately outlasts the 5s default timeout.
   }, 20_000);
 
@@ -138,7 +138,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
   });
 

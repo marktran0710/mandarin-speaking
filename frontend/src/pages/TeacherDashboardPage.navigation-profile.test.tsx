@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TopicSelector from "../components/TopicSelector";
 import TeacherDashboardPage from "./TeacherDashboardPage";
+import AdminMaterialsPage from "./AdminMaterialsPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
@@ -92,13 +93,10 @@ describe("TeacherDashboardPage", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("opens the quiz review tool from the Materials section", async () => {
-    // TeacherQuizReviewPage shipped without a nav mount, so nothing could
-    // reach it — this pins the edge that makes it reachable.
+  it("keeps the quiz review tool available in Admin Materials", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    render(<AdminMaterialsPage />);
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Quiz Review/ }));
 
     expect(
@@ -109,9 +107,8 @@ describe("TeacherDashboardPage", () => {
   it("lists a published teacher story in the My Profile by-story overview", async () => {
     const user = userEvent.setup();
     // First, create and publish a teacher story
-    const { unmount } = renderDashboard();
+    const { unmount } = render(<AdminMaterialsPage />);
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Adventure Story");

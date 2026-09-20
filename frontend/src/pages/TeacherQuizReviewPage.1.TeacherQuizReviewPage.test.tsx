@@ -51,13 +51,9 @@ vi.mock("../services/database", async (importOriginal) => {
     canUseDatabase: vi.fn(() => true),
     listCustomStories: vi.fn(async () => mockStories),
     updateQuizExclusions: vi.fn(async () => {}),
-    validateQuizMaterial: vi.fn(async () => []),
     approveQuizMaterial: vi.fn(async () => {}),
     saveQuizPendingApprovals: vi.fn(async () => {}),
     replaceQuizQuestion: vi.fn(async () => {}),
-    generateVocabDistractors: vi.fn(async () => []),
-    generateVocabCloze: vi.fn(async () => []),
-    generateVocabSynonym: vi.fn(async () => []),
     updateVocabularyDistractors: vi.fn(async () => {}),
     updateVocabularyCloze: vi.fn(async () => {}),
     updateVocabularySynonym: vi.fn(async () => {}),
@@ -219,6 +215,63 @@ describe("TeacherQuizReviewPage", () => {
     expect(screen.getByText("我＿＿＿答案。")).toBeInTheDocument();
   });
 
+  it("bulk-uploads quiz questions from a teacher-authored CSV, with no AI involved", async () => {
+    const { updateVocabularyDistractors, updateVocabularySynonym } = await import("../services/database");
+    const user = userEvent.setup();
+    render(<TeacherQuizReviewPage />);
+    await screen.findByText("測試故事");
+
+    await user.click(screen.getByRole("button", { name: /Upload Questions|上傳題目/ }));
+    const input = screen.getByTestId("tqr-upload-input") as HTMLInputElement;
+    const csv = [
+      "word,kind,text,distractors",
+      "知道,distractors,,see;hear;say",
+      "not-a-real-word,synonym,foo,bar",
+      "知道,cloze,a sentence without the word,bar",
+    ].join("\n");
+    const file = new File([csv], "quiz.csv", { type: "text/csv" });
+    await user.upload(input, file);
+
+    await waitFor(() =>
+      expect(updateVocabularyDistractors).toHaveBeenCalledWith("s1", [
+        { frameIndex: 0, wordIndex: 0, distractors: ["see", "hear", "say"] },
+      ]),
+    );
+    expect(updateVocabularySynonym).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Added 1 distractor set/)).toBeInTheDocument();
+    expect(screen.getByText(/Not found in this story: not-a-real-word/)).toBeInTheDocument();
+    expect(screen.getByText(/Skipped 1 row: row 4 \(知道\/cloze\): cloze sentence doesn't contain the word/)).toBeInTheDocument();
+  });
+
+  it("notes when the server added fewer items than the CSV attempted (dedup or pool cap)", async () => {
+    const { updateVocabularyDistractors } = await import("../services/database");
+    // The upload asks for 3 new distractors, but the server's merge (top-up
+    // + dedupe + cap) only lands 1 — simulated here by having the mocked
+    // PATCH call itself update mockStories to that smaller real outcome,
+    // the way the real endpoint's response would.
+    (updateVocabularyDistractors as ReturnType<typeof vi.fn>).mockImplementationOnce(async () => {
+      setStories([
+        {
+          ...story,
+          frames: [{ ...story.frames[0], vocabularyDistractors: JSON.stringify([["see"], []]) }],
+        },
+      ]);
+    });
+
+    const user = userEvent.setup();
+    render(<TeacherQuizReviewPage />);
+    await screen.findByText("測試故事");
+
+    await user.click(screen.getByRole("button", { name: /Upload Questions|上傳題目/ }));
+    const input = screen.getByTestId("tqr-upload-input") as HTMLInputElement;
+    const file = new File(["word,kind,text,distractors\n知道,distractors,,see;hear;say"], "quiz.csv", { type: "text/csv" });
+    await user.upload(input, file);
+
+    expect(
+      await screen.findByText(/Note: not everything uploaded for 知道 may have been added/),
+    ).toBeInTheDocument();
+  });
+
   it("groups stories by lesson and only shows the selected lesson's story", async () => {
     setStories([story, storyLesson7]);
     render(<TeacherQuizReviewPage />);
@@ -348,34 +401,18 @@ describe("TeacherQuizReviewPage", () => {
     expect(await screen.findByText(/That file is not valid JSON/)).toBeInTheDocument();
   });
 
-  it("checkboxes stay disabled until Validate runs, then enable and publish only what's checked", async () => {
-    const { validateQuizMaterial, approveQuizMaterial } = await import("../services/database");
-    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { word: "知道", kind: "synonym", poolIndex: 0, status: "clean", reason: "" },
-      { word: "一起", kind: "synonym", poolIndex: 0, status: "suspicious", reason: "second correct answer" },
-    ]);
+  it("checkboxes are available immediately and publish only what's checked", async () => {
+    const { approveQuizMaterial } = await import("../services/database");
 
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findAllByText("知道");
 
-    expect(screen.queryByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Approve & Publish|核准並發佈/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
-    expect(await screen.findByText(/second correct answer/)).toBeInTheDocument();
+    // Only 知道's synonym gets checked — 一起's stays unchecked.
     const zhidaoCheckbox = screen.getByRole("checkbox", { name: "Approve synonym for 知道" });
     expect(zhidaoCheckbox).not.toBeDisabled();
-    const suspiciousCheckbox = screen
-      .getAllByRole("checkbox")
-      .find((checkbox) => checkbox !== zhidaoCheckbox && checkbox.getAttribute("aria-label")?.startsWith("Approve synonym"));
-    expect(suspiciousCheckbox).toBeDefined();
-    expect(suspiciousCheckbox!).toBeDisabled();
-
-    // A suspicious result is never selectable for publication.
-
-    // Only 知道's synonym gets checked — 一起's stays unchecked despite also
-    // visible for correction but is not publishable.
     await user.click(zhidaoCheckbox);
     await user.click(await screen.findByRole("button", { name: /Approve & Publish|核准並發佈/ }));
 
@@ -388,37 +425,28 @@ describe("TeacherQuizReviewPage", () => {
     expect(await screen.findByText("Published")).toBeInTheDocument();
   });
 
-  it("Approve all clean checks every clean item but leaves suspicious ones alone", async () => {
-    const { validateQuizMaterial } = await import("../services/database");
-    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { word: "知道", kind: "synonym", poolIndex: 0, status: "clean", reason: "" },
-      { word: "一起", kind: "synonym", poolIndex: 0, status: "suspicious", reason: "second correct answer" },
-    ]);
-
+  it("Approve all checks every question currently in the story, respecting existing exclusion marks", async () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findAllByText("知道");
-    await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
-    await screen.findByText(/second correct answer/);
 
-    await user.click(screen.getByRole("button", { name: /Approve all clean|核准全部/ }));
+    await user.click(screen.getByRole("button", { name: /Approve all|核准全部/ }));
 
+    // 知道's synonym has no exclusion mark and gets checked; 一起's synonym
+    // is already excluded in the fixture (quizExclusions) so it's left out
+    // of the approvable material entirely and stays unchecked.
     expect(screen.getByRole("checkbox", { name: "Approve synonym for 知道" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Approve synonym for 一起" })).not.toBeChecked();
   });
 
-  it("editing a checked candidate persists it and resets validation + checked state", async () => {
-    const { validateQuizMaterial, replaceQuizQuestion } = await import("../services/database");
-    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { word: "知道", kind: "synonym", poolIndex: 0, status: "clean", reason: "" },
-    ]);
+  it("editing a checked candidate persists it and keeps it checked", async () => {
+    const { replaceQuizQuestion } = await import("../services/database");
 
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findAllByText("知道");
-    await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
 
-    const checkbox = await screen.findByRole("checkbox", { name: "Approve synonym for 知道" });
+    const checkbox = screen.getByRole("checkbox", { name: "Approve synonym for 知道" });
     await user.click(checkbox);
     expect(checkbox).toBeChecked();
 
@@ -430,7 +458,7 @@ describe("TeacherQuizReviewPage", () => {
     const synonymInput = screen.getByLabelText(/Synonym|同義詞/);
     await user.clear(synonymInput);
     await user.type(synonymInput, "明白");
-    await user.click(screen.getByRole("button", { name: /needs re-validation|重新驗證/ }));
+    await user.click(screen.getByRole("button", { name: /儲存Save/ }));
 
     expect(replaceQuizQuestion).toHaveBeenCalledWith(
       "s1",
@@ -440,29 +468,24 @@ describe("TeacherQuizReviewPage", () => {
       0,
       { synonym: "明白", distractors: ["不懂"] },
     );
-    // An edit invalidates the item — it must be re-Validated before it can
-    // be checked again.
+    // A teacher's own edit is trusted directly — no re-approval needed.
     await waitFor(() =>
-      expect(screen.queryByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeInTheDocument(),
+      expect(screen.getByRole("checkbox", { name: "Approve synonym for 知道" })).toBeChecked(),
     );
   });
-  it("lets a teacher replace the correct answer and invalidates the word's review", async () => {
-    const { validateQuizMaterial, replaceQuizQuestion } = await import("../services/database");
-    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { word: "?仿?", kind: "translation", status: "clean", reason: "" },
-      { word: "?仿?", kind: "synonym", poolIndex: 0, status: "clean", reason: "" },
-    ]);
+
+  it("lets a teacher replace the correct answer", async () => {
+    const { replaceQuizQuestion } = await import("../services/database");
 
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findByText("測試故事");
-    await user.click(screen.getByRole("button", { name: /Validate Questions/ }));
     await user.click(screen.getAllByRole("button", { name: /Edit answer|編輯答案/ })[0]);
 
     const answerInput = screen.getByLabelText(/Correct answer/);
     await user.clear(answerInput);
     await user.type(answerInput, "understand");
-    await user.click(screen.getByRole("button", { name: /needs re-validation/ }));
+    await user.click(screen.getByRole("button", { name: /儲存Save/ }));
 
     expect(replaceQuizQuestion).toHaveBeenCalledWith(
       "s1", 0, 0, "translation", undefined, "understand", "vocabularyTranslation",

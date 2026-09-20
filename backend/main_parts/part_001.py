@@ -104,10 +104,6 @@ OPENAPI_TAGS = [
         "name": "admin",
         "description": "Administration endpoints for managing application data and settings.",
     },
-    {
-        "name": "teacher-review",
-        "description": "Teacher-only endpoints for reviewing student work and feedback.",
-    },
 ]
 
 app = FastAPI(
@@ -342,6 +338,7 @@ async def warm_ct_whisper() -> None:
         logger.info("ctwhisper: CT_WHISPER_WARM_ON_START is set, kicking off background warm-up")
         asr_service.ensure_ct_whisper_load_started()
 
+
 def clean_api_key(value: Optional[str]) -> Optional[str]:
     key = (value or "").strip()
     if not key or "your_" in key.lower() or key.lower().endswith("_here"):
@@ -494,47 +491,3 @@ class StoryImageGenerationResponse(BaseModel):
     frames: List[StoryImageFrame]
 
 
-class VocabFromSentenceRequest(BaseModel):
-    sentence: str
-
-
-class VocabWordSuggestion(BaseModel):
-    word: str
-    pinyin: str
-    pos: str
-    translation: str
-
-
-class VocabFromSentenceResponse(BaseModel):
-    words: List[VocabWordSuggestion]
-
-
-class PhraseFromSentenceRequest(BaseModel):
-    sentence: str
-    # How many phrases to request — the caller scales this with the story's
-    # difficulty tier (e.g. 1 for easy, 2 for medium, 3 for hard) since a
-    # longer/harder sentence naturally has more phrase-worthy chunks.
-    count: int = 1
-
-
-class PhraseSuggestion(BaseModel):
-    phrase: str
-    translation: str
-
-
-class PhraseFromSentenceResponse(BaseModel):
-    phrases: List[PhraseSuggestion]
-
-
-class VocabDistractorWord(BaseModel):
-    word: str
-    translation: str
-    context: Optional[str] = None
-    # Distractors already shown to students for this word (from a prior
-    # generation), so a regeneration call can top up the pool with genuinely
-    # new options instead of the model re-suggesting the same ones.
-    avoid: List[str] = []
-
-
-class VocabDistractorRequest(BaseModel):
-    words: List[VocabDistractorWord]

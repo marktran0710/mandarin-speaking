@@ -16,7 +16,7 @@ export interface AudioRecord {
   imageIndex?: number;
   audioUrl?: string;
   audioName?: string;
-  analysisVersion?: "stable_v1" | "phoneme_tone_v2";
+  analysisVersion?: "stable_v1";
   analysisSchemaVersion?: string;
   modelVersion?: string;
   comparisonGroupId?: string;
@@ -24,6 +24,9 @@ export interface AudioRecord {
   attemptId?: string;
   attemptNumber?: number;
   attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
+  /** Set when the server already persisted this stable analysis. */
+  serverVerified?: boolean;
+  serverRecordId?: string;
 }
 
 export interface PracticeTarget {

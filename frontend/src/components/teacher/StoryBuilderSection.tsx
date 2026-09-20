@@ -42,8 +42,8 @@ export default function StoryBuilderSection({
   onGoToQuizReview,
 }: {
   onStorySaved?: () => void;
-  /** Jumps the teacher shell to Materials → Quiz Review, pre-selecting the
-   * lesson the just-saved story belongs to. */
+  /** Jumps the management shell to Materials → Quiz Review, pre-selecting
+   * the lesson the just-saved story belongs to. */
   onGoToQuizReview?: (lessonNumber: number | null) => void;
 }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
@@ -57,23 +57,9 @@ export default function StoryBuilderSection({
   const [savedReviewBanner, setSavedReviewBanner] = useState<{ lessonNumber: number | null } | null>(
     null,
   );
+  // Bumped on save/edit/cancel so a remounted table (keyed on this) can't
+  // retain stale row state from the previous draft.
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
-  const [vocabFillLoadingIndex, setVocabFillLoadingIndex] = useState<number | null>(null);
-  const [vocabFillError, setVocabFillError] = useState("");
-  const [phraseDraftGeneration, setPhraseDraftGeneration] = useState(0);
-  const [phraseFillLoadingIndex, setPhraseFillLoadingIndex] = useState<number | null>(null);
-  const [phraseFillError, setPhraseFillError] = useState("");
-  const [storyVocabDraftGeneration, setStoryVocabDraftGeneration] = useState(0);
-  const [storyPhraseDraftGeneration, setStoryPhraseDraftGeneration] = useState(0);
-  const [storyVocabFillLoading, setStoryVocabFillLoading] = useState(false);
-  const [storyPhraseFillLoading, setStoryPhraseFillLoading] = useState(false);
-  const [storyVocabFillError, setStoryVocabFillError] = useState("");
-  const [storyPhraseFillError, setStoryPhraseFillError] = useState("");
-  // Frame index currently being recorded via the mic (null when idle) — a
-  // teacher's own reading of the listening passage, as an alternative to
-  // uploading a file or falling back to TTS.
-  const [recordingFrameIndex, setRecordingFrameIndex] = useState<number | null>(null);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [validationAttemptGeneration, setValidationAttemptGeneration] = useState(0);
@@ -116,8 +102,6 @@ export default function StoryBuilderSection({
     clamped: number,
   ): Record<StoryDifficultyLevel, string[]> => ({
     easy: resizeToCount(tiers.easy, clamped, ""),
-    medium: resizeToCount(tiers.medium, clamped, ""),
-    hard: resizeToCount(tiers.hard, clamped, ""),
   });
 
   const updateFrameCount = (count: number) => {
@@ -136,6 +120,7 @@ export default function StoryBuilderSection({
       phrasesTranslation: resizeTiers(draft.phrasesTranslation, clamped),
       suggestedAnswers: resizeTiers(draft.suggestedAnswers, clamped),
       listenAudioUrls: resizeTiers(draft.listenAudioUrls, clamped),
+      listenAudioSources: resizeTiers(draft.listenAudioSources, clamped),
       listenScripts: resizeTiers(draft.listenScripts, clamped),
     }));
     setValidationErrors((errors) => ({ ...errors, frames: undefined, form: undefined }));
@@ -188,7 +173,6 @@ export default function StoryBuilderSection({
         },
       },
     }));
-    setStoryVocabFillError("");
     clearNotice();
   };
 
@@ -203,7 +187,6 @@ export default function StoryBuilderSection({
         },
       },
     }));
-    setStoryPhraseFillError("");
     clearNotice();
   };
 
@@ -211,31 +194,11 @@ export default function StoryBuilderSection({
     handlePasteFrameImage,
     handleUploadFrameImage,
     handleUploadFrameAudio,
-    handleStartFrameRecording,
-    handleStopFrameRecording,
-    handleFillVocabFromSentence,
-    handleFillPhrasesFromSentence,
-    handleFillStoryVocab,
-    handleFillStoryPhrases,
+    handleRemoveFrameAudio,
   } = useStoryBuilderFrameActions({
     customDraft,
     updateDraftFrame,
     setValidationErrors,
-    setCustomDraft,
-    setVocabDraftGeneration,
-    setPhraseDraftGeneration,
-    setVocabFillError,
-    setVocabFillLoadingIndex,
-    setPhraseFillError,
-    setPhraseFillLoadingIndex,
-    setStoryVocabDraftGeneration,
-    setStoryPhraseDraftGeneration,
-    setStoryVocabFillError,
-    setStoryVocabFillLoading,
-    setStoryPhraseFillError,
-    setStoryPhraseFillLoading,
-    setRecordingFrameIndex,
-    setRecordingSeconds,
   });
 
   const handleSaveCustomStory = async () => {
@@ -462,28 +425,9 @@ export default function StoryBuilderSection({
           onPasteImage={handlePasteFrameImage}
           onUploadImage={handleUploadFrameImage}
           onUploadAudio={handleUploadFrameAudio}
-          onFillVocab={handleFillVocabFromSentence}
-          onFillPhrases={handleFillPhrasesFromSentence}
+          onRemoveAudio={handleRemoveFrameAudio}
           onUpdateStoryVocabulary={updateStoryVocabulary}
           onUpdateStoryPhrases={updateStoryPhrases}
-          onFillStoryVocab={handleFillStoryVocab}
-          onFillStoryPhrases={handleFillStoryPhrases}
-          storyVocabDraftGeneration={storyVocabDraftGeneration}
-          storyPhraseDraftGeneration={storyPhraseDraftGeneration}
-          storyVocabFillLoading={storyVocabFillLoading}
-          storyPhraseFillLoading={storyPhraseFillLoading}
-          storyVocabFillError={storyVocabFillError}
-          storyPhraseFillError={storyPhraseFillError}
-          vocabDraftGeneration={vocabDraftGeneration}
-          phraseDraftGeneration={phraseDraftGeneration}
-          vocabFillLoadingIndex={vocabFillLoadingIndex}
-          phraseFillLoadingIndex={phraseFillLoadingIndex}
-          vocabFillError={vocabFillError}
-          phraseFillError={phraseFillError}
-          recordingFrameIndex={recordingFrameIndex}
-          recordingSeconds={recordingSeconds}
-          onStartRecording={handleStartFrameRecording}
-          onStopRecording={handleStopFrameRecording}
         />
         <StoryBuilderLibrary
           customStories={customStories}

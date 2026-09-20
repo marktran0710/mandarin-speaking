@@ -9,6 +9,7 @@ export interface StripAttempt {
   storyId: string;
   mode?: string | null;
   correctCount: number;
+  totalQuestions: number;
   completedAt: string;
 }
 
@@ -33,7 +34,7 @@ export function pickStripMessage(attempts: StripAttempt[]): StripMessage {
   let milestone: { storyId: string; stars: QuizTier } | null = null;
 
   for (const attempt of sorted) {
-    const gap = nextStarGap(attempt.mode, attempt.correctCount);
+    const gap = nextStarGap(attempt.mode, attempt.correctCount, attempt.totalQuestions);
     if (gap === null) continue; // not a tier run
     const isLatestForStory = !seen.has(attempt.storyId);
     seen.add(attempt.storyId);
@@ -46,7 +47,7 @@ export function pickStripMessage(attempts: StripAttempt[]): StripMessage {
     ) {
       nearMiss = { storyId: attempt.storyId, gap };
     }
-    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount);
+    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount, attempt.totalQuestions);
     if (milestone === null && earned !== null) {
       milestone = { storyId: attempt.storyId, stars: earned };
     }

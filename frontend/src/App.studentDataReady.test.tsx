@@ -30,6 +30,21 @@ function signInAsStudent() {
 }
 
 describe("App — student data must be ready before a student route renders", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not request protected student data for anonymous home", async () => {
+    const api = await import("./services/database");
+    const listAudioRecords = vi.spyOn(api, "listAudioRecords");
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(listAudioRecords).not.toHaveBeenCalled();
+    expect(api.listCustomStories).not.toHaveBeenCalled();
+  });
+
   it("shows the loading gate, not the workspace, while a fetch is still pending, then releases it once all three settle", async () => {
     const api = await import("./services/database");
     let resolveAudio!: (value: never[]) => void;
@@ -63,6 +78,8 @@ describe("App — student data must be ready before a student route renders", ()
     expect(
       screen.getByRole("navigation", { name: "Learning areas" }),
     ).toBeInTheDocument();
+    expect(api.listCustomStories).toHaveBeenCalledTimes(1);
+    expect(api.listHelpRequests).not.toHaveBeenCalled();
   });
 
   it("releases the gate even when a fetch fails, instead of loading forever", async () => {

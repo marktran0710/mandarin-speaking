@@ -32,38 +32,9 @@
   font-size: var(--text-md);
 }
 
-.ts-dash-stat-grid,
 .ts-dash-step-grid {
   display: grid;
   gap: var(--space-md);
-}
-
-.ts-dash-stat-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.ts-dash-stat-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-md);
-  min-width: 0;
-  padding: var(--space-md) var(--space-lg);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-  box-shadow: var(--shadow-sm);
-}
-
-.ts-dash-stat-card .ts-dash-icon-chip {
-  width: 46px;
-  height: 46px;
-}
-
-.ts-dash-stat-max {
-  color: var(--clay-muted);
-  font-size: 15px;
-  font-weight: 600;
 }
 
 .ts-dash-icon-chip {
@@ -95,20 +66,6 @@
   background: var(--gold-soft);
 }
 
-.ts-dash-stat-copy {
-  display: grid;
-  gap: var(--space-2xs);
-  min-width: 0;
-}
-
-.ts-dash-stat-copy strong {
-  color: var(--clay-ink);
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.ts-dash-stat-copy .bi-label,
 .ts-dash-step-card .bi-label,
 .ts-dash-explainer > h2 .bi-label {
   --bi-en-color: var(--clay-muted);
@@ -188,6 +145,27 @@
   color: var(--clay-body);
   font-size: var(--text-base);
   line-height: 1.5;
+}
+
+/* A quiet heads-up riding along the continue card, not a gate: same "seal"
+   accent as the vocab quiz's weak-words card so it reads as one family of
+   cue, but sized and placed to stay secondary to the card's own copy. */
+.ts-dash-review-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  width: fit-content;
+  max-width: none;
+  margin: 0;
+  padding: var(--space-3xs) var(--space-sm);
+  border-radius: var(--clay-radius-pill);
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.ts-dash-review-hint .bi-label {
+  --bi-en-color: var(--seal-deep);
 }
 
 .ts-dash-continue-action {
@@ -271,7 +249,6 @@
 }
 
 @media (max-width: 720px) {
-  .ts-dash-stat-grid,
   .ts-dash-step-grid {
     grid-template-columns: 1fr;
   }

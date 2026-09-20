@@ -42,6 +42,10 @@ output/
 *.docx
 *.png
 tmp_pdf_l6/
+tmp/
+
+# Nested git worktrees for parallel agent work (each has its own .git)
+.worktrees/
 
 # These teaching images are part of the reproducible material seed.
 !backend/scripts/data/
@@ -77,3 +81,9 @@ backend/pronunciation/wav2vec_tone/data/technical_verification/tv2_scratch/
 backend/pronunciation/wav2vec_tone/data/technical_verification/tv3_browser_fixtures/
 backend/pronunciation/wav2vec_tone/data/self_pilot/harness_scratch/
 backend/pronunciation/wav2vec_tone/data/self_pilot/audio/
+
+# External agent skill packages (installed locally, not part of this repo)
+.agents/
+
+# Test coverage output
+frontend/coverage/

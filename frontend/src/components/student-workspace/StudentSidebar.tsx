@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StudentIcon, { type StudentIconName } from "../StudentIcon";
 import { BiLabel, type BiLabelProps } from "../BiLabel";
+import SourceAttribution from "../SourceAttribution";
 import useColorMode from "../../hooks/useColorMode";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentSidebar.css";
@@ -17,6 +18,11 @@ interface StudentSidebarProps {
    * bottom-right corner of every page. */
   totalStars: number;
   maxStars: number;
+  /** Temporary entry point while the placement test isn't yet designed into
+   * the main 課程/我的學習 journey — a plain extra rail item so it's reachable
+   * for testing without pretending it's a third peer of those two views. */
+  onOpenPlacementTest?: () => void;
+  placementTestActive?: boolean;
 }
 
 /** The student shell's single navigation surface, fixed on every student
@@ -44,9 +50,44 @@ export default function StudentSidebar({
   onLogout,
   totalStars,
   maxStars,
+  onOpenPlacementTest,
+  placementTestActive = false,
 }: StudentSidebarProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 900px)").matches,
+  );
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 900px)");
+    const updateViewport = () => {
+      setIsMobile(query.matches);
+      if (!query.matches) setDrawerOpen(false);
+    };
+    updateViewport();
+    query.addEventListener("change", updateViewport);
+    return () => query.removeEventListener("change", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !drawerOpen) return;
+    document.getElementById(`student-nav-${activeView}`)?.focus();
+  }, [activeView, drawerOpen, isMobile]);
+
+  useEffect(() => {
+    drawerRef.current?.toggleAttribute("inert", isMobile && !drawerOpen);
+  }, [drawerOpen, isMobile]);
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    toggleRef.current?.focus();
+  };
 
   // Roving tabindex + arrow keys, carried over from the tab bar this
   // replaces: the rail is one tab stop, arrows move within it. Up/Down are
@@ -66,18 +107,42 @@ export default function StudentSidebar({
 
   const select = (view: WorkspaceView) => {
     onChange(view);
-    setDrawerOpen(false);
+    if (isMobile) closeDrawer();
+  };
+
+  const handleDrawerKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!isMobile || !drawerOpen) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
   return (
     <>
       <button
         type="button"
+        ref={toggleRef}
         className="student-sidebar-toggle"
         aria-label={drawerOpen ? "Close menu" : "Open menu"}
         aria-expanded={drawerOpen}
         aria-controls="student-sidebar"
-        onClick={() => setDrawerOpen((open) => !open)}
+        onClick={() => drawerOpen ? closeDrawer() : setDrawerOpen(true)}
       >
         <StudentIcon name={drawerOpen ? "close" : "menu"} size={20} />
       </button>
@@ -87,13 +152,16 @@ export default function StudentSidebar({
           type="button"
           className="student-sidebar-backdrop"
           aria-label="Close menu"
-          onClick={() => setDrawerOpen(false)}
+          onClick={closeDrawer}
         />
       )}
 
       <aside
         id="student-sidebar"
+        ref={drawerRef}
         className={`student-sidebar${drawerOpen ? " is-open" : ""}`}
+        aria-hidden={isMobile && !drawerOpen ? true : undefined}
+        onKeyDown={handleDrawerKeyDown}
       >
         <div className="student-sidebar-brand">
           <span className="student-sidebar-logo" aria-hidden="true" lang="zh-Hant">慢</span>
@@ -102,7 +170,10 @@ export default function StudentSidebar({
 
         <nav className="student-sidebar-nav" aria-label="Learning areas">
           {views.map((item) => {
-            const isActive = activeView === item.id;
+            // placementTestActive owns the highlight when set — a standalone
+            // page like this reuses activeView="practice" as its harmless
+            // fallback selection, which must not also light up Lessons.
+            const isActive = activeView === item.id && !placementTestActive;
             return (
               <button
                 key={item.id}
@@ -123,6 +194,24 @@ export default function StudentSidebar({
               </button>
             );
           })}
+          {onOpenPlacementTest && (
+            <button
+              type="button"
+              aria-current={placementTestActive ? "page" : undefined}
+              className={`student-sidebar-item${placementTestActive ? " active" : ""}`}
+              onClick={() => {
+                onOpenPlacementTest();
+                if (isMobile) closeDrawer();
+              }}
+            >
+              <span className="student-sidebar-item-icon">
+                <StudentIcon name="target" size={20} />
+              </span>
+              <span className="student-sidebar-item-copy">
+                <BiLabel zh="分班測驗" pinyin="Fēnbān cèyàn" en="Placement test" />
+              </span>
+            </button>
+          )}
         </nav>
 
         {/* Stars sit directly under the nav — "how far along I am" reads as
@@ -188,6 +277,8 @@ export default function StudentSidebar({
             <BiLabel k="log_out" />
           </button>
         </div>
+
+        <SourceAttribution className="is-rail" />
       </aside>
     </>
   );

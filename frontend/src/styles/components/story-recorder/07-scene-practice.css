@@ -329,7 +329,11 @@
   width: 100%;
   padding: 16px;
   border-radius: var(--clay-radius-md);
-  border: 2px solid var(--seal-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. The tactile "lip"
+     effect described above comes from the translateY() press/lift on
+     hover/active below, not border weight, so this stays light without
+     losing that feel. */
+  border: 1.5px solid var(--seal-deep);
   background: var(--seal);
   color: var(--clay-on-seal);
   font-size: 1.1rem;

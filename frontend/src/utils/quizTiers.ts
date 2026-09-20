@@ -10,22 +10,48 @@ import { getStudentScopeKey, isAdminSession } from "./studentSession";
 
 export type QuizTier = 1 | 2 | 3;
 export type TierMode = "tier1" | "tier2" | "tier3";
+export type DiagnosticRoundType = "know_it" | "say_it" | "use_it";
+export type DiagnosticKnowledgeDimension = "meaning" | "pinyin_production" | "contextual_recall";
 
 export interface TierConfig {
   tier: QuizTier;
   mode: TierMode;
-  questionCount: number;
-  // Minimum correct answers for the run to pass and earn this tier's star.
-  passCount: number;
+  /** The source lesson vocabulary determines the run length. */
+  passRatio: number;
   // Total time cap for the whole run (the Speed-mode engine), or null for
   // an untimed tier.
   timeLimitMs: number | null;
 }
 
 export const TIER_CONFIGS: Record<TierMode, TierConfig> = {
-  tier1: { tier: 1, mode: "tier1", questionCount: 20, passCount: 14, timeLimitMs: null },
-  tier2: { tier: 2, mode: "tier2", questionCount: 22, passCount: 18, timeLimitMs: null },
-  tier3: { tier: 3, mode: "tier3", questionCount: 25, passCount: 22, timeLimitMs: 150_000 },
+  // These ratios preserve the old difficulty curve without making the quiz
+  // depend on a fixed number of words.
+  tier1: { tier: 1, mode: "tier1", passRatio: 0.70, timeLimitMs: null },
+  tier2: { tier: 2, mode: "tier2", passRatio: 0.82, timeLimitMs: null },
+  tier3: { tier: 3, mode: "tier3", passRatio: 0.88, timeLimitMs: 150_000 },
+};
+
+export interface DiagnosticRoundConfig {
+  mode: TierMode;
+  // The external quiz bank's difficulty label for this round's question — used
+  // only to look up the round's bank question (the bank is owned by the quiz
+  // pipeline and keeps these labels). The round dimension itself is `mode`
+  // (tier1/2/3); the stored quiz_level uses that round key, not this label.
+  bankLevel: "easy" | "medium" | "hard";
+  roundType: DiagnosticRoundType;
+  knowledgeDimension: DiagnosticKnowledgeDimension;
+  questionKind: "basic_meaning_mcq" | "character_to_pinyin_typing" | "context_cloze_mcq";
+}
+
+// Round 3 ("use it") is a multiple-choice context cloze, not free-text hanzi
+// typing — most students have no Chinese IME, so a bare text input made the
+// round practically unplayable. bankLevel stays "hard" so the round still
+// grades against that level's published correctAnswer/acceptedAnswers; the
+// MCQ options are built separately (see buildDiagnosticRoundQuestions).
+export const DIAGNOSTIC_ROUNDS: Record<TierMode, DiagnosticRoundConfig> = {
+  tier1: { mode: "tier1", bankLevel: "easy", roundType: "know_it", knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
+  tier2: { mode: "tier2", bankLevel: "medium", roundType: "say_it", knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
+  tier3: { mode: "tier3", bankLevel: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "context_cloze_mcq" },
 };
 
 export function tierConfigFromMode(mode: string | null | undefined): TierConfig | null {
@@ -36,9 +62,8 @@ export function tierConfigFromMode(mode: string | null | undefined): TierConfig 
 /** Preserve a tier's pass ratio when a leak-free planner has fewer distinct
  * concepts than the tier's nominal question count. */
 export function effectiveTierPassCount(config: TierConfig, totalQuestions: number): number {
-  if (totalQuestions >= config.questionCount) return config.passCount;
-  if (totalQuestions <= 0) return config.passCount;
-  return Math.max(1, Math.ceil((config.passCount / config.questionCount) * totalQuestions));
+  if (totalQuestions <= 0) return 0;
+  return Math.max(1, Math.ceil(config.passRatio * totalQuestions));
 }
 
 /** The star (tier number) a finished attempt earns, or null if it failed
@@ -50,7 +75,7 @@ export function attemptEarnsStar(
 ): QuizTier | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  const passCount = effectiveTierPassCount(config, totalQuestions ?? config.questionCount);
+  const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
   return correctCount >= passCount ? config.tier : null;
 }
 
@@ -124,7 +149,7 @@ export function nextStarGap(
 ): number | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  const passCount = effectiveTierPassCount(config, totalQuestions ?? config.questionCount);
+  const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
   return Math.max(0, passCount - correctCount);
 }
 
@@ -151,21 +176,6 @@ function loadStarProgress(): StarProgress {
 export function loadLocalStars(storyId: string): 0 | QuizTier {
   const stars = loadStarProgress()[storyId];
   return stars === 1 || stars === 2 || stars === 3 ? stars : 0;
-}
-
-// Medium/Hard sessions run the same 3-star ladder under tier-suffixed quiz
-// ids, so a story's stars are the BEST earned across its text tiers — never
-// the sum, which would triple-count one ladder.
-const TIER_SUFFIXES = ["", "-medium", "-hard"];
-
-/** Best stars this browser has recorded for a story, across its Easy /
- * Medium / Hard text tiers. `baseTopicId` is the Easy topic id (the one the
- * story picker lists). */
-export function loadBestLocalStars(baseTopicId: string): 0 | QuizTier {
-  return TIER_SUFFIXES.reduce<0 | QuizTier>((best, suffix) => {
-    const stars = loadLocalStars(`${baseTopicId}${suffix}`);
-    return stars > best ? stars : best;
-  }, 0);
 }
 
 /** Records `stars` for `storyId`, keeping the best ever earned — earning a

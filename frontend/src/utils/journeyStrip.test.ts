@@ -7,7 +7,7 @@ const attempt = (
   mode: string,
   correctCount: number,
   completedAt: string,
-) => ({ storyId, mode, correctCount, completedAt });
+) => ({ storyId, mode, correctCount, totalQuestions: mode === "tier1" ? 20 : mode === "tier2" ? 22 : 25, completedAt });
 
 describe("pickStripMessage", () => {
   it("welcomes a brand-new student with no attempts", () => {
@@ -17,10 +17,10 @@ describe("pickStripMessage", () => {
 
   it("points at the story whose latest attempt was a near-miss (gap <= 2)", () => {
     const msg = pickStripMessage([
-      attempt("s-market", "tier2", 17, "2026-07-23T10:00:00Z"), // gap 1
+      attempt("s-market", "tier2", 17, "2026-07-23T10:00:00Z"), // gap 2
       attempt("s-tea", "tier1", 20, "2026-07-22T10:00:00Z"),
     ]);
-    expect(msg).toMatchObject({ kind: "near_miss", storyId: "s-market", gap: 1 });
+    expect(msg).toMatchObject({ kind: "near_miss", storyId: "s-market", gap: 2 });
   });
 
   it("ignores a near-miss that a later attempt on the same story already passed", () => {

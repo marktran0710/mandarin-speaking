@@ -26,8 +26,13 @@ from typing import Any, Iterable, Mapping, Sequence
 
 MIN_DIAGNOSTIC_OBSERVATIONS = 3
 MIN_TYPE_DIVERSITY = 2
-BKT_DIAGNOSTIC_CAPACITIES = {"quiz_1": 20, "quiz_2": 22, "quiz_3": 25}
-BKT_DIAGNOSTIC_TYPES = frozenset({"translation", "reverse", "listening"})
+BKT_DIAGNOSTIC_TYPES = frozenset({
+    "translation", "reverse", "listening", "basic_meaning_mcq",
+    "character_to_pinyin_typing", "contextual_productive_recall",
+    # Existing approved banks may still use these names; round metadata
+    # determines whether a new diagnostic exposure is valid.
+    "context_cloze_mcq", "productive_recall",
+})
 CEILING_ACCURACY = 0.95
 FLOOR_ACCURACY = 0.20
 DIFFICULTY_MIN_RESPONSES = 20
@@ -37,6 +42,15 @@ _SOURCE_OPTION_TYPES = frozenset({"reverse", "listening", "pinyin", "pos"})
 _APPROVED_STATUSES = frozenset({"approved", "APPROVED"})
 _SLOT_BY_MODE = {"tier1": "quiz_1", "tier2": "quiz_2", "tier3": "quiz_3"}
 _SLOT_BY_VALUE = {"1": "quiz_1", "2": "quiz_2", "3": "quiz_3"}
+_ROUND_BY_MODE = {"tier1": "know_it", "tier2": "say_it", "tier3": "use_it"}
+# The round key stored in quiz_level now matches quiz_mode (tier1/2/3); the
+# separate difficulty label was retired.
+_LEVEL_BY_MODE = {"tier1": "tier1", "tier2": "tier2", "tier3": "tier3"}
+PRODUCTION_BKT_CONTRACT = {
+    "easy": {"round": "tier1", "question_type": "basic_meaning_mcq", "answer_format": "single_choice"},
+    "medium": {"round": "tier2", "question_type": "character_to_pinyin_typing", "answer_format": "free_text"},
+    "hard": {"round": "tier3", "question_type": "context_cloze_mcq", "answer_format": "single_choice"},
+}
 _OBVIOUS_BAD_OPTION = re.compile(r"^(?:a{3,}|n/?a|none|nil|\?{2,}|x{3,})$", re.I)
 
 
@@ -193,6 +207,8 @@ def validate_vocabulary_question(
     kind = _question_type(question)
     answer = _correct_answer(question)
     options, is_distractors = _options(question)
+    answer_format = normalize_value(_field(question, "answer_format", "answerFormat", default=""))
+    is_free_text = answer_format == "free_text" or kind in {"character_to_pinyin_typing", "contextual_productive_recall", "productive_recall"}
 
     if not targets:
         errors.append(_issue("MISSING_TARGET_WORD", "ERROR", "Question has no primary target vocabulary word.", question, suggested_action="Assign exactly one word_id/target word."))
@@ -205,34 +221,36 @@ def validate_vocabulary_question(
         errors.append(_issue("MISSING_CORRECT_ANSWER", "ERROR", "Question has no correct answer.", question, suggested_action="Add one canonical correct answer."))
 
     normalized_options = [normalize_value(option) for option in options]
-    if len(options) < 2:
-        errors.append(_issue("INSUFFICIENT_OPTIONS", "ERROR", "MCQ needs at least two non-empty options.", question, word_id=word_id, suggested_action="Provide at least two non-empty alternatives."))
-    if any(not option for option in options):
-        errors.append(_issue("EMPTY_OPTION", "ERROR", "Question contains an empty option.", question, word_id=word_id, suggested_action="Replace or remove the empty option."))
-    if len(normalized_options) != len(set(normalized_options)):
-        errors.append(_issue("DUPLICATE_OPTIONS", "ERROR", "Options contain duplicate values after normalization.", question, word_id=word_id, suggested_action="Keep every displayed option unique."))
+    if not is_free_text:
+        if len(options) < 2:
+            errors.append(_issue("INSUFFICIENT_OPTIONS", "ERROR", "MCQ needs at least two non-empty options.", question, word_id=word_id, suggested_action="Provide at least two non-empty alternatives."))
+        if any(not option for option in options):
+            errors.append(_issue("EMPTY_OPTION", "ERROR", "Question contains an empty option.", question, word_id=word_id, suggested_action="Replace or remove the empty option."))
+        if len(normalized_options) != len(set(normalized_options)):
+            errors.append(_issue("DUPLICATE_OPTIONS", "ERROR", "Options contain duplicate values after normalization.", question, word_id=word_id, suggested_action="Keep every displayed option unique."))
+
+        normalized_answer = normalize_value(answer)
+        if is_distractors:
+            if normalized_answer in normalized_options:
+                errors.append(_issue("CORRECT_ANSWER_IN_DISTRACTORS", "ERROR", "The correct answer appears in the distractor pool.", question, word_id=word_id, suggested_action="Remove the correct answer from the distractors."))
+        elif normalized_answer:
+            answer_count = normalized_options.count(normalized_answer)
+            if answer_count == 0:
+                errors.append(_issue("CORRECT_OPTION_MISSING", "ERROR", "The correct answer is not present in the displayed options.", question, word_id=word_id, suggested_action="Include exactly one correct option."))
+            elif answer_count > 1:
+                errors.append(_issue("MULTIPLE_CORRECT_ANSWERS", "ERROR", "The correct answer occurs more than once after normalization.", question, word_id=word_id, suggested_action="Remove the duplicated correct option."))
+
+        if len(options) < 4 and len(options) >= 2:
+            warnings.append(_issue("UNDER_FOUR_OPTIONS", "WARNING", f"Question has {len(options)} options; four is the preferred MCQ standard.", question, word_id=word_id, suggested_action="Add alternatives if the lesson vocabulary supports them."))
+
+        for option in options:
+            if _OBVIOUS_BAD_OPTION.match(option.strip()):
+                warnings.append(_issue("MALFORMED_DISTRACTOR", "WARNING", f"Option {option!r} looks like a placeholder or malformed distractor.", question, word_id=word_id, suggested_action="Have a teacher replace the distractor with a plausible answer."))
+        nonempty_lengths = [len(option) for option in options if option]
+        if nonempty_lengths and max(nonempty_lengths) >= 3 * max(1, min(nonempty_lengths)):
+            warnings.append(_issue("FORMAT_LENGTH_CLUE", "WARNING", "One option is dramatically longer than the others and may reveal the answer.", question, word_id=word_id, suggested_action="Review option wording and formatting for accidental clues."))
 
     normalized_answer = normalize_value(answer)
-    if is_distractors:
-        if normalized_answer in normalized_options:
-            errors.append(_issue("CORRECT_ANSWER_IN_DISTRACTORS", "ERROR", "The correct answer appears in the distractor pool.", question, word_id=word_id, suggested_action="Remove the correct answer from the distractors."))
-    elif normalized_answer:
-        answer_count = normalized_options.count(normalized_answer)
-        if answer_count == 0:
-            errors.append(_issue("CORRECT_OPTION_MISSING", "ERROR", "The correct answer is not present in the displayed options.", question, word_id=word_id, suggested_action="Include exactly one correct option."))
-        elif answer_count > 1:
-            errors.append(_issue("MULTIPLE_CORRECT_ANSWERS", "ERROR", "The correct answer occurs more than once after normalization.", question, word_id=word_id, suggested_action="Remove the duplicated correct option."))
-
-    if len(options) < 4 and len(options) >= 2:
-        warnings.append(_issue("UNDER_FOUR_OPTIONS", "WARNING", f"Question has {len(options)} options; four is the preferred MCQ standard.", question, word_id=word_id, suggested_action="Add alternatives if the lesson vocabulary supports them."))
-
-    for option in options:
-        if _OBVIOUS_BAD_OPTION.match(option.strip()):
-            warnings.append(_issue("MALFORMED_DISTRACTOR", "WARNING", f"Option {option!r} looks like a placeholder or malformed distractor.", question, word_id=word_id, suggested_action="Have a teacher replace the distractor with a plausible answer."))
-    nonempty_lengths = [len(option) for option in options if option]
-    if nonempty_lengths and max(nonempty_lengths) >= 3 * max(1, min(nonempty_lengths)):
-        warnings.append(_issue("FORMAT_LENGTH_CLUE", "WARNING", "One option is dramatically longer than the others and may reveal the answer.", question, word_id=word_id, suggested_action="Review option wording and formatting for accidental clues."))
-
     visible = [_text(_field(question, name, default="")) for name in ("prompt", "image_alt", "imageAlt", "explanation", "audio_filename", "audioFilename", "html_data", "htmlData")]
     # The current listening UI renders an audio control and does not display
     # its word prompt. Its export row uses the canonical word as a placeholder,
@@ -271,7 +289,8 @@ def _diagnostic_slot(question: Any) -> str | None:
     if mode in _SLOT_BY_MODE:
         return _SLOT_BY_MODE[mode]
     # Do not infer that a generic easy tier is one of three diagnostic rounds.
-    return None
+    round_type = normalize_value(_field(question, "round_type", "roundType", default=""))
+    return {"know_it": "quiz_1", "say_it": "quiz_2", "use_it": "quiz_3"}.get(round_type)
 
 
 def _word_label(word_id: str) -> str:
@@ -377,18 +396,20 @@ def validate_bkt_diagnostic_design(
     bank_hash = hashlib.sha256(
         json.dumps(bank_rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+    slot_counts = Counter(_diagnostic_slot(question) for question in question_list)
     capacity_report = {
         slot: {
-            "capacity": capacity,
+            "capacity": slot_counts.get(slot, 0),
             "requiredForCurrentWords": len(word_rows),
-            "shortfall": max(0, len(word_rows) - capacity),
+            "shortfall": max(0, len(word_rows) - slot_counts.get(slot, 0)),
         }
-        for slot, capacity in BKT_DIAGNOSTIC_CAPACITIES.items()
+        for slot in ("quiz_1", "quiz_2", "quiz_3")
     }
+    total_capacity = sum(slot_counts.get(slot, 0) for slot in ("quiz_1", "quiz_2", "quiz_3"))
     capacity_report["total"] = {
-        "capacity": sum(BKT_DIAGNOSTIC_CAPACITIES.values()),
+        "capacity": total_capacity,
         "requiredForCurrentWords": len(word_rows) * min_observations,
-        "shortfall": max(0, len(word_rows) * min_observations - sum(BKT_DIAGNOSTIC_CAPACITIES.values())),
+        "shortfall": max(0, len(word_rows) * min_observations - total_capacity),
     }
     scope_counts = Counter((row.get("story_id") or "", row.get("level") or "") for row in word_rows)
     capacity_report["byScope"] = {
@@ -397,7 +418,7 @@ def validate_bkt_diagnostic_design(
             "level": level or None,
             "vocabularyWords": word_count,
             "requiredObservations": word_count * min_observations,
-            "shortfall": max(0, word_count * min_observations - sum(BKT_DIAGNOSTIC_CAPACITIES.values())),
+            "shortfall": max(0, word_count * min_observations - total_capacity),
         }
         for (story_id, level), word_count in sorted(scope_counts.items())
     }
@@ -407,7 +428,7 @@ def validate_bkt_diagnostic_design(
             "minTypeDiversity": MIN_TYPE_DIVERSITY,
             "bktDiagnosticTypes": sorted({normalize_value(value) for value in approved_types}),
             "requireTeacherApproval": require_teacher_approval,
-            "diagnosticQuizCapacities": BKT_DIAGNOSTIC_CAPACITIES,
+            "diagnosticQuizCapacities": {slot: capacity_report[slot]["capacity"] for slot in ("quiz_1", "quiz_2", "quiz_3")},
         },
         "summary": {
             "vocabularyWords": len(word_rows),
@@ -424,6 +445,108 @@ def validate_bkt_diagnostic_design(
         "correctOptionPositionDistribution": dict(sorted(position_counts.items())),
         "capacity": capacity_report,
         "bankHash": bank_hash,
+    }
+
+
+def validate_production_bkt_assessment(
+    assessment: Any,
+    *,
+    story_id: str | None = None,
+) -> dict[str, Any]:
+    """Validate the normalized ``custom_stories.vocab_assessment`` BKT source.
+
+    This is deliberately separate from the legacy frame/export audit above.
+    The resolver consumes this exact representation, so one published word
+    must have exactly one supported observation for each production round.
+    ``validationStatus``/``approvalStatus`` are optional compatibility fields;
+    when present, a non-approved value is rejected. Publication remains the
+    approval boundary for the current normalized payload.
+    """
+    errors: list[dict[str, Any]] = []
+    if not isinstance(assessment, Sequence) or isinstance(assessment, (str, bytes)):
+        return {
+            "storyId": story_id,
+            "valid": False,
+            "itemsChecked": 0,
+            "wordsChecked": 0,
+            "errors": [{"code": "PRODUCTION_ASSESSMENT_NOT_LIST", "storyId": story_id}],
+        }
+
+    by_word: dict[str, list[tuple[str, Mapping[str, Any]]]] = defaultdict(list)
+    seen_rounds: set[tuple[str, str]] = set()
+    expected_types = {contract["question_type"] for contract in PRODUCTION_BKT_CONTRACT.values()}
+    for index, item in enumerate(assessment, start=1):
+        if not isinstance(item, Mapping):
+            errors.append({"code": "PRODUCTION_ITEM_INVALID", "index": index})
+            continue
+        word_id = normalize_value(item.get("wordId") or item.get("word_id"))
+        level = normalize_value(item.get("level"))
+        question_type = normalize_value(item.get("questionType") or item.get("question_type"))
+        answer_format = normalize_value(item.get("answerFormat") or item.get("answer_format"))
+        item_id = _text(item.get("questionId") or item.get("question_id") or f"item-{index}")
+        if not word_id:
+            errors.append({"code": "PRODUCTION_MISSING_WORD_ID", "itemId": item_id, "index": index})
+            continue
+        if level not in PRODUCTION_BKT_CONTRACT:
+            errors.append({"code": "PRODUCTION_UNSUPPORTED_LEVEL", "itemId": item_id, "wordId": word_id, "level": level})
+            continue
+        contract = PRODUCTION_BKT_CONTRACT[level]
+        round_identity = (word_id, level)
+        if round_identity in seen_rounds:
+            errors.append({"code": "PRODUCTION_DUPLICATE_WORD_ROUND", "itemId": item_id, "wordId": word_id, "level": level})
+        seen_rounds.add(round_identity)
+        by_word[word_id].append((level, item))
+        if question_type not in expected_types:
+            errors.append({"code": "PRODUCTION_UNSUPPORTED_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "level": level, "questionType": question_type})
+        elif question_type != contract["question_type"]:
+            errors.append({"code": "PRODUCTION_WRONG_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "level": level, "expected": contract["question_type"], "actual": question_type})
+        if answer_format != contract["answer_format"]:
+            errors.append({"code": "PRODUCTION_WRONG_ANSWER_FORMAT", "itemId": item_id, "wordId": word_id, "level": level, "expected": contract["answer_format"], "actual": answer_format})
+        status = item.get("validationStatus", item.get("validation_status", item.get("approvalStatus", item.get("approval_status"))))
+        if status is not None and normalize_value(status) not in {"approved", "ok"}:
+            errors.append({"code": "PRODUCTION_UNAPPROVED_ITEM", "itemId": item_id, "wordId": word_id, "level": level, "status": str(status)})
+
+    expected_levels = set(PRODUCTION_BKT_CONTRACT)
+    for word_id, rows in sorted(by_word.items()):
+        levels = {level for level, _ in rows}
+        missing = sorted(expected_levels - levels)
+        if missing:
+            errors.append({"code": "PRODUCTION_MISSING_ROUND", "wordId": word_id, "missingLevels": missing})
+
+    return {
+        "storyId": story_id,
+        "valid": not errors,
+        "itemsChecked": len(assessment),
+        "wordsChecked": len(by_word),
+        "expectedRounds": {
+            level: {"round": value["round"], "questionType": value["question_type"], "answerFormat": value["answer_format"]}
+            for level, value in PRODUCTION_BKT_CONTRACT.items()
+        },
+        "errors": errors,
+    }
+
+
+def audit_production_bkt_assessments(stories: Iterable[Any]) -> dict[str, Any]:
+    """Audit published stories using the resolver's production source shape."""
+    reports = []
+    for story in stories:
+        story_id = _text(_field(story, "id", "storyId", default="")) or None
+        assessment = _field(story, "vocab_assessment", "vocabAssessment", default=None)
+        reports.append(validate_production_bkt_assessment(assessment, story_id=story_id))
+    return {
+        "mode": "production-vocab-assessment",
+        # An empty published-story scope is not evidence that the production
+        # bank is valid. Keep the report useful for a fresh dev database, but
+        # make CI's fail-on-ineligible gate reject this vacuous case.
+        "valid": bool(reports) and all(report["valid"] for report in reports),
+        "summary": {
+            "storiesChecked": len(reports),
+            "storiesPassed": sum(report["valid"] for report in reports),
+            "storiesFailed": sum(not report["valid"] for report in reports),
+            "itemsChecked": sum(report["itemsChecked"] for report in reports),
+            "wordsChecked": sum(report["wordsChecked"] for report in reports),
+        },
+        "stories": reports,
     }
 
 
@@ -499,16 +622,26 @@ def classify_bkt_response(
     word = _text(_field(result, "word", default=""))
     if not concept or not word:
         errors.append("MISSING_TARGET_WORD")
-    elif normalize_value(concept) != normalize_value(word):
-        errors.append("CONCEPT_WORD_MISMATCH")
+    # ``conceptId`` is the stable learner-model key and may intentionally be
+    # different from the human-readable ``word``. CSV assessment rows use
+    # ids such as ``MC1_003`` while rendering the Chinese target word. The
+    # response still needs both fields, but requiring them to be identical
+    # would reject every imported assessment response before it reaches BKT.
     kind = _question_type(result)
     if kind not in {normalize_value(value) for value in approved_types}:
         errors.append("UNSUPPORTED_BKT_QUESTION_TYPE")
-    if _text(_field(result, "level", default="")) != "easy":
+    level = normalize_value(_field(result, "level", default=""))
+    if level not in set(_LEVEL_BY_MODE.values()):
         errors.append("NON_DIAGNOSTIC_LEVEL")
     mode = normalize_value(_field(attempt, "mode", default="")) if attempt is not None else ""
     if mode not in _SLOT_BY_MODE:
         errors.append("NON_DIAGNOSTIC_MODE")
+    round_type = normalize_value(_field(result, "roundType", "round_type", default=""))
+    if round_type and _ROUND_BY_MODE.get(mode) != round_type:
+        errors.append("ROUND_TYPE_MISMATCH")
+    expected_level = _LEVEL_BY_MODE.get(mode)
+    if round_type and expected_level and level != expected_level:
+        errors.append("ROUND_LEVEL_MISMATCH")
     if _field(result, "assistedResponse", "assisted_response", default=False) is True:
         errors.append("ASSISTED_RESPONSE")
     if _field(result, "bktValidationStatus", "bkt_validation_status", default=None) != "APPROVED":

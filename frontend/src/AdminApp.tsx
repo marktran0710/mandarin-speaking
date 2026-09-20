@@ -12,6 +12,8 @@ import {
   logoutAdmin,
   updateStudent,
   updateTeacher,
+  SESSION_EXPIRED_EVENT,
+  type SessionExpiredEventDetail,
   type Student,
   type Teacher,
   type VocabQuizAttempt,
@@ -22,6 +24,10 @@ import type { MeasurementEvent } from "./utils/measurement";
 import KnowledgeModelPilotPanel from "./components/KnowledgeModelPilotPanel";
 import type { AudioRecord } from "./pages/MyStoriesPage";
 import TeacherPracticeDebugPage from "./pages/TeacherPracticeDebugPage";
+import AdminAsrComparePage from "./pages/AdminAsrComparePage";
+import AdminBktDebugPage from "./pages/AdminBktDebugPage";
+import AdminMaterialsPage from "./pages/AdminMaterialsPage";
+import AdminVocabularyPage from "./pages/AdminVocabularyPage";
 import ManagementShell from "./components/management/ManagementShell";
 import { isDevelopmentRuntime, isTestRuntime } from "./config/runtimeEnv";
 import "./admin.css";
@@ -33,7 +39,7 @@ type Account = { id: string; name: string; role: Role; status: AccountStatus; cr
 const ADMIN_KEY = "adminConsoleSession";
 // "Measurement" moved here from the teacher sidebar: it is research tooling
 // about instrument health, not part of a teacher's daily loop.
-const NAV_ITEMS = ["Admin Home", "Teachers", "Students", "IRT / Student analytics", "Measurement", "Practice Debug"] as const;
+const NAV_ITEMS = ["Admin Home", "Materials", "Vocabulary", "Teachers", "Students", "IRT / Student analytics", "Measurement", "Practice Debug", "ASR Compare", "BKT Debug"] as const;
 export type AdminNav = typeof NAV_ITEMS[number];
 
 function initialPassword() {
@@ -60,6 +66,7 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
   const [editStatus, setEditStatus] = useState<AccountStatus>("Active");
   const [editPassword, setEditPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [vocabularyRefresh, setVocabularyRefresh] = useState(0);
   const [deletingId, setDeletingId] = useState("");
   const minimumPasswordLength = isDevelopmentRuntime() ? 6 : 8;
 
@@ -85,6 +92,23 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
   useEffect(() => {
     if (authenticated) void refresh();
   }, [authenticated]);
+
+  // The "am I logged in" flag above is a plain localStorage read, checked
+  // once at mount - it has no way to notice the actual session cookie
+  // expiring or getting cleared later. Without this, that leaves the app
+  // stuck showing the authenticated shell with every request failing the
+  // same generic way until the user thinks to log out and back in by hand.
+  useEffect(() => {
+    const handleSessionExpired = (event: Event) => {
+      const detail = (event as CustomEvent<SessionExpiredEventDetail>).detail;
+      if (detail?.role !== "admin") return;
+      localStorage.removeItem(ADMIN_KEY);
+      setAuthenticated(false);
+      setLoginError("Your session expired. Please log in again.");
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   useEffect(() => {
     if ((activeNav !== "Practice Debug" && activeNav !== "Measurement") || !canUseDatabase()) return;
@@ -207,15 +231,15 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
     return <main className="admin-login"><h1>Account Control Center</h1><p>Administrator access.</p><form onSubmit={login}><label>Admin password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus /></label><button>Enter admin console</button>{loginError && <small className="admin-error">{loginError}</small>}</form></main>;
   }
 
-  const heading = activeNav === "IRT / Student analytics" ? "IRT / Student analytics" : activeNav === "Measurement" ? "Measurement health" : activeNav === "Practice Debug" ? "Practice Stage Debugger" : "Account Control Center";
-  const description = activeNav === "IRT / Student analytics" ? "Track student ability, response quality and calibration readiness." : activeNav === "Measurement" ? "Check how much of the scoring pipeline produced usable evidence." : activeNav === "Practice Debug" ? "Trace student attempts through the scoring pipeline." : "Manage teacher and student accounts.";
+  const heading = activeNav === "Vocabulary" ? "Vocabulary" : activeNav === "Materials" ? "Materials" : activeNav === "IRT / Student analytics" ? "IRT / Student analytics" : activeNav === "Measurement" ? "Measurement health" : activeNav === "Practice Debug" ? "Practice Stage Debugger" : activeNav === "ASR Compare" ? "ASR Compare" : activeNav === "BKT Debug" ? "BKT Debug" : "Account Control Center";
+  const description = activeNav === "Materials" ? "Create and review the story content available to students." : activeNav === "IRT / Student analytics" ? "Track student ability, response quality and calibration readiness." : activeNav === "Measurement" ? "Check how much of the scoring pipeline produced usable evidence." : activeNav === "Practice Debug" ? "Trace student attempts through the scoring pipeline." : activeNav === "ASR Compare" ? "Compare ASR models on the same recording through the real scoring pipeline." : activeNav === "BKT Debug" ? "Inject fake answers and watch BKT mastery replay, step by step." : "Manage teacher and student accounts.";
 
   return <ManagementShell
     role="admin"
     activeView={activeNav}
     onSelectView={(view) => { setActiveNav(view as (typeof NAV_ITEMS)[number]); cancelEdit(); }}
     refreshing={refreshing}
-    onRefresh={() => void refresh()}
+    onRefresh={() => activeNav === "Vocabulary" ? setVocabularyRefresh(value => value + 1) : void refresh()}
     onLogout={() => { void logoutAdmin(); localStorage.removeItem(ADMIN_KEY); setAuthenticated(false); onExit?.(); }}
-  ><div className="admin-main"><header className="admin-header"><div><h1>{heading}</h1><p>{description}</p></div></header>{error && <p className="admin-error">{error}</p>}{activeNav === "Practice Debug" ? <TeacherPracticeDebugPage records={audioRecords} /> : activeNav === "Measurement" ? <MeasurementAnalyticsPanel records={audioRecords} events={measurementEvents} /> : activeNav === "IRT / Student analytics" ? <><AdminIrtStudentPanel students={students} attempts={quizAttempts} /><KnowledgeModelPilotPanel /></> : <><section className="admin-metrics"><div><span>Teachers</span><strong>{teachers.length}</strong></div><div><span>Students</span><strong>{students.length}</strong></div><div><span>Quiz responses</span><strong>{quizAttempts.reduce((count, attempt) => count + (attempt.questionResults?.length ?? 0), 0)}</strong></div></section><div className="admin-toolbar"><input placeholder="Search by name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>{(activeNav === "Teachers" || activeNav === "Students") && <form className="add-student" onSubmit={addAccount}><input placeholder={`${activeNav === "Teachers" ? "Teacher" : "Student"} name`} value={newName} onChange={(event) => setNewName(event.target.value)} /><input type="password" autoComplete="new-password" placeholder="Password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /><button className="primary">Create account</button></form>}{editingAccount && <form className="account-editor" onSubmit={saveAccount}><div className="account-editor-heading"><div><strong>Edit {editingAccount.role.toLowerCase()} account</strong><small>Password is never shown. Enter a new one only to reset it.</small></div><button type="button" className="close" onClick={cancelEdit} aria-label="Cancel editing">×</button></div><label>Name<input value={editName} onChange={(event) => setEditName(event.target.value)} /></label><label>Status<select value={editStatus} onChange={(event) => setEditStatus(event.target.value as AccountStatus)}><option>Active</option><option>Inactive</option></select></label><label>New password<input type="password" autoComplete="new-password" value={editPassword} onChange={(event) => setEditPassword(event.target.value)} placeholder="Leave blank to keep current password" /></label><div className="account-editor-actions"><button type="button" className="secondary" onClick={cancelEdit}>Cancel</button><button className="primary" disabled={saving}>{saving ? "Saving…" : "Save changes"}</button></div></form>}<section className="account-table"><div className="table-head"><span>Name</span><span>Role</span><span>Status</span><span>Actions</span></div>{filtered.length === 0 ? <div className="empty">No accounts found.</div> : filtered.map((account) => <div className="account-row" key={account.id}><span><b>{account.name}</b><small>{account.createdAt}</small></span><span>{account.role}</span><span className={account.status.toLowerCase()}>{account.status}</span><span className="account-actions"><button type="button" className="account-action" onClick={() => beginEdit(account)}>Edit</button><button type="button" className="account-action danger" disabled={deletingId === account.id} onClick={() => void removeAccount(account)}>{deletingId === account.id ? "Deleting…" : "Delete"}</button></span></div>)}</section></>}</div></ManagementShell>;
+  ><div className={`admin-main${activeNav === "Vocabulary" ? " admin-vocabulary-main" : ""}`}><header className="admin-header"><div><h1>{heading}</h1>{activeNav !== "Vocabulary" && <p>{description}</p>}</div></header>{error && activeNav !== "Vocabulary" && <p className="admin-error">{error}</p>}{activeNav === "Vocabulary" ? <AdminVocabularyPage refreshKey={vocabularyRefresh} onOpenMaterials={() => setActiveNav("Materials")} /> : activeNav === "Materials" ? <AdminMaterialsPage /> : activeNav === "Practice Debug" ? <TeacherPracticeDebugPage records={audioRecords} /> : activeNav === "ASR Compare" ? <AdminAsrComparePage /> : activeNav === "BKT Debug" ? <AdminBktDebugPage students={students} /> : activeNav === "Measurement" ? <MeasurementAnalyticsPanel records={audioRecords} events={measurementEvents} /> : activeNav === "IRT / Student analytics" ? <><AdminIrtStudentPanel students={students} attempts={quizAttempts} /><KnowledgeModelPilotPanel /></> : <><section className="admin-metrics"><div><span>Teachers</span><strong>{teachers.length}</strong></div><div><span>Students</span><strong>{students.length}</strong></div><div><span>Quiz responses</span><strong>{quizAttempts.reduce((count, attempt) => count + (attempt.questionResults?.length ?? 0), 0)}</strong></div></section><div className="admin-toolbar"><input placeholder="Search by name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>{(activeNav === "Teachers" || activeNav === "Students") && <form className="add-student" onSubmit={addAccount}><input placeholder={`${activeNav === "Teachers" ? "Teacher" : "Student"} name`} value={newName} onChange={(event) => setNewName(event.target.value)} /><input type="password" autoComplete="new-password" placeholder="Password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /><button className="primary">Create account</button></form>}{editingAccount && <form className="account-editor" onSubmit={saveAccount}><div className="account-editor-heading"><div><strong>Edit {editingAccount.role.toLowerCase()} account</strong><small>Password is never shown. Enter a new one only to reset it.</small></div><button type="button" className="close" onClick={cancelEdit} aria-label="Cancel editing">×</button></div><label>Name<input value={editName} onChange={(event) => setEditName(event.target.value)} /></label><label>Status<select value={editStatus} onChange={(event) => setEditStatus(event.target.value as AccountStatus)}><option>Active</option><option>Inactive</option></select></label><label>New password<input type="password" autoComplete="new-password" value={editPassword} onChange={(event) => setEditPassword(event.target.value)} placeholder="Leave blank to keep current password" /></label><div className="account-editor-actions"><button type="button" className="secondary" onClick={cancelEdit}>Cancel</button><button className="primary" disabled={saving}>{saving ? "Saving…" : "Save changes"}</button></div></form>}<section className="account-table"><div className="table-head"><span>Name</span><span>Role</span><span>Status</span><span>Actions</span></div>{filtered.length === 0 ? <div className="empty">No accounts found.</div> : filtered.map((account) => <div className="account-row" key={account.id}><span><b>{account.name}</b><small>{account.createdAt}</small></span><span>{account.role}</span><span className={account.status.toLowerCase()}>{account.status}</span><span className="account-actions"><button type="button" className="account-action" onClick={() => beginEdit(account)}>Edit</button><button type="button" className="account-action danger" disabled={deletingId === account.id} onClick={() => void removeAccount(account)}>{deletingId === account.id ? "Deleting…" : "Delete"}</button></span></div>)}</section></>}</div></ManagementShell>;
 }

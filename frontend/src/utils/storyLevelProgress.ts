@@ -1,120 +1,91 @@
-import type { StoryDifficultyLevel } from "./teacherStories";
-import { getStudentScopeKey, isAdminSession } from "./studentSession";
+import { getStudentScopeKey } from "./studentSession";
 import type { StorySubmission } from "../services/database";
 
-// Mirrors the vocabQuizCompletedStoryIds pattern in StoryRecorder.tsx: a
-// flat, per-browser/device localStorage map (not synced to the backend)
-// rather than a new persistence layer for something this small — but keyed
-// per student so a shared classroom device can't leak one student's
-// unlocked tiers into the next student's session.
+// A flat, per-browser/device localStorage set of the stories this student has
+// submitted (not synced to the backend) — the "story completed" signal the
+// lesson picker's sequential lock and progress dots run on. Keyed per student
+// so a shared classroom device can't leak one student's progress into the
+// next student's session.
+//
+// Difficulty tiers were removed: a story now has a single version, so progress
+// is tracked per story id rather than per (story, easy/medium/hard) level. The
+// storage still reads the old nested `{storyId: {easy: true}}` shape so a
+// returning device does not lose progress after this change.
 const STORY_LEVEL_PROGRESS_KEY = "storyLevelProgress";
 
-type StoryLevelProgress = Record<string, Partial<Record<StoryDifficultyLevel, boolean>>>;
+type SubmittedProgress = Record<string, boolean>;
 
 type StudentIdentity = Pick<StorySubmission, "studentId" | "studentName">;
 
-const DIFFICULTY_LEVELS: readonly StoryDifficultyLevel[] = ["easy", "medium", "hard"];
-
-function isDifficultyLevel(value: unknown): value is StoryDifficultyLevel {
-  return typeof value === "string" && DIFFICULTY_LEVELS.includes(value as StoryDifficultyLevel);
-}
-
-/** Older submissions did not include scene learning_context. Easy can still
- * be recovered from its topic id, but a `-medium`/`-hard` suffix is
- * intentionally treated as ambiguous: a perfectly valid source story may
- * itself end with that word. Current submissions always persist canonical
- * baseStoryId/difficultyLevel on every scene. */
-function inferSubmittedTier(storyId: string): { storyId: string; level: StoryDifficultyLevel } | null {
-  const topicId = storyId.startsWith("teacher-") ? storyId.slice("teacher-".length) : storyId;
-  if (!topicId) return null;
-  const suffix = topicId.match(/^(.*)-(medium|hard)$/);
-  if (suffix?.[1]) return null;
-  return { storyId: topicId, level: "easy" };
-}
-
-function submittedTier(submission: StorySubmission) {
+/** The source story id behind a submission's scene metadata. Current
+ * submissions persist a canonical baseStoryId on every scene; a legacy
+ * submission without it falls back to its (non-tier-suffixed) topic id. A
+ * `-medium`/`-hard` suffix is intentionally treated as ambiguous — a valid
+ * source story may itself end with that word — so such legacy ids are
+ * skipped rather than guessed. */
+function submittedStoryId(submission: StorySubmission): string | null {
   const taggedScene = submission.scenes.find(
-    (scene) =>
-      (typeof scene.baseStoryId === "string" && scene.baseStoryId.length > 0) ||
-      isDifficultyLevel(scene.difficultyLevel),
+    (scene) => typeof scene.baseStoryId === "string" && scene.baseStoryId.length > 0,
   );
-  const fallback = inferSubmittedTier(submission.storyId);
-  const storyId = taggedScene?.baseStoryId || fallback?.storyId;
-  const level = isDifficultyLevel(taggedScene?.difficultyLevel)
-    ? taggedScene.difficultyLevel
-    : fallback?.level;
-  return storyId && level ? { storyId, level } : null;
+  if (taggedScene?.baseStoryId) return taggedScene.baseStoryId;
+  const storyId = submission.storyId;
+  if (!storyId) return null;
+  const topicId = storyId.startsWith("teacher-") ? storyId.slice("teacher-".length) : storyId;
+  if (!topicId || /-(medium|hard)$/.test(topicId)) return null;
+  return topicId;
 }
 
-/** The only completion signal that advances a story's difficulty track.
- * StoryRecorder writes this after the learner has finished every speaking
- * scene and explicitly submits the story. Quiz stars alone must never open
- * the next difficulty. */
-export function hasStoryLevelBeenSubmitted(
-  storyId: string,
-  level: StoryDifficultyLevel,
-): boolean {
-  return loadStoryLevelProgress()[storyId]?.[level] === true;
-}
-
-function loadStoryLevelProgress(): StoryLevelProgress {
+function loadSubmittedProgress(): SubmittedProgress {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(`${STORY_LEVEL_PROGRESS_KEY}:${getStudentScopeKey()}`);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const flat: SubmittedProgress = {};
+    for (const [storyId, value] of Object.entries(parsed)) {
+      // New shape: boolean. Legacy shape: { easy?: bool, medium?: bool, ... }.
+      const submitted =
+        value === true ||
+        (value !== null && typeof value === "object" && Object.values(value as object).some(Boolean));
+      if (submitted) flat[storyId] = true;
+    }
+    return flat;
   } catch {
     return {};
   }
 }
 
-/** Records that a student submitted `storyId` at `level` — the signal the
- * picker uses to unlock the next tier (easy -> medium -> hard). */
-export function markStoryLevelSubmitted(storyId: string, level: StoryDifficultyLevel) {
+function persist(progress: SubmittedProgress) {
   if (typeof window === "undefined") return;
-  const progress = loadStoryLevelProgress();
-  const next: StoryLevelProgress = {
-    ...progress,
-    [storyId]: { ...progress[storyId], [level]: true },
-  };
-  window.localStorage.setItem(`${STORY_LEVEL_PROGRESS_KEY}:${getStudentScopeKey()}`, JSON.stringify(next));
+  try {
+    window.localStorage.setItem(
+      `${STORY_LEVEL_PROGRESS_KEY}:${getStudentScopeKey()}`,
+      JSON.stringify(progress),
+    );
+  } catch {
+    /* storage unavailable — progress just won't persist on this device */
+  }
 }
 
-/** Every story id with at least one submitted difficulty level — the
- * "story completed" signal the lesson picker's sequential lock and
- * progress dots run on. */
+/** Records that a student submitted `storyId`. The second argument is retained
+ * only for call-site compatibility (the StoryRecorder runtime still passes the
+ * scene's difficulty level); it is ignored now that stories are single-tier. */
+export function markStoryLevelSubmitted(storyId: string, _level?: unknown) {
+  if (!storyId) return;
+  const progress = loadSubmittedProgress();
+  if (progress[storyId]) return;
+  persist({ ...progress, [storyId]: true });
+}
+
+/** Every story id this student has submitted — the completion signal the
+ * lesson picker's sequential lock and progress dots run on. */
 export function loadSubmittedStoryIds(): Set<string> {
-  const progress = loadStoryLevelProgress();
-  return new Set(
-    Object.keys(progress).filter((storyId) =>
-      Object.values(progress[storyId] ?? {}).some(Boolean),
-    ),
-  );
+  return new Set(Object.keys(loadSubmittedProgress()));
 }
 
-/** The submitted-levels map for one story ({} when none) — drives the
- * per-story 🌱🌿🌳 tier track on the picker cards. */
-export function loadSubmittedLevels(
-  storyId: string,
-): Partial<Record<StoryDifficultyLevel, boolean>> {
-  return loadStoryLevelProgress()[storyId] ?? {};
-}
-
-/** Whether `level` is unlocked for `storyId` — Easy always is; Medium/Hard
- * require the previous tier to have been submitted at least once. */
-export function isStoryLevelUnlocked(storyId: string, level: StoryDifficultyLevel): boolean {
-  // The learner journey is deliberately linear for each story:
-  // easy quiz (all three tiers) -> speaking practice -> submit -> medium,
-  // then repeat medium -> hard. The quiz/speaking gates live in the recorder;
-  // this helper only advances after its explicit submission signal.
-  if (level === "easy" || isAdminSession()) return true;
-  if (level === "medium") return hasStoryLevelBeenSubmitted(storyId, "easy");
-  return hasStoryLevelBeenSubmitted(storyId, "medium");
-}
-
-/** Add submitted speaking stories returned by the backend to this student's
- * local mirror. This never removes local progress, is safe to run repeatedly,
- * and deliberately rejects another student's records even if a server filter
- * is unavailable or stale. */
+/** Add submitted stories returned by the backend to this student's local
+ * mirror. Never removes local progress, is safe to run repeatedly, and
+ * rejects another student's records even if a server filter is stale. */
 export function mergeSubmittedStoryLevels(
   submissions: readonly StorySubmission[],
   student: StudentIdentity,
@@ -125,22 +96,17 @@ export function mergeSubmittedStoryLevels(
       ? submission.studentId === student.studentId
       : submission.studentName === student.studentName,
   );
-  const progress = loadStoryLevelProgress();
+  const progress = loadSubmittedProgress();
   let changed = false;
-  const next: StoryLevelProgress = { ...progress };
+  const next: SubmittedProgress = { ...progress };
 
   for (const submission of mine) {
-    const tier = submittedTier(submission);
-    if (!tier || next[tier.storyId]?.[tier.level]) continue;
-    next[tier.storyId] = { ...next[tier.storyId], [tier.level]: true };
+    const storyId = submittedStoryId(submission);
+    if (!storyId || next[storyId]) continue;
+    next[storyId] = true;
     changed = true;
   }
 
-  if (changed) {
-    window.localStorage.setItem(
-      `${STORY_LEVEL_PROGRESS_KEY}:${getStudentScopeKey()}`,
-      JSON.stringify(next),
-    );
-  }
+  if (changed) persist(next);
   return changed;
 }

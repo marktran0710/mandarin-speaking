@@ -6,6 +6,7 @@ import "../components/BiLabel.css";
 import "./LoginPage.css";
 import { canUseDatabase, listStudents, loginStudent, loginTeacher, type Student } from "../services/database";
 import { signIn } from "../utils/session";
+import SourceAttribution from "../components/SourceAttribution";
 
 export type LoginRole = "student" | "teacher";
 
@@ -184,6 +185,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
           </form>
         </div>
       </section>
+      <SourceAttribution />
     </main>
   );
 }

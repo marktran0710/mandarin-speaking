@@ -14,6 +14,7 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
         "frames": [{"prompt": "這是我的房間。", "vocabulary": "房間"}],
         "story_vocabulary": {"easy": {"vocabulary": "房間"}},
         "story_phrases": {"easy": {"phrases": "在房間裡"}},
+        "vocab_assessment": [{"questionId": "MC1_001_EASY", "level": "easy"}],
         "published": True,
         "lesson_number": 5,
         "quiz_exclusions": [{"word": "房間", "kind": "cloze"}],
@@ -22,6 +23,8 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
     assert result["frames"] == [{"prompt": "這是我的房間。", "vocabulary": "房間"}]
     assert result["storyVocabulary"] == {"easy": {"vocabulary": "房間"}}
     assert result["storyPhrases"] == {"easy": {"phrases": "在房間裡"}}
+    assert result["vocabAssessment"] == [{"questionId": "MC1_001_EASY", "level": "easy"}]
+    assert len(result["vocabAssessmentRevision"]) == 64
     assert result["published"] is True
     assert result["lessonNumber"] == 5
     assert result["quizExclusions"] == [{"word": "房間", "kind": "cloze"}]
@@ -34,6 +37,7 @@ def test_row_to_custom_story_handles_null_jsonb():
         "frames": None,
         "story_vocabulary": None,
         "story_phrases": None,
+        "vocab_assessment": None,
         "published": False,
         "lesson_number": None,
         "quiz_exclusions": None,
@@ -42,6 +46,7 @@ def test_row_to_custom_story_handles_null_jsonb():
     assert result["frames"] == []
     assert result["storyVocabulary"] is None
     assert result["storyPhrases"] is None
+    assert result["vocabAssessment"] is None
     assert result["quizExclusions"] == []
 
 
@@ -101,11 +106,36 @@ def test_row_to_audio_record_shape():
         "audio_url": "/uploads/audio/r1.wav",
         "praat_metrics": {"toneAccuracy": 0.8},
         "student_id": None,
+        "server_verified_at": "2026-09-18T00:00:00+00:00",
+        "audio_sha256": "abc123",
+        "server_verification_version": "v1",
     }
     result = database.row_to_audio_record(row)
     assert result["praatMetrics"] == {"toneAccuracy": 0.8}
     assert result["topicId"] == "teacher-s1"
     assert result["studentId"] is None
+    assert result["serverVerifiedAt"] == "2026-09-18T00:00:00+00:00"
+    assert result["audioSha256"] == "abc123"
+    assert result["serverVerificationVersion"] == "v1"
+
+
+def test_row_to_speaking_progress_exposes_verified_audio_record_id():
+    row = {
+        "student_id": "student-1",
+        "topic_id": "topic-1",
+        "scene_index": 0,
+        "attempts": 1,
+        "best_tone": 0.9,
+        "best_fluency": 0.8,
+        "mastery_passed": True,
+        "content_passed": True,
+        "cleared_words": [],
+        "updated_at": "2026-09-18 00:00:00",
+        "verified_audio_record_id": "record-1",
+    }
+    result = database.row_to_speaking_progress(row)
+    assert result["verifiedAudioRecordId"] == "record-1"
+    assert result["progressionEligible"] is True
 
 
 def test_ensure_column_helpers_are_gone():

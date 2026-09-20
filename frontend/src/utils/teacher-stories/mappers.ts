@@ -281,9 +281,8 @@ export function storyToTopic(
     if (frameListenScript && frameListenScript.trim()) {
       listenScripts[index] = frameListenScript.trim();
     }
-    // No Easy fallback here (unlike tierText's fields above): a Medium/Hard
-    // scene has its own word list at different indices, so Easy's audio/
-    // curve pool would misalign silently rather than just being absent.
+    // Per-word audio/curve pools are index-aligned to this scene's own word
+    // list, so they are read directly with no cross-scene fallback.
     const frameVocabularyAudioUrls = frame[`vocabularyAudioUrls${suffix}` as keyof CustomStoryFrame] as
       | string
       | undefined;
@@ -378,18 +377,13 @@ export function storyToTopic(
     if (storyPhraseTranslations.length > 0) phrasesTranslation[0] = storyPhraseTranslations;
   }
 
-  // Easy keeps the story's original id (no behavior change for existing
-  // single-tier stories); Medium/Hard get their own id so vocab-quiz
-  // completion, scene recordings, and submissions track independently per
-  // tier instead of colliding with Easy's.
-  const topicId =
-    difficultyLevel === "easy"
-      ? `teacher-${story.id}`
-      : `teacher-${story.id}-${difficultyLevel}`;
+  // One text level per story, so the topic id is just the story id.
+  const topicId = `teacher-${story.id}`;
 
   return {
     id: topicId,
     name: story.title,
+    ...(Array.isArray(story.vocabAssessment) ? { vocabAssessment: story.vocabAssessment } : {}),
     description: "Teacher published activity",
     skillFocus: "Teacher published activity",
     images: story.frames.map((frame) =>

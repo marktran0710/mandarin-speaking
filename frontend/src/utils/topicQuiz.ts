@@ -8,6 +8,7 @@ import { collectQuizEntries, type VocabQuizEntry } from "../components/story-voc
 import { applyExclusionsToWord, storyQuizExclusions } from "./quizExclusions";
 import { toPinyin } from "./pinyin";
 import type { CustomTeacherStory } from "./teacherStories";
+import type { VocabAssessmentQuestion } from "../components/story-vocab-quiz/model";
 
 /** Just the story fields the quiz is built from. Structural on purpose:
  * TopicSelector and StoryRecorder each declare their own `Topic`, so naming
@@ -36,6 +37,7 @@ export interface QuizSourceTopic {
    * storyToTopic) — carries quizExclusions so a teacher's Quiz Review marks
    * actually take effect here instead of only being saved and ignored. */
   sourceStory?: CustomTeacherStory;
+  vocabAssessment?: VocabAssessmentQuestion[];
 }
 
 export interface QuizMaterialAuditIssue {
@@ -47,6 +49,27 @@ export interface QuizMaterialAuditIssue {
 
 function normalizedQuizValue(value: string): string {
   return value.normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function sentenceUsesVocabulary(sentence: string, vocabulary: string): boolean {
+  return vocabulary
+    .split(/[／/]/u)
+    .map((form) => form.trim())
+    .filter(Boolean)
+    .some((form) => sentence.split(form).length === 2);
+}
+
+function lessonSentencesForVocabulary(topic: QuizSourceTopic, vocabulary: string): string[] {
+  const clozeByScene = topic.quizVocabularyCloze ?? topic.vocabularyCloze;
+  const authoredClozeSentences = Object.values(clozeByScene ?? {})
+    .flatMap((candidatesByWord) => candidatesByWord.flatMap((candidates) => candidates.map((candidate) => candidate.sentence)));
+  const suggestedByScene = topic.quizSuggestedAnswers ?? topic.suggestedAnswers;
+  const suggestedSentences = Object.values(suggestedByScene ?? {});
+  // A teacher-reviewed cloze sentence is already attached to this word, so
+  // prefer it. The scene's suggested answer remains the lesson/story fallback.
+  return Array.from(new Set([...authoredClozeSentences, ...suggestedSentences]
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentenceUsesVocabulary(sentence, vocabulary))));
 }
 
 /** Read-only audit used before material is trusted by a level's quiz. */
@@ -129,6 +152,38 @@ export function auditTopicQuizMaterial(topic: QuizSourceTopic): QuizMaterialAudi
  * exists) — confirms it's used in real context, not just an isolated
  * flashcard pair. */
 export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
+  if (Array.isArray(topic.vocabAssessment)) {
+    const byWord = new Map<string, VocabAssessmentQuestion[]>();
+    topic.vocabAssessment.forEach((rawQuestion) => {
+      // The backend assessment importer stores title-case levels (Easy,
+      // Medium, Hard), while the learner quiz uses lower-case round keys.
+      // Normalize at this boundary so bank questions are actually selected
+      // for their intended round after an admin CRUD response.
+      const normalizedLevel = String(rawQuestion.level).trim().toLowerCase();
+      const question = normalizedLevel === "easy" || normalizedLevel === "medium" || normalizedLevel === "hard"
+        ? { ...rawQuestion, level: normalizedLevel as VocabAssessmentQuestion["level"] }
+        : rawQuestion;
+      const questions = byWord.get(question.wordId) ?? [];
+      questions.push(question);
+      byWord.set(question.wordId, questions);
+    });
+    return Array.from(byWord.entries()).map(([wordId, assessmentQuestions]) => {
+      const first = assessmentQuestions[0];
+      const lessonSentences = lessonSentencesForVocabulary(topic, first.targetWord);
+      return {
+        word: first.targetWord,
+        translation: first.simpleEnglishMeaning,
+        wordId,
+        pinyin: first.pinyin,
+        pos: first.pos,
+        ...(lessonSentences.length
+          ? { lessonSentences }
+          : {}),
+        assessmentQuestions,
+        bktValidationStatus: "APPROVED",
+      };
+    });
+  }
   const quizVocabulary = topic.quizVocabulary ?? topic.vocabulary;
   const quizSuggestedAnswers = topic.quizSuggestedAnswers ?? topic.suggestedAnswers;
   const quizTranslations = topic.quizVocabularyTranslation ?? topic.vocabularyTranslation;

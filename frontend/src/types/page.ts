@@ -9,4 +9,5 @@ export type Page =
   | "student-workspace"
   | "student-practice"
   | "student-stories"
-  | "voice-test";
+  | "voice-test"
+  | "placement-test";

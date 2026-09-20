@@ -20,6 +20,7 @@ from .bkt_question_validation import classify_bkt_response
 
 
 EPSILON = 1e-9
+BKT_MIN_DISCRIMINATION = 0.001
 
 
 @dataclass(frozen=True)
@@ -205,6 +206,11 @@ class PFAParameters:
     failure_weight: float = -0.55
     l2: float = 1.0
 
+    def __post_init__(self) -> None:
+        for name, value in asdict(self).items():
+            if not isfinite(value):
+                raise ValueError(f"{name} must be finite")
+
     def to_dict(self) -> dict[str, float]:
         return asdict(self)
 
@@ -299,6 +305,8 @@ class BKTParameters:
         for name, value in asdict(self).items():
             if not isfinite(value) or not 0.0 <= value <= 1.0:
                 raise ValueError(f"{name} must be a finite probability in [0, 1]")
+        if 1.0 - self.slip < self.guess + BKT_MIN_DISCRIMINATION:
+            raise ValueError("BKT requires 1 - slip to be meaningfully greater than guess")
 
     def to_dict(self) -> dict[str, float]:
         return asdict(self)
@@ -343,7 +351,8 @@ class BKT:
 def fit_bkt_parameters(
     records: Iterable[ResponseRecord], *, initial: BKTParameters = BKTParameters(),
     iterations: int = 80,
-) -> BKTParameters:
+    include_diagnostics: bool = False,
+) -> BKTParameters | tuple[BKTParameters, dict[str, Any]]:
     """Fit one global BKT parameter set on an ordered training prefix.
 
     BKT parameters are shared across skills in this pilot because individual
@@ -353,12 +362,38 @@ def fit_bkt_parameters(
     """
     ordered = list(records)
     if not ordered:
-        return initial
+        diagnostics = {
+            "status": "not_run", "optimizer": "L-BFGS-B", "message": "No training records.",
+            "iterations": 0, "objective": None, "finite": True,
+        }
+        return (initial, diagnostics) if include_diagnostics else initial
 
-    initial_values = [initial.prior, initial.learn, initial.guess, initial.slip]
+    # Work in an unconstrained space, then map to probabilities. The final
+    # coordinate is conditional on guess, so p(correct | learned) is always
+    # strictly greater than p(correct | unlearned) = guess.
+    def logit(value: float) -> float:
+        clipped = min(1.0 - EPSILON, max(EPSILON, value))
+        return log(clipped / (1.0 - clipped))
+
+    def unpack(values: Sequence[float]) -> BKTParameters:
+        prior = _sigmoid(float(values[0]))
+        learn = _sigmoid(float(values[1]))
+        guess = _sigmoid(float(values[2])) * (1.0 - BKT_MIN_DISCRIMINATION)
+        known_correct = guess + BKT_MIN_DISCRIMINATION + (1.0 - BKT_MIN_DISCRIMINATION - guess) * _sigmoid(float(values[3]))
+        return BKTParameters(prior=prior, learn=learn, guess=guess, slip=1.0 - known_correct)
+
+    initial_values = [
+        logit(initial.prior),
+        logit(initial.learn),
+        logit(initial.guess / (1.0 - BKT_MIN_DISCRIMINATION)),
+        logit((1.0 - initial.slip - initial.guess - BKT_MIN_DISCRIMINATION) / (1.0 - BKT_MIN_DISCRIMINATION - initial.guess)),
+    ]
 
     def objective(values: Sequence[float]) -> float:
-        parameters = BKTParameters(*values)
+        try:
+            parameters = unpack(values)
+        except (TypeError, ValueError, OverflowError):
+            return float("inf")
         tracer = BKT(parameters)
         loss = 0.0
         for record in ordered:
@@ -366,16 +401,42 @@ def fit_bkt_parameters(
             loss -= log(probability if record.correct else 1.0 - probability)
             tracer.update(record)
         penalty = 0.05 * sum((value - base) ** 2 for value, base in zip(values, initial_values))
-        return loss / len(ordered) + penalty
+        value = loss / len(ordered) + penalty
+        return value if isfinite(value) else float("inf")
 
-    result = minimize(
-        objective,
-        initial_values,
-        method="L-BFGS-B",
-        bounds=[(0.001, 0.999)] * 4,
-        options={"maxiter": max(1, iterations)},
-    )
-    return BKTParameters(*[float(value) for value in result.x])
+    try:
+        result = minimize(
+            objective,
+            initial_values,
+            method="L-BFGS-B",
+            bounds=[(-12.0, 12.0)] * 4,
+            options={"maxiter": max(1, iterations)},
+        )
+    except Exception as error:  # scipy failures must never become a silent default fit.
+        diagnostics = {
+            "status": "failed", "optimizer": "L-BFGS-B", "message": str(error),
+            "iterations": 0, "objective": None, "finite": False,
+        }
+        return (initial, diagnostics) if include_diagnostics else initial
+    try:
+        objective_candidate = float(result.fun)
+        objective_value = objective_candidate if isfinite(objective_candidate) else None
+        fitted_values = [float(value) for value in result.x]
+        finite = bool(objective_value is not None and len(fitted_values) == 4 and all(isfinite(value) for value in fitted_values))
+    except (TypeError, ValueError, OverflowError):
+        objective_value = None
+        finite = False
+    successful = bool(result.success and finite)
+    diagnostics = {
+        "status": "success" if successful else "failed",
+        "optimizer": "L-BFGS-B",
+        "message": str(result.message),
+        "iterations": int(getattr(result, "nit", 0) or 0),
+        "objective": objective_value,
+        "finite": finite,
+    }
+    fitted = unpack(fitted_values) if successful else initial
+    return (fitted, diagnostics) if include_diagnostics else fitted
 
 
 def _auc(outcomes: list[bool], predictions: list[float]) -> Optional[float]:
@@ -430,11 +491,26 @@ def evaluate_prequential(
     split = min(len(ordered), int(len(ordered) * train_fraction))
     prefix, evaluation = ordered[:split], ordered[split:]
     if model == "pfa":
-        fitted = fit_pfa_parameters(prefix, initial=pfa_parameters) if prefix else pfa_parameters
+        candidate = fit_pfa_parameters(prefix, initial=pfa_parameters) if prefix else pfa_parameters
+        fit_is_finite = all(isfinite(value) for value in candidate.to_dict().values())
+        fitted = candidate if fit_is_finite else pfa_parameters
         tracer: Any = PFA(fitted)
         parameters = fitted.to_dict()
+        fit_diagnostics = {
+            "status": "success" if fit_is_finite else "failed",
+            "optimizer": "fixed_gradient_descent", "message": "Restricted pooled baseline fit." if fit_is_finite else "Non-finite pooled baseline fit was rejected.",
+            "iterations": 200 if prefix else 0, "objective": None,
+            "finite": fit_is_finite,
+        }
     else:
-        fitted = fit_bkt_parameters(prefix, initial=bkt_parameters) if prefix else bkt_parameters
+        if prefix:
+            fitted, fit_diagnostics = fit_bkt_parameters(prefix, initial=bkt_parameters, include_diagnostics=True)
+        else:
+            fitted = bkt_parameters
+            fit_diagnostics = {
+                "status": "not_run", "optimizer": "L-BFGS-B", "message": "No training records.",
+                "iterations": 0, "objective": None, "finite": True,
+            }
         tracer = BKT(fitted)
         parameters = fitted.to_dict()
     for record in prefix:
@@ -465,7 +541,7 @@ def evaluate_prequential(
             "calibration_error": _calibration_error(outcomes, predictions, calibration_bins),
             "auc": _auc(outcomes, predictions) if include_auc else None,
         }
-    return {"model": model, "train_n": len(prefix), "parameters": parameters, "metrics": metrics, "final_state": tracer.states()}
+    return {"model": model, "train_n": len(prefix), "parameters": parameters, "fit_diagnostics": fit_diagnostics, "metrics": metrics, "final_state": tracer.states()}
 
 
 def evaluate_vocab_attempts(

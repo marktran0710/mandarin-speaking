@@ -52,7 +52,12 @@
   padding: 11px 24px;
   background: var(--seal);
   color: var(--clay-on-seal);
-  border: 2px solid var(--seal-deep);
+  /* Was 2px — every filled CTA in student mode used this same 2-2.5px rim,
+     which read as heavier/bolder than the rest of the app's 1px lines.
+     Thinned uniformly across all of them (this button included) rather than
+     dropping the rim outline entirely — it's what gives these buttons their
+     pressable, tactile edge. */
+  border: 1.5px solid var(--seal-deep);
   border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 700;
@@ -330,7 +335,9 @@
   display: flex;
   flex-direction: column;
   background: var(--clay-surface-card);
-  border: 2px dashed var(--clay-hairline);
+  /* Thinned from 2px — same "not this heavy" rule as every other 2px+
+     border in student mode (see .btn-submit-story). */
+  border: 1.5px dashed var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   padding: 16px;
   min-height: 260px;

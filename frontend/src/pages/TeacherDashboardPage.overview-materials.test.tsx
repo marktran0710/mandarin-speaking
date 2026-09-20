@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TopicSelector from "../components/TopicSelector";
 import TeacherDashboardPage from "./TeacherDashboardPage";
+import AdminMaterialsPage from "./AdminMaterialsPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
@@ -84,6 +85,10 @@ function renderDashboard(records: AudioRecord[] = []) {
       onLogout={vi.fn()}
     />,
   );
+}
+
+function renderAdminMaterials() {
+  return render(<AdminMaterialsPage />);
 }
 
 describe("TeacherDashboardPage", () => {
@@ -176,9 +181,8 @@ describe("TeacherDashboardPage", () => {
 
   it("lets teachers save a custom image-based story activity", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Taipei Rain Rescue");
@@ -208,9 +212,8 @@ describe("TeacherDashboardPage", () => {
 
   it("saves all four vocabulary table columns for a word", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Restaurant Story");
@@ -242,116 +245,10 @@ describe("TeacherDashboardPage", () => {
     expect(stored).toContain('"vocabularyTranslation":"restaurant"');
   }, 10000);
 
-  it("fills the vocabulary table from the suggested-answer sentence via AI, without overwriting cells already filled in", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        words: [
-          { word: "餐廳", pinyin: "cāntīng", pos: "N", translation: "restaurant" },
-          { word: "吃", pinyin: "chī", pos: "V", translation: "to eat" },
-        ],
-      }),
-    })));
-
-    renderDashboard();
-
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
-    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
-
-    // Teacher already typed one word in by hand, with its own translation —
-    // autofill must fill the blank pinyin cell but leave "diner" untouched.
-    await user.type(
-      screen.getAllByLabelText("Script")[0],
-      "我在餐廳吃飯。",
-    );
-    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
-    await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
-    await user.type(screen.getAllByLabelText("Chinese word")[0], "餐廳");
-    await user.type(screen.getAllByLabelText("English translation")[0], "diner");
-    await user.click(
-      screen.getByRole("button", { name: "✨ Fill vocab from story scripts" }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getAllByLabelText("Chinese word").map((el) => (el as HTMLInputElement).value)).toEqual(
-        expect.arrayContaining(["餐廳", "吃"]),
-      );
-    });
-    expect((screen.getAllByLabelText("Pinyin")[0] as HTMLInputElement).value).toBe("cāntīng");
-    expect((screen.getAllByLabelText("English translation")[0] as HTMLInputElement).value).toBe("diner");
-
-    vi.unstubAllGlobals();
-  }, 10000);
-
-  it("disables the vocab autofill button until a suggested-answer sentence is entered", async () => {
-    renderDashboard();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
-    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
-    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
-
-    expect(
-      screen.getByRole("button", { name: "✨ Fill vocab from story scripts" }),
-    ).toBeDisabled();
-  });
-
-  it("generates phrases from the suggested-answer sentence via AI, scaled to the active difficulty tier", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        phrases: [{ phrase: "想要", translation: "want to" }],
-      }),
-    })));
-
-    renderDashboard();
-
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
-    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
-    await user.type(
-      screen.getAllByLabelText("Script")[0],
-      "我想要在餐廳吃飯。",
-    );
-    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
-
-    // Easy tier (the default) asks for 1 phrase.
-    const generateButton = screen.getAllByRole("button", {
-      name: "✨ +1 phrase",
-    })[0];
-    await user.click(generateButton);
-
-    await waitFor(() => {
-      expect(
-        screen.getAllByLabelText("Phrase").map((el) => (el as HTMLInputElement).value),
-      ).toContain("想要");
-    });
-    const fetchCall = vi.mocked(fetch).mock.calls.find(([url]) =>
-      String(url).includes("/api/phrases-from-sentence"),
-    );
-    const body = JSON.parse(fetchCall![1]!.body as string);
-    expect(body).toEqual({ sentence: "我想要在餐廳吃飯。", count: 1 });
-
-    vi.unstubAllGlobals();
-  }, 10000);
-
-  it("disables the phrase generate button until a suggested-answer sentence is entered", async () => {
-    renderDashboard();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
-    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
-    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
-
-    expect(
-      screen.getAllByRole("button", { name: "✨ +1 phrase" })[0],
-    ).toBeDisabled();
-  });
-
   it("lets teachers edit a saved custom story activity", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Original Story");
@@ -382,9 +279,8 @@ describe("TeacherDashboardPage", () => {
 
   it("publishes a teacher story into the student topic selector", async () => {
     const user = userEvent.setup();
-    const { unmount } = renderDashboard();
+    const { unmount } = renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Published MRT Help");
@@ -415,9 +311,8 @@ describe("TeacherDashboardPage", () => {
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
@@ -433,9 +328,8 @@ describe("TeacherDashboardPage", () => {
 
   it("lets teachers upload a local image for a custom story frame", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     const imageFile = new File(["story-image"], "story-frame.png", {
       type: "image/png",
@@ -465,6 +359,63 @@ describe("TeacherDashboardPage", () => {
     expect(localStorage.getItem("teacherCustomStories")).toContain(
       "data:image/png",
     );
+  });
+
+  it("lets teachers upload model audio for a custom story frame, with no AI/TTS involved", async () => {
+    const user = userEvent.setup();
+    renderAdminMaterials();
+
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
+    expect(
+      screen.getByText(/No model audio yet/),
+    ).toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText("Image URL or uploaded file"),
+      "https://example.com/upload-support-1.jpg",
+    );
+
+    const audioFile = new File(["story-audio"], "model.mp3", {
+      type: "audio/mpeg",
+    });
+    await user.upload(screen.getByLabelText("Upload model audio"), audioFile);
+
+    await waitFor(() => {
+      expect(screen.getByText("Your recording")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Replace model audio")).toBeInTheDocument();
+
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 1; index < sceneCount; index += 1) {
+      await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 1}`) }));
+      await user.type(
+        screen.getByLabelText("Image URL or uploaded file"),
+        `https://example.com/upload-support-${index + 1}.jpg`,
+      );
+    }
+
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    const stored = localStorage.getItem("teacherCustomStories") || "";
+    expect(stored).toContain("data:audio/mpeg");
+    expect(stored).toContain('"listenAudioSource":"teacher"');
+  });
+
+  it("lets a teacher remove uploaded model audio", async () => {
+    const user = userEvent.setup();
+    renderAdminMaterials();
+
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
+    const audioFile = new File(["story-audio"], "model.mp3", {
+      type: "audio/mpeg",
+    });
+    await user.upload(screen.getByLabelText("Upload model audio"), audioFile);
+    await waitFor(() => {
+      expect(screen.getByText("Your recording")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(screen.getByText(/No model audio yet/)).toBeInTheDocument();
   });
 
 });

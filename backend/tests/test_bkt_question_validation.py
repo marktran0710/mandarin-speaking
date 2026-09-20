@@ -87,10 +87,10 @@ def test_runtime_response_requires_explicit_server_approved_gate():
         "conceptId": "餐廳",
         "itemId": "item-1",
         "questionKind": "translation",
-        "level": "easy",
+        "level": "tier1",
         "isBktEligible": True,
         "bktValidationStatus": "APPROVED",
-        "diagnosticExposureId": "lesson-1:easy:tier1:item-1",
+        "diagnosticExposureId": "lesson-1:tier1:item-1",
         "correct": True,
     }
     assert classify_bkt_response(response, {"mode": "tier1"}) == (True, [])
@@ -98,12 +98,47 @@ def test_runtime_response_requires_explicit_server_approved_gate():
     assert classify_bkt_response({**response, "isBktEligible": False}, {"mode": "tier1"})[0] is False
 
 
+def test_runtime_response_accepts_stable_concept_id_separate_from_display_word():
+    response = {
+        "word": "哪裡 / 哪兒",
+        "conceptId": "MC1_003",
+        "itemId": "MC1_003_EASY",
+        "questionKind": "basic_meaning_mcq",
+        "level": "tier1",
+        "isBktEligible": True,
+        "bktValidationStatus": "APPROVED",
+        "diagnosticExposureId": "lesson-1:tier1:MC1_003_EASY",
+        "correct": False,
+    }
+    assert classify_bkt_response(response, {"mode": "tier1"}) == (True, [])
+
+
+def test_runtime_response_accepts_tier2_and_tier3_diagnostic_rounds():
+    for mode, round_type, question_kind in (
+        ("tier2", "say_it", "character_to_pinyin_typing"),
+        ("tier3", "use_it", "context_cloze_mcq"),
+    ):
+        response = {
+            "word": "錢包",
+            "conceptId": "MC1_L5_001",
+            "itemId": f"MC1_L5_001:{round_type}:v1",
+            "questionKind": question_kind,
+            "level": mode,
+            "roundType": round_type,
+            "isBktEligible": True,
+            "bktValidationStatus": "APPROVED",
+            "diagnosticExposureId": f"lesson-5:{mode}:MC1_L5_001:{round_type}",
+            "correct": False,
+        }
+        assert classify_bkt_response(response, {"mode": mode}) == (True, [])
+
+
 def test_strict_normalization_uses_first_response_per_item_and_diagnostic_exposure():
     base = {
         "word": "餐廳", "conceptId": "餐廳", "itemId": "item-1",
-        "questionKind": "translation", "level": "easy",
+        "questionKind": "translation", "level": "tier1",
         "isBktEligible": True, "bktValidationStatus": "APPROVED",
-        "diagnosticExposureId": "lesson-1:easy:tier1:item-1",
+        "diagnosticExposureId": "lesson-1:tier1:item-1",
     }
     normalized = normalize_vocab_attempts([
         {"id": "first", "studentId": "s1", "completedAt": "2026-01-01T00:00:00Z", "mode": "tier1", "questionResults": [{**base, "correct": False}]},

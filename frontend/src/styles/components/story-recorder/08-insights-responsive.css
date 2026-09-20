@@ -102,7 +102,8 @@
   padding: var(--space-xs) var(--space-lg);
   background: var(--jade);
   color: var(--clay-on-accent);
-  border: 2px solid var(--jade-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--jade-deep);
   border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 700;
@@ -572,6 +573,11 @@
 }
 
 .story-recorder .scene-practice-listen {
+  /* Its grid column (.scene-vocab-row-practice) caps at 30px, so the visible
+     button stays compact to fit this dense table row — but the tap target
+     must still be >=44px. position:relative + an invisible ::after overlay
+     expands the HIT area without widening the column or the visible circle. */
+  position: relative;
   width: 30px;
   min-width: 30px;
   min-height: 30px;
@@ -582,6 +588,15 @@
   color: var(--jade-deep);
   font-size: 0;
   opacity: 1;
+}
+.story-recorder .scene-practice-listen::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 .story-recorder .scene-practice-listen::before {

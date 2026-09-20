@@ -285,6 +285,8 @@ export default function SortingChallenge({
                       <img
                         src={image}
                         alt={`Scene ${index + 1}`}
+                        width={800}
+                        height={450}
                         draggable
                         onDragStart={(e) =>
                           handleDragStart(e, image, "slot", index)
@@ -375,7 +377,7 @@ export default function SortingChallenge({
                   )
                 }
               >
-                <img src={image} alt="Story picture" />
+                <img src={image} alt="Story picture" width={800} height={450} />
                 <span className="drag-handle">
                   {selectedPoolImage === image ? (
                     <BiLabel k="selected" />

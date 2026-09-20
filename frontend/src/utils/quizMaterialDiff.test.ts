@@ -132,19 +132,17 @@ describe("diffWord", () => {
 describe("storyMaterialSnapshot / withUpdatedSnapshot", () => {
   const snapshot: MaterialSnapshot = buildMaterialSnapshot(topic);
 
-  it("returns null for a tier that was never saved", () => {
+  it("returns the saved snapshot for the story's single level", () => {
     const story = { quizMaterialSnapshot: { easy: snapshot } };
-    expect(storyMaterialSnapshot(story, "medium")).toBeNull();
     expect(storyMaterialSnapshot(story, "easy")).toEqual(snapshot);
   });
 
-  it("a story with no snapshot at all returns null for every tier", () => {
+  it("a story with no snapshot at all returns null", () => {
     expect(storyMaterialSnapshot({}, "easy")).toBeNull();
   });
 
-  it("withUpdatedSnapshot replaces only the given tier, keeping others", () => {
-    const story = { quizMaterialSnapshot: { easy: snapshot, medium: [] } };
-    const updated = withUpdatedSnapshot(story, "hard", snapshot);
-    expect(updated).toEqual({ easy: snapshot, medium: [], hard: snapshot });
+  it("withUpdatedSnapshot writes the level's snapshot", () => {
+    const updated = withUpdatedSnapshot({}, "easy", snapshot);
+    expect(updated).toEqual({ easy: snapshot });
   });
 });

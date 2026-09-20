@@ -1,23 +1,52 @@
 import "./StoryVocabQuiz.css";
+import { useEffect, useRef } from "react";
 import { BiLabel } from "../BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./QuizScreens";
+import { ChallengeEntry } from "./LessonVocabularyProgress";
 import { QuizQuestion } from "./QuizQuestion";
 import { useQuizSession } from "./useQuizSession";
-import type { VocabQuizEntry, VocabQuizSummary } from "./model";
+import type { VocabAssessmentLevel, VocabQuizEntry, VocabQuizSummary } from "./model";
 
 export { CLOZE_BLANK, MAX_QUESTIONS, TIMER_TICK_MS, buildQuizQuestion, buildQuizQuestions, collectQuizEntries, quizConceptId, quizItemId } from "./model";
 export type { VocabQuizClozeCandidate, VocabQuizClozeQuestion, VocabQuizEntry, VocabQuizListeningQuestion, VocabQuizMode, VocabQuizPinyinQuestion, VocabQuizPosQuestion, VocabQuizQuestion, VocabQuizQuestionResult, VocabQuizReverseQuestion, VocabQuizSummary, VocabQuizSynonymCandidate, VocabQuizSynonymQuestion, VocabQuizTranslationQuestion } from "./model";
 
 /** A tiered vocabulary check shown before story speaking practice. */
-export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, storyId, baseStoryId, level = "easy", studentId, studentName, alreadyCompleted }: {
+export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, storyId, baseStoryId, level = "easy", studentId, studentName }: {
   entries: VocabQuizEntry[]; onDone: () => void; onBack?: () => void;
   onComplete?: (summary: VocabQuizSummary) => void; storyId?: string; baseStoryId?: string;
-  level?: "easy" | "medium" | "hard"; studentId?: string; studentName?: string; alreadyCompleted?: boolean;
+  level?: "easy"; studentId?: string; studentName?: string;
 }) {
-  // Retained for runtime compatibility; navigation now belongs to the
-  // activity chooser instead of the quiz surface.
-  void onBack;
+  const assessmentQuestionCounts = entries.reduce<Partial<Record<VocabAssessmentLevel, number>>>((counts, entry) => {
+    (entry.assessmentQuestions ?? []).forEach((question) => {
+      counts[question.level] = (counts[question.level] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
+
   const session = useQuizSession({ entries, storyId, baseStoryId, level, studentId, studentName, onComplete });
+
+  // StoryRecorderRuntime owns the header's ← exit arrow. Intercept its click so
+  // it steps UP one level: from any quiz sub-screen (a question, the review
+  // list, the summary…) back to the quiz menu, and only from the menu itself
+  // out to the page. The ref keeps the decision pointed at the latest screen,
+  // so the global capture listener is bound once and never restale.
+  const exitArrowActionRef = useRef<() => boolean>(() => false);
+  exitArrowActionRef.current = () => {
+    if (session.screen !== "mode-select") { session.returnToModes(); return true; }
+    if (onBack) { onBack(); return true; }
+    return false; // on the menu with nowhere to exit: let the runtime decide
+  };
+  useEffect(() => {
+    const handleExitArrow = (event: MouseEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".btn-story-exit")) return;
+      if (exitArrowActionRef.current()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    document.addEventListener("click", handleExitArrow, true);
+    return () => document.removeEventListener("click", handleExitArrow, true);
+  }, []);
   if (!session.sessionReady) {
     return (
       <div className="app-loading">
@@ -28,9 +57,22 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
       </div>
     );
   }
-  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} priorityReviewWords={session.priorityReviewWords} level={level} alreadyCompleted={alreadyCompleted} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} showReview={() => session.setScreen("review")} />;
-  if (session.screen === "review") return <ReviewScreen entries={entries} back={() => session.setScreen("mode-select")} />;
-  if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedWords={session.missedWords} missedEntries={session.missedEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} practiceMissedWords={session.practiceMissedWords} backToModes={() => session.setScreen("mode-select")} />;
+  const dueEntries = session.dueWords.map((dueWord) => {
+    const entry = entries.find((candidate) => (dueWord.wordId && candidate.wordId === dueWord.wordId) || candidate.word === dueWord.word);
+    if (!entry) return undefined;
+    const serverWord = session.strongWords.find((candidate) => candidate.wordId === dueWord.wordId);
+    return serverWord ? {
+      ...entry,
+      bktSeenQuestionKinds: serverWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
+      bktFailedQuestionKinds: serverWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
+      bktObservationCount: serverWord.observationCount,
+      bktLastResponseAt: serverWord.lastResponseAt,
+    } : entry;
+  }).filter((entry): entry is VocabQuizEntry => Boolean(entry));
+  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} interimReviewEntries={session.interimReviewEntries} priorityReviewWords={session.priorityReviewWords} strongWords={session.strongWords} dueWords={session.dueWords} chooseDueReview={() => { if (dueEntries.length > 0) { session.setIsRetryRound(false); session.chooseMode("maintenance_review", dueEntries, dueEntries.length); } }} assessmentQuestionCounts={assessmentQuestionCounts} progress={session.lessonProgress} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} chooseInterimReview={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.interimReviewEntries, session.interimReviewEntries.length); }} onPracticeWord={(word) => { const entry = entries.find((e) => (word.wordId && e.wordId === word.wordId) || e.word === word.word); if (entry) session.practiceWord(entry); }} onContinue={() => { if (!session.lessonProgress.knowIt.completed) session.startTier("tier1"); else if (!session.lessonProgress.sayIt.completed) session.startTier("tier2"); else if (!session.lessonProgress.useIt.completed) session.startTier("tier3"); else session.setIsRetryRound(false); }} onFinish={onDone} startChallenge={session.showChallengeEntry} showReview={() => session.setScreen("review")} />;
+  if (session.screen === "review") return <ReviewScreen entries={entries} />;
+  if (session.screen === "challenge-entry") return <ChallengeEntry progress={session.lessonProgress} onStart={session.startChallenge} onBack={() => session.setScreen("mode-select")} />;
+  if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedEntries={session.missedEntries} roundEntries={session.roundEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} backToModes={session.returnToModes} progress={session.lessonProgress} onStartChallenge={session.startChallenge} challengeBestScore={session.challengeBestScore} onStartStrengthen={session.weakEntries.length > 0 ? () => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); } : undefined} />;
   if (!session.question) return null;
   return <QuizQuestion question={session.question} mode={session.mode} selected={session.selected} results={session.results} index={session.index} questionLimit={session.questionLimit} requestedQuestionCount={session.requestedQuestionCount} isRetryRound={session.isRetryRound} isLast={session.isLast} timeLeftMs={session.timeLeftMs} timeLimitMs={session.timeLimitMs} showFinishButton={session.showFinishButton} choose={session.choose} next={session.next} finish={session.finish} speakWord={session.speakWord} />;
 }

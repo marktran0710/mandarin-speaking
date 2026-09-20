@@ -7,7 +7,7 @@ import { SAMPLE_DEBUG_RECORD, type DebugAttemptSource } from "../utils/practiceD
 import { formatBackendError, getBackendUrl, readErrorResponse } from "../utils/storyRecorderFeedback";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import DebugPipelineDetails from "./teacher-practice-debug/DebugPipelineDetails";
-import { AUDIO_PREPARATION_TIMEOUT_MS, BACKEND_ANALYSIS_TIMEOUT_MS, TRACE_STAGE_DEFINITIONS, consumeAnalysisStream, sourceLabel, withTimeout, type AnalysisPhase, type DebugProcessingState, type JsonObject, type ProcessingTraceStage, type RecordedRequestContext } from "./teacher-practice-debug/utils";
+import { AUDIO_PREPARATION_TIMEOUT_MS, BACKEND_ANALYSIS_TIMEOUT_MS, consumeAnalysisStream, derivePipelineView, sourceLabel, withTimeout, type AnalysisPhase, type DebugProcessingState, type JsonObject, type ProcessingTraceStage, type RecordedRequestContext } from "./teacher-practice-debug/utils";
 import "./TeacherPracticeDebugPage.css";
 export default function TeacherPracticeDebugPage({ records }: { records: AudioRecord[] }) {
   const runtimeRecords = useMemo(() => records.filter((record) => record.praatMetrics), [records]);
@@ -284,71 +284,13 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const selectedSourceLabel = source === "recorded" && inputSource === "upload"
     ? "Uploaded debug audio"
     : sourceLabel(source);
-  const praat = (record.praatMetrics ?? {}) as JsonObject;
-  const ai = (praat.ai_feedback ?? {}) as JsonObject;
-  const quality = (praat.feedback_quality ?? {}) as JsonObject;
-  const words = Array.isArray(praat.word_prosody) ? praat.word_prosody : [];
-  const failedWords = words.filter((word: JsonObject) => word.judged === false || word.passed === false);
-  const canScorePronunciation = quality.can_score_pronunciation !== false;
-  const content = (ai.content_accuracy ?? {}) as JsonObject;
-  const contentGate = quality.can_score_content === false
-    ? "Not scoreable"
-    : content.judged === false || content.judged == null
-      ? "Not judged"
-      : content.accepted
-        ? "Passed"
-        : "Needs retry";
-  const storedTrace = Array.isArray((praat.processing_trace as JsonObject | undefined)?.stages)
-    ? (praat.processing_trace as JsonObject).stages as ProcessingTraceStage[]
-    : [];
-  const activeTrace = processingState !== "idle"
-    ? processingTrace
-    : storedTrace;
-  const traceByStage = new Map(activeTrace.map((entry) => [entry.stage, entry]));
-  const outputReady = processingState === "idle" || processingState === "complete";
-  const statusForStage = (stageId: string): ProcessingTraceStage => {
-    const existing = traceByStage.get(stageId);
-    if (existing) return existing;
-    if (stageId === "capture") {
-      return {
-        stage: stageId,
-        status: processingState === "recording" ? "running" : "passed",
-      };
-    }
-    if (processingState === "uploading" && stageId === "preflight") {
-      return { stage: stageId, status: "running" };
-    }
-    if (processingState === "processing" && stageId === "preflight") {
-      return { stage: stageId, status: "running" };
-    }
-    if (processingState === "error" && stageId === "quality_gate") {
-      return { stage: stageId, status: "failed", detail: recordingError };
-    }
-    return { stage: stageId, status: "pending" };
-  };
-  const hasVerificationStage = activeTrace.some((entry) => entry.stage === "content_verification");
-  const stageDefinitions = useMemo(() => {
-    if (!hasVerificationStage) return TRACE_STAGE_DEFINITIONS;
-    const gateIndex = TRACE_STAGE_DEFINITIONS.findIndex((definition) => definition.id === "quality_gate");
-    return [
-      ...TRACE_STAGE_DEFINITIONS.slice(0, gateIndex),
-      { id: "content_verification", label: "Verify", description: "Independent word check" },
-      ...TRACE_STAGE_DEFINITIONS.slice(gateIndex),
-    ];
-  }, [hasVerificationStage]);
-  const captureEntry: ProcessingTraceStage = (() => {
-    const base = statusForStage("capture");
-    const hasLiveCapture = source === "recorded" || isRecording || processingState !== "idle";
-    return {
-      ...base,
-      input: hasLiveCapture
-        ? { source: inputSource === "upload" ? "Uploaded file" : "Microphone recording", file_name: uploadedAudioName || null }
-        : null,
-      output: hasLiveCapture && (recordedAudioUrl || outputReady)
-        ? { endpoint: "/api/analyze/stream", duration_seconds: recordingDuration || record.duration || null, format: "wav (converted in browser)" }
-        : null,
-    };
-  })();
+  const {
+    praat, ai, words, failedWords, canScorePronunciation, contentGate,
+    activeTrace, outputReady, statusForStage, stageDefinitions, captureEntry,
+  } = derivePipelineView({
+    record, source, processingState, processingTrace, isRecording,
+    inputSource, uploadedAudioName, recordedAudioUrl, recordingDuration, recordingError,
+  });
   return (
     <section className="pdebug" aria-label="Practice stage debugger">
       <div className="pdebug-callout">

@@ -31,12 +31,12 @@
 .btn-story-exit {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  min-height: 34px;
-  padding: 0;
+  gap: var(--space-2xs);
+  /* 44px minimum touch target (was 32-34px, icon-only) — now also carries a
+     visible label, so width grows with the text instead of staying a fixed
+     circle. */
+  min-height: 44px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-soft);
@@ -215,7 +215,8 @@
   font-size: 12px;
 }
 .ssb-help .student-help-panel button {
-  min-height: 38px;
+  /* Was 38px — below the 44px minimum touch target. */
+  min-height: 44px;
 }
 .ssb-help .student-help-icon {
   width: 28px;
@@ -227,6 +228,15 @@
 }
 
 @media (max-width: 640px) {
+  /* A story title is essential orientation, so let it wrap on narrow screens
+     instead of replacing it with an ellipsis. */
+  .student-workspace-v2 .ssb-topic-name {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .ssb-help-anchor { margin-left: 0; flex: 1 1 100%; }
   .ssb-help-toggle { width: 100%; justify-content: center; }
   .ssb-help { left: 0; right: 0; width: auto; }

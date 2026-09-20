@@ -1,0 +1,90 @@
+{
+  "snapshot_date": "2026-09-17",
+  "scope": "Current student-facing adaptive vocabulary flow; documentation only",
+  "learning_flow": [
+    {"stage": "lesson_load", "source": "published story vocabulary and approved vocabAssessment", "code": "frontend/src/utils/topicQuiz.ts:topicQuizEntries"},
+    {"stage": "diagnostic_rounds", "rounds": ["tier1 know_it meaning MCQ", "tier2 say_it typed pinyin", "tier3 use_it context cloze MCQ"], "code": "frontend/src/components/story-vocab-quiz/model.ts:buildDiagnosticRoundQuestions"},
+    {"stage": "answer_persistence", "action": "post cumulative accepted answers after each question", "endpoint": "/api/vocab-quiz-responses", "code": "useQuizSession.ts:choose; part_001.py:record_vocab_quiz_response"},
+    {"stage": "mastery_rebuild", "action": "replay eligible diagnostic plus weak_words evidence per word", "code": "backend/analytics/bkt_mastery.py:record_attempt_and_rebuild"},
+    {"stage": "weak_review", "action": "select bottom-K words after three complete runs", "endpoint": "/api/students/{student_id}/weak-words", "code": "bkt_mastery.py:get_priority_review_words"},
+    {"stage": "personalized_practice", "action": "one selected published item per word, failed level preferred", "code": "model.ts:buildPersonalizedAssessmentQuestions"},
+    {"stage": "maintenance", "action": "SM-2 due items unioned with weak items", "endpoint": "/api/students/{student_id}/review-queue", "code": "review_queue.py:build_review_queue"}
+  ],
+  "algorithms": [
+    {"name": "format-aware BKT", "active_for": "student mastery and weak selection", "code": "backend/analytics/bkt.py:update_bkt; replay_bkt_typed"},
+    {"name": "SM-2-style scheduler", "active_for": "weak_words review scheduling only", "code": "backend/analytics/srs.py:review"},
+    {"name": "star threshold heuristic", "active_for": "tier progression and speaking gate", "code": "frontend/src/utils/quizTiers.ts:attemptEarnsStar"},
+    {"name": "legacy weighted question selection", "active_for": "legacy/non-assessment question construction", "code": "frontend/src/components/story-vocab-quiz/model.ts:pickQuestionKind"},
+    {"name": "older weak-word score", "active_for": "none found in production call graph", "code": "backend/analytics/weak_words.py:score_weak_words"},
+    {"name": "PFA, pilot BKT, Rasch, joint-time, FREX, calibration", "active_for": "admin/offline analysis or reporting, not student recommendation", "code": "backend/analytics/knowledge_tracing.py; irt.py; joint_time.py; frex.py; bkt_calibration.py"}
+  ],
+  "student_word_state": {
+    "mastery_cache": ["word_id", "p_learned", "observation_count", "correct_count", "incorrect_count", "last_response_at", "last_item_id", "last_question_type", "seen_question_types", "failed_question_types", "round_types", "status"],
+    "unseen_defaults": {"p_learned": 0.2, "observation_count": 0, "status": "UNASSESSED"},
+    "response_ledger": "vocab_quiz_responses; eligible diagnostic exposures deduplicated by item_id plus diagnostic_exposure_id",
+    "scheduler_state": ["reps", "ease", "interval_days", "due_on", "last_reviewed_on"]
+  },
+  "adaptive_decisions": [
+    {"decision": "tier_unlock", "input": "contiguous stars", "rule": "tier N requires N-1 stars; speaking requires 3", "output": "available round"},
+    {"decision": "diagnostic_unlock", "input": "one exact full-word run per tier", "rule": "three tier runs covering all known words exactly once", "output": "formal weak list enabled"},
+    {"decision": "formal_weak_candidate", "input": "p_learned and observation_count", "rule": "observation_count >= 3 and p_learned < 0.95", "output": "bottom-K candidate"},
+    {"decision": "interim_review", "input": "incorrect_count and p_learned", "rule": "incorrect_count > 0 and p_learned < 0.95", "output": "provisional practice before unlock"},
+    {"decision": "personalized_item", "input": "failed and seen question types", "rule": "failed level, else unseen level, else first bank item", "output": "one question per word"},
+    {"decision": "due_queue", "input": "SRS due_on and mastery observation_count", "rule": "due and observed, excluding formal weak IDs", "output": "reviewReason=due"}
+  ],
+  "weak_word_rule": {
+    "active_rule": "diagnostics_unlocked AND observation_count >= 3 AND p_learned < 0.95",
+    "selection": "sort by p_learned, observation_count, last_response_at, word_id; default bottom-K K=5",
+    "boundary": "p=0.95 is not weak; p<0.95 is eligible; observation_count=2 is not eligible",
+    "inactive_alternative": {"file": "backend/analytics/weak_words.py", "signals": ["latest wrong", "recency accuracy decay 0.65", "expected gap > 0.15", "time residual > 0.35", "time bonus 0.15"], "status": "implemented but no production caller found"}
+  },
+  "personalized_practice": {
+    "mode": "weak_words",
+    "question_count": "one published assessment question per selected word",
+    "selection_order": ["failed level", "unseen level", "first bank item"],
+    "option_behavior": "options shuffled",
+    "stop_rule": "none explicit beyond planned word list",
+    "max_attempts": null,
+    "delayed_retention_check": false,
+    "can_leave_weak_list": "yes; any subsequent BKT replay can cross 0.95"
+  },
+  "time_model": {
+    "bkt_uses_response_time": false,
+    "tier3_time_limit_ms": 150000,
+    "srs_fast_response_ms": 5000,
+    "forgetting_transition": false,
+    "day_passage_alone_changes_mastery": false
+  },
+  "review_scheduler": {
+    "algorithm": "SM-2-style",
+    "initial_ease": 2.5,
+    "minimum_ease": 1.3,
+    "first_interval_days": 1,
+    "second_interval_days": 6,
+    "quality": {"incorrect": 2, "correct_fast": 5, "correct_slow_or_no_time": 4},
+    "one_review_guard_seconds": 86400,
+    "due_rule": "due_on <= now or no due_on",
+    "important_behavior": "schedule update checks elapsed time since last grade, not due_on; early weak practice can advance/reset a schedule"
+  },
+  "question_types": {
+    "tier1": {"round": "know_it", "dimension": "meaning", "kind": "basic_meaning_mcq", "answer_format": "single_choice"},
+    "tier2": {"round": "say_it", "dimension": "pinyin_production", "kind": "character_to_pinyin_typing", "answer_format": "free_text"},
+    "tier3": {"round": "use_it", "dimension": "contextual_recall", "kind": "context_cloze_mcq", "answer_format": "single_choice"}
+  },
+  "student_outputs": ["tier cards and stars", "correctness feedback", "provisional missed-word review", "formal weak words", "due review", "mastered/on-track summary", "personalized practice", "passive vocabulary review", "lesson challenge"],
+  "teacher_outputs": ["completed attempt history", "tier stars and scores", "question validation/audit", "admin PFA/BKT pilot comparison", "FREX missed-word report", "offline calibration and Rasch/time analyses"],
+  "parameters": {
+    "bkt": {"initial_mastery": 0.2, "learn_rate": 0.15, "guess_rate_mcq": 0.2, "slip_rate_mcq": 0.1, "guess_rate_typed": 0.05, "slip_rate_typed": 0.15, "model_version": "format-aware-bkt-v2"},
+    "srs": {"initial_ease": 2.5, "minimum_ease": 1.3, "fast_response_ms": 5000, "day_seconds": 86400.0},
+    "progression": {"tier1_pass_ratio": 0.7, "tier2_pass_ratio": 0.82, "tier3_pass_ratio": 0.88, "tier3_time_limit_ms": 150000}
+  },
+  "thresholds": {"bkt_mastery": 0.95, "minimum_observations": 3, "required_diagnostic_quizzes": 3, "review_count": 5, "legacy_weak_gap": 0.15, "legacy_time_residual": 0.35, "legacy_recency_decay": 0.65},
+  "example_runs": [
+    {"case": "A_strong_CCC", "answers": [true, true, true], "p_after_each": [0.6, 0.967925, 0.993786], "final_status_after_unlock": "MASTERED", "weak": false},
+    {"case": "B_CIC", "answers": [true, false, true], "p_after_each": [0.6, 0.312766, 0.721127], "final_status_after_unlock": "NEEDS_REVIEW_when_selected", "weak": true},
+    {"case": "C_IIC", "answers": [false, false, true], "p_after_each": [0.175758, 0.177686, 0.569045], "final_status_after_unlock": "NEEDS_REVIEW_when_selected", "weak": true},
+    {"case": "D_III", "answers": [false, false, false], "p_after_each": [0.175758, 0.177686, 0.172355], "final_status_after_unlock": "NEEDS_REVIEW_when_selected", "weak": true},
+    {"case": "E_session1_IIC_session2_CCC", "answers": [false, false, true, true, true, true], "p_after_each": [0.175758, 0.177686, 0.569045, 0.877556, 0.99308, 0.998686], "final_status_after_unlock": "MASTERED", "weak": false, "caveat": "requires distinct accepted exposures; stable duplicate diagnostic exposures are deduplicated"}
+  ],
+  "live_dev_snapshot": {"frontend": "http://127.0.0.1:5177", "backend_readiness": "http://127.0.0.1:8001/health/ready", "stories": 14, "first_story_assessment_rows": 69, "aggregate_mastery_rows": 320, "required_words": 317, "sufficient_words": 15, "completed_diagnostic_quizzes": 0, "unlocked": false, "demo_response_rows": 287, "demo_completed_attempt_rows": 18, "demo_srs_rows": 0, "dev_db_revision": "0034"}
+}

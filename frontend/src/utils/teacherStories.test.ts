@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { storyHasTierContent, storyToTopic, type CustomTeacherStory } from "./teacherStories";
+import { storyToTopic, type CustomTeacherStory } from "./teacherStories";
 
 describe("storyToTopic", () => {
   it("maps story-wide learning content into the shared quiz pool", () => {
@@ -17,13 +17,9 @@ describe("storyToTopic", () => {
           vocabularyPos: "N, N",
           vocabularyTranslation: "school, teacher",
         },
-        medium: { vocabulary: "", vocabularyPinyin: "", vocabularyPos: "", vocabularyTranslation: "" },
-        hard: { vocabulary: "", vocabularyPinyin: "", vocabularyPos: "", vocabularyTranslation: "" },
       },
       storyPhrases: {
         easy: { phrases: "在學校", phrasesTranslation: "at school" },
-        medium: { phrases: "", phrasesTranslation: "" },
-        hard: { phrases: "", phrasesTranslation: "" },
       },
     };
 
@@ -72,63 +68,26 @@ describe("storyToTopic", () => {
   });
 });
 
-describe("storyToTopic difficulty tiers", () => {
-  const tieredStory: CustomTeacherStory = {
+describe("storyToTopic single level", () => {
+  const singleStory: CustomTeacherStory = {
     id: "story-3",
-    title: "Tiered Story",
+    title: "Single-level Story",
     frames: [
       {
         imageUrl: "img-0.png",
         prompt: "你好。",
         vocabulary: "你好",
         suggestedAnswer: "你好嗎？",
-        promptMedium: "你今天好嗎？",
-        vocabularyMedium: "你好, 今天",
-        suggestedAnswerMedium: "我今天很好。",
-        // No Hard tier authored for this frame yet.
       },
     ],
   };
 
-  it("uses the Easy fields by default and keeps the story's original id", () => {
-    const topic = storyToTopic(tieredStory);
+  it("maps the base fields and keeps the story's original id", () => {
+    const topic = storyToTopic(singleStory);
     expect(topic.id).toBe("teacher-story-3");
     expect(topic.prompts?.[0]).toBe("你好。");
     expect(topic.vocabulary[0]).toEqual(["你好"]);
-  });
-
-  it("reads Medium fields and suffixes the topic id when authored", () => {
-    const topic = storyToTopic(tieredStory, "medium");
-    expect(topic.id).toBe("teacher-story-3-medium");
-    expect(topic.prompts?.[0]).toBe("你今天好嗎？");
-    expect(topic.vocabulary[0]).toEqual(["你好", "今天"]);
-    expect(topic.suggestedAnswers?.[0]).toBe("我今天很好。");
-    expect(topic.quizVocabulary?.[0]).toEqual(["你好"]);
-    expect(topic.quizVocabularyTranslation?.[0]).toBeUndefined();
-  });
-
-  it("falls back to Easy text when a tier hasn't been authored for that frame", () => {
-    const topic = storyToTopic(tieredStory, "hard");
-    expect(topic.id).toBe("teacher-story-3-hard");
-    expect(topic.prompts?.[0]).toBe("你好。");
-    expect(topic.vocabulary[0]).toEqual(["你好"]);
-  });
-
-  it("serves each tier's own image when authored, falling back to Easy's when not", () => {
-    const storyWithTieredImages: CustomTeacherStory = {
-      ...tieredStory,
-      frames: [{ ...tieredStory.frames[0], imageUrlMedium: "img-0-medium.png" }],
-    };
-
-    expect(storyToTopic(storyWithTieredImages, "easy").images[0]).toBe("img-0.png");
-    expect(storyToTopic(storyWithTieredImages, "medium").images[0]).toBe("img-0-medium.png");
-    // No imageUrlHard authored — Hard falls back to Easy's image, not blank.
-    expect(storyToTopic(storyWithTieredImages, "hard").images[0]).toBe("img-0.png");
-  });
-
-  it("storyHasTierContent reports which tiers were actually authored", () => {
-    expect(storyHasTierContent(tieredStory, "medium")).toBe(true);
-    expect(storyHasTierContent(tieredStory, "hard")).toBe(false);
+    expect(topic.images[0]).toBe("img-0.png");
   });
 });
 
@@ -175,42 +134,6 @@ describe("storyToTopic serving mode", () => {
     };
     const topic = storyToTopic(approvedStory, "easy", "approved");
     expect(topic.vocabularyDistractors?.[0]?.[0]).toEqual(["to see", "to hear", "to say"]);
-  });
-
-  it("uses the Easy approved snapshot for Medium quiz material by canonical word", () => {
-    const mediumStory: CustomTeacherStory = {
-      ...story,
-      frames: [{
-        ...story.frames[0],
-        vocabulary: "知道",
-        vocabularyMedium: "知道, 一起",
-        vocabularyTranslation: "to know",
-        vocabularyTranslationMedium: "to know, together",
-        vocabularyDistractors: JSON.stringify([["live wrong"]]),
-      }],
-      quizApprovedSnapshot: {
-        easy: [{
-          word: "知道",
-          translation: "to know",
-          distractors: ["to see", "to hear"],
-          cloze: [],
-          synonym: [],
-        }],
-        medium: [{
-          word: "知道",
-          translation: "wrong medium translation",
-          distractors: ["wrong medium distractor"],
-          cloze: [],
-          synonym: [],
-        }],
-      },
-    };
-    const topic = storyToTopic(mediumStory, "medium", "approved");
-
-    expect(topic.vocabulary?.[0]).toEqual(["知道", "一起"]);
-    expect(topic.quizVocabulary?.[0]).toEqual(["知道"]);
-    expect(topic.quizVocabularyTranslation?.[0]).toEqual(["to know"]);
-    expect(topic.quizVocabularyDistractors?.[0]).toEqual([["to see", "to hear"]]);
   });
 
   it("'approved' never leaks live material for a word missing from the snapshot", () => {

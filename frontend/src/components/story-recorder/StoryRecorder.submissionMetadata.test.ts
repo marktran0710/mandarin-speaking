@@ -19,6 +19,9 @@ describe("StoryRecorder submission progression metadata", () => {
       'ge={baseStoryId:t.sourceStory?.id??t.id,difficultyLevel:t.difficultyLevel??"easy",sceneIndex:r',
     );
     expect(runtimeSource).toContain(
+      'articulationRate:d.pause_analysis?.articulation_rate??0,snapshotId:be},Rt={...ge,snapshotId:be}',
+    );
+    expect(runtimeSource).toContain(
       'function Er(t,e){if(t.imageIndex===void 0)return null;const u=t.praatMetrics,r=u?.ai_feedback?.vocabulary_coverage;return{baseStoryId:t.baseStoryId??e?.sourceStory?.id??e?.id,difficultyLevel:t.difficultyLevel??e?.difficultyLevel??"easy"',
     );
     expect(runtimeSource).toContain('F=Er(f,t);');

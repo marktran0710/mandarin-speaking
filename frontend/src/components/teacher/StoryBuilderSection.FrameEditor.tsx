@@ -22,9 +22,24 @@ function FramePreview({ draft, index, imageUrl, onPaste }) {
   </button>;
 }
 
+function StoryFrameAudio({ draft, index, level, onUploadAudio, onRemoveAudio }) {
+  const audioUrl = draft.listenAudioUrls[level][index];
+  const audioSource = draft.listenAudioSources[level][index];
+  return <div className="teacher-frame-audio">
+    <label className="teacher-file-upload">
+      {audioUrl ? "Replace model audio" : "Upload model audio"}
+      <input type="file" accept="audio/*" onChange={(event) => onUploadAudio(index, event.target.files?.[0])} />
+    </label>
+    {audioUrl ? <div className="teacher-frame-audio-preview">
+      <audio controls src={audioUrl} />
+      <span className="teacher-frame-audio-source">{audioSource === "teacher" ? "Your recording" : audioSource || "Uploaded"}</span>
+      <button type="button" className="teacher-frame-audio-remove" onClick={() => onRemoveAudio(index)}>Remove</button>
+    </div> : <p className="teacher-form-note">No model audio yet — students practice against the script text only until you upload one.</p>}
+  </div>;
+}
+
 function StoryFrameFields(props) {
-  const { draft, index, level, frameError, updateDraftFrame,
-    onUploadImage, onUploadAudio, recordingFrameIndex, recordingSeconds, onStartRecording, onStopRecording } = props;
+  const { draft, index, level, frameError, updateDraftFrame, onUploadImage, onUploadAudio, onRemoveAudio } = props;
   const imageUrl = draft.imageUrls[level][index];
   const chunks = splitScriptIntoChunks(draft.suggestedAnswers[level][index]);
   return <div className="teacher-frame-fields">
@@ -42,11 +57,8 @@ function StoryFrameFields(props) {
           rows={2} placeholder="Write the sentence students should say. Their voice transcript will be compared with this script." />
       </label>
       {chunks.length > 1 && <p className="script-chunk-preview"><span className="script-chunk-preview-lead">Auto-detected parts (edit punctuation above to adjust):</span>{chunks.map((chunk, chunkIndex) => <span key={chunkIndex} className="script-chunk-preview-chip">{chunk}</span>)}</p>}
-      <label className="teacher-file-upload">Upload teacher reference audio (optional)
-        <input type="file" accept="audio/mpeg,audio/wav,audio/webm,audio/ogg" onChange={(event) => onUploadAudio(index, event.target.files?.[0])} />
-      </label>
-      {draft.listenAudioSources[level][index] === "teacher" && draft.listenAudioUrls[level][index]?.trim() && <span className="teacher-form-hint">Teacher reference ready — student scoring will use this recording.</span>}
     </>
+    <StoryFrameAudio draft={draft} index={index} level={level} onUploadAudio={onUploadAudio} onRemoveAudio={onRemoveAudio} />
   </div>;
 }
 

@@ -344,7 +344,8 @@ def _material_rows(
                 _row(
                     story, tier, frame_index, word_index, word, "cloze",
                     sentence.replace(word, "____", 1), word, translation, pinyin,
-                    part_of_speech, candidate.get("distractors") or [], sentence, source,
+                    part_of_speech, candidate.get("distractors") or [],
+                    sentence.replace(word, "____", 1), source,
                 )
             )
 

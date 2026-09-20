@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { auditTopicQuizMaterial, topicQuizEntries, type QuizSourceTopic } from "./topicQuiz";
+import { buildDiagnosticRoundQuestions } from "../components/story-vocab-quiz/model";
 import type { QuizExclusion } from "./quizExclusions";
 
 function makeTopic(quizExclusions: QuizExclusion[]): QuizSourceTopic {
@@ -66,6 +67,63 @@ describe("topicQuizEntries exclusions", () => {
 });
 
 describe("canonical quiz vocabulary", () => {
+  it("normalizes title-case backend levels before selecting a learner round", () => {
+    const entries = topicQuizEntries({
+      images: ["scene-1.png"],
+      vocabulary: { 0: ["bed"] },
+      vocabAssessment: [{
+        questionId: "bed-easy",
+        wordId: "bed-1",
+        targetWord: "bed",
+        pinyin: "chuang",
+        pos: "N",
+        simpleEnglishMeaning: "bed",
+        level: "Easy" as unknown as "easy",
+        difficultyWeight: 1,
+        questionType: "basic_meaning_mcq",
+        answerFormat: "single_choice",
+        prompt: "Backend authored meaning prompt",
+        options: ["bed", "book", "door", "window"],
+        correctAnswer: "bed",
+        acceptedAnswers: ["bed"],
+        explanation: "Use the authored bank question.",
+      }],
+    });
+
+    const [question] = buildDiagnosticRoundQuestions(entries, "tier1");
+    expect(question.prompt).toBe("Backend authored meaning prompt");
+    expect(question.correctAnswer).toBe("bed");
+  });
+
+  it("keeps teacher-reviewed cloze context before the story sentence for an assessment-backed Round 3", () => {
+    const entries = topicQuizEntries({
+      images: ["scene-1.png"],
+      vocabulary: { 0: ["喝"] },
+      quizVocabularyCloze: { 0: [[{ sentence: "我愛喝茶。", distractors: ["吃"] }]] },
+      quizSuggestedAnswers: { 0: "我喜歡喝茶。" },
+      vocabAssessment: [{
+        questionId: "lesson-5-drink-hard",
+        wordId: "lesson-5-drink",
+        targetWord: "喝",
+        pinyin: "hē",
+        pos: "V",
+        simpleEnglishMeaning: "to drink",
+        level: "hard",
+        difficultyWeight: 3,
+        questionType: "productive_recall",
+        answerFormat: "free_text",
+        prompt: "Generated fallback context.",
+        options: [],
+        correctAnswer: "喝",
+        acceptedAnswers: ["喝"],
+        explanation: "Drink is 喝.",
+      }],
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].lessonSentences).toEqual(["我愛喝茶。", "我喜歡喝茶。"]);
+  });
+
   it("prefers the shared Easy/base pool over tier display vocabulary", () => {
     const entries = topicQuizEntries({
       images: ["scene-1.png"],

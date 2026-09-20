@@ -33,6 +33,9 @@ export interface StudentWorkspacePageProps {
   /** Signs the student out from the workspace's own left rail — the rail
    * replaced the top navbar that used to carry this action. */
   onLogout: () => void;
+  /** Jumps to the standalone placement test — see StudentSidebar for why
+   * this is a plain extra rail item rather than a third workspace view. */
+  onOpenPlacementTest?: () => void;
 }
 
 const WORKSPACE_VIEWS: Array<{
