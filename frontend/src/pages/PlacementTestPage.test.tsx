@@ -58,6 +58,25 @@ describe("PlacementTestPage", () => {
     expect(await screen.findByText(/No questions available yet/)).toBeInTheDocument();
   });
 
+  it("keeps the compact loading state and primary action hierarchy accessible", async () => {
+    let resolveStories!: (stories: StoredCustomStory[]) => void;
+    listCustomStories.mockReturnValue(new Promise<StoredCustomStory[]>((resolve) => {
+      resolveStories = resolve;
+    }));
+    render(<PlacementTestPage />);
+
+    expect(screen.getByRole("status")).toHaveClass("placement-test-loading");
+    resolveStories(makeStories());
+
+    const question = await screen.findByRole("heading", { name: /Choose the correct English meaning/ });
+    expect(question).toHaveClass("vocab-quiz-assessment-prompt");
+    const next = screen.getByRole("button", { name: /Next question/ });
+    expect(next).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /-correct$/ }));
+    expect(next).toBeEnabled();
+  });
+
   it("keeps answer feedback neutral until advance, then submits grouped diagnostic attempts", async () => {
     listCustomStories.mockResolvedValue(makeStories());
     render(<PlacementTestPage />);

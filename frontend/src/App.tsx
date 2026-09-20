@@ -595,7 +595,7 @@ export default function App() {
       )}
       {currentPage === "placement-test" && activeRole === "student" && studentDataReady && (
         <StudentModeFrame
-          className="student-standalone-shell"
+          className="student-standalone-shell student-placement-test-shell"
           activeView="practice"
           onChange={(nextView) => {
             setStudentWorkspaceView(nextView);

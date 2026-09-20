@@ -3,6 +3,44 @@
    and action ownership while only supplying its selected-answer state and
    compact responsive flow. */
 
+/* The shell owns the outer surface. This page only owns the narrow diagnostic
+   column and its inset, leaving the panel's local scroller reachable. */
+.student-workspace-v2.student-placement-test-shell > #student-workspace-panel > .placement-test-page {
+  width: min(100%, 720px);
+  min-height: 0;
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-md) var(--space-lg);
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .story-vocab-quiz.vocab-quiz-question-screen {
+  width: 100%;
+  max-width: none;
+  gap: var(--space-md);
+  padding: 0;
+  text-align: left;
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-md);
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-status-progress {
+  max-width: none;
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-content {
+  width: 100%;
+  gap: var(--space-md);
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-header {
+  align-items: flex-start;
+  text-align: left;
+}
+
 /* The shared quiz screen reserves a fixed 2-line-tall box around the prompt
    (min-height: 2.4em + padding) so the card doesn't resize between question
    kinds - a cloze sentence next to a single word, in the same round. The
@@ -11,13 +49,15 @@
    drop it back to the content's own height. */
 .placement-test-page .vocab-quiz-question-screen .vocab-quiz-word {
   min-height: 0;
+  padding: var(--space-xs) 0;
+  text-align: left;
 }
 
 .placement-test-page .pt-quiz-context {
   flex: 0 0 auto;
   margin: 0;
   color: var(--clay-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -34,6 +74,58 @@
 .placement-test-page .vocab-quiz-option-selected::before {
   background: var(--gold);
   color: var(--clay-on-seal);
+}
+
+/* The diagnostic choices remain comfortable keyboard and touch targets even
+   though the surrounding surface is deliberately compact. */
+.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-option {
+  min-height: var(--space-2xl);
+  padding: var(--space-xs) var(--space-md);
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-actions {
+  min-height: 0;
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.student-workspace-v2.student-placement-test-shell .placement-test-page .btn-vocab-quiz-next {
+  min-width: calc(var(--space-3xl) * 3);
+}
+
+/* Other quiz modes suppress secondary bilingual lines to stay compact.
+   Placement is a standalone diagnostic, so restore a quiet English
+   clarification without bringing pinyin into the functional chrome. */
+.placement-test-page .placement-test-topbar .bi-en {
+  display: block;
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.placement-test-page .placement-test-topbar .bi-label {
+  gap: var(--space-2xs);
+}
+
+.placement-test-page .placement-test-loading {
+  display: grid;
+  place-items: center;
+  gap: var(--space-xs);
+  min-height: var(--space-3xl);
+  padding: var(--space-xl) 0;
+}
+
+.placement-test-page .placement-test-loading h2 {
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.placement-test-page .placement-test-loading .app-loading-icon {
+  width: var(--space-xl);
+  height: var(--space-xl);
+  margin: 0;
 }
 
 /* Retriggered on every question by remounting with a fresh `key`, so each
@@ -53,7 +145,18 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 680px) {
+  .student-workspace-v2.student-placement-test-shell > #student-workspace-panel > .placement-test-page {
+    width: 100%;
+    padding: var(--space-sm) 0 var(--space-lg);
+  }
+
+  .student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-topbar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-xs);
+  }
+
   .placement-test-page .pt-quiz-context {
     width: 100%;
   }
@@ -71,6 +174,10 @@
   .placement-test-page .vocab-quiz-actions,
   .placement-test-page .btn-vocab-quiz-next {
     width: 100%;
+  }
+
+  .student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-actions {
+    justify-content: stretch;
   }
 
   .placement-test-page .btn-vocab-quiz-next {

@@ -24,7 +24,6 @@ export default function PlacementTestPage() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const questionStartRef = useState({ current: Date.now() })[0];
 
   useEffect(() => {
     if (!canUseDatabase()) {
@@ -36,18 +35,12 @@ export default function PlacementTestPage() {
       .catch(() => setQuestions([]));
   }, []);
 
-  useEffect(() => {
-    questionStartRef.current = Date.now();
-  }, [index, questionStartRef]);
-
   if (questions === null) {
     return (
       <div className="placement-test-page">
-        <div className="app-loading">
-          <div className="app-loading-card">
-            <div className="app-loading-icon" aria-hidden="true" />
-            <h2><BiLabel zh="準備中…" en="Loading…" /></h2>
-          </div>
+        <div className="placement-test-loading" role="status">
+          <div className="app-loading-icon" aria-hidden="true" />
+          <h2><BiLabel zh="準備中…" en="Loading…" /></h2>
         </div>
       </div>
     );
@@ -154,11 +147,11 @@ export default function PlacementTestPage() {
   return (
     <div className="placement-test-page">
       <section className="story-vocab-quiz vocab-quiz-question-screen" aria-label="Placement test question">
-        <div className="vocab-quiz-topbar">
-          <p className="pt-quiz-context">
+        <div className="vocab-quiz-topbar placement-test-topbar">
+          <p className="pt-quiz-context placement-test-title">
             <BiLabel zh="分班測驗" en="Placement test" />
           </p>
-          <div className="vocab-quiz-status-progress">
+          <div className="vocab-quiz-status-progress placement-test-progress">
             <p className="vocab-quiz-progress"><BiLabel zh={`第 ${index + 1} / ${questions.length} 題`} en={`Question ${index + 1} of ${questions.length}`} /></p>
             <div className="vq-track">
               <div
