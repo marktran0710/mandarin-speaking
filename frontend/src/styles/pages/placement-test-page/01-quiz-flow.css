@@ -47,6 +47,26 @@
 }
 
 /* ── Results screen ── */
+/* Keep the question screen's header out of the quiz's vertical centering
+   space on desktop while leaving results, empty, and loading states alone. */
+@media (min-width: 901px) {
+  .placement-test-page:has(> .vocab-quiz-question-screen) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-md);
+    min-height: 0;
+  }
+
+  .placement-test-page:has(> .vocab-quiz-question-screen) > .student-page-header {
+    margin-bottom: 0;
+  }
+
+  .placement-test-page:has(> .vocab-quiz-question-screen) > .vocab-quiz-question-screen {
+    align-self: center;
+    min-height: 0;
+  }
+}
+
 .pt-results {
   display: flex;
   flex-direction: column;
