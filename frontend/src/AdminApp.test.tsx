@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import AdminApp from "./AdminApp";
 import ManagementShell from "./components/management/ManagementShell";
+import { SESSION_EXPIRED_EVENT } from "./services/api/client";
 
 vi.mock("./pages/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,
@@ -40,6 +41,28 @@ describe("admin-only diagnostic navigation", () => {
     expect(screen.getByRole("heading", { name: "Materials", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Story Builder/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /AI Image Builder/ })).toBeInTheDocument();
+  });
+
+  it("recovers from a stale authenticated flag when a request comes back 401", async () => {
+    render(<AdminApp />);
+    // Sanity check: the stale localStorage flag alone is enough to skip the
+    // login screen and show the authenticated shell.
+    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
+
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { role: "admin" } }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Enter admin console" })).toBeInTheDocument());
+    expect(screen.getByText(/session expired/i)).toBeInTheDocument();
+    expect(localStorage.getItem("adminConsoleSession")).toBeNull();
+  });
+
+  it("ignores a session-expired event meant for a different role", async () => {
+    render(<AdminApp />);
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { role: "teacher" } }));
+
+    // No re-render should knock it back to the login screen.
+    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
+    expect(localStorage.getItem("adminConsoleSession")).toBe("true");
   });
 
   it("does not render diagnostic entries in the teacher navigation", () => {

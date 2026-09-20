@@ -14,6 +14,8 @@ import {
   logoutAdmin,
   updateStudent,
   updateTeacher,
+  SESSION_EXPIRED_EVENT,
+  type SessionExpiredEventDetail,
   type Student,
   type Teacher,
   type VocabQuizAttempt,
@@ -92,6 +94,23 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
   useEffect(() => {
     if (authenticated) void refresh();
   }, [authenticated]);
+
+  // The "am I logged in" flag above is a plain localStorage read, checked
+  // once at mount - it has no way to notice the actual session cookie
+  // expiring or getting cleared later. Without this, that leaves the app
+  // stuck showing the authenticated shell with every request failing the
+  // same generic way until the user thinks to log out and back in by hand.
+  useEffect(() => {
+    const handleSessionExpired = (event: Event) => {
+      const detail = (event as CustomEvent<SessionExpiredEventDetail>).detail;
+      if (detail?.role !== "admin") return;
+      localStorage.removeItem(ADMIN_KEY);
+      setAuthenticated(false);
+      setLoginError("Your session expired. Please log in again.");
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   useEffect(() => {
     if ((activeNav !== "Practice Debug" && activeNav !== "Measurement") || !canUseDatabase()) return;

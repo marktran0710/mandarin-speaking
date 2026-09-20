@@ -5,6 +5,19 @@ export const BACKEND_URL = getBackendUrl();
 export const REQUEST_TIMEOUT_MS = 15_000;
 export const VOCAB_GENERATION_RETRY_STATUSES = [429, 500, 502, 503, 504];
 
+// Dispatched whenever any request comes back 401: the caller's client-side
+// "am I logged in" state (a localStorage flag, checked independently of the
+// actual httpOnly session cookie) can otherwise go stale - the cookie
+// expires or gets cleared, but the flag persists, so the UI keeps acting
+// authenticated while every request fails with the same generic "could not
+// load data" error. Each app shell listens for this and clears its own
+// stale flag instead of leaving the user stuck until they think to log out
+// and back in manually.
+export const SESSION_EXPIRED_EVENT = "app:session-expired";
+export interface SessionExpiredEventDetail {
+  role: "student" | "teacher" | "admin";
+}
+
 export function clientRoleHeader(): "student" | "teacher" | "admin" {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   if (pathname.endsWith("/admin.html")) return "admin";
@@ -24,6 +37,9 @@ export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestIni
       const response = await fetch(input, { credentials: "include", ...init, headers: (() => { const headers = new Headers(init?.headers); headers.set("X-Client-Role", clientRoleHeader()); return headers; })(), signal: controller.signal });
       clearTimeout(timer);
       if (retryOnStatus.includes(response.status) && attempt < maxAttempts) { await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** (attempt - 1))); continue; }
+      if (response.status === 401 && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent<SessionExpiredEventDetail>(SESSION_EXPIRED_EVENT, { detail: { role: clientRoleHeader() } }));
+      }
       return response;
     } catch (error) {
       clearTimeout(timer); lastError = error;
