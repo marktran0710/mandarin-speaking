@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 import auth
 import main
-from main import StoryImageGenerationRequest, StoryImageGenerationResponse
+import services.story_images as story_images_service
+from services.story_images import StoryImageGenerationRequest, StoryImageGenerationResponse
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
@@ -45,14 +46,14 @@ async def generate_story_images(
             detail="Describe the situation context with at least 8 characters.",
         )
 
-    if main.GEMINI_API_KEY:
+    if story_images_service.GEMINI_API_KEY:
         try:
-            return await main.generate_story_images_with_gemini(request)
+            return await story_images_service.generate_story_images_with_gemini(request)
         except Exception as exc:
             main.logger.warning("Gemini story image planning failed, using local fallback: %s", exc)
 
-    fallback = main.build_story_image_fallback(request, provider="local")
-    return await main.normalize_story_image_response(
+    fallback = story_images_service.build_story_image_fallback(request, provider="local")
+    return await story_images_service.normalize_story_image_response(
         {"title": fallback.title, "learning_goal": fallback.learning_goal,
          "frames": [{"title": f.title, "student_prompt": f.student_prompt,
                      "vocabulary": f.vocabulary, "image_prompt": f.image_prompt}
