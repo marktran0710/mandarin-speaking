@@ -16,7 +16,7 @@ import pytest
 @pytest.fixture()
 def uploaded_image(tmp_path, monkeypatch):
     """Points UPLOAD_DIR at a temp dir with one real image file in it."""
-    import main
+    import services.media as media_service
 
     upload_dir = tmp_path / "uploads"
     (upload_dir / "images").mkdir(parents=True)
@@ -28,8 +28,8 @@ def uploaded_image(tmp_path, monkeypatch):
     image_path = upload_dir / "images" / "sample.png"
     image_path.write_bytes(image_bytes)
 
-    monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
-    monkeypatch.setattr(main, "IMAGE_UPLOAD_DIR", str(upload_dir / "images"))
+    monkeypatch.setattr(media_service, "UPLOAD_DIR", str(upload_dir))
+    monkeypatch.setattr(media_service, "IMAGE_UPLOAD_DIR", str(upload_dir / "images"))
     return image_bytes
 
 
@@ -72,10 +72,11 @@ class TestResolveMediaB64:
         server (no CORS enforcement applies server-to-server) instead of the
         browser, which is what would otherwise be blocked by CORS."""
         import main
+        import services.media as media_service
         import httpx
         import socket
 
-        monkeypatch.setattr(main, "REMOTE_MEDIA_ALLOWED_HOSTS", {"third-party.example"})
+        monkeypatch.setattr(media_service, "REMOTE_MEDIA_ALLOWED_HOSTS", {"third-party.example"})
         monkeypatch.setattr(
             socket,
             "getaddrinfo",

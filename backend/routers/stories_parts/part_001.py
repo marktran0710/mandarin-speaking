@@ -6,6 +6,7 @@ from psycopg.types.json import Jsonb
 from db import connect_db, row_to_custom_story
 import main
 import auth
+import services.media as media_service
 from main import (
     CustomStoryRequest,
     QuizExclusionsUpdateRequest,
@@ -105,8 +106,8 @@ async def create_custom_story(story: CustomStoryRequest):
         else "vocab_assessment = custom_stories.vocab_assessment"
     )
     frames = [frame.model_dump() for frame in story.frames]
-    stored_frames = main.persist_story_frame_images(story.id, frames)
-    stored_frames = main.persist_story_frame_audio(story.id, stored_frames)
+    stored_frames = media_service.persist_story_frame_images(story.id, frames)
+    stored_frames = media_service.persist_story_frame_audio(story.id, stored_frames)
     with connect_db() as db:
         # ON CONFLICT DO UPDATE, not the old INSERT OR REPLACE: SQLite's
         # replace was a DELETE+INSERT, so every re-save wiped the two columns
@@ -161,10 +162,10 @@ def delete_custom_story(story_id: str):
         db.execute("DELETE FROM custom_stories WHERE id = %s", (story_id,))
     if row:
         for frame in row["frames"] or []:
-            main.remove_uploaded_file(frame.get("imageUrl", ""))
-            main.remove_uploaded_file(frame.get("imageUrlMedium", ""))
-            main.remove_uploaded_file(frame.get("imageUrlHard", ""))
-            main.remove_uploaded_file(frame.get("listenAudioUrl", ""))
+            media_service.remove_uploaded_file(frame.get("imageUrl", ""))
+            media_service.remove_uploaded_file(frame.get("imageUrlMedium", ""))
+            media_service.remove_uploaded_file(frame.get("imageUrlHard", ""))
+            media_service.remove_uploaded_file(frame.get("listenAudioUrl", ""))
     return {"ok": True}
 
 
