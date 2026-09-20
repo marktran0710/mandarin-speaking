@@ -35,7 +35,7 @@ describe("App — student data must be ready before a student route renders", ()
   });
 
   it("does not request protected student data for anonymous home", async () => {
-    const api = await import("./shared/api/learningApi");
+    const api = await import("./services/database");
     const listAudioRecords = vi.spyOn(api, "listAudioRecords");
 
     render(<App />);
