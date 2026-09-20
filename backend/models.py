@@ -328,3 +328,69 @@ class TeacherUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=100)
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
+
+
+MAX_VOCAB_DISTRACTORS_PER_WORD = 8
+
+
+class VocabularyDistractorUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    distractors: List[str]
+
+
+class VocabularyDistractorsUpdateRequest(BaseModel):
+    updates: List[VocabularyDistractorUpdate]
+
+
+# Lower than MAX_VOCAB_DISTRACTORS_PER_WORD: each cloze candidate bundles a
+# whole sentence plus its own distractors, so a handful of varied sentences
+# is plenty to avoid staleness without growing the pool unbounded.
+MAX_VOCAB_CLOZE_PER_WORD = 4
+
+
+class VocabularyClozeCandidate(BaseModel):
+    sentence: str
+    distractors: List[str]
+
+
+class VocabularyClozeUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    candidates: List[VocabularyClozeCandidate]
+
+
+class VocabularyClozeUpdateRequest(BaseModel):
+    updates: List[VocabularyClozeUpdate]
+
+
+MAX_VOCAB_SYNONYM_PER_WORD = 4
+
+
+class VocabularySynonymCandidate(BaseModel):
+    synonym: str
+    distractors: List[str]
+
+
+class VocabularySynonymUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    candidates: List[VocabularySynonymCandidate]
+
+
+class VocabularySynonymUpdateRequest(BaseModel):
+    updates: List[VocabularySynonymUpdate]
+
+
+class GenerateModelVoiceRequest(BaseModel):
+    frameIndex: int
+    tier: str = "easy"
+
+
+class GenerateModelVoiceBulkRequest(BaseModel):
+    tiers: List[str] = ["easy"]
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = ""

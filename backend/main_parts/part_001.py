@@ -131,6 +131,13 @@ from models import (
     TeacherCreateRequest,
     TeacherLoginRequest,
     TeacherUpdateRequest,
+    MAX_VOCAB_DISTRACTORS_PER_WORD,
+    VocabularyDistractorsUpdateRequest,
+    MAX_VOCAB_CLOZE_PER_WORD,
+    VocabularyClozeUpdateRequest,
+    MAX_VOCAB_SYNONYM_PER_WORD,
+    VocabularySynonymUpdateRequest,
+    TTSRequest,
 )
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
@@ -503,5 +510,21 @@ class ReferenceToneResponse(BaseModel):
     pitch_pattern: List[float]
     frequency_range: Tuple[int, int]
     expected_mean: int
+
+
+ANALYZE_TIMEOUT_SECONDS = settings.analyze_timeout_seconds
+
+# Caps how many /api/analyze requests run their CPU-bound stages (Praat,
+# local ASR) at once. run_in_threadpool offloads this work off the event
+# loop, but the threadpool itself has no size limit tied to actual CPU
+# capacity - a classroom of ~50 students recording around the same moment
+# would otherwise spin up dozens of CPU-heavy analyses simultaneously and
+# thrash every core, making every single one slower rather than a few
+# finishing quickly in sequence. Extra requests simply queue for a slot
+# instead of being rejected; ANALYZE_TIMEOUT_SECONDS still bounds how long
+# any one request (including its queue wait) can take.
+ANALYZE_CONCURRENCY_LIMIT = settings.analyze_concurrency_limit
+analyze_semaphore = asyncio.Semaphore(ANALYZE_CONCURRENCY_LIMIT)
+ANALYZE_QUEUE_LIMIT = settings.analyze_queue_limit
 
 
