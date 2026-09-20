@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Must run before TEST_DATABASE_URL's os.getenv below - conftest.py is always
-# collected before any test module (and before database.py's own
+# collected before any test module (and before db.py's own
 # load_dotenv() would otherwise run), so without this a .env override is
 # silently ignored and the hardcoded default port wins instead.
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -119,23 +119,23 @@ TRUNCATED_TABLES = (
 
 @pytest.fixture(scope="session", autouse=True)
 def use_test_database():
-    import database
+    import db
 
-    database.reset_pool_for_tests(TEST_DATABASE_URL)
+    db.reset_pool_for_tests(TEST_DATABASE_URL)
     yield
-    database.close_db()
+    db.close_db()
 
 
 @pytest.fixture(autouse=True)
 def clean_database(use_test_database):
-    import database
+    import db
 
-    with database.connect_db() as db:
-        db.execute(f"TRUNCATE {', '.join(TRUNCATED_TABLES)} RESTART IDENTITY CASCADE")
+    with db.connect_db() as conn:
+        conn.execute(f"TRUNCATE {', '.join(TRUNCATED_TABLES)} RESTART IDENTITY CASCADE")
         # Migration 0031 records the frozen engineering defaults. Registry
         # tables are now truncated for genuine test isolation, so restore the
         # same non-serving bootstrap row before each test.
-        db.execute(
+        conn.execute(
             """
             INSERT INTO bkt_model_fit_runs
                 (id, evidence_origin, source_digest, response_count,
@@ -146,7 +146,7 @@ def clean_database(use_test_database):
                     '{}'::jsonb)
             """
         )
-        db.execute(
+        conn.execute(
             """
             INSERT INTO bkt_model_versions
                 (version, fit_run_id, evidence_origin, initial_mastery,
@@ -236,16 +236,16 @@ def _insert_teacher_row(name: str, password: str) -> dict:
     a real admin-only signup flow has for its own tests."""
     import uuid
 
-    import database
+    import db
 
-    with database.connect_db() as db:
+    with db.connect_db() as conn:
         import auth
 
-        row = db.execute(
+        row = conn.execute(
             "INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *",
             (str(uuid.uuid4()), name, auth.hash_password(password)),
         ).fetchone()
-    return database.row_to_teacher(row)
+    return db.row_to_teacher(row)
 
 
 @pytest.fixture()
@@ -277,10 +277,10 @@ def login_new_client(stack, name, role, password="123456"):
     if role == "student":
         import uuid
         import auth
-        import database
+        import db
 
-        with database.connect_db() as db:
-            created = db.execute(
+        with db.connect_db() as conn:
+            created = conn.execute(
                 "INSERT INTO students (id, name, password) VALUES (%s, %s, %s) RETURNING *",
                 (str(uuid.uuid4()), name, auth.hash_password(password)),
             ).fetchone()

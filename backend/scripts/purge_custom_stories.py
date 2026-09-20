@@ -22,7 +22,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import connect_db  # noqa: E402
+from db import connect_db  # noqa: E402
 from analytics.bkt_mastery import rebuild_student_vocabulary_mastery  # noqa: E402
 from config import settings  # noqa: E402
 
@@ -424,7 +424,7 @@ def main() -> None:
         if any(remaining.values()):
             raise RuntimeError("Scoped rows remain; transaction will be rolled back.")
         _record_audit(db, deleted, dry_run=False)
-        # The transaction is committed by database.connect_db() only after
+        # The transaction is committed by db.connect_db() only after
         # verification succeeds. Shared BKT model tables and word-level SRS
         # schedules remain untouched because they aggregate other lessons.
 

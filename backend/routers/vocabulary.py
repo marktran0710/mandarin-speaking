@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from psycopg.types.json import Jsonb
 
 import auth
-from database import connect_db, row_to_custom_story, vocab_assessment_revision
+from db import connect_db, row_to_custom_story, vocab_assessment_revision
 from vocab_assessment import LEVELS, QUESTION_TYPE_BY_LEVEL, normalize_answer, validate_assessment_payload
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])

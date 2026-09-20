@@ -2,7 +2,7 @@ from conftest import login_new_client
 from psycopg.types.json import Jsonb
 from types import SimpleNamespace
 
-import database
+import db
 from routers.vocab_quiz_parts.part_001 import _srs_event_results
 
 
@@ -29,8 +29,8 @@ def _publish_attempt_items(attempt: dict) -> None:
     mode = str(attempt.get("mode") or "")
     level = _MODE_LEVEL.get(mode, "easy")
     story_id = str(attempt["storyId"])
-    with database.connect_db() as db:
-        row = db.execute(
+    with db.connect_db() as conn:
+        row = conn.execute(
             "SELECT vocab_assessment FROM custom_stories WHERE id = %s",
             (story_id,),
         ).fetchone()
@@ -57,7 +57,7 @@ def _publish_attempt_items(attempt: dict) -> None:
                 "prompt": f"Answer for {word}",
             }
         merged = list(by_identity.values())
-        db.execute(
+        conn.execute(
             """
             INSERT INTO custom_stories (id, title, frames, published, vocab_assessment)
             VALUES (%s, %s, %s, TRUE, %s)
@@ -395,8 +395,8 @@ def test_personalized_practice_requires_two_successes_and_failed_dimension(logge
     assert state["vocabularyState"]["practice"]["targetedSuccess"] is True
     assert state["status"] == "STRONG"
 
-    with database.connect_db() as db:
-        scheduled = db.execute(
+    with db.connect_db() as conn:
+        scheduled = conn.execute(
             "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
             (student["id"], word),
         ).fetchone()
@@ -428,8 +428,8 @@ def test_personalized_practice_requires_two_successes_and_failed_dimension(logge
     assert after.status_code == 200, after.text
     assert after.json()["queue"] == []
 
-    with database.connect_db() as db:
-        events = db.execute(
+    with db.connect_db() as conn:
+        events = conn.execute(
             """
             SELECT event_type, correct, quality, old_reps, new_reps,
                    algorithm_version
@@ -448,8 +448,8 @@ def test_personalized_practice_requires_two_successes_and_failed_dimension(logge
     # Retrying the same immutable API attempt must not append another SRS
     # transition, even if the request is persisted twice by the client.
     assert _post_attempt(client, maintenance, today="2026-08-22").status_code == 200
-    with database.connect_db() as db:
-        event_count = db.execute(
+    with db.connect_db() as conn:
+        event_count = conn.execute(
             "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
             (student["id"], word),
         ).fetchone()["count"]
@@ -459,12 +459,12 @@ def test_personalized_practice_requires_two_successes_and_failed_dimension(logge
     # next due date. Otherwise a replay after a reconnect could advance the
     # schedule from the current projection a second time.
     assert _post_attempt(client, maintenance, today="2026-08-29").status_code == 200
-    with database.connect_db() as db:
-        scheduled = db.execute(
+    with db.connect_db() as conn:
+        scheduled = conn.execute(
             "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
             (student["id"], word),
         ).fetchone()
-        event_count = db.execute(
+        event_count = conn.execute(
             "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
             (student["id"], word),
         ).fetchone()["count"]

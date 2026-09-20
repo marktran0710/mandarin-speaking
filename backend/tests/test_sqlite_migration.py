@@ -5,7 +5,7 @@ import sqlite3
 
 import pytest
 
-from database import connect_db
+from db import connect_db
 from scripts.migrate_sqlite_to_postgres import migrate_all
 
 

@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 from pypinyin import Style, lazy_pinyin, pinyin
 
-import taiwan_pinyin
+from helpers import taiwan_pinyin
 
 
 # Importing this module is safe in isolation (for tests and scripts) and in

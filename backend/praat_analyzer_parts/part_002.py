@@ -82,7 +82,7 @@ def analyze_fluency(
     continuity = max(0.0, min(100.0, 100.0 - jump_penalty - pause_penalty - rate_penalty))
 
     if pause_analysis:
-        import caf_metrics
+        import helpers.caf_metrics as caf_metrics
 
         utterance = caf_metrics.fluency_metrics(
             speech_rate, pause_analysis, syllable_count
@@ -240,7 +240,7 @@ def _syllable_vowels(sound, spans, tokens: List[str]) -> List[Dict]:
     a short utterance cannot support one honestly.
     """
     from chinese_tones import syllable_parts, word_tones
-    from vowel_analysis import (
+    from helpers.vowel_analysis import (
         NOT_APPLICABLE,
         NO_FORMANTS,
         expected_vowel,
@@ -332,7 +332,7 @@ def _contextual_tone_plan(
     "unknown", never the student's score.
     """
     try:
-        from tone_context import plan_for_tokens
+        from helpers.tone_context import plan_for_tokens
 
         # The raw transcript carries the punctuation that segmentation drops,
         # and third-tone sandhi must not cross it.

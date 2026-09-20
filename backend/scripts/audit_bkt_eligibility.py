@@ -35,7 +35,7 @@ def _read_csv(path: Path) -> list[dict[str, Any]]:
 
 
 def _load_database_stories() -> list[dict[str, Any]]:
-    from database import connect_db
+    from db import connect_db
 
     query = "SELECT id, title, published, lesson_number, vocab_assessment FROM custom_stories WHERE published = TRUE ORDER BY lesson_number NULLS LAST, created_at, id"
     with connect_db() as db:

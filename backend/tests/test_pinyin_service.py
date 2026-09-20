@@ -1,4 +1,4 @@
-from pinyin_service import canonical_pinyin, canonical_pinyin_tone3
+from helpers.pinyin_service import canonical_pinyin, canonical_pinyin_tone3
 
 
 def test_canonical_taiwan_pinyin_uses_backend_dictionary():

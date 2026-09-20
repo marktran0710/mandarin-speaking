@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from database import connect_db, delete_student_cascade  # noqa: E402
+from db import connect_db, delete_student_cascade  # noqa: E402
 
 
 def _looks_local(url: str) -> bool:

@@ -17,7 +17,7 @@ import argparse
 import json
 
 from analytics.bkt_calibration_store import run_calibration_candidate
-from database import connect_db
+from db import connect_db
 
 
 def main() -> None:

@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from psycopg.errors import UniqueViolation
 import auth
-from database import connect_db, row_to_teacher
+from db import connect_db, row_to_teacher
 from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
 
 router = APIRouter()

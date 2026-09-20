@@ -16,7 +16,7 @@ from pathlib import Path
 
 from psycopg.types.json import Jsonb
 
-from database import connect_db
+from db import connect_db
 
 
 FIXTURE = Path(__file__).resolve().parent / "data" / "custom_stories.json"

@@ -67,7 +67,7 @@ def test_delete_student(admin_client):
 
 
 def test_delete_student_removes_related_data(admin_client):
-    from database import connect_db
+    from db import connect_db
 
     created = admin_client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
     student_id = created["id"]
@@ -97,7 +97,7 @@ def test_delete_unknown_student_is_404(admin_client):
 
 
 def test_teacher_roster_excludes_test_accounts(admin_client, logged_in_teacher):
-    from database import connect_db
+    from db import connect_db
 
     real = admin_client.post("/api/students", json={"name": "Real Student", "password": "long-password"}).json()
     fake = admin_client.post("/api/students", json={"name": "Fake Student", "password": "long-password"}).json()
@@ -180,13 +180,13 @@ def test_help_requests_sort_open_first(admin_client):
     from contextlib import ExitStack
     from fastapi.testclient import TestClient
     import main
-    import database
+    import db
     import auth
     import uuid
     with ExitStack() as stack:
         teacher_client = stack.enter_context(TestClient(main.app))
-        with database.connect_db() as db:
-            teacher = db.execute(
+        with db.connect_db() as conn:
+            teacher = conn.execute(
                 "INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *",
                 (str(uuid.uuid4()), "Help Teacher", auth.hash_password("help-teacher-password")),
             ).fetchone()

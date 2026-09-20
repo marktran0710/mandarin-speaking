@@ -311,7 +311,7 @@ def _prosody_tokens(transcription: str) -> List[str]:
         return []
 
     if re.search(r"[\u4e00-\u9fff]", text):
-        from caf_metrics import segment_words
+        from helpers.caf_metrics import segment_words
 
         words = segment_words(text)
         # Cap at 80 characters total (not 80 words) to match the old budget.

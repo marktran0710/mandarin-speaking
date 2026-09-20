@@ -20,7 +20,7 @@ from analytics.knowledge_tracing import (
     ResponseRecord,
 )
 from analytics.bkt_calibration_store import CalibrationSnapshot, load_calibration_snapshot
-from database import connect_db
+from db import connect_db
 from analytics.bkt_question_validation import analyze_response_quality, validate_bkt_diagnostic_design
 from scripts.export_quiz_questions import build_question_rows
 

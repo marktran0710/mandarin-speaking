@@ -22,7 +22,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from praat_analyzer import estimate_word_prosody
-from vowel_analysis import (
+from helpers.vowel_analysis import (
     FINAL_NUCLEUS,
     MEASURED,
     NO_FORMANTS,

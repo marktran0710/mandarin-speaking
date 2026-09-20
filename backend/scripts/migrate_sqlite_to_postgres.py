@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from psycopg.types.json import Jsonb  # noqa: E402
 
-from database import connect_db  # noqa: E402
+from db import connect_db  # noqa: E402
 
 DEFAULT_SQLITE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mandarin_stories.db"

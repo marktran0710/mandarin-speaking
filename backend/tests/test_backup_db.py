@@ -13,7 +13,7 @@ import os
 
 import pytest
 
-from database import connect_db
+from db import connect_db
 from scripts import backup_db
 
 TEST_URL = os.getenv(

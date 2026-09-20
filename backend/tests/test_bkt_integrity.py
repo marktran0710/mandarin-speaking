@@ -186,31 +186,31 @@ def _ledger_row():
 
 
 def test_legacy_null_fingerprint_accepts_only_an_exact_replay(clean_database):
-    import database
+    import db
 
     row = _ledger_row()
-    with database.connect_db() as db:
-        upsert_raw_responses(db, [row])
-        db.execute(
+    with db.connect_db() as conn:
+        upsert_raw_responses(conn, [row])
+        conn.execute(
             "UPDATE vocab_quiz_responses SET response_fingerprint = NULL "
             "WHERE student_id = %s AND quiz_id = %s AND attempt_order = %s",
             (row["student_id"], row["quiz_id"], row["attempt_order"]),
         )
-        upsert_raw_responses(db, [row])
-        stored = db.execute(
+        upsert_raw_responses(conn, [row])
+        stored = conn.execute(
             "SELECT response_fingerprint FROM vocab_quiz_responses WHERE student_id = %s AND quiz_id = %s AND attempt_order = %s",
             (row["student_id"], row["quiz_id"], row["attempt_order"]),
         ).fetchone()
         assert stored["response_fingerprint"] == _response_fingerprint(row)
         with pytest.raises(ValueError, match="immutable ledger"):
-            upsert_raw_responses(db, [{**row, "correct": False}])
+            upsert_raw_responses(conn, [{**row, "correct": False}])
 
 
 def test_calibration_provenance_schema_seeds_defaults_and_rejects_synthetic_deployment(clean_database):
-    import database
+    import db
 
-    with database.connect_db() as db:
-        bootstrap = db.execute(
+    with db.connect_db() as conn:
+        bootstrap = conn.execute(
             "SELECT evidence_origin, initial_mastery, learn_rate, guess_rate, slip_rate "
             "FROM bkt_model_versions WHERE version = 'standard-bkt-v1'"
         ).fetchone()
@@ -222,20 +222,20 @@ def test_calibration_provenance_schema_seeds_defaults_and_rejects_synthetic_depl
         suffix = uuid4().hex
         fit_run_id = f"synthetic-fit-{suffix}"
         model_version = f"synthetic-bkt-{suffix}"
-        db.execute(
+        conn.execute(
             """INSERT INTO bkt_model_fit_runs
                (id, evidence_origin, source_digest, response_count, student_count, concept_count)
                VALUES (%s, 'synthetic', 'synthetic-fixture', 0, 0, 0)""",
             (fit_run_id,),
         )
-        db.execute(
+        conn.execute(
             """INSERT INTO bkt_model_versions
                (version, fit_run_id, evidence_origin, initial_mastery, learn_rate, guess_rate, slip_rate, parameter_fingerprint)
                VALUES (%s, %s, 'synthetic', .2, .15, .2, .1, 'synthetic')""",
             (model_version, fit_run_id),
         )
         with pytest.raises(Exception, match="Only real-evidence"):
-            db.execute("INSERT INTO bkt_model_active_deployment (model_version) VALUES (%s)", (model_version,))
+            conn.execute("INSERT INTO bkt_model_active_deployment (model_version) VALUES (%s)", (model_version,))
 
 
 def test_route_resolved_rows_record_real_provenance_and_safe_utc_timestamp(assessment):

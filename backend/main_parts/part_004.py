@@ -293,7 +293,7 @@ def classify_vowel_quality(formants: dict) -> str:
     mouth position across every vowel said — useful as one line of context for
     the AI feedback, and no substitute for the per-syllable readout.
     """
-    from vowel_analysis import vowel_zone
+    from helpers.vowel_analysis import vowel_zone
 
     zone = vowel_zone(formants.get("F1", 0), formants.get("F2", 0))
     if not zone:

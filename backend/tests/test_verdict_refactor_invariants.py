@@ -163,7 +163,7 @@ def test_punctuation_still_breaks_third_tone_sandhi():
     """A period or comma between two T3 syllables is a phrase boundary that
     must not sandhi. Regression guard for the third-tone-chain punctuation
     fix — the refactor did not touch that logic, and this test proves it."""
-    from tone_context import plan_for_tokens
+    from helpers.tone_context import plan_for_tokens
 
     # Same characters, once as one chain and once with a hard boundary.
     chained = plan_for_tokens(["你", "好"], text="你好")
