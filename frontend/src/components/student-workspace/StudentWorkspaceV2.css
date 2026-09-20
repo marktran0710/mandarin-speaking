@@ -167,7 +167,7 @@
 .workspace-primary-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 70%, white); outline-offset: 3px; }
 .workspace-primary-action:disabled { cursor: not-allowed; opacity: .55; }
 
-.student-workspace-content-v2 > .my-stories-page { padding-top: 0; }
+.student-workspace-content-v2 > .student-page-shell > .my-stories-page { padding-top: 0; }
 
 /* Standalone student tools use the same rail, but their own page component
    already owns the content width. Do not apply a second narrow max-width or

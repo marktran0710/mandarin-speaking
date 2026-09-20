@@ -56,6 +56,8 @@ describe("PlacementTestPage", () => {
     listCustomStories.mockResolvedValue([]);
     render(<PlacementTestPage />);
     expect(await screen.findByText(/No questions available yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No questions available yet/).closest(".student-page-shell"))
+      .toHaveClass("student-page-shell--quiz");
   });
 
   it("keeps the compact loading state and primary action hierarchy accessible", async () => {

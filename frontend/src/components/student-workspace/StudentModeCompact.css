@@ -10,9 +10,8 @@
 /* All student pages inherit one content grid. Removing nested max-widths here
    keeps the session bar, catalog, overview, practice rail, and progress
    surfaces on the same left and right columns. */
-.student-workspace-v2 > .student-workspace-content-v2 > .story-recorder,
-.student-workspace-v2 > .student-workspace-content-v2 > .topic-selector,
-.student-workspace-v2 > .student-workspace-content-v2 > .my-stories-page,
+.student-workspace-v2 > .student-workspace-content-v2 > .create-story-page,
+.student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > :is(.topic-selector, .my-stories-page),
 .student-workspace-v2 > .student-workspace-content-v2 > .voice-test-page {
   width: 100%;
   max-width: none;
@@ -974,11 +973,11 @@
   padding: var(--space-sm);
 }
 
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .my-stories-page {
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .my-stories-page {
   padding-bottom: 0;
 }
 
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .my-stories-page .stories-header {
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .my-stories-page .stories-header {
   margin-bottom: var(--space-sm);
   padding-bottom: var(--space-sm);
 }

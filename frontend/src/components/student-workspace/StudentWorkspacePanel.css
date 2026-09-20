@@ -51,9 +51,7 @@
     min-height: 0;
   }
 
-  .student-workspace-v2 > #student-workspace-panel > .create-story-page,
-  .student-workspace-v2 > #student-workspace-panel > .my-stories-page,
-  .student-workspace-v2 > #student-workspace-panel > .voice-test-page {
+  .student-workspace-v2 > #student-workspace-panel > :is(.student-page-shell, .create-story-page, .voice-test-page) {
     width: 100%;
     max-width: none;
     min-height: 0;
@@ -61,14 +59,6 @@
     margin: 0;
     overflow: visible;
     background: transparent;
-  }
-
-  /* Catalogue/progress pages need an inner page gutter. An active story is
-     already divided into header, scene rail, body, and footer regions below. */
-  .student-workspace-v2 > #student-workspace-panel > .create-story-page:not(:has(> .csp-recorder-body)),
-  .student-workspace-v2 > #student-workspace-panel > .my-stories-page,
-  .student-workspace-v2 > #student-workspace-panel > .voice-test-page {
-    padding: var(--space-md);
   }
 
   .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(> .csp-recorder-body) {

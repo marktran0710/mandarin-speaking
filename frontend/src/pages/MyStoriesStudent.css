@@ -2,13 +2,13 @@
    The shell owns navigation; this page owns one heading, one summary strip,
    one support action, and one progress list. Keep the hierarchy open and
    editorial instead of stacking another set of rounded game tiles. */
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .my-stories-page {
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .my-stories-page {
   min-height: auto;
   padding: 0 0 var(--space-3xl);
   background: transparent;
 }
 
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .my-stories-page .stories-header {
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .my-stories-page .stories-header {
   display: block;
   width: 100%;
   max-width: none;

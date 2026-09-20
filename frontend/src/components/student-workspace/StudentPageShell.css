@@ -1,0 +1,26 @@
+/*
+ * StudentPageShell is an internal layout boundary within StudentModeFrame.
+ * The frame remains the sole owner of the outer surface and desktop scroller.
+ */
+.student-page-shell {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 901px) {
+  .student-page-shell--catalogue,
+  .student-page-shell--progress,
+  .student-page-shell--quiz {
+    padding: var(--space-md);
+  }
+}
+
+@media (max-width: 900px) {
+  .student-page-shell--catalogue,
+  .student-page-shell--progress,
+  .student-page-shell--quiz {
+    height: auto;
+  }
+}

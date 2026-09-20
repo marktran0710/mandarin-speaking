@@ -12,6 +12,12 @@
   min-height: 100%;
 }
 
+/* Assessment pages use the shared page boundary, while this component keeps
+   ownership of the active question's internal geometry. */
+.student-page-shell--quiz > .placement-test-page {
+  min-height: 0;
+}
+
 .student-question-flow.story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-content {
   margin-block: auto;
 }

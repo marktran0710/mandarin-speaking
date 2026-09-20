@@ -6,6 +6,7 @@ import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
 import { replaceHistorySnapshot, pushHistorySnapshot } from "../utils/studentHistory";
+import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
 
@@ -171,35 +172,41 @@ export default function CreateStoryPage({
     resetToTopicList();
   };
 
-  return (
-    <div className="create-story-page">
-      {!selectedTopic ? (
-        <TopicSelector
-          onTopicSelect={handleTopicSelect}
-          publishedTopics={publishedTopics}
-        />
-      ) : (
-        <div className="csp-recorder-body">
-          {/* The catalogue chooses the story; this overview chooses the
-            activity the student wants to do next. */}
-          <StoryRecorder
-            topic={selectedTopic}
-            selectedImage={selectedImage}
-            selectedImageIndex={selectedImageIndex}
-            onImageSelect={setSelectedImageIndex}
-            onImageChange={(image) => setSelectedImage(image)}
-            onAddRecord={onAddRecord}
-            enableSorting={false}
-            enableOverview={true}
-            startAtQuiz={startAtQuiz}
-            studentName={getStudentName()}
-            studentId={getStudentId()}
-            onExit={handleBack}
-            helpRequests={helpRequests}
-            onRaiseHand={onRaiseHand}
+  if (!selectedTopic) {
+    return (
+      <StudentPageShell variant="catalogue">
+        <div className="create-story-page">
+          <TopicSelector
+            onTopicSelect={handleTopicSelect}
+            publishedTopics={publishedTopics}
           />
         </div>
-      )}
+      </StudentPageShell>
+    );
+  }
+
+  return (
+    <div className="create-story-page">
+      <div className="csp-recorder-body">
+        {/* The catalogue chooses the story; this overview chooses the
+          activity the student wants to do next. */}
+        <StoryRecorder
+          topic={selectedTopic}
+          selectedImage={selectedImage}
+          selectedImageIndex={selectedImageIndex}
+          onImageSelect={setSelectedImageIndex}
+          onImageChange={(image) => setSelectedImage(image)}
+          onAddRecord={onAddRecord}
+          enableSorting={false}
+          enableOverview={true}
+          startAtQuiz={startAtQuiz}
+          studentName={getStudentName()}
+          studentId={getStudentId()}
+          onExit={handleBack}
+          helpRequests={helpRequests}
+          onRaiseHand={onRaiseHand}
+        />
+      </div>
     </div>
   );
 }

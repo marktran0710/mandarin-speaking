@@ -1,5 +1,9 @@
 /** Feature entry point; implementation remains compatible with legacy pages during migration. */
 export { default as StudentWorkspaceShell } from "../../components/student-workspace/StudentWorkspaceShell";
+export {
+  default as StudentPageShell,
+  type StudentPageShellVariant,
+} from "../../components/student-workspace/StudentPageShell";
 export { default as StudentWorkspaceHeader } from "../../components/student-workspace/StudentWorkspaceHeader";
 export { default as LearningOverview } from "../../components/student-workspace/LearningOverview";
 export { QuizGateStatus } from "../../components/student-workspace/LearningOverview";

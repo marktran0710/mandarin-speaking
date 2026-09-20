@@ -33,6 +33,7 @@ import { loadLocalStars, starsByStory } from "../utils/quizTiers";
 import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
 import type { Topic } from "../components/TopicSelector";
+import StudentPageShell from "../components/student-workspace/StudentPageShell";
 
 export interface AudioRecord {
   id: string;
@@ -229,11 +230,12 @@ export default function MyStoriesPage({
   const lessonsTotal = numberedGroups.length;
 
   return (
-    <div className="my-stories-page">
-      <div className="stories-header">
-        <p className="stories-kicker">
-          <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
-        </p>
+    <StudentPageShell variant="progress">
+      <div className="my-stories-page">
+        <div className="stories-header">
+          <p className="stories-kicker">
+            <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
+          </p>
         <h1>
           <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" align="left" />
         </h1>
@@ -496,6 +498,7 @@ export default function MyStoriesPage({
           </div>
         )}
       </section>
-    </div>
+      </div>
+    </StudentPageShell>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { BiLabel } from "../components/BiLabel";
 import { StudentQuestionFlow } from "../components/student-question-flow/StudentQuestionFlow";
+import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import { canUseDatabase, listCustomStories, recordVocabQuizResponse, type VocabQuizAttempt } from "../services/database";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import { samplePlacementTestQuestions, type PlacementTestQuestion } from "../utils/placementTestSampling";
@@ -37,20 +38,24 @@ export default function PlacementTestPage() {
 
   if (questions === null) {
     return (
-      <div className="placement-test-page">
+      <StudentPageShell variant="quiz">
+        <div className="placement-test-page">
         <div className="placement-test-loading" role="status">
           <div className="app-loading-icon" aria-hidden="true" />
           <h2><BiLabel zh="準備中…" en="Loading…" /></h2>
         </div>
-      </div>
+        </div>
+      </StudentPageShell>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <div className="placement-test-page">
+      <StudentPageShell variant="quiz">
+        <div className="placement-test-page">
         <StudentPageHeader eyebrow={{ zh: "分班測驗", en: "Placement test" }} title={{ zh: "還沒有題目", en: "No questions available yet" }} lede={{ zh: "老師還沒發布任何生詞題庫。", en: "No published lesson has a vocabulary question bank yet." }} />
-      </div>
+        </div>
+      </StudentPageShell>
     );
   }
 
@@ -114,13 +119,15 @@ export default function PlacementTestPage() {
 
   if (done) {
     return (
-      <div className="placement-test-page">
+      <StudentPageShell variant="quiz">
+        <div className="placement-test-page">
         <StudentPageHeader
           eyebrow={{ zh: "分班測驗", en: "Placement test" }}
           title={{ zh: "測驗完成！", en: "Placement test complete!" }}
           lede={{ zh: "我們會依照你的答案安排接下來的複習。", en: "We'll personalize your review with what you shared." }}
         />
-      </div>
+        </div>
+      </StudentPageShell>
     );
   }
 
@@ -145,7 +152,8 @@ export default function PlacementTestPage() {
   };
 
   return (
-    <div className="placement-test-page">
+    <StudentPageShell variant="quiz">
+      <div className="placement-test-page">
       <StudentQuestionFlow
         ariaLabel="Placement test question"
         className="placement-test-question-flow"
@@ -198,6 +206,7 @@ export default function PlacementTestPage() {
           </button>
         }
       />
-    </div>
+      </div>
+    </StudentPageShell>
   );
 }
