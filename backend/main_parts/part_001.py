@@ -103,6 +103,35 @@ from services.media import (
     save_verified_audio_record,
     remove_uploaded_file,
 )
+# Pure data models, re-exported bare so every existing `from main import X`
+# router/test import keeps working unchanged.
+from models import (
+    SpeakingProgressRequest,
+    CustomStoryFrameRequest,
+    CustomStoryRequest,
+    HelpRequest,
+    SceneSubmission,
+    StorySubmissionRequest,
+    SubmissionReviewRequest,
+    VocabQuizQuestionResult,
+    VocabQuizAttemptRequest,
+    StudentCreateRequest,
+    StudentPasswordResetRequest,
+    StudentUpdateRequest,
+    QuizExclusion,
+    QuizExclusionsUpdateRequest,
+    QuizClozeCandidateIn,
+    QuizSynonymCandidateIn,
+    QuizWordMaterialIn,
+    QuizApproveRequest,
+    QuizPendingApprovalsUpdateRequest,
+    QuizQuestionReplaceRequest,
+    StudentLoginRequest,
+    Student,
+    TeacherCreateRequest,
+    TeacherLoginRequest,
+    TeacherUpdateRequest,
+)
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()

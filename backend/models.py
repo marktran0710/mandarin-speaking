@@ -1,26 +1,15 @@
+"""Pydantic request/response models shared across routers.
 
+Pure data shapes, no business logic — kept separate from services/ (which
+does have logic) and from routers/ (which own the endpoints that validate
+against these models).
+"""
 
-class AudioRecordRequest(BaseModel):
-    id: str
-    timestamp: str
-    duration: int
-    transcription: str = ""
-    model: str
-    topicId: Optional[str] = None
-    studentId: Optional[str] = None
-    imageUrl: Optional[str] = None
-    imageIndex: Optional[int] = None
-    audioUrl: Optional[str] = None
-    audioName: Optional[str] = None
-    praatMetrics: Optional[dict] = None
-    analysisVersion: Optional[str] = None
-    analysisSchemaVersion: Optional[str] = None
-    modelVersion: Optional[str] = None
-    comparisonGroupId: Optional[str] = None
-    sessionId: Optional[str] = None
-    attemptId: Optional[str] = None
-    attemptNumber: Optional[int] = None
-    attemptType: Optional[str] = None
+from __future__ import annotations
+
+from typing import Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, Field
 
 
 class SpeakingProgressRequest(BaseModel):
@@ -324,57 +313,18 @@ class Student(BaseModel):
     name: str
     createdAt: str
 
+
 class TeacherCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=6, max_length=100)
+
 
 class TeacherLoginRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=1, max_length=100)
 
+
 class TeacherUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=100)
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
-
-
-@app.get("/health")
-def health_check():
-    """Liveness endpoint with explicit database and upload-storage status.
-
-    Keep this endpoint HTTP-200 so dashboards can inspect a degraded service;
-    deployment platforms should use ``/health/ready`` when they need a strict
-    readiness signal.
-    """
-    db_ok = False
-    try:
-        with connect_db() as db:
-            db.execute("SELECT 1").fetchone()
-        db_ok = True
-    except Exception as exc:
-        logger.error("Health check DB failure: %s", exc)
-    storage_ok = False
-    try:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        probe_path = os.path.join(UPLOAD_DIR, f".write-probe-{os.getpid()}")
-        with open(probe_path, "wb") as probe:
-            probe.write(b"ok")
-        os.unlink(probe_path)
-        storage_ok = True
-    except OSError as exc:
-        logger.error("Health check upload-storage failure: %s", exc)
-    return {
-        "status": "ok" if db_ok and storage_ok else "degraded",
-        "service": "Speaking App Backend",
-        "database": "ok" if db_ok else "error",
-        "storage": "ok" if storage_ok else "error",
-    }
-
-
-@app.get("/health/ready")
-async def readiness_check():
-    """Strict readiness probe used by deployment platforms."""
-    result = await health_check()
-    if result["status"] != "ok":
-        raise HTTPException(status_code=503, detail=result)
-    return result
