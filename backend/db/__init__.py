@@ -13,7 +13,7 @@ from psycopg_pool import ConnectionPool
 # it before main.py's own load_dotenv() call runs - so without loading here
 # too, any DATABASE_URL/DB_POOL_*/DB_TIMEOUT_SECONDS override in .env is
 # silently ignored and the hardcoded default below wins instead. Mirrors the
-# same self-contained load_dotenv() pattern ai_feedback.py already uses for
+# same self-contained load_dotenv() pattern services/ai_feedback.py already uses for
 # its own module-level API key reads.
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))

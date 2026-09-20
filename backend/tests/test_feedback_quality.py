@@ -46,7 +46,7 @@ def test_silence_is_retry_and_cannot_be_scored():
 
 @pytest.mark.asyncio
 async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch):
-    import ai_feedback
+    import services.ai_feedback as ai_feedback
     import main
 
     monkeypatch.setattr(main, "GEMINI_API_KEY", "test-key")
@@ -274,7 +274,7 @@ def test_feedback_quality_serializes_stable_contract_and_defaults_are_isolated()
 
 
 def test_feedback_gate_replaces_unsupported_claims_with_retry_message():
-    from ai_feedback import apply_feedback_quality_gate
+    from services.ai_feedback import apply_feedback_quality_gate
 
     feedback = {
         "provider": "ai",
@@ -313,7 +313,7 @@ def test_feedback_gate_replaces_unsupported_claims_with_retry_message():
 
 
 def test_feedback_gate_sanitizes_vocab_lists_to_teacher_vocabulary():
-    from ai_feedback import apply_feedback_quality_gate
+    from services.ai_feedback import apply_feedback_quality_gate
 
     feedback = {
         "provider": "ai",
@@ -346,7 +346,7 @@ def test_feedback_gate_sanitizes_vocab_lists_to_teacher_vocabulary():
 
 
 def test_content_acceptance_is_derived_from_score_not_llm_boolean():
-    from ai_feedback import _normalize_feedback
+    from services.ai_feedback import _normalize_feedback
 
     low = _normalize_feedback(
         {"content_accuracy": {"score": 20, "accepted": "true"}}

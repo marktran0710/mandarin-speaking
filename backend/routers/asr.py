@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
-from ai_feedback import available_providers, default_provider
+from services.ai_feedback import available_providers, default_provider
 import auth
 import main
 import services.asr as asr_service

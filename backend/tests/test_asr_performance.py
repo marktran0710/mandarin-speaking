@@ -164,13 +164,13 @@ class TestFeedbackPerformance:
     """
 
     def test_empty_input_fast(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         mean, p95, p99 = measure(lambda: fallback_language_feedback(""), iterations=100)
         print_result("fallback_feedback (empty)", mean, p95, p99, budget_ms=2)
         assert mean < 2
 
     def test_short_text_fast(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         text = "我叫李明，我住在台北。"
         vocab = "我,叫,住,台北"
         mean, p95, p99 = measure(
@@ -181,7 +181,7 @@ class TestFeedbackPerformance:
         assert mean < 2
 
     def test_long_text_still_fast(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         text = "我的名字叫李明。我住在台北市的一個小社區裡面。我喜歡學習普通話，也喜歡和朋友一起去公園散步。"
         vocab = ",".join(["我", "名字", "台北", "學習", "朋友", "公園"])
         mean, p95, p99 = measure(
@@ -195,7 +195,7 @@ class TestFeedbackPerformance:
         assert mean < 5
 
     def test_throughput_rps(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         text = "我叫李明，我住在台北。"
         vocab = "我,叫,住,台北"
         iters = 500
@@ -357,7 +357,7 @@ class TestSummaryReport:
     """Prints a consolidated benchmark summary at end of run."""
 
     def test_print_summary(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         import main
 
         scenarios = [

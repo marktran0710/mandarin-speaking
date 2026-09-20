@@ -8,7 +8,7 @@ Coverage:
   - transcribe_with_openai() / transcribe_with_gemini() (mocked HTTP)
   - transcribe_with_ct_whisper() (mocked model)
   - /api/transcribe endpoint (integration via TestClient)
-  - fallback_language_feedback() from ai_feedback
+  - fallback_language_feedback() from services.ai_feedback
 """
 
 import os

@@ -31,7 +31,7 @@ from dotenv import load_dotenv
 from fastapi import Cookie, Depends, HTTPException, Request, Response
 
 # Mirrors the same self-contained load_dotenv() pattern db/__init__.py and
-# ai_feedback.py use - this module can be imported before main.py's own
+# services/ai_feedback.py use - this module can be imported before main.py's own
 # load_dotenv() call runs, so without loading here too, JWT_SECRET_KEY would
 # silently read as unset.
 load_dotenv()

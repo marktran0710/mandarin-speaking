@@ -86,9 +86,9 @@ async def _do_analyze(
         # Groq chains Whisper → LLaMA in one call (no audio LLM yet).
         # Falls back to the normal ASR → text → feedback path on any error.
         _audio_assessors = {
-            "gemini": (GEMINI_API_KEY, "ai_feedback", "assess_audio_with_gemini", "gemini-audio"),
-            "openai": (OPENAI_API_KEY, "ai_feedback", "assess_audio_with_openai", "openai-audio"),
-            "groq":   (GROQ_API_KEY,   "ai_feedback", "assess_audio_with_groq",   "groq-audio"),
+            "gemini": (GEMINI_API_KEY, "services.ai_feedback", "assess_audio_with_gemini", "gemini-audio"),
+            "openai": (OPENAI_API_KEY, "services.ai_feedback", "assess_audio_with_openai", "openai-audio"),
+            "groq":   (GROQ_API_KEY,   "services.ai_feedback", "assess_audio_with_groq",   "groq-audio"),
         }
         chosen_provider = (ai_provider or "").strip().lower()
         audio_assessed = False
@@ -439,7 +439,7 @@ async def _do_analyze(
         # local CAF feedback now that we have the acoustic numbers: when the
         # provider is local, swap in the full grounded result; for an external
         # provider, only patch its pronunciation_note with the real Praat data.
-        from ai_feedback import (
+        from services.ai_feedback import (
             apply_feedback_quality_gate as _apply_feedback_quality_gate,
             fallback_language_feedback as _local_fb,
         )

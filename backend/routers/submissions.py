@@ -7,7 +7,7 @@ from psycopg.types.json import Jsonb
 import auth
 from db import connect_db, row_to_story_submission
 from helpers.audio_concat import concatenate_scene_audio
-from ai_feedback import generate_story_feedback
+from services.ai_feedback import generate_story_feedback
 import main
 from main import StorySubmissionRequest, SubmissionReviewRequest
 

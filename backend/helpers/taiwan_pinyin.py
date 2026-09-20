@@ -1,7 +1,7 @@
 """
 Taiwan Mandarin (國語/臺灣華語) pronunciation overrides for pypinyin.
 
-Call apply() once at startup (imported in main.py, ai_feedback.py, etc.).
+Call apply() once at startup (imported in main.py, services/ai_feedback.py, etc.).
 Two main differences from Mainland Standard (普通話):
   1. Some words have entirely different base readings (e.g. 垃圾 lè sè vs lā jī).
   2. Taiwan preserves full tones for syllables that became neutral (輕聲) in

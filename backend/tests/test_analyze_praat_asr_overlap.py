@@ -44,8 +44,8 @@ def _common_patches(analyze_all_mock):
         patch("main.build_tone_direction", return_value="rising"),
         patch("main.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}),
         patch("main.caf_metrics.classify_pauses", return_value={"judged": False}),
-        patch("ai_feedback.fallback_language_feedback", return_value=LOCAL_FEEDBACK),
-        patch("ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_a, **_k: value),
+        patch("services.ai_feedback.fallback_language_feedback", return_value=LOCAL_FEEDBACK),
+        patch("services.ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_a, **_k: value),
     ]
 
 
