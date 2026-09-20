@@ -26,7 +26,7 @@ from analytics.bkt_mastery import (
     response_rows_for_attempt,
     upsert_raw_responses,
 )
-from database import connect_db
+from db import connect_db
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])
 

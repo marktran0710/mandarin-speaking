@@ -2,7 +2,7 @@
 import uuid
 
 import auth
-import database
+import db
 
 
 def _set_admin_session(client) -> None:
@@ -16,8 +16,8 @@ def test_student_creation_stores_a_bcrypt_hash(client):
     )
     assert response.status_code == 200
 
-    with database.connect_db() as db:
-        stored_password = db.execute(
+    with db.connect_db() as conn:
+        stored_password = conn.execute(
             "SELECT password FROM students WHERE id = %s", (response.json()["id"],)
         ).fetchone()["password"]
 
@@ -28,8 +28,8 @@ def test_student_creation_stores_a_bcrypt_hash(client):
 
 def test_legacy_plaintext_password_is_hashed_after_successful_student_login(client):
     student_id = str(uuid.uuid4())
-    with database.connect_db() as db:
-        db.execute(
+    with db.connect_db() as conn:
+        conn.execute(
             "INSERT INTO students (id, name, password) VALUES (%s, %s, %s)",
             (student_id, "Legacy Student", "legacy-password"),
         )
@@ -40,8 +40,8 @@ def test_legacy_plaintext_password_is_hashed_after_successful_student_login(clie
     )
     assert response.status_code == 200
 
-    with database.connect_db() as db:
-        stored_password = db.execute(
+    with db.connect_db() as conn:
+        stored_password = conn.execute(
             "SELECT password FROM students WHERE id = %s", (student_id,)
         ).fetchone()["password"]
 
@@ -51,8 +51,8 @@ def test_legacy_plaintext_password_is_hashed_after_successful_student_login(clie
 
 def test_legacy_plaintext_password_is_hashed_after_successful_teacher_login(client):
     teacher_id = str(uuid.uuid4())
-    with database.connect_db() as db:
-        db.execute(
+    with db.connect_db() as conn:
+        conn.execute(
             "INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s)",
             (teacher_id, "Legacy Teacher", "legacy-password"),
         )
@@ -63,8 +63,8 @@ def test_legacy_plaintext_password_is_hashed_after_successful_teacher_login(clie
     )
     assert response.status_code == 200
 
-    with database.connect_db() as db:
-        stored_password = db.execute(
+    with db.connect_db() as conn:
+        stored_password = conn.execute(
             "SELECT password FROM teachers WHERE id = %s", (teacher_id,)
         ).fetchone()["password"]
 

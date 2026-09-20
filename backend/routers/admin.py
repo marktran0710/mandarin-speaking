@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 import auth
-from database import (
+from db import (
     connect_db,
     row_to_student,
     row_to_teacher,

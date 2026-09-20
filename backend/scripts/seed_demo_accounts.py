@@ -9,7 +9,7 @@ import os
 import uuid
 
 import auth
-from database import connect_db
+from db import connect_db
 
 
 def _ensure_account(table: str, name: str, password: str) -> str:

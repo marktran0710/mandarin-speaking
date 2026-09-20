@@ -203,7 +203,7 @@ def word_tones(word: str) -> List[int]:
     Uses pypinyin's dictionary, so this is the *expected* tone from the
     written word — independent of what the student actually said.
     """
-    from pinyin_service import canonical_pinyin_tone3
+    from helpers.pinyin_service import canonical_pinyin_tone3
 
     tones: List[int] = []
     for syllable in canonical_pinyin_tone3(word).split():
@@ -234,7 +234,7 @@ def syllable_parts(word: str) -> List[Tuple[str, str]]:
     which is written "i" but is not the vowel /i/, so it must never be judged
     against one.
     """
-    from pinyin_service import canonical_syllable_parts
+    from helpers.pinyin_service import canonical_syllable_parts
 
     return canonical_syllable_parts(word)
 

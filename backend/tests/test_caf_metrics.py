@@ -12,7 +12,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from caf_metrics import classify_pauses, speech_rate_verdict
+from helpers.caf_metrics import classify_pauses, speech_rate_verdict
 
 
 # ---------------------------------------------------------------------------

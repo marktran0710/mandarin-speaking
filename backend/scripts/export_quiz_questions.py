@@ -28,7 +28,7 @@ from typing import Any, Iterable
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import connect_db  # noqa: E402
+from db import connect_db  # noqa: E402
 
 
 DEFAULT_TIERS = ("easy",)

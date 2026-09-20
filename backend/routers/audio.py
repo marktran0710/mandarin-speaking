@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 import auth
-from database import connect_db, row_to_audio_record
+from db import connect_db, row_to_audio_record
 import main
 from main import AudioRecordRequest
 

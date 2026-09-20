@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 import auth
-from database import connect_db
+from db import connect_db
 
 router = APIRouter()
 

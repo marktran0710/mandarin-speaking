@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
-from database import connect_db
+from db import connect_db
 import auth
 
 router = APIRouter()

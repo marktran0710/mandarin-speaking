@@ -4,7 +4,7 @@ helpers pass them through instead of double-parsing (which raises TypeError
 on a dict), and that the API-facing shape is unchanged."""
 import pytest
 
-import database
+import db
 
 
 def test_row_to_custom_story_passes_through_parsed_jsonb():
@@ -19,7 +19,7 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
         "lesson_number": 5,
         "quiz_exclusions": [{"word": "房間", "kind": "cloze"}],
     }
-    result = database.row_to_custom_story(row)
+    result = db.row_to_custom_story(row)
     assert result["frames"] == [{"prompt": "這是我的房間。", "vocabulary": "房間"}]
     assert result["storyVocabulary"] == {"easy": {"vocabulary": "房間"}}
     assert result["storyPhrases"] == {"easy": {"phrases": "在房間裡"}}
@@ -42,7 +42,7 @@ def test_row_to_custom_story_handles_null_jsonb():
         "lesson_number": None,
         "quiz_exclusions": None,
     }
-    result = database.row_to_custom_story(row)
+    result = db.row_to_custom_story(row)
     assert result["frames"] == []
     assert result["storyVocabulary"] is None
     assert result["storyPhrases"] is None
@@ -61,7 +61,7 @@ def test_row_to_story_submission_shape():
         "concatenated_audio_url": "/uploads/story_audio/sub1.wav",
         "story_feedback": {"overall": 7},
     }
-    result = database.row_to_story_submission(row)
+    result = db.row_to_story_submission(row)
     assert result["scenes"] == [{"sceneIndex": 0, "transcription": "你好"}]
     assert result["storyFeedback"] == {"overall": 7}
     assert result["concatenatedAudioUrl"] == "/uploads/story_audio/sub1.wav"
@@ -70,7 +70,7 @@ def test_row_to_story_submission_shape():
 
     row["review_status"] = "reviewed"
     row["teacher_note"] = "Strong scene transitions."
-    reviewed = database.row_to_story_submission(row)
+    reviewed = db.row_to_story_submission(row)
     assert reviewed["reviewStatus"] == "reviewed"
     assert reviewed["teacherNote"] == "Strong scene transitions."
 
@@ -88,7 +88,7 @@ def test_row_to_vocab_quiz_attempt_shape():
         "total_time_ms": 42000,
         "question_results": [{"word": "房間", "correct": True, "timeMs": 1200}],
     }
-    result = database.row_to_vocab_quiz_attempt(row)
+    result = db.row_to_vocab_quiz_attempt(row)
     assert result["questionResults"] == [{"word": "房間", "correct": True, "timeMs": 1200}]
     assert result["totalQuestions"] == 10
 
@@ -110,7 +110,7 @@ def test_row_to_audio_record_shape():
         "audio_sha256": "abc123",
         "server_verification_version": "v1",
     }
-    result = database.row_to_audio_record(row)
+    result = db.row_to_audio_record(row)
     assert result["praatMetrics"] == {"toneAccuracy": 0.8}
     assert result["topicId"] == "teacher-s1"
     assert result["studentId"] is None
@@ -133,7 +133,7 @@ def test_row_to_speaking_progress_exposes_verified_audio_record_id():
         "updated_at": "2026-09-18 00:00:00",
         "verified_audio_record_id": "record-1",
     }
-    result = database.row_to_speaking_progress(row)
+    result = db.row_to_speaking_progress(row)
     assert result["verifiedAudioRecordId"] == "record-1"
     assert result["progressionEligible"] is True
 
@@ -141,5 +141,5 @@ def test_row_to_speaking_progress_exposes_verified_audio_record_id():
 def test_ensure_column_helpers_are_gone():
     """Alembic owns the schema now — a leftover ensure_column() would create
     a second, silent migration path that Alembic doesn't know about."""
-    assert not hasattr(database, "ensure_column")
-    assert not hasattr(database, "ensure_column_dropped")
+    assert not hasattr(db, "ensure_column")
+    assert not hasattr(db, "ensure_column_dropped")

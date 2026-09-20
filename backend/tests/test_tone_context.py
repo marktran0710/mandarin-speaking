@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from tone_context import (
+from helpers.tone_context import (
     FULL_THIRD,
     han_break_flags,
     HALF_THIRD,

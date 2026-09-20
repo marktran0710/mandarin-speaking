@@ -1,6 +1,6 @@
 from psycopg.types.json import Jsonb
 
-import database
+import db
 from analytics.bkt_mastery import response_rows_for_attempt, upsert_raw_responses
 from routers.knowledge_analytics import _evaluation, _lower_loss_signal
 
@@ -12,8 +12,8 @@ def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_a
     record_attempt_and_rebuild, minus the assessment-bank resolver (every
     result here is pre-marked as already resolved)."""
     mode = "tier1"
-    with database.connect_db() as db:
-        db.execute(
+    with db.connect_db() as conn:
+        conn.execute(
             """
             INSERT INTO vocab_quiz_attempts
                 (id, story_id, student_name, student_id, mode, completed_at,
@@ -28,7 +28,7 @@ def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_a
         }
         response_results = [{**result, "authoritativeResolved": True} for result in results]
         rows = response_rows_for_attempt(attempt, student_id, response_results=response_results)
-        upsert_raw_responses(db, rows)
+        upsert_raw_responses(conn, rows)
 
 
 def _eligible_result(word: str, correct: bool, index: int, *, level: str = "tier1") -> dict:

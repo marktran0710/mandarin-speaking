@@ -30,7 +30,7 @@ import jwt
 from dotenv import load_dotenv
 from fastapi import Cookie, Depends, HTTPException, Request, Response
 
-# Mirrors the same self-contained load_dotenv() pattern database.py and
+# Mirrors the same self-contained load_dotenv() pattern db/__init__.py and
 # ai_feedback.py use - this module can be imported before main.py's own
 # load_dotenv() call runs, so without loading here too, JWT_SECRET_KEY would
 # silently read as unset.
@@ -230,7 +230,7 @@ def _validate_identity(identity: Identity) -> Identity:
     if identity.role in ("student", "teacher"):
         # Sessions must stop working when the roster account is deleted or
         # disabled; a long-lived JWT alone is not sufficient revocation.
-        from database import connect_db
+        from db import connect_db
 
         table = "students" if identity.role == "student" else "teachers"
         select = "status"

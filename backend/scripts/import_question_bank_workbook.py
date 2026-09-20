@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from psycopg.types.json import Jsonb  # noqa: E402
 
-from database import connect_db  # noqa: E402
+from db import connect_db  # noqa: E402
 from scripts.seed_quiz_assessments import find_story_for_part  # noqa: E402
 from vocab_assessment import validate_assessment_payload  # noqa: E402
 

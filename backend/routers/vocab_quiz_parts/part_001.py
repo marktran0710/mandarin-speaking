@@ -60,7 +60,7 @@ from analytics.bkt_mastery import (
 from analytics.review_queue import build_review_queue
 from analytics.srs import DAY_SECONDS
 from analytics.srs_store import apply_srs_updates, enroll_strong_words
-from database import connect_db, row_to_vocab_quiz_attempt
+from db import connect_db, row_to_vocab_quiz_attempt
 import main
 from main import VocabQuizAttemptRequest
 

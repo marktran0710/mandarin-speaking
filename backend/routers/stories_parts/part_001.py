@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from psycopg.types.json import Jsonb
 
-from database import connect_db, row_to_custom_story
+from db import connect_db, row_to_custom_story
 import main
 import auth
 from main import (

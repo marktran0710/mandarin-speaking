@@ -23,7 +23,7 @@ from praat_analyzer import (
     reference_curve_for_span,
     slice_reference_word_span,
 )
-from pinyin_service import canonical_pinyin
+from helpers.pinyin_service import canonical_pinyin
 from tts_service import (
     DEFAULT_ZH_VOICE,
     decode_mp3_to_pcm,

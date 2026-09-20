@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-import database
+import db
 from analytics.bkt_calibration_store import (
     load_calibration_snapshot,
     refit_decision,
@@ -84,16 +84,16 @@ def _successful_synthetic_report(records):
 
 
 def test_snapshot_uses_only_provenance_complete_authoritative_rows():
-    with database.connect_db() as db:
-        _insert_response(db, 1)
-        _insert_response(db, 2)
-        _insert_response(db, 3, origin="synthetic", resolver_version="synthetic-fixture-v1")
-        _insert_response(db, 4, eligible=False)
-        _insert_response(db, 5, resolver_version=None)
-        _insert_response(db, 6, fingerprint="")
-        _insert_response(db, 7, activity_type="personalized_practice")
-        real = load_calibration_snapshot(db, "real")
-        synthetic = load_calibration_snapshot(db, "synthetic")
+    with db.connect_db() as conn:
+        _insert_response(conn, 1)
+        _insert_response(conn, 2)
+        _insert_response(conn, 3, origin="synthetic", resolver_version="synthetic-fixture-v1")
+        _insert_response(conn, 4, eligible=False)
+        _insert_response(conn, 5, resolver_version=None)
+        _insert_response(conn, 6, fingerprint="")
+        _insert_response(conn, 7, activity_type="personalized_practice")
+        real = load_calibration_snapshot(conn, "real")
+        synthetic = load_calibration_snapshot(conn, "synthetic")
 
     assert [record.attempt_id for record in real.records] == ["attempt-1", "attempt-2"]
     assert real.high_water_response_id is not None
@@ -103,12 +103,12 @@ def test_snapshot_uses_only_provenance_complete_authoritative_rows():
 
 
 def test_synthetic_candidate_is_stored_but_cannot_be_deployed(monkeypatch):
-    with database.connect_db() as db:
+    with db.connect_db() as conn:
         for student in range(25):
             for response in range(5):
                 index = student * 5 + response
                 _insert_response(
-                    db,
+                    conn,
                     index,
                     origin="synthetic",
                     student_id=f"synthetic-{student:02d}",
@@ -118,12 +118,12 @@ def test_synthetic_candidate_is_stored_but_cannot_be_deployed(monkeypatch):
             "analytics.bkt_calibration_store.calibrate_bkt",
             lambda records, **_kwargs: _successful_synthetic_report(records),
         )
-        result = run_calibration_candidate(db, "synthetic", force=True)
-        fit = db.execute(
+        result = run_calibration_candidate(conn, "synthetic", force=True)
+        fit = conn.execute(
             "SELECT evidence_origin, promotable, source_digest FROM bkt_model_fit_runs WHERE id = %s",
             (result["fitRunId"],),
         ).fetchone()
-        model = db.execute(
+        model = conn.execute(
             "SELECT evidence_origin, fit_run_id FROM bkt_model_versions WHERE version = %s",
             (result["modelVersion"],),
         ).fetchone()
@@ -135,8 +135,8 @@ def test_synthetic_candidate_is_stored_but_cannot_be_deployed(monkeypatch):
     assert model["evidence_origin"] == "synthetic"
     assert model["fit_run_id"] == result["fitRunId"]
     with pytest.raises(Exception, match="Only real-evidence"):
-        with database.connect_db() as db:
-            db.execute(
+        with db.connect_db() as conn:
+            conn.execute(
                 "INSERT INTO bkt_model_active_deployment (model_version) VALUES (%s)",
                 (result["modelVersion"],),
             )
@@ -144,11 +144,11 @@ def test_synthetic_candidate_is_stored_but_cannot_be_deployed(monkeypatch):
 
 def test_scheduled_refit_waits_for_interval_and_enough_new_evidence():
     started = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    with database.connect_db() as db:
-        _insert_response(db, 1, occurred_at=started)
-        first = load_calibration_snapshot(db, "real")
-        assert refit_decision(db, "real", first, now=started)["reason"] == "first_candidate"
-        db.execute(
+    with db.connect_db() as conn:
+        _insert_response(conn, 1, occurred_at=started)
+        first = load_calibration_snapshot(conn, "real")
+        assert refit_decision(conn, "real", first, now=started)["reason"] == "first_candidate"
+        conn.execute(
             """
             INSERT INTO bkt_model_fit_runs
                 (id, evidence_origin, source_digest, high_water_response_id,
@@ -159,14 +159,14 @@ def test_scheduled_refit_waits_for_interval_and_enough_new_evidence():
         )
         for offset in range(2, 252):
             _insert_response(
-                db,
+                conn,
                 offset,
                 student_id=f"student-{offset % 7}",
                 occurred_at=started + timedelta(minutes=offset),
             )
-        current = load_calibration_snapshot(db, "real")
-        cooling_down = refit_decision(db, "real", current, now=started + timedelta(days=1))
-        ready = refit_decision(db, "real", current, now=started + timedelta(days=8))
+        current = load_calibration_snapshot(conn, "real")
+        cooling_down = refit_decision(conn, "real", current, now=started + timedelta(days=1))
+        ready = refit_decision(conn, "real", current, now=started + timedelta(days=8))
 
     assert cooling_down["due"] is False
     assert cooling_down["reason"] == "cooldown"
@@ -176,9 +176,9 @@ def test_scheduled_refit_waits_for_interval_and_enough_new_evidence():
 
 
 def test_force_does_not_create_a_candidate_without_evidence():
-    with database.connect_db() as db:
-        result = run_calibration_candidate(db, "real", force=True)
-        count = db.execute(
+    with db.connect_db() as conn:
+        result = run_calibration_candidate(conn, "real", force=True)
+        count = conn.execute(
             "SELECT COUNT(*) AS count FROM bkt_model_fit_runs WHERE evidence_origin = 'real'"
         ).fetchone()["count"]
 

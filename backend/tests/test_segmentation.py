@@ -11,7 +11,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from caf_metrics import segment_words
+from helpers.caf_metrics import segment_words
 
 
 # ---------------------------------------------------------------------------

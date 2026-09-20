@@ -1,11 +1,11 @@
 from psycopg.types.json import Jsonb
 
-import database
+import db
 
 
 def _publish_word(story_id: str, word_id: str) -> None:
-    with database.connect_db() as db:
-        db.execute(
+    with db.connect_db() as conn:
+        conn.execute(
             """
             INSERT INTO custom_stories (id, title, frames, published, vocab_assessment)
             VALUES (%s, %s, %s, TRUE, %s)
@@ -75,8 +75,8 @@ def test_inject_replays_mastery_step_by_step_and_tags_evidence_synthetic(admin_c
     assert body["steps"][-1]["pLearned"] > body["steps"][1]["pLearned"]
     assert body["finalMastery"] == body["steps"][-1]["pLearned"]
 
-    with database.connect_db() as db:
-        origins = db.execute(
+    with db.connect_db() as conn:
+        origins = conn.execute(
             "SELECT DISTINCT evidence_origin FROM vocab_quiz_responses WHERE student_id = %s",
             ("stu-debug-4",),
         ).fetchall()

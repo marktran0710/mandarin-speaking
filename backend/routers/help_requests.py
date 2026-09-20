@@ -3,7 +3,7 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 import auth
-from database import connect_db, row_to_help_request
+from db import connect_db, row_to_help_request
 from main import HelpRequest
 
 router = APIRouter()

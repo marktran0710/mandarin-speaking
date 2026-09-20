@@ -4,9 +4,9 @@ from typing import Dict, List
 
 import httpx
 from dotenv import load_dotenv
-from pinyin_service import canonical_pinyin_tone3
+from helpers.pinyin_service import canonical_pinyin_tone3
 
-import caf_metrics
+import helpers.caf_metrics as caf_metrics
 
 
 load_dotenv()

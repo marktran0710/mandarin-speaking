@@ -3,7 +3,7 @@ from psycopg.types.json import Jsonb
 
 import auth
 from main import QuizApproveRequest
-from database import connect_db
+from db import connect_db
 
 router = APIRouter(dependencies=[Depends(auth.require_teacher_or_admin)])
 

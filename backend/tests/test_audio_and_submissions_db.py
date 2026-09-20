@@ -146,7 +146,7 @@ def test_story_submissions_filter_by_story_id(logged_in_teacher):
 
 
 def test_teacher_submissions_exclude_test_accounts(logged_in_student, logged_in_teacher, admin_client):
-    from database import connect_db
+    from db import connect_db
 
     student_client, student = logged_in_student
     student_client.post("/api/story-submissions", json={

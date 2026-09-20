@@ -50,7 +50,7 @@ _log_console_handler = logging.StreamHandler()
 _log_console_handler.setFormatter(_log_formatter)
 logging.basicConfig(level=logging.INFO, handlers=[_log_console_handler, _log_file_handler])
 logger = logging.getLogger("speaking_app")
-from database import (
+from db import (
     close_db,
     connect_db,
     init_db,
@@ -59,7 +59,7 @@ from database import (
 import anyio
 from psycopg.types.json import Jsonb
 
-import caf_metrics
+import helpers.caf_metrics as caf_metrics
 
 from praat_analyzer import (
     extract_pitch,
@@ -85,7 +85,7 @@ from reference_voice import (
     extract_scene_reference_curves,
     extract_scene_reference_from_audio,
 )
-from pinyin_service import canonical_pinyin, canonical_pinyin_tone3
+from helpers.pinyin_service import canonical_pinyin, canonical_pinyin_tone3
 # transcribe_audio_content is the one ASR entry point still called as a bare
 # name from unmigrated main_parts code (_verify_word_transcription,
 # _acoustic_scoring_source). _post_with_retry moved with the ASR engines it

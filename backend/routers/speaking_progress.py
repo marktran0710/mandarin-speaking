@@ -5,7 +5,7 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 import auth
-from database import connect_db, row_to_speaking_progress
+from db import connect_db, row_to_speaking_progress
 from main import SpeakingProgressRequest
 from fastapi import APIRouter, Depends, HTTPException
 

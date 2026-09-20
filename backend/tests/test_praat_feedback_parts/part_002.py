@@ -86,19 +86,19 @@ class TestClassifyContentWord:
         # explicit tag="v". Regression guard: add_word() without a tag
         # resets the word's POS to 'x' (unknown), which used to make this
         # return False even though "eat" is clearly a content word.
-        import caf_metrics  # noqa: F401 — registers jieba's custom TC dictionary
+        import helpers.caf_metrics as caf_metrics  # noqa: F401 — registers jieba's custom TC dictionary
         assert _classify_content_word("吃飯") is True
 
     def test_custom_dictionary_location_noun_returns_true(self):
         # 家裡 is already tagged 's' in jieba's own dictionary, but the old
         # untagged jieba.add_word("家裡", freq=200000) call reset it to 'x'.
-        import caf_metrics  # noqa: F401
+        import helpers.caf_metrics as caf_metrics  # noqa: F401
         assert _classify_content_word("家裡") is True
 
     def test_custom_dictionary_pronoun_returns_false(self):
         # 這裡 is a demonstrative pronoun (tag "r"), not in the content
         # POS-prefix set — should stay classified as a function word.
-        import caf_metrics  # noqa: F401
+        import helpers.caf_metrics as caf_metrics  # noqa: F401
         assert _classify_content_word("這裡") is False
 
 

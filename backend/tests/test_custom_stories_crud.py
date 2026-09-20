@@ -85,7 +85,7 @@ def test_resave_preserves_created_at(client):
     """Under INSERT OR REPLACE a re-save reset created_at, so an edited
     story jumped to the top of the teacher's list. created_at isn't in the
     API payload, so assert it directly against the database."""
-    from database import connect_db
+    from db import connect_db
 
     client.post("/api/custom-stories", json=STORY)
     with connect_db() as db:

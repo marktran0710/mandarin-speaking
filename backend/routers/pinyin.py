@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from pinyin_service import canonical_pinyin
+from helpers.pinyin_service import canonical_pinyin
 
 router = APIRouter()
 
