@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { BiLabel } from "../components/BiLabel";
-import StudentIcon from "../components/StudentIcon";
 import { canUseDatabase, listCustomStories, recordVocabQuizResponse, type VocabQuizAttempt } from "../services/database";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import { samplePlacementTestQuestions, type PlacementTestQuestion } from "../utils/placementTestSampling";
@@ -121,42 +120,13 @@ export default function PlacementTestPage() {
   };
 
   if (done) {
-    const correctCount = answers.filter((answer) => answer.correct).length;
-    const pct = answers.length > 0 ? Math.round((correctCount / answers.length) * 100) : 0;
-    const byLesson = new Map<string, { title: string; correct: number; total: number }>();
-    for (const answer of answers) {
-      const entry = byLesson.get(answer.question.storyId) ?? { title: answer.question.storyTitle, correct: 0, total: 0 };
-      entry.total += 1;
-      if (answer.correct) entry.correct += 1;
-      byLesson.set(answer.question.storyId, entry);
-    }
     return (
       <div className="placement-test-page">
         <StudentPageHeader
           eyebrow={{ zh: "分班測驗", en: "Placement test" }}
           title={{ zh: "測驗完成！", en: "Placement test complete!" }}
-          lede={{ zh: `答對 ${correctCount} / ${answers.length} 題。`, en: `${correctCount} / ${answers.length} correct.` }}
+          lede={{ zh: "我們會依照你的答案安排接下來的複習。", en: "We'll personalize your review with what you shared." }}
         />
-        <section className="pt-results" aria-label="Placement test results">
-          <div className="pt-score-ring" style={{ background: `conic-gradient(var(--jade) ${pct}%, var(--clay-hairline-soft) 0)` }}>
-            <div className="pt-score-ring-inner">
-              <StudentIcon name="celebrate" size={22} aria-hidden="true" />
-              <span className="pt-score-ring-pct">{pct}%</span>
-            </div>
-          </div>
-          {byLesson.size > 1 && (
-            <ul className="pt-breakdown">
-              {[...byLesson.entries()].map(([storyId, entry]) => (
-                <li key={storyId} className="pt-breakdown-row">
-                  <span className="pt-breakdown-row-title">{entry.title}</span>
-                  <span className={`pt-breakdown-row-score${entry.correct === entry.total ? " is-strong" : entry.correct === 0 ? " is-weak" : ""}`}>
-                    {entry.correct} / {entry.total}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
     );
   }
@@ -165,7 +135,6 @@ export default function PlacementTestPage() {
   const isLast = index === questions.length - 1;
 
   const choose = (option: string) => {
-    if (selected) return;
     setSelected(option);
   };
 
@@ -184,13 +153,11 @@ export default function PlacementTestPage() {
 
   return (
     <div className="placement-test-page">
-      <StudentPageHeader
-        eyebrow={{ zh: "分班測驗", en: "Placement test" }}
-        title={{ zh: "看看你已經會多少", en: "See what you already know" }}
-        lede={{ zh: "答案會用來幫你跳過已經熟悉的生詞複習。", en: "Answers help skip review for words you already know." }}
-      />
       <section className="story-vocab-quiz vocab-quiz-question-screen" aria-label="Placement test question">
         <div className="vocab-quiz-topbar">
+          <p className="pt-quiz-context">
+            <BiLabel zh="分班測驗" en="Placement test" />
+          </p>
           <div className="vocab-quiz-status-progress">
             <p className="vocab-quiz-progress"><BiLabel zh={`第 ${index + 1} / ${questions.length} 題`} en={`Question ${index + 1} of ${questions.length}`} /></p>
             <div className="vq-track">
@@ -199,10 +166,10 @@ export default function PlacementTestPage() {
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={questions.length}
-                aria-valuenow={index}
-                aria-valuetext={`${index} of ${questions.length} questions done`}
+                aria-valuenow={index + 1}
+                aria-valuetext={`Question ${index + 1} of ${questions.length}`}
               >
-                <span className="vq-track-fill" style={{ width: `${(index / questions.length) * 100}%` }} />
+                <span className="vq-track-fill" style={{ width: `${((index + 1) / questions.length) * 100}%` }} />
               </div>
             </div>
           </div>
@@ -210,28 +177,23 @@ export default function PlacementTestPage() {
         <div className="vocab-quiz-content" key={question.itemId}>
           <div className="vocab-quiz-question-panel">
             <div className="vocab-quiz-header">
-              <p className="pt-lesson-tag">{question.storyTitle}</p>
               <h1 className="vocab-quiz-word vocab-quiz-assessment-prompt">{question.prompt}</h1>
             </div>
           </div>
           <div className="vocab-quiz-answer-panel">
             <div className="vocab-quiz-options" role="group" aria-label="Answer choices">
               {question.options.map((option) => {
-                const isCorrect = option === question.correctAnswer;
                 const isChosen = option === selected;
-                const state = selected ? (isCorrect ? "correct" : isChosen ? "incorrect" : "neutral") : "neutral";
                 return (
                   <button
                     key={option}
                     type="button"
-                    className={`vocab-quiz-option vocab-quiz-option-${state}`}
+                    className={`vocab-quiz-option vocab-quiz-option-${isChosen ? "selected" : "neutral"}`}
                     onClick={() => choose(option)}
-                    disabled={submitting || Boolean(selected)}
-                    aria-label={state === "correct" ? `${option} (correct answer)` : state === "incorrect" ? `${option} (your answer, incorrect)` : undefined}
+                    disabled={submitting}
+                    aria-pressed={isChosen}
                   >
                     <span className="vocab-quiz-option-text">{option}</span>
-                    {state === "correct" && <StudentIcon name="check-circle" size={18} className="vocab-quiz-option-icon" aria-hidden="true" />}
-                    {state === "incorrect" && <StudentIcon name="x-circle" size={18} className="vocab-quiz-option-icon" aria-hidden="true" />}
                   </button>
                 );
               })}

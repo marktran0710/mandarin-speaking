@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import PlacementTestPage from "./PlacementTestPage";
 import type { StoredCustomStory } from "../services/database";
@@ -58,15 +58,32 @@ describe("PlacementTestPage", () => {
     expect(await screen.findByText(/No questions available yet/)).toBeInTheDocument();
   });
 
-  it("walks through one sampled question per lesson, then submits one attempt per lesson", async () => {
+  it("keeps answer feedback neutral until advance, then submits grouped diagnostic attempts", async () => {
     listCustomStories.mockResolvedValue(makeStories());
     render(<PlacementTestPage />);
 
     expect(await screen.findByText(/1 \/ 2/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText("你好-correct"));
+    const questionRegion = screen.getByRole("region", { name: "Placement test question" });
+    expect(within(questionRegion).getByText("Placement test")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /See what you already know/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "Question 1 of 2");
+
+    const selectedAnswer = screen.getByRole("button", { name: /-correct$/ });
+    const otherAnswer = screen.getByRole("button", { name: "wrong1" });
+    fireEvent.click(selectedAnswer);
+
+    expect(selectedAnswer).toHaveAttribute("aria-pressed", "true");
+    expect(selectedAnswer).toHaveClass("vocab-quiz-option-selected");
+    expect(otherAnswer).toHaveAttribute("aria-pressed", "false");
+    expect(otherAnswer).toHaveClass("vocab-quiz-option-neutral");
+    expect(screen.queryByLabelText(/correct answer|incorrect/i)).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
 
     expect(await screen.findByText(/2 \/ 2/)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "Question 2 of 2");
     fireEvent.click(screen.getByText("wrong1"));
     fireEvent.click(screen.getByRole("button", { name: /Finish/ }));
 
@@ -77,14 +94,29 @@ describe("PlacementTestPage", () => {
       expect(call.mode).toBe("tier1");
       expect(call.studentId).toBe("student-1");
       expect(call.questionResults).toHaveLength(1);
-      expect(call.questionResults[0].itemId).toMatch(/_EASY$/);
+      expect(call.questionResults[0]).toMatchObject({
+        itemId: expect.stringMatching(/_EASY$/),
+        questionKind: "basic_meaning_mcq",
+        roundType: "know_it",
+        knowledgeDimension: "meaning",
+        activityType: "diagnostic",
+        level: "easy",
+        baseStoryId: call.storyId,
+        lessonId: call.storyId,
+        questionIndex: 0,
+      });
     }
     const s1Call = call1.storyId === "s1" ? call1 : call2;
     const s2Call = call1.storyId === "s1" ? call2 : call1;
     expect(s1Call.questionResults[0].correct).toBe(true);
     expect(s2Call.questionResults[0].correct).toBe(false);
+    expect(s1Call.questionResults[0].selectedAnswer).toBe(s1Call.questionResults[0].correctAnswer);
+    expect(s1Call.questionResults[0].presentedOptions).toContain(s1Call.questionResults[0].selectedAnswer);
+    expect(s2Call.questionResults[0].presentedOptions).toContain(s2Call.questionResults[0].selectedAnswer);
 
-    expect(await screen.findByText(/1 \/ 2 correct/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Placement test complete/ })).toBeInTheDocument();
+    expect(screen.getByText(/personalize your review/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Placement test results")).not.toBeInTheDocument();
   });
 
   it("does not block or throw when a lesson submission fails - still reaches the summary", async () => {
