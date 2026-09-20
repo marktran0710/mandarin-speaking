@@ -67,6 +67,67 @@ class TestTranscribeWithCTWhisper:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# CT Whisper background warm-up (mirrors the VibeVoice loader pattern)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestEnsureCtWhisperLoadStarted:
+
+    def _reset_state(self, monkeypatch):
+        import main
+        monkeypatch.setattr(main, "_ct_whisper_model", None)
+        monkeypatch.setattr(main, "_ct_whisper_load_thread", None)
+        monkeypatch.setattr(main, "_ct_whisper_load_error", None)
+
+    def test_loads_the_model_in_the_background(self, monkeypatch):
+        import main
+
+        self._reset_state(monkeypatch)
+        monkeypatch.setattr(main, "_get_ct_whisper_model", lambda: ("processor", "model", "cpu"))
+
+        main._ensure_ct_whisper_load_started()
+        main._ct_whisper_load_thread.join(timeout=5)
+
+        assert main._ct_whisper_model == ("processor", "model", "cpu")
+        assert main._ct_whisper_load_error is None
+
+    def test_a_failed_load_is_captured_not_raised(self, monkeypatch):
+        import main
+
+        self._reset_state(monkeypatch)
+
+        def _boom():
+            raise RuntimeError("Chinese/Taiwanese Whisper requires torch and transformers.")
+
+        monkeypatch.setattr(main, "_get_ct_whisper_model", _boom)
+
+        main._ensure_ct_whisper_load_started()
+        main._ct_whisper_load_thread.join(timeout=5)
+
+        assert main._ct_whisper_model is None
+        assert "torch and transformers" in main._ct_whisper_load_error
+
+    def test_is_a_no_op_once_a_load_already_started(self, monkeypatch):
+        import main
+
+        self._reset_state(monkeypatch)
+        calls = []
+
+        def _slow_load():
+            calls.append(1)
+            return ("processor", "model", "cpu")
+
+        monkeypatch.setattr(main, "_get_ct_whisper_model", _slow_load)
+
+        main._ensure_ct_whisper_load_started()
+        first_thread = main._ct_whisper_load_thread
+        main._ensure_ct_whisper_load_started()  # second call before the first thread finishes
+
+        assert main._ct_whisper_load_thread is first_thread
+        first_thread.join(timeout=5)
+        assert calls == [1]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # /api/transcribe endpoint (integration via TestClient)
 # ──────────────────────────────────────────────────────────────────────────────
 

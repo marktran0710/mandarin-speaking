@@ -253,6 +253,20 @@ async def warm_vibevoice_asr() -> None:
     if VIBEVOICE_WARM_ON_START:
         _ensure_vibevoice_load_started()
 
+
+@app.on_event("startup")
+async def warm_ct_whisper() -> None:
+    # Off by default: loading torch/transformers/librosa is only possible on
+    # an image that installed requirements-local-asr.txt (the dev Docker
+    # image), and even there it's ~2GB of extra memory + an 8s load a
+    # deployment may not want to pay at every restart. Where it IS wanted,
+    # this moves that ~8s cold-start cost off the first real student/teacher
+    # request and onto server startup instead, in the background - it does
+    # not delay /health/ready.
+    if CT_WHISPER_WARM_ON_START:
+        logger.info("ctwhisper: CT_WHISPER_WARM_ON_START is set, kicking off background warm-up")
+        _ensure_ct_whisper_load_started()
+
 def clean_api_key(value: Optional[str]) -> Optional[str]:
     key = (value or "").strip()
     if not key or "your_" in key.lower() or key.lower().endswith("_here"):
@@ -279,6 +293,7 @@ CT_WHISPER_DEVICE = settings.ct_whisper_device
 CT_WHISPER_LANGUAGE = settings.ct_whisper_language
 CT_WHISPER_TASK = settings.ct_whisper_task
 CT_WHISPER_CACHE_DIR = settings.ct_whisper_cache_dir
+CT_WHISPER_WARM_ON_START = settings.ct_whisper_warm_on_start
 VIBEVOICE_ASR_MODEL = settings.vibevoice_asr_model
 VIBEVOICE_DEVICE = settings.vibevoice_device
 VIBEVOICE_TORCH_DTYPE = settings.vibevoice_torch_dtype
@@ -288,6 +303,9 @@ VIBEVOICE_MAX_TIME_SECONDS = settings.vibevoice_max_time_seconds
 VIBEVOICE_CACHE_DIR = settings.vibevoice_cache_dir
 _funasr_model = None
 _ct_whisper_model = None
+_ct_whisper_load_lock = threading.Lock()
+_ct_whisper_load_thread = None
+_ct_whisper_load_error = None
 _vibevoice_asr_model = None
 _vibevoice_load_lock = threading.Lock()
 _vibevoice_load_thread = None

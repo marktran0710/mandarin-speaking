@@ -267,32 +267,69 @@ async def transcribe_with_funasr(audio_content: bytes) -> TranscriptionResponse:
 def _get_ct_whisper_model():
     global _ct_whisper_model
 
-    if _ct_whisper_model is None:
-        try:
-            import torch
-            from transformers import WhisperForConditionalGeneration, WhisperProcessor
-        except ImportError as exc:
-            raise RuntimeError(
-                "Chinese/Taiwanese Whisper requires torch and transformers."
-            ) from exc
+    # Guards against a real request racing the background warm-up thread (or
+    # two real requests racing each other) into loading the model twice.
+    with _ct_whisper_load_lock:
+        if _ct_whisper_model is None:
+            try:
+                import torch
+                from transformers import WhisperForConditionalGeneration, WhisperProcessor
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Chinese/Taiwanese Whisper requires torch and transformers."
+                ) from exc
 
-        os.makedirs(CT_WHISPER_CACHE_DIR, exist_ok=True)
-        processor = WhisperProcessor.from_pretrained(
-            CT_WHISPER_MODEL,
-            cache_dir=CT_WHISPER_CACHE_DIR,
-        )
-        model = WhisperForConditionalGeneration.from_pretrained(
-            CT_WHISPER_MODEL,
-            cache_dir=CT_WHISPER_CACHE_DIR,
-            low_cpu_mem_usage=True,
-        )
-        device = CT_WHISPER_DEVICE
-        if device != "auto":
-            model = model.to(device)
-        model.eval()
-        _ct_whisper_model = (processor, model, device)
+            os.makedirs(CT_WHISPER_CACHE_DIR, exist_ok=True)
+            processor = WhisperProcessor.from_pretrained(
+                CT_WHISPER_MODEL,
+                cache_dir=CT_WHISPER_CACHE_DIR,
+            )
+            model = WhisperForConditionalGeneration.from_pretrained(
+                CT_WHISPER_MODEL,
+                cache_dir=CT_WHISPER_CACHE_DIR,
+                low_cpu_mem_usage=True,
+            )
+            device = CT_WHISPER_DEVICE
+            if device != "auto":
+                model = model.to(device)
+            model.eval()
+            _ct_whisper_model = (processor, model, device)
 
     return _ct_whisper_model
+
+
+def _load_ct_whisper_model_background() -> None:
+    global _ct_whisper_model, _ct_whisper_load_error
+
+    started_at = time.perf_counter()
+    logger.info("ctwhisper: background warm-up starting")
+    try:
+        model_bundle = _get_ct_whisper_model()
+        with _ct_whisper_load_lock:
+            _ct_whisper_model = model_bundle
+            _ct_whisper_load_error = None
+        logger.info(f"ctwhisper: background warm-up finished in {time.perf_counter() - started_at:.1f}s")
+    except Exception as exc:
+        with _ct_whisper_load_lock:
+            _ct_whisper_load_error = str(exc)
+        logger.warning(f"ctwhisper: background warm-up failed after {time.perf_counter() - started_at:.1f}s: {exc}")
+
+
+def _ensure_ct_whisper_load_started() -> None:
+    global _ct_whisper_load_thread
+
+    with _ct_whisper_load_lock:
+        if _ct_whisper_model is not None or _ct_whisper_load_error:
+            return
+        if _ct_whisper_load_thread is not None and _ct_whisper_load_thread.is_alive():
+            return
+
+        _ct_whisper_load_thread = threading.Thread(
+            target=_load_ct_whisper_model_background,
+            name="ctwhisper-loader",
+            daemon=True,
+        )
+        _ct_whisper_load_thread.start()
 
 
 def _transcribe_with_ct_whisper_sync(audio_content: bytes, vocab_hint: str = "") -> str:
