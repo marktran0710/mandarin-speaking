@@ -78,12 +78,6 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_PROXY_TARGET: http://backend:8000
-      # Vite's dev server rejects any Host header it doesn't recognize (DNS
-      # rebinding protection) - without this, every request through the
-      # Tailscale Funnel domain gets a 403 "Blocked request" from Vite
-      # itself, which the app then shows as a generic "could not load data /
-      # session may have expired" error.
-      VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS:-desktop-9417om5.tail7fe66e.ts.net}
       VITE_OPEN_BROWSER: "false"
       CHOKIDAR_USEPOLLING: "true"
     volumes:
