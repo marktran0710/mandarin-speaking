@@ -248,6 +248,99 @@ export function stageDlContent(
   }
 }
 
+export interface PipelineViewInputs {
+  record: AudioRecord;
+  source: DebugAttemptSource;
+  processingState: DebugProcessingState;
+  processingTrace: ProcessingTraceStage[];
+  isRecording: boolean;
+  inputSource: "microphone" | "upload";
+  uploadedAudioName: string;
+  recordedAudioUrl: string;
+  recordingDuration: number;
+  recordingError: string;
+}
+
+export interface PipelineView {
+  praat: JsonObject;
+  ai: JsonObject;
+  words: JsonObject[];
+  failedWords: JsonObject[];
+  canScorePronunciation: boolean;
+  contentGate: string;
+  activeTrace: ProcessingTraceStage[];
+  outputReady: boolean;
+  statusForStage: (stageId: string) => ProcessingTraceStage;
+  stageDefinitions: StageDefinition[];
+  captureEntry: ProcessingTraceStage;
+}
+
+/** Turns one analysis result (live or stored) into everything `DebugPipelineDetails`
+ * needs to render it — shared by the single-attempt Practice Debugger and the
+ * side-by-side ASR Compare tool so both read the exact same pipeline shape. */
+export function derivePipelineView(inputs: PipelineViewInputs): PipelineView {
+  const {
+    record, source, processingState, processingTrace, isRecording,
+    inputSource, uploadedAudioName, recordedAudioUrl, recordingDuration, recordingError,
+  } = inputs;
+  const praat = (record.praatMetrics ?? {}) as JsonObject;
+  const ai = (praat.ai_feedback ?? {}) as JsonObject;
+  const quality = (praat.feedback_quality ?? {}) as JsonObject;
+  const words = Array.isArray(praat.word_prosody) ? praat.word_prosody : [];
+  const failedWords = words.filter((word: JsonObject) => word.judged === false || word.passed === false);
+  const canScorePronunciation = quality.can_score_pronunciation !== false;
+  const content = (ai.content_accuracy ?? {}) as JsonObject;
+  const contentGate = quality.can_score_content === false
+    ? "Not scoreable"
+    : content.judged === false || content.judged == null
+      ? "Not judged"
+      : content.accepted
+        ? "Passed"
+        : "Needs retry";
+  const storedTrace = Array.isArray((praat.processing_trace as JsonObject | undefined)?.stages)
+    ? (praat.processing_trace as JsonObject).stages as ProcessingTraceStage[]
+    : [];
+  const activeTrace = processingState !== "idle" ? processingTrace : storedTrace;
+  const traceByStage = new Map(activeTrace.map((entry) => [entry.stage, entry]));
+  const outputReady = processingState === "idle" || processingState === "complete";
+  const statusForStage = (stageId: string): ProcessingTraceStage => {
+    const existing = traceByStage.get(stageId);
+    if (existing) return existing;
+    if (stageId === "capture") {
+      return { stage: stageId, status: processingState === "recording" ? "running" : "passed" };
+    }
+    if (processingState === "uploading" && stageId === "preflight") return { stage: stageId, status: "running" };
+    if (processingState === "processing" && stageId === "preflight") return { stage: stageId, status: "running" };
+    if (processingState === "error" && stageId === "quality_gate") return { stage: stageId, status: "failed", detail: recordingError };
+    return { stage: stageId, status: "pending" };
+  };
+  const hasVerificationStage = activeTrace.some((entry) => entry.stage === "content_verification");
+  const stageDefinitions: StageDefinition[] = !hasVerificationStage
+    ? TRACE_STAGE_DEFINITIONS
+    : (() => {
+        const gateIndex = TRACE_STAGE_DEFINITIONS.findIndex((definition) => definition.id === "quality_gate");
+        return [
+          ...TRACE_STAGE_DEFINITIONS.slice(0, gateIndex),
+          { id: "content_verification", label: "Verify", description: "Independent word check" },
+          ...TRACE_STAGE_DEFINITIONS.slice(gateIndex),
+        ];
+      })();
+  const captureEntry: ProcessingTraceStage = (() => {
+    const base = statusForStage("capture");
+    const hasLiveCapture = source === "recorded" || isRecording || processingState !== "idle";
+    return {
+      ...base,
+      input: hasLiveCapture
+        ? { source: inputSource === "upload" ? "Uploaded file" : "Microphone recording", file_name: uploadedAudioName || null }
+        : null,
+      output: hasLiveCapture && (recordedAudioUrl || outputReady)
+        ? { endpoint: "/api/analyze/stream", duration_seconds: recordingDuration || record.duration || null, format: "wav (converted in browser)" }
+        : null,
+    };
+  })();
+  return { praat, ai, words, failedWords, canScorePronunciation, contentGate, activeTrace, outputReady, statusForStage, stageDefinitions, captureEntry };
+}
+
 export function StageCard({
   id, label, description, entry, dlItems, children,
 }: {

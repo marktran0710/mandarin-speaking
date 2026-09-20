@@ -35,6 +35,8 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
   { id: "Measurement", label: "Measurement", icon: "analytics", group: "Insights" },
   { id: "Practice Debug", label: "Practice Debug", icon: "debug", group: "Insights" },
+  { id: "ASR Compare", label: "ASR Compare", icon: "debug", group: "Insights" },
+  { id: "BKT Debug", label: "BKT Debug", icon: "debug", group: "Insights" },
 ];
 
 const legacyIconMap: Record<string, UiIconName> = {
