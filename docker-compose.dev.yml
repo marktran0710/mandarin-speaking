@@ -34,6 +34,18 @@ services:
       LOG_DIR: /data/logs
       HF_HOME: /data/models/huggingface
       MODELSCOPE_CACHE: /data/models/modelscope
+      # Defaults to backend_dir.parent/.models (config.py) - a fine local-dev
+      # path, but inside this container backend_dir.parent is "/", which the
+      # non-root appuser can't write to. Point it at the writable /data volume
+      # like the other model caches above.
+      CT_WHISPER_CACHE_DIR: /data/models/huggingface
+      # Loads the model in the background at server startup instead of on the
+      # first real request - moves the ~8s cold-start cost off whoever hits
+      # ctwhisper first. Only meaningful on an image with
+      # requirements-local-asr.txt installed (this one); a plain
+      # Dockerfile.production build never sets this and would just no-op
+      # anyway (torch/transformers aren't installed there).
+      CT_WHISPER_WARM_ON_START: "true"
       CORS_ORIGINS: http://localhost:5177,http://127.0.0.1:5177
     volumes:
       - ./backend:/app

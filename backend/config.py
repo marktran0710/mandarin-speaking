@@ -43,6 +43,7 @@ class Settings:
     ct_whisper_language: str
     ct_whisper_task: str
     ct_whisper_cache_dir: str
+    ct_whisper_warm_on_start: bool
     vibevoice_asr_model: str
     vibevoice_device: str
     vibevoice_torch_dtype: str
@@ -102,6 +103,7 @@ class Settings:
             ct_whisper_language=os.getenv("CT_WHISPER_LANGUAGE", "chinese"),
             ct_whisper_task=os.getenv("CT_WHISPER_TASK", "transcribe"),
             ct_whisper_cache_dir=model_cache,
+            ct_whisper_warm_on_start=os.getenv("CT_WHISPER_WARM_ON_START", "false").lower() == "true",
             vibevoice_asr_model=os.getenv("VIBEVOICE_ASR_MODEL", "microsoft/VibeVoice-ASR"),
             vibevoice_device=os.getenv("VIBEVOICE_DEVICE", "cpu"),
             vibevoice_torch_dtype=os.getenv("VIBEVOICE_TORCH_DTYPE", "bfloat16"),
