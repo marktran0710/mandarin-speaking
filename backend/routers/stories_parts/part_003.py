@@ -1,3 +1,0 @@
-from routers.vocabulary import router as vocabulary_metadata_router
-
-router.include_router(vocabulary_metadata_router)

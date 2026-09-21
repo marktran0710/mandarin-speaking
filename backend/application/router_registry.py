@@ -21,7 +21,9 @@ from routers.measurement import router as measurement_router
 from routers.pinyin import router as pinyin_router
 from routers.quiz_review import router as quiz_review_router
 from routers.speaking_progress import router as speaking_progress_router
-from routers.stories import router as stories_router
+from routers.story_crud import router as story_crud_router
+from routers.story_quiz_materials import router as story_quiz_materials_router
+from routers.story_quiz_pools import router as story_quiz_pools_router
 from routers.students import router as students_router
 from routers.teachers import router as teachers_router
 from routers.submissions import router as submissions_router
@@ -45,7 +47,9 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(pinyin_router)
     app.include_router(quiz_review_router)
     app.include_router(speaking_progress_router)
-    app.include_router(stories_router)
+    app.include_router(story_crud_router)
+    app.include_router(story_quiz_materials_router)
+    app.include_router(story_quiz_pools_router)
     app.include_router(students_router)
     app.include_router(teachers_router)
     app.include_router(submissions_router)
