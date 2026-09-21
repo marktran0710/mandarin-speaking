@@ -7,13 +7,13 @@ import numpy as np
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from chinese_tones import (
+from domain.speech.tones import (
     _shape_match_score,
     calculate_phrase_shape_accuracy,
     normalize_pitch_contour,
     phrase_shape_curves,
 )
-from praat_analyzer import _reference_curve_for_token, estimate_word_prosody
+from domain.speech.acoustics import _reference_curve_for_token, estimate_word_prosody
 
 
 def _contour(values, duration=0.8):

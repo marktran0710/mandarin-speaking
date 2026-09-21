@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
-import auth
+import security.auth as auth
 from db import connect_db, row_to_story_submission
 from helpers.audio_concat import concatenate_scene_audio
 from services.ai_feedback import generate_story_feedback

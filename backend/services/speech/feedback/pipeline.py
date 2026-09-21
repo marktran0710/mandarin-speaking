@@ -239,7 +239,7 @@ def _word_stress_note(word_prosody: List[Dict] | None) -> str:
     if not word_prosody:
         return ""
     try:
-        from praat_analyzer import word_stress_summary
+        from domain.speech.acoustics import word_stress_summary
         summary = word_stress_summary(word_prosody)
     except Exception:
         return ""

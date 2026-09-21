@@ -19,8 +19,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from praat_analyzer import _apply_phrase_rescue, _clean_target_phrases, _find_contiguous_token_run
-from tone_decision import PHRASE_RESCUE_DIRECTION_SUPPORT, PHRASE_RESCUE_SHAPE_STRONG
+from domain.speech.acoustics import _apply_phrase_rescue, _clean_target_phrases, _find_contiguous_token_run
+from domain.speech.tone_decision import PHRASE_RESCUE_DIRECTION_SUPPORT, PHRASE_RESCUE_SHAPE_STRONG
 
 
 def _syllable(char, tone, status, *, provenance="measured", score=50.0):
@@ -241,7 +241,7 @@ def test_thresholds_are_stricter_than_the_normal_word_level_bars():
     """The whole safety argument for allowing this mechanism to override an
     individually-measured INCORRECT syllable depends on it demanding more
     evidence than an ordinary word-level promotion, not the same or less."""
-    from tone_decision import DIRECTION_SUPPORT, SHAPE_STRONG
+    from domain.speech.tone_decision import DIRECTION_SUPPORT, SHAPE_STRONG
 
     assert PHRASE_RESCUE_SHAPE_STRONG >= SHAPE_STRONG
     assert PHRASE_RESCUE_DIRECTION_SUPPORT >= DIRECTION_SUPPORT

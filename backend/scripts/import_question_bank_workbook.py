@@ -22,7 +22,7 @@ from psycopg.types.json import Jsonb  # noqa: E402
 
 from db import connect_db  # noqa: E402
 from scripts.seed_quiz_assessments import find_story_for_part  # noqa: E402
-from vocab_assessment import validate_assessment_payload  # noqa: E402
+from domain.vocabulary.assessment import validate_assessment_payload  # noqa: E402
 
 
 BANK_PATH = Path(__file__).resolve().parent / "data" / "quiz_assessments" / "modern-chinese-ch5-to-ch8-question-bank.csv"

@@ -17,11 +17,11 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from chinese_tones import (
+from domain.speech.tones import (
     directional_tone_scores,
     directional_tone_scores_with_provenance,
 )
-from tone_decision import (
+from domain.speech.tone_decision import (
     PROVENANCE_MEASURED,
     PROVENANCE_NEUTRAL_CONSTANT,
     PROVENANCE_NONE,

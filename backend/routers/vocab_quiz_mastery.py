@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
-import auth
+import security.auth as auth
 from analytics.bkt_mastery import (
     diagnostic_status,
     get_priority_review_words,

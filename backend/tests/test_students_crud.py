@@ -181,7 +181,7 @@ def test_help_requests_sort_open_first(admin_client):
     from fastapi.testclient import TestClient
     import main
     import db
-    import auth
+    import security.auth as auth
     import uuid
     with ExitStack() as stack:
         teacher_client = stack.enter_context(TestClient(main.app))

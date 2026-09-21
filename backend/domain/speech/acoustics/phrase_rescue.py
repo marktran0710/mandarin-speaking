@@ -69,8 +69,8 @@ def _apply_phrase_rescue(
         return
 
     from .pause_fluency import _PLACEHOLDER_SCORE_PROVENANCES
-    from chinese_tones import calculate_directional_tone_accuracy, calculate_phrase_shape_accuracy
-    from tone_decision import (
+    from domain.speech.tones import calculate_directional_tone_accuracy, calculate_phrase_shape_accuracy
+    from domain.speech.tone_decision import (
         DiagnosticStatus,
         PHRASE_RESCUE_DIRECTION_SUPPORT,
         PHRASE_RESCUE_SHAPE_STRONG,
@@ -248,7 +248,7 @@ def reference_curve_for_span(
     it can later be sent back as a real-voice scoring override (see
     ``chinese_tones.calculate_phrase_tone_accuracy``'s ``target_curve_override``).
     """
-    from chinese_tones import normalize_pitch_contour
+    from domain.speech.tones import normalize_pitch_contour
 
     points = [(t, f) for t, f in pitch_contour if start_time <= t <= end_time]
     if len(points) < 2:

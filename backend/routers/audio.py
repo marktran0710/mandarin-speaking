@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
-import auth
+import security.auth as auth
 from db import connect_db, row_to_audio_record
 import services.media as media_service
 from services.media import AudioRecordRequest

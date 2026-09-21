@@ -2,7 +2,7 @@ import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-import auth
+import security.auth as auth
 from db import connect_db, row_to_help_request
 from main import HelpRequest
 

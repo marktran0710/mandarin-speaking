@@ -15,12 +15,12 @@ import soundfile as sf
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from reference_voice import (
+from services.speech.reference_voice import (
     extract_scene_reference_from_audio,
     generate_scene_reference,
     synthesize_best_reference_audio,
 )
-from tts_service import write_wav
+from infrastructure.speech.tts import write_wav
 
 
 def _synthetic_rising_tone_pcm(duration=1.6, sample_rate=24000):
@@ -36,8 +36,8 @@ def _synthetic_rising_tone_pcm(duration=1.6, sample_rate=24000):
 @pytest.fixture
 def mocked_tts(tmp_path):
     pcm, sample_rate = _synthetic_rising_tone_pcm()
-    with patch("reference_voice.synthesize_sentence_mp3", new_callable=AsyncMock) as synth, \
-         patch("reference_voice.decode_mp3_to_pcm") as decode:
+    with patch("services.speech.reference_voice.synthesize_sentence_mp3", new_callable=AsyncMock) as synth, \
+         patch("services.speech.reference_voice.decode_mp3_to_pcm") as decode:
         synth.return_value = b"fake-mp3-bytes"
         decode.return_value = (pcm, sample_rate)
         yield tmp_path
@@ -161,11 +161,11 @@ def test_best_reference_skips_a_failed_voice(tmp_path):
     analysis[7] = 82.0
 
     with patch(
-        "reference_voice.synthesize_sentence_mp3",
+        "services.speech.reference_voice.synthesize_sentence_mp3",
         new_callable=AsyncMock,
         side_effect=[RuntimeError("temporary voice failure"), b"working-mp3"],
-    ), patch("reference_voice.decode_mp3_to_pcm", return_value=(pcm, sample_rate)), patch(
-        "reference_voice.analyze_all", return_value=analysis
+    ), patch("services.speech.reference_voice.decode_mp3_to_pcm", return_value=(pcm, sample_rate)), patch(
+        "services.speech.reference_voice.analyze_all", return_value=analysis
     ):
         result = asyncio.run(
             synthesize_best_reference_audio(

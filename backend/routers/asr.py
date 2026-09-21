@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import StreamingResponse
 
 from services.ai_feedback import available_providers, default_provider
-import auth
+import security.auth as auth
 import main
 import services.asr as asr_service
-from models import AnalysisResponse
+from api.schemas.models import AnalysisResponse
 from services.asr import AsrStatusResponse, TranscriptionResponse
 from services.text_normalization import correct_homophones
 

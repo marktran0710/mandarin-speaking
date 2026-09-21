@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from psycopg.types.json import Jsonb
 
 from db import connect_db, row_to_custom_story
-import auth
+import security.auth as auth
 import services.media as media_service
-from models import CustomStoryRequest
+from api.schemas.models import CustomStoryRequest
 from routers.story_quiz_vocabulary import router as story_quiz_vocabulary_router
 from routers.story_vocabulary_metadata import router as story_vocabulary_metadata_router
-from vocab_assessment import validate_assessment_payload
+from domain.vocabulary.assessment import validate_assessment_payload
 
 # Students may read lesson content after login; story writes and generated
 # media are restricted by auth.require_story_access to teacher/admin accounts.

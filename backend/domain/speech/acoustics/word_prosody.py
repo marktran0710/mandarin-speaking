@@ -76,7 +76,7 @@ def estimate_word_prosody(
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
         return []
-    from chinese_tones import (
+    from domain.speech.tones import (
         apply_tone_sandhi,
         calculate_directional_tone_accuracy,
         calculate_phrase_shape_accuracy,
@@ -88,7 +88,7 @@ def estimate_word_prosody(
         scaled_reference_contour,
         word_tones,
     )
-    from tone_decision import (
+    from domain.speech.tone_decision import (
         DiagnosticStatus,
         QcEvidence,
         decide_word_tone,

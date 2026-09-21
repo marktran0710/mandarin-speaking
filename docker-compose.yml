@@ -24,7 +24,7 @@ services:
       - mandarin_pgdata:/var/lib/postgresql/data
       # Scripts in this directory run once, on first initialisation of an
       # empty data volume.
-      - ./backend/db_init:/docker-entrypoint-initdb.d:ro
+      - ./backend/infrastructure/database/bootstrap:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mandarin -d mandarin"]
       interval: 5s

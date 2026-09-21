@@ -3,9 +3,9 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
-import auth
+import security.auth as auth
 from db import connect_db
-from models import (
+from api.schemas.models import (
     QuizExclusionsUpdateRequest,
     QuizPendingApprovalsUpdateRequest,
     QuizQuestionReplaceRequest,

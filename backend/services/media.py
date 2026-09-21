@@ -31,7 +31,7 @@ from pydantic import BaseModel
 
 from config import settings
 from db import connect_db
-from reference_voice import (
+from services.speech.reference_voice import (
     extract_scene_reference_curves,
     extract_scene_reference_from_audio,
 )

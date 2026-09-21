@@ -44,7 +44,7 @@ from application.analysis_capacity import (
 from application.middleware import _check_rate_limit
 # Pure data models, re-exported bare so every existing `from main import X`
 # router/test import keeps working unchanged.
-from models import (
+from api.schemas.models import (
     SpeakingProgressRequest,
     CustomStoryFrameRequest,
     CustomStoryRequest,

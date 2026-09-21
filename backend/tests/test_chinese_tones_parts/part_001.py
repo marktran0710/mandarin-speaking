@@ -14,7 +14,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from chinese_tones import (
+from domain.speech.tones import (
     _shape_match_score,
     _smooth_for_directional_scoring,
     calculate_directional_tone_accuracy,
@@ -27,7 +27,7 @@ from chinese_tones import (
     phrase_shape_curves,
     scaled_reference_contour,
 )
-from praat_analyzer import _correct_octave_jumps, estimate_word_prosody
+from domain.speech.acoustics import _correct_octave_jumps, estimate_word_prosody
 
 
 def _synthetic_contour(pitch_pattern, base_hz=220.0, spread_hz=60.0, num_points=40, duration=0.6):

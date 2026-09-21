@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-import auth
+import security.auth as auth
 from analytics.bkt import BKT_CONFIG
 from analytics.bkt_assessment_resolver import _published_assessment
 from analytics.bkt_mastery import (

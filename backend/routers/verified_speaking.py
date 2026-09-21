@@ -10,7 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-import auth
+import security.auth as auth
 from db import connect_db
 
 router = APIRouter()

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-import auth
+import security.auth as auth
 from routers.vocab_quiz_analytics import (
     get_vocab_quiz_frex,
     router as vocab_quiz_analytics_router,

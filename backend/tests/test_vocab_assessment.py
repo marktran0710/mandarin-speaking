@@ -4,7 +4,7 @@ import csv
 import io
 import json
 
-from vocab_assessment import (
+from domain.vocabulary.assessment import (
     EXPECTED_QUESTION_COUNT,
     answer_is_accepted,
     build_vocabulary_items,

@@ -21,7 +21,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from praat_analyzer import estimate_word_prosody
+from domain.speech.acoustics import estimate_word_prosody
 from helpers.vowel_analysis import (
     FINAL_NUCLEUS,
     MEASURED,

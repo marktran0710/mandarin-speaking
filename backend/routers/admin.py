@@ -11,7 +11,7 @@ import hmac
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
-import auth
+import security.auth as auth
 from db import (
     connect_db,
     row_to_student,

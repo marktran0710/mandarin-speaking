@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from psycopg.errors import UniqueViolation
-import auth
+import security.auth as auth
 from db import connect_db, row_to_teacher
 from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
 

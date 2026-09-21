@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from psycopg.errors import UniqueViolation
 
-import auth
+import security.auth as auth
 from db import connect_db, delete_student_cascade, row_to_audio_record, row_to_student
 from main import (
     StudentCreateRequest,

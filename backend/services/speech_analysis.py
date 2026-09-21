@@ -25,8 +25,8 @@ from starlette.concurrency import run_in_threadpool
 import helpers.caf_metrics as caf_metrics
 from config import settings
 from helpers.pinyin_service import canonical_pinyin
-from models import AnalysisResponse, ProcessingTrace, ProcessingTraceStage
-from praat_analyzer import analyze_all
+from api.schemas.models import AnalysisResponse, ProcessingTrace, ProcessingTraceStage
+from domain.speech.acoustics import analyze_all
 from services.asr import transcribe_audio_content
 from services.content_verification import (
     assess_recording_quality,

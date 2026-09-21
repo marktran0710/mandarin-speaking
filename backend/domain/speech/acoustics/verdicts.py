@@ -28,7 +28,7 @@ def _combine_word_verdict(word_decision, syllables: list) -> tuple:
     showing "Likely tone mismatch" for a syllable now counted as passed.
     """
     from .pause_fluency import _PLACEHOLDER_SCORE_PROVENANCES
-    from tone_decision import (
+    from domain.speech.tone_decision import (
         DiagnosticStatus,
         PHRASE_RESCUE_DIRECTION_SUPPORT,
         PHRASE_RESCUE_SHAPE_STRONG,

@@ -1,6 +1,6 @@
 from inspect import iscoroutinefunction
 
-import auth
+import security.auth as auth
 from fastapi.routing import APIRoute
 
 from routers import vocab_quiz

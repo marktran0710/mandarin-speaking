@@ -6,7 +6,7 @@ from urllib.parse import unquote_to_bytes
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 
-import auth
+import security.auth as auth
 import main
 import services.media as media_service
 import services.story_images as story_images_service

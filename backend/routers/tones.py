@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from chinese_tones import get_reference_tone_pattern
-from models import ReferenceToneResponse
+from domain.speech.tones import get_reference_tone_pattern
+from api.schemas.models import ReferenceToneResponse
 
 router = APIRouter()
 

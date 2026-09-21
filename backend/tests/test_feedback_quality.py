@@ -254,7 +254,7 @@ def test_unverified_target_cannot_receive_pronunciation_score():
 
 
 def test_feedback_quality_serializes_stable_contract_and_defaults_are_isolated():
-    from models import FeedbackQuality
+    from api.schemas.models import FeedbackQuality
 
     first = FeedbackQuality()
     second = FeedbackQuality()

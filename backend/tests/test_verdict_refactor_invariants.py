@@ -24,8 +24,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from praat_analyzer import estimate_word_prosody
-from tone_decision import (
+from domain.speech.acoustics import estimate_word_prosody
+from domain.speech.tone_decision import (
     DIRECTION_BAD,
     DIRECTION_SUPPORT,
     DiagnosticStatus,

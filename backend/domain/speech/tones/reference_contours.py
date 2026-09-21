@@ -454,7 +454,7 @@ def directional_tone_scores_with_provenance(
     equal-length pieces, which assumes every syllable occupies the same amount
     of time — real Mandarin syllable durations vary by 2-3x, so that lands the
     tone template on the wrong stretch of audio. Callers that have real
-    boundaries (see ``tone_scoring.alignment``) should pass them; the equal
+    boundaries (see ``domain.speech.acoustics.alignment``) should pass them; the equal
     split remains only as the fallback for callers that do not.
 
     Returns ([], []) when the contour or tone list can't be scored.

@@ -9,7 +9,7 @@ from typing import Any, Literal, Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.concurrency import run_in_threadpool
 
-import auth
+import security.auth as auth
 from analytics.ttl_cache import TTLCache
 from analytics.knowledge_tracing import (
     BKT,

@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import uuid
 
-import auth
+import security.auth as auth
 from db import connect_db
 
 

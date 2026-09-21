@@ -3,7 +3,7 @@
 What this module reports, and what it deliberately refuses to.
 
 `praat_analyzer` already measures each syllable's real time span (energy
-aligner, see `tone_scoring.alignment`) and can measure real formants inside an
+aligner, see `domain.speech.acoustics.alignment`) and can measure real formants inside an
 arbitrary slice of the audio. Together those give a genuine per-syllable F1/F2
 reading — the first pronunciation signal in this app below the level of the
 tone.

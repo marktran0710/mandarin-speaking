@@ -3,7 +3,7 @@
 from collections import Counter
 from pathlib import Path
 
-from vocab_assessment import normalize_answer, parse_vocab_assessment_csv, validate_vocab_assessment
+from domain.vocabulary.assessment import normalize_answer, parse_vocab_assessment_csv, validate_vocab_assessment
 
 
 BANK_DIRECTORY = Path(__file__).parents[1] / "scripts" / "data" / "quiz_assessments"

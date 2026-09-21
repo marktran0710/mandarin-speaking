@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from praat_analyzer import reference_curve_for_span, slice_reference_word_span
+from domain.speech.acoustics import reference_curve_for_span, slice_reference_word_span
 
 
 def _flat_contour(start, end, hz=200.0, num_points=60):

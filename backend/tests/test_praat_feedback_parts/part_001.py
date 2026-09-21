@@ -20,12 +20,12 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from chinese_tones import (
+from domain.speech.tones import (
     generate_comprehensive_feedback,
     generate_phrase_tone_feedback,
     get_tone_feedback,
 )
-from praat_analyzer import (
+from domain.speech.acoustics import (
     _classify_content_word,
     _contour_shape,
     _word_prosody_feedback,

@@ -13,8 +13,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from chinese_tones import directional_tone_scores
-from praat_analyzer import SYLLABLE_PASS_THRESHOLD, estimate_word_prosody
+from domain.speech.tones import directional_tone_scores
+from domain.speech.acoustics import SYLLABLE_PASS_THRESHOLD, estimate_word_prosody
 
 
 def _contour(pitch_pattern, base_hz=220.0, spread_hz=160.0, num_points=60, duration=0.8):

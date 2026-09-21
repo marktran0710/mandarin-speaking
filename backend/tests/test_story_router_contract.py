@@ -1,6 +1,6 @@
 from fastapi.routing import APIRoute
 
-import auth
+import security.auth as auth
 from main import app
 from routers import stories, vocabulary
 from routers.story_crud import router as story_crud_router

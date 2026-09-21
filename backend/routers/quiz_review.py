@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
-import auth
+import security.auth as auth
 from main import QuizApproveRequest
 from db import connect_db
 

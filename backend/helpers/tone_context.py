@@ -348,7 +348,7 @@ def plan_for_tokens(
     """
     import re
 
-    from chinese_tones import word_tones
+    from domain.speech.tones import word_tones
 
     chars: List[str] = []
     tones: List[int] = []

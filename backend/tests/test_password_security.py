@@ -1,7 +1,7 @@
 """Password storage and legacy-login migration coverage."""
 import uuid
 
-import auth
+import security.auth as auth
 import db
 
 

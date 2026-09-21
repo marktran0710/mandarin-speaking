@@ -5,7 +5,7 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from db import connect_db
-import auth
+import security.auth as auth
 
 router = APIRouter()
 

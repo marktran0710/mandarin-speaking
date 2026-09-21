@@ -2,9 +2,9 @@ import json
 
 from fastapi import APIRouter, Depends
 
-import auth
+import security.auth as auth
 from db import connect_db
-from models import (
+from api.schemas.models import (
     MAX_VOCAB_CLOZE_PER_WORD,
     MAX_VOCAB_DISTRACTORS_PER_WORD,
     MAX_VOCAB_SYNONYM_PER_WORD,

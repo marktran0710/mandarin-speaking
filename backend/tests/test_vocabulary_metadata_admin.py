@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import auth
+import security.auth as auth
 from routers import story_vocabulary_metadata, vocabulary
 
 

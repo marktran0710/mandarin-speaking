@@ -31,7 +31,7 @@ def apply_recording_qc_to_diagnostics(word_prosody: list, feedback_quality: dict
     response) and returns the sentence-level summary. The legacy ``passed``
     fields are left exactly as the analyzer produced them.
     """
-    from tone_decision import DiagnosticStatus, QcEvidence, summarize_sentence
+    from domain.speech.tone_decision import DiagnosticStatus, QcEvidence, summarize_sentence
 
     quality = feedback_quality or {}
     evidence = QcEvidence(

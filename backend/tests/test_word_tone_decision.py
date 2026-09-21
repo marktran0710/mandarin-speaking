@@ -22,7 +22,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from tone_decision import (
+from domain.speech.tone_decision import (
     DIRECTION_BAD,
     DIRECTION_SUPPORT,
     DiagnosticStatus,

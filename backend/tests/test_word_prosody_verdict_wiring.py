@@ -23,7 +23,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from praat_analyzer import estimate_word_prosody
+from domain.speech.acoustics import estimate_word_prosody
 
 
 def _contour(pitch_pattern, base_hz=220.0, spread_hz=160.0, num_points=60, duration=0.8):
@@ -115,7 +115,7 @@ def test_word_promotion_propagates_passed_to_measured_uncertain_syllables():
     layer already passed. `diagnostic_status` stays UNCERTAIN so the row
     still shows △, but `passed` is a GATE flag and must reflect what the
     canonical word verdict says."""
-    from tone_decision import DiagnosticStatus, QcEvidence, decide_word_tone
+    from domain.speech.tone_decision import DiagnosticStatus, QcEvidence, decide_word_tone
 
     # Sanity: this shape/direction pair promotes to CORRECT.
     good_qc = QcEvidence(judged=True, pitch_points=40, minimum_pitch_points=8)
@@ -160,8 +160,8 @@ def test_reason_reflects_incorrect_syllable_override_not_stale_word_decision():
     CORRECT verdict, directly contradicting the INCORRECT verdict sitting
     next to it in the same payload. `reason` must describe whichever status
     actually won, not the word-level decision that got overridden."""
-    from praat_analyzer import _combine_word_verdict
-    from tone_decision import DiagnosticStatus, WordToneDiagnosis
+    from domain.speech.acoustics import _combine_word_verdict
+    from domain.speech.tone_decision import DiagnosticStatus, WordToneDiagnosis
 
     word_decision = WordToneDiagnosis(
         status=DiagnosticStatus.CORRECT,
@@ -198,8 +198,8 @@ def test_exceptionally_strong_word_shape_overrides_an_incorrect_syllable():
     the override applies here too, and must be as transparent as the phrase
     rescue is: the syllable's own diagnostic fields flip to CORRECT with a
     named reason and evidence, not just a silently-flipped `passed`."""
-    from praat_analyzer import _combine_word_verdict
-    from tone_decision import DiagnosticStatus, PHRASE_RESCUE_DIRECTION_SUPPORT, PHRASE_RESCUE_SHAPE_STRONG, WordToneDiagnosis
+    from domain.speech.acoustics import _combine_word_verdict
+    from domain.speech.tone_decision import DiagnosticStatus, PHRASE_RESCUE_DIRECTION_SUPPORT, PHRASE_RESCUE_SHAPE_STRONG, WordToneDiagnosis
 
     assert 93.0 >= PHRASE_RESCUE_SHAPE_STRONG
     assert 94.0 >= PHRASE_RESCUE_DIRECTION_SUPPORT
@@ -233,8 +233,8 @@ def test_exceptionally_strong_shape_alone_does_not_override_incorrect_syllable()
     """The override needs BOTH shape and direction to clear the stricter
     bar — a very high shape score with weak direction must not be enough,
     same asymmetric-safety philosophy as the phrase rescue."""
-    from praat_analyzer import _combine_word_verdict
-    from tone_decision import DiagnosticStatus, PHRASE_RESCUE_SHAPE_STRONG, WordToneDiagnosis
+    from domain.speech.acoustics import _combine_word_verdict
+    from domain.speech.tone_decision import DiagnosticStatus, PHRASE_RESCUE_SHAPE_STRONG, WordToneDiagnosis
 
     word_decision = WordToneDiagnosis(
         status=DiagnosticStatus.CORRECT,
@@ -259,8 +259,8 @@ def test_reason_unchanged_when_no_override_happens():
     """Regression guard: when the min-rule/promotion logic doesn't override
     the word-level decision, `reason` must still be the original
     decide_word_tone reason — the fix only touches the divergent case."""
-    from praat_analyzer import _combine_word_verdict
-    from tone_decision import DiagnosticStatus, WordToneDiagnosis
+    from domain.speech.acoustics import _combine_word_verdict
+    from domain.speech.tone_decision import DiagnosticStatus, WordToneDiagnosis
 
     word_decision = WordToneDiagnosis(
         status=DiagnosticStatus.CORRECT,
@@ -285,8 +285,8 @@ def test_reason_reflects_syllable_rollup_promotion_to_correct():
     direction disagreement) but every syllable independently measured
     CORRECT, so the combiner promotes the word to CORRECT. The reason must
     describe that promotion, not the original UNCERTAIN reasoning."""
-    from praat_analyzer import _combine_word_verdict
-    from tone_decision import DiagnosticStatus, WordToneDiagnosis
+    from domain.speech.acoustics import _combine_word_verdict
+    from domain.speech.tone_decision import DiagnosticStatus, WordToneDiagnosis
 
     word_decision = WordToneDiagnosis(
         status=DiagnosticStatus.UNCERTAIN,
@@ -320,7 +320,7 @@ def test_strong_word_shape_promotes_per_syllable_uncertain_to_correct():
     Constructed by direct injection so the assertion is about the combiner
     rule and not about whether a particular synthetic contour happens to
     land in the right bands."""
-    from tone_decision import DiagnosticStatus, QcEvidence, decide_word_tone
+    from domain.speech.tone_decision import DiagnosticStatus, QcEvidence, decide_word_tone
 
     # Sanity: shape 86 + direction 79 is CORRECT at the word level under
     # decide_word_tone (comfortably above SHAPE_STRONG and DIRECTION_SUPPORT

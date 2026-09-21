@@ -141,7 +141,7 @@ def _aggregate_tone_from_words(
         if w.get("expected_tones") and w.get("judged", True)
     ]
     if not scored:
-        from chinese_tones import detect_tone
+        from domain.speech.tones import detect_tone
 
         tone_detection = detect_tone(pitch_contour)
         detected_tone = tone_detection["detected_tone"]
@@ -172,7 +172,7 @@ def _aligner():
     Selected by TONE_ALIGNER so deployments can choose the supported
     syllable-alignment strategy without changing the analyzer code.
     """
-    from tone_scoring.alignment import get_aligner
+    from domain.speech.acoustics.alignment import get_aligner
 
     return get_aligner(os.getenv("TONE_ALIGNER", "energy"))
 
@@ -251,7 +251,7 @@ def _syllable_vowels(sound, spans, tokens: List[str]) -> List[Dict]:
     No record carries a right/wrong verdict — see ``vowel_analysis`` for why
     a short utterance cannot support one honestly.
     """
-    from chinese_tones import syllable_parts, word_tones
+    from domain.speech.tones import syllable_parts, word_tones
     from helpers.vowel_analysis import (
         NOT_APPLICABLE,
         NO_FORMANTS,
@@ -355,7 +355,7 @@ def _contextual_tone_plan(
 
 def _word_diagnostic_status(syllables: List[Dict]) -> str | None:
     """Roll a word's syllable diagnoses up. None when nothing was diagnosed."""
-    from tone_decision import DiagnosticStatus, aggregate_word
+    from domain.speech.tone_decision import DiagnosticStatus, aggregate_word
 
     statuses = [
         DiagnosticStatus(entry["diagnostic_status"])
@@ -384,8 +384,8 @@ def _diagnose_token(
     the word came back with the same score — 這 and 個 both reading 100 was
     how that surfaced.
     """
-    from chinese_tones import contextual_tone_scores
-    from tone_decision import PROVENANCE_NONE, QcEvidence, decide_tone
+    from domain.speech.tones import contextual_tone_scores
+    from domain.speech.tone_decision import PROVENANCE_NONE, QcEvidence, decide_tone
 
     evidence = QcEvidence(**qc_kwargs)
     scored = contextual_tone_scores(

@@ -191,7 +191,7 @@ def anonymous_client(use_test_database):
 @pytest.fixture()
 def admin_client(client):
     """The shared test client with an admin session for provisioning tests."""
-    import auth
+    import security.auth as auth
 
     # ``client`` starts logged in as a staff teacher. Clear that session before
     # promoting this fixture to admin so httpx does not retain duplicate
@@ -224,7 +224,7 @@ def logged_in_student(admin_client):
     # admin_client intentionally starts with an admin cookie for provisioning.
     # Select the newly-created student session explicitly so the compatibility
     # cookie cannot make student-scoped requests resolve as admin.
-    import auth
+    import security.auth as auth
     client.headers[auth.CLIENT_ROLE_HEADER] = "student"
     return client, student
 
@@ -239,7 +239,7 @@ def _insert_teacher_row(name: str, password: str) -> dict:
     import db
 
     with db.connect_db() as conn:
-        import auth
+        import security.auth as auth
 
         row = conn.execute(
             "INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *",
@@ -251,7 +251,7 @@ def _insert_teacher_row(name: str, password: str) -> dict:
 @pytest.fixture()
 def logged_in_teacher(use_test_database):
     """A logged-in teacher: (client, teacher)."""
-    import auth
+    import security.auth as auth
     from fastapi.testclient import TestClient
     import main
 
@@ -276,7 +276,7 @@ def login_new_client(stack, name, role, password="123456"):
     new_client = stack.enter_context(TestClient(main.app))
     if role == "student":
         import uuid
-        import auth
+        import security.auth as auth
         import db
 
         with db.connect_db() as conn:

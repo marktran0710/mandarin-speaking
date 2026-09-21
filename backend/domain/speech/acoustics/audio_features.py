@@ -182,7 +182,7 @@ def analyze_all(
         pause_analysis = analyze_pauses_and_utterances(audio_path)
         _syllables = sum(1 for c in transcription if "一" <= c <= "鿿")
         fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, _syllables)
-        from chinese_tones import generate_comprehensive_feedback
+        from domain.speech.tones import generate_comprehensive_feedback
         detected_tone, tone_accuracy = _aggregate_tone_from_words(word_prosody, pitch_contour)
         feedback = generate_comprehensive_feedback(
             detected_tone, tone_accuracy, speech_rate, fluency_score, pitch_contour,
@@ -191,7 +191,7 @@ def analyze_all(
         return (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
                 word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
 
-    from chinese_tones import generate_comprehensive_feedback
+    from domain.speech.tones import generate_comprehensive_feedback
 
     sound = _load_sound(audio_path)
     duration = max(float(sound.get_total_duration()), 0.01)

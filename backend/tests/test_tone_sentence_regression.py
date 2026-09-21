@@ -20,8 +20,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from praat_analyzer import SYLLABLE_PASS_THRESHOLD, estimate_word_prosody
-from tone_decision import (
+from domain.speech.acoustics import SYLLABLE_PASS_THRESHOLD, estimate_word_prosody
+from domain.speech.tone_decision import (
     PROVENANCE_MEASURED,
     PROVENANCE_NEUTRAL_CONSTANT,
     DiagnosticStatus,

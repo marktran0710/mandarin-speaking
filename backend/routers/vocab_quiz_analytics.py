@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-import auth
+import security.auth as auth
 from analytics.frex import compute_frex
 from db import connect_db
 

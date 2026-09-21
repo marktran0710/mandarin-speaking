@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from psycopg.types.json import Jsonb
 
-import auth
+import security.auth as auth
 from db import connect_db, row_to_custom_story
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])

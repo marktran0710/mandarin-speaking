@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from tone_scoring.alignment import (
+from domain.speech.acoustics.alignment import (
     EnergyAligner,
     ProportionalAligner,
     SyllableSpan,

@@ -6,14 +6,14 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
-import auth
+import security.auth as auth
 from analytics.bkt_assessment_resolver import resolve_assessment_response
 from analytics.bkt_mastery import get_vocabulary_mastery, record_attempt_and_rebuild
 from analytics.srs import DAY_SECONDS
 from analytics.srs_store import apply_srs_updates, enroll_strong_words
 from config import settings
 from db import connect_db, row_to_vocab_quiz_attempt
-from models import VocabQuizAttemptRequest
+from api.schemas.models import VocabQuizAttemptRequest
 
 
 logger = logging.getLogger("speaking_app")

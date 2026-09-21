@@ -17,14 +17,14 @@ from typing import List, Optional, Tuple, TypedDict
 
 import numpy as np
 
-from praat_analyzer import (
+from domain.speech.acoustics import (
     analyze_all,
     extract_pitch,
     reference_curve_for_span,
     slice_reference_word_span,
 )
 from helpers.pinyin_service import canonical_pinyin
-from tts_service import (
+from infrastructure.speech.tts import (
     DEFAULT_ZH_VOICE,
     decode_mp3_to_pcm,
     read_wav,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from analytics.bkt_mastery import canonical_story_id
-from vocab_assessment import normalize_answer, numeric_to_tone_marked
+from domain.vocabulary.assessment import normalize_answer, numeric_to_tone_marked
 
 
 # The three diagnostic rounds. The first element is the round key stored in

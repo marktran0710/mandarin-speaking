@@ -13,7 +13,7 @@ from fastapi import HTTPException
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import auth
+import security.auth as auth
 
 
 def test_issue_then_decode_round_trips_role_and_id():
