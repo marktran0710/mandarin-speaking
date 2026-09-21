@@ -1,0 +1,1 @@
+"""External speech provider adapters."""
