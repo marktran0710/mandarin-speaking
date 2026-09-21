@@ -149,6 +149,7 @@
      Narrow pages (e.g. Login) override --content-max locally. */
   --content-max: 1160px;
   --content-gutter: 20px;
+  --student-task-width: 860px;
 
   /* Shadow */
   --airbnb-shadow:

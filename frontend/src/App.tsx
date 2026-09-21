@@ -591,7 +591,11 @@ export default function App() {
           ariaLabel="Voice practice"
           onOpenPlacementTest={() => setCurrentPage("placement-test")}
         >
-          <StudentPageShell layout="stage" pageId="voice-practice">
+          <StudentPageShell
+            layout="stage"
+            pageId="voice-practice"
+            className="student-page-shell--voice"
+          >
             <VoiceTestPage />
           </StudentPageShell>
         </StudentModeFrame>

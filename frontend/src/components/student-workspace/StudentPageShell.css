@@ -1,14 +1,12 @@
 /*
- * StudentPageShell is the one internal page grammar within StudentModeFrame.
- * StudentModeFrame owns the rail, outer surface, and desktop scrolling.
- * This component owns the page rhythm and the shared content rail. Feature
- * pages own only their internal task/stage composition.
+ * StudentPageShell is the one page grammar within StudentModeFrame.
+ * StudentModeFrame owns navigation, the outer surface, and desktop scrolling.
+ * This component owns only the page rail, inset, and layout mode.
  */
 .student-page-shell {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0;
   width: 100%;
   max-width: none;
   min-width: 0;
@@ -37,26 +35,28 @@
   min-width: 0;
 }
 
-.student-page-shell--task .student-page-shell__rail {
-  gap: var(--space-lg);
-}
-
-.student-page-shell--task .student-page-shell__rail > .placement-test-page {
-  width: min(100%, 860px);
-  max-width: 860px;
+/* Focused question/task pages use a narrower working rail while retaining the
+   same outer gutter and panel ownership as content pages. */
+.student-page-shell--task .student-page-shell__rail > * {
+  width: min(100%, var(--student-task-width));
+  max-width: var(--student-task-width);
   margin-inline: auto;
 }
 
-/* Activity stages use the complete frame width while retaining the same
-   content inset as catalogue and task pages. The recorder and voice workspace
-   provide their own internal columns inside this shared boundary. */
+/* Activity stages use the complete workspace width inside the shared inset.
+   Feature pages own their internal columns and action rhythm. */
 .student-page-shell--stage .student-page-shell__rail {
   width: 100%;
   max-width: none;
   gap: 0;
 }
 
-/* The header owns copy hierarchy; the page shell owns its width and rhythm. */
+.student-page-shell--stage > .student-page-shell__rail > * {
+  height: 100%;
+  min-height: 0;
+}
+
+/* The page header owns copy hierarchy; the shell keeps it on the shared rail. */
 .student-page-shell .student-page-header {
   width: 100%;
   max-width: none;
@@ -74,138 +74,11 @@
 }
 
 .student-page-shell .student-page-header h1 .bi-label {
-  flex-direction: row;
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-sm);
 }
 
-/* Page roots do not draw a second full-page canvas inside the frame. */
-.student-page-shell--content .create-story-page,
-.student-page-shell--content .my-stories-page,
-.student-page-shell--content .voice-test-page,
-.student-page-shell--task .placement-test-page,
-.student-page-shell--stage .create-story-page,
-.student-page-shell--stage .voice-test-page {
-  width: 100%;
-  max-width: none;
-  min-height: 0;
-  margin: 0;
-  background: transparent;
-}
-
-/* Lessons keeps its catalogue content, but not its competing full-page
-   gradient/hero canvas. */
-.student-page-shell--content .topic-selector {
-  min-height: 0;
-  padding: 0;
-  background: transparent;
-}
-
-.student-page-shell--content .topic-selector::before {
-  display: none;
-}
-
-.student-page-shell--content .ts-container {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
-
-.student-page-shell--content .ts-dashboard {
-  gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-}
-
-.student-page-shell--content .ts-dash-continue-card {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  padding: var(--space-lg);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
-  box-shadow: none;
-}
-
-.student-page-shell--content .ts-dash-continue-copy {
-  grid-column: span 7;
-}
-
-.student-page-shell--content .ts-dash-continue-art {
-  grid-column: span 5;
-}
-
-.student-page-shell--content .ts-dash-explainer {
-  gap: var(--space-sm);
-}
-
-.student-page-shell--content .ts-dash-step-grid {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-}
-
-.student-page-shell--content .ts-dash-step-card {
-  grid-column: span 4;
-  padding: var(--space-md);
-  border-radius: var(--clay-radius-md);
-  box-shadow: none;
-}
-
-/* Progress is a report, not a stack of competing hero cards. */
-.student-page-shell--content > .student-page-shell__rail > .my-stories-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: 0;
-}
-
-.student-page-shell--content .stories-header {
-  margin: 0;
-  padding: 0 0 var(--space-md);
-  border: 0;
-  border-bottom: 1px solid var(--clay-hairline);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.student-page-shell--content .profile-stats,
-.student-page-shell--content .student-help-card,
-.student-page-shell--content .my-story-feedback-history,
-.student-page-shell--content .profile-overview {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
-
-.student-page-shell--content .profile-stats {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--space-sm);
-}
-
-.student-page-shell--content .profile-stat-card {
-  grid-column: span 3;
-}
-
-.student-page-shell--content .student-help-card {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-}
-
-.student-page-shell--content .student-help-card > :first-child {
-  grid-column: span 5;
-}
-
-.student-page-shell--content .student-help-card > :last-child {
-  grid-column: span 7;
-}
-
-.student-page-shell--content .profile-stat-card,
-.student-page-shell--content .student-help-card,
-.student-page-shell--content .my-story-feedback-history,
-.student-page-shell--content .profile-overview {
-  border-radius: var(--clay-radius-md);
-  box-shadow: none;
-}
-
-/* The full-height story recorder remains an activity stage, but now enters
-   through the same page-shell boundary as every other student surface. */
 .student-page-shell--stage {
   display: grid;
   grid-template-rows: minmax(0, 1fr);
@@ -213,19 +86,19 @@
   padding: 0;
 }
 
-.student-page-shell--stage > .student-page-shell__rail > .create-story-page,
-.student-page-shell--stage > .student-page-shell__rail > .voice-test-page {
-  height: 100%;
-  min-height: 0;
+/* Voice practice is a stage page, but its header and controls use the same
+   page-level inset as catalogue/progress pages. Keep that inset here so the
+   feature page cannot create a second coordinate system. */
+.student-page-shell--stage.student-page-shell--voice {
+  padding: var(--space-lg) 0 var(--space-2xl);
 }
 
-.student-page-shell--stage .voice-test-page {
-  padding: 0 0 var(--space-2xl);
+.student-page-shell--stage.student-page-shell--voice > .student-page-shell__rail > * {
+  padding: 0;
 }
 
 @media (max-width: 900px) {
   .student-page-shell {
-    max-width: none;
     padding: var(--space-md) 0 var(--space-2xl);
   }
 
@@ -234,28 +107,16 @@
     padding-inline: var(--content-gutter);
   }
 
-  .student-page-shell--stage .student-page-shell__rail {
-    padding-inline: var(--content-gutter);
-  }
-
-  .student-page-shell--content .ts-dash-continue-card,
-  .student-page-shell--content .ts-dash-step-grid,
-  .student-page-shell--content .profile-stats,
-  .student-page-shell--content .student-help-card {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .student-page-shell--content .ts-dash-continue-copy,
-  .student-page-shell--content .ts-dash-continue-art,
-  .student-page-shell--content .ts-dash-step-card,
-  .student-page-shell--content .profile-stat-card,
-  .student-page-shell--content .student-help-card > :first-child,
-  .student-page-shell--content .student-help-card > :last-child {
-    grid-column: auto;
-  }
-
   .student-page-shell--stage {
     min-height: 0;
     padding: 0;
+  }
+
+  .student-page-shell--stage.student-page-shell--voice {
+    padding: var(--space-md) 0 var(--space-2xl);
+  }
+
+  .student-page-shell--stage > .student-page-shell__rail > * {
+    height: auto;
   }
 }

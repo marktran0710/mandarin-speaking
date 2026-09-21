@@ -34,6 +34,10 @@ import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
 import type { Topic } from "../components/TopicSelector";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
+import {
+  StudentSection,
+  StudentSectionBody,
+} from "../components/student-workspace/student-section";
 import StudentPageHeader from "../components/StudentPageHeader";
 
 export interface AudioRecord {
@@ -235,16 +239,16 @@ export default function MyStoriesPage({
       <div className="my-stories-page">
         <StudentPageHeader
           eyebrow={{ zh: "學習進度", pinyin: "Xuéxí jìndù", en: "Learning progress" }}
-          title={{ zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "My learning" }}
+          title={{ zh: "我的學習", en: "My learning" }}
           lede={{
             zh: "看看你學到哪裡了。想再練習，就回課程列表。",
-            pinyin: "Kànkan nǐ xué dào nǎlǐ le. Xiǎng zài liànxí, jiù huí kèchéng lièbiǎo.",
             en: "See your overall progress and stars — go back to the lesson list to practice.",
           }}
         />
 
-      <section className="profile-stats" aria-label="Overall progress">
-        <div className="profile-stat-card">
+        <StudentSection className="profile-summary" aria-label="Overall progress">
+          <StudentSectionBody layout="grid" className="profile-stats">
+            <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="star" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="總星星" en="Total stars" align="center" />
@@ -253,9 +257,9 @@ export default function MyStoriesPage({
             {totalStars}
             <span className="profile-stat-max"> / {maxStars}</span>
           </strong>
-        </div>
+            </div>
 
-        <div className="profile-stat-card">
+            <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="check" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="課程完成" en="Lessons complete" align="center" />
@@ -273,9 +277,9 @@ export default function MyStoriesPage({
               }}
             />
           </div>
-        </div>
+            </div>
 
-        <div className="profile-stat-card">
+            <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="voice" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="發音表現" en="Tone accuracy (avg)" align="center" />
@@ -283,9 +287,9 @@ export default function MyStoriesPage({
           <strong className="profile-stat-value">
             {averageToneAccuracy === null ? "—" : `${averageToneAccuracy}%`}
           </strong>
-        </div>
+            </div>
 
-        <div className="profile-stat-card">
+            <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="chart" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="說得順不順" en="Fluency (avg)" align="center" />
@@ -293,15 +297,17 @@ export default function MyStoriesPage({
           <strong className="profile-stat-value">
             {averageFluency === null ? "—" : `${averageFluency}/100`}
           </strong>
-        </div>
-      </section>
+            </div>
+          </StudentSectionBody>
+        </StudentSection>
 
       <StudentHelpCard helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
 
       <MyStoryFeedbackHistory submissions={mySubmissions} />
 
-      <section className="profile-overview" aria-label="Progress overview">
-        <div className="profile-tabs" role="tablist">
+        <StudentSection variant="surface" className="profile-overview" aria-label="Progress overview">
+          <StudentSectionBody className="profile-overview-body">
+            <div className="profile-tabs" role="tablist">
           <button
             type="button"
             role="tab"
@@ -320,7 +326,7 @@ export default function MyStoriesPage({
           >
             <BiLabel zh="按故事" en="By story" align="center" />
           </button>
-        </div>
+            </div>
 
         {profileTab === "lesson" ? (
           <div className="profile-lesson-list">
@@ -492,7 +498,8 @@ export default function MyStoriesPage({
             })}
           </div>
         )}
-      </section>
+          </StudentSectionBody>
+        </StudentSection>
       </div>
     </StudentPageShell>
   );

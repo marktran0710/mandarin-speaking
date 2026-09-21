@@ -1,7 +1,7 @@
 .voice-test-page {
-  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto;
-  padding: 24px 0 72px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .voice-test-hero,

@@ -2,48 +2,12 @@
    The shell owns navigation; this page owns one heading, one summary strip,
    one support action, and one progress list. Keep the hierarchy open and
    editorial instead of stacking another set of rounded game tiles. */
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .my-stories-page {
-  min-height: auto;
-  padding: 0 0 var(--space-3xl);
-  background: transparent;
-}
-
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .my-stories-page .stories-header {
-  display: block;
-  width: 100%;
-  max-width: none;
-  margin: 0 0 var(--space-lg);
-  padding: 0 0 var(--space-md);
-  border: 0;
-  border-bottom: 1px solid var(--clay-hairline);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.student-workspace.student-workspace-v2 .stories-kicker { display: none; }
-
-.student-workspace.student-workspace-v2 .stories-header h1 {
-  margin: 0;
-  color: var(--clay-ink);
-  font-family: var(--font-display);
-  font-size: clamp(30px, 4vw, 42px);
-  line-height: 1.08;
-}
-
-.student-workspace.student-workspace-v2 .stories-subtitle {
-  max-width: 60ch;
-  margin: var(--space-xs) 0 0;
-  color: var(--clay-body);
-  font-size: var(--text-sm);
-  line-height: 1.55;
-}
-
 .student-workspace.student-workspace-v2 .profile-stats {
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--space-sm);
-  max-width: none;
-  margin: 0 0 var(--space-lg);
+}
+
+.student-workspace.student-workspace-v2 .my-stories-page {
+  gap: var(--space-lg);
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-card {
@@ -112,7 +76,7 @@
 .student-workspace.student-workspace-v2 .student-help-card,
 .student-workspace.student-workspace-v2 .my-story-feedback-history {
   max-width: none;
-  margin: 0 0 var(--space-lg);
+  margin: 0;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
@@ -161,16 +125,6 @@
 .student-workspace.student-workspace-v2 .student-help-card button:active {
   transform: none;
   box-shadow: none;
-}
-
-.student-workspace.student-workspace-v2 .profile-overview {
-  max-width: none;
-  margin: 0;
-  padding: var(--space-lg);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
-  box-shadow: var(--shadow-sm);
 }
 
 .student-workspace.student-workspace-v2 .profile-tabs {
@@ -346,10 +300,6 @@
 }
 
 @media (max-width: 600px) {
-  .student-workspace.student-workspace-v2 .profile-overview {
-    padding: var(--space-md);
-  }
-
   .student-workspace.student-workspace-v2 .profile-lesson-row,
   .student-workspace.student-workspace-v2 .profile-story-row {
     grid-template-columns: 48px minmax(0, 1fr);

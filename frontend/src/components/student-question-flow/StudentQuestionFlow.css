@@ -18,12 +18,12 @@
   min-height: 0;
 }
 
-.student-page-shell--task .student-page-shell__rail > .placement-test-page > .student-question-flow {
+.student-page-shell--task .student-page-shell__rail > .placement-test-page .student-question-flow {
   width: 100%;
   max-width: none;
 }
 
-.student-page-shell--task .student-page-shell__rail > .placement-test-page > .student-question-flow > .vocab-quiz-content {
+.student-page-shell--task .student-page-shell__rail > .placement-test-page .student-question-flow > .vocab-quiz-content {
   width: 100%;
   max-width: none;
 }

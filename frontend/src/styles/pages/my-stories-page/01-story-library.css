@@ -1,10 +1,10 @@
 .my-stories-page {
-  min-height: max(0px, calc(100dvh - var(--navbar-height)));
-  padding: 20px 20px 56px;
-  background:
-    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--tone1-soft) 60%, transparent), transparent 23rem),
-    radial-gradient(circle at 5% 22%, color-mix(in srgb, var(--seal-soft) 52%, transparent), transparent 20rem),
-    var(--clay-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: 0;
+  padding: 0 0 var(--space-2xl);
+  background: transparent;
 }
 
 .stories-header {
@@ -120,7 +120,7 @@
 
 .my-story-feedback-history {
   max-width: var(--content-max);
-  margin: 0 auto 18px;
+  margin: 0 auto;
   padding: 16px;
   /* Was 2.5px — every other card border on this page (incl. the feedback
      items inside this one) is the app's standard 1px hairline; this one was
@@ -176,7 +176,7 @@
 
 .student-help-card {
   max-width: var(--content-max);
-  margin: 0 auto 18px;
+  margin: 0 auto;
   padding: 16px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
@@ -278,11 +278,9 @@
 
 /* ── My Profile: stat strip + lesson/story overview tabs ── */
 .profile-stats {
-  max-width: var(--content-max);
-  margin: 0 auto 18px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .profile-stat-card {
@@ -331,8 +329,7 @@
 }
 
 .profile-overview {
-  max-width: var(--content-max);
-  margin: 0 auto;
+  width: 100%;
 }
 
 .profile-tabs {

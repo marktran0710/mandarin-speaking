@@ -31,6 +31,11 @@ import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import StudentIcon from "./StudentIcon";
 import StudentPageHeader from "./StudentPageHeader";
+import {
+  StudentSection,
+  StudentSectionBody,
+  StudentSectionHeader,
+} from "./student-workspace/student-section/StudentSection";
 import "./BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
@@ -169,13 +174,22 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
     return () => { cancelled = true; };
   }, [continueTopic?.id]);
 
+  const pageHeader = (
+    <StudentPageHeader
+      eyebrow={{ zh: "課程", pinyin: "Kèchéng", en: "Lessons" }}
+      title={{ zh: `歡迎回來，${getStudentName()}`, en: "Continue learning" }}
+      lede={{ zh: "從上次停下的地方繼續", en: "Pick up right where you left off" }}
+    />
+  );
+
   if (loading) {
     return (
       <div className="topic-selector">
-        <div className="empty-state">
+        {pageHeader}
+        <StudentSection className="empty-state" variant="soft" aria-labelledby="ts-loading-title">
           <div className="empty-icon"><StudentIcon name="spark" size={28} /></div>
-          <h2><BiLabel k="loading_activities" /></h2>
-        </div>
+          <StudentSectionHeader headingId="ts-loading-title" title={<BiLabel k="loading_activities" />} />
+        </StudentSection>
       </div>
     );
   }
@@ -183,17 +197,15 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
   if (topics.length === 0) {
     return (
       <div className="topic-selector">
-        <section className="ts-hero">
-          <div className="ts-hero-copy">
-            <h1><BiLabel k="choose_a_daily_situation" align="left" /></h1>
-            <p><BiText k="your_teacher_will_publish_speaking_activ" /></p>
-          </div>
-        </section>
-        <div className="empty-state">
+        {pageHeader}
+        <StudentSection className="empty-state" variant="soft" aria-labelledby="ts-empty-title">
           <div className="empty-icon"><StudentIcon name="stories" size={28} /></div>
-          <h2><BiLabel k="no_activities_yet" align="center" /></h2>
+          <StudentSectionHeader
+            headingId="ts-empty-title"
+            title={<BiLabel k="no_activities_yet" align="center" />}
+          />
           <p><BiText k="your_teacher_will_create_and_publish_spe" /></p>
-        </div>
+        </StudentSection>
       </div>
     );
   }
@@ -302,14 +314,13 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
     };
 
     return (
-      <section className="ts-dashboard" aria-labelledby="ts-dashboard-title">
-        <StudentPageHeader
-          eyebrow={{ zh: "課程", pinyin: "Kèchéng", en: "Lessons" }}
-          title={{ zh: `歡迎回來，${getStudentName()}`, en: "Continue learning" }}
-          lede={{ zh: "從上次停下的地方繼續", en: "Pick up right where you left off" }}
-        />
-
-        <article className="ts-dash-continue-card">
+      <>
+        <StudentSection className="ts-dashboard ts-dash-continue" variant="soft" aria-labelledby="ts-continue-title">
+          <StudentSectionHeader
+            headingId="ts-continue-title"
+            title={<BiLabel zh="繼續故事" en="Continue story" align="left" />}
+          />
+          <StudentSectionBody layout="split" className="ts-dash-continue-card">
           <div className="ts-dash-continue-copy">
             <span className="ts-dash-kicker">
               <BiLabel
@@ -347,13 +358,15 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
               </span>
             )}
           </div>
-        </article>
+          </StudentSectionBody>
+        </StudentSection>
 
-        <div className="ts-dash-explainer" aria-labelledby="ts-dash-steps-title">
-          <h2 id="ts-dash-steps-title">
-            <BiLabel zh="三步開始" en="Three steps" align="left" />
-          </h2>
-          <div className="ts-dash-step-grid">
+        <StudentSection className="ts-dash-explainer" variant="plain" aria-labelledby="ts-dash-steps-title">
+          <StudentSectionHeader
+            headingId="ts-dash-steps-title"
+            title={<BiLabel zh="三步開始" en="Three steps" align="left" />}
+          />
+          <StudentSectionBody layout="grid" className="ts-dash-step-grid">
             <article className="ts-dash-step-card">
               <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
                 <StudentIcon name="image" size={22} />
@@ -375,9 +388,9 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
               <h3><BiLabel zh="看回饋" en="Improve" align="left" /></h3>
               <p><BiText zh="看看回饋，知道下一步怎麼進步。" en="Use your feedback to choose the next step." /></p>
             </article>
-          </div>
-        </div>
-      </section>
+          </StudentSectionBody>
+        </StudentSection>
+      </>
     );
   };
 
@@ -468,33 +481,33 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
 
   return (
     <div className="topic-selector">
-      <div className="ts-container">
+      {pageHeader}
       {renderDashboard()}
-      <header className="ts-toc-head">
-        <div>
-          <h1 className="ts-toc-title">
-            目錄 <span className="ts-lesson-sub">Mùlù · Contents</span>
-          </h1>
-        </div>
-        <div className="ts-book-chip">
-          <img className="ts-book-cover" src="/textbook-cover.jpg" alt="" aria-hidden="true" width={192} height={264} />
-          <span className="ts-book-name">
-            時代華語 第一冊
-            <span className="ts-lesson-sub">Modern Chinese · Book 1</span>
-          </span>
-        </div>
-      </header>
+      <StudentSection className="ts-catalogue" variant="plain" aria-labelledby="ts-catalogue-title">
+        <StudentSectionHeader
+          headingId="ts-catalogue-title"
+          title={<BiLabel zh="目錄" pinyin="Mùlù" en="Contents" align="left" />}
+          action={(
+            <div className="ts-book-chip">
+              <img className="ts-book-cover" src="/textbook-cover.jpg" alt="" aria-hidden="true" width={192} height={264} />
+              <span className="ts-book-name">
+                時代華語 第一冊
+                <span className="ts-lesson-sub">Modern Chinese · Book 1</span>
+              </span>
+            </div>
+          )}
+        />
+        <StudentSectionBody className="ts-catalogue-body">
+          <div className="ts-lesson-list">
+            {numberedGroups.map((group, numberedIndex) => renderLessonRow(group, numberedIndex))}
+          </div>
 
-      <div className="ts-lesson-list">
-        {numberedGroups.map((group, numberedIndex) => renderLessonRow(group, numberedIndex))}
-      </div>
-
-      {otherGroup && (
-        <div className="ts-other-block">
-          <p className="ts-other-label">
+          {otherGroup && (
+            <section className="ts-other-block" aria-labelledby="ts-more-practice-title">
+              <h3 id="ts-more-practice-title" className="ts-other-label">
             <BiLabel zh="其他" en="More practice" />
-          </p>
-          <div className="ts-lesson">
+              </h3>
+              <div className="ts-lesson">
             <button
               type="button"
               className="ts-lesson-card"
@@ -524,17 +537,18 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
                 </span>
               </span>
             </button>
-          </div>
-          {openLesson === "other" && (
-            <div className="ts-lesson-expanded">
-              <div className="ts-grid">
-                {otherGroup.topics.map((t, i) => renderTopicCard(t, otherGroup, i))}
               </div>
-            </div>
+              {openLesson === "other" && (
+                <div className="ts-lesson-expanded">
+                  <div className="ts-grid">
+                    {otherGroup.topics.map((t, i) => renderTopicCard(t, otherGroup, i))}
+                  </div>
+                </div>
+              )}
+            </section>
           )}
-        </div>
-      )}
-      </div>
+        </StudentSectionBody>
+      </StudentSection>
     </div>
   );
 }

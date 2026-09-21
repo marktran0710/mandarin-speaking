@@ -1,42 +1,6 @@
-/* Both picker screens share the app-wide content column (same formula as
-   the navbar and every page shell — see --content-max in index.css), so
-   the picker's edges line up with the rest of the app. */
-.ts-container {
-  position: relative;
-  z-index: 1;
-  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto;
-}
 /* ══ Lesson table of contents (目錄) ══════════════════════════════════
    The picker is the book's table of contents: numbered lesson cards
    threaded by a progress spine, each opening into that lesson's stories. */
-
-.ts-toc-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-lg);
-}
-
-.ts-toc-title {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: var(--clay-ink);
-  margin: 0;
-}
-
-.ts-toc-title .ts-lesson-sub {
-  display: block;
-  margin-top: 2px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: .02em;
-}
 
 .ts-lesson-sub {
   /* Was --font-mono, which put "Dì 5 kè · Where Is My Wallet?" in Consolas
@@ -362,7 +326,7 @@
 .ts-chip-open { background: var(--clay-surface-soft); color: var(--clay-muted); }
 
 .ts-other-block {
-  margin-top: var(--space-xl);
+  margin: 0;
 }
 
 .ts-other-label {
@@ -469,16 +433,6 @@
 }
 
 @media (max-width: 560px) {
-  .ts-toc-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 18px;
-  }
-  .ts-toc-title {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 3px;
-  }
   .ts-book-chip {
     width: 100%;
     min-width: 0;

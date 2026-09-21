@@ -1,9 +1,3 @@
-.ts-dashboard {
-  display: grid;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-xl);
-}
-
 .ts-dash-intro {
   display: grid;
   gap: var(--space-xs);
@@ -72,17 +66,11 @@
 }
 
 .ts-dash-continue-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   align-items: stretch;
-  gap: var(--space-xl);
-  padding: var(--space-xl);
-  border: 1px solid color-mix(in srgb, var(--seal) 30%, var(--clay-hairline));
-  border-radius: var(--clay-radius-xl);
-  background: linear-gradient(135deg, var(--seal-soft), var(--clay-surface-card) 62%);
 }
 
 .ts-dash-continue-copy {
+  grid-column: span 7;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -91,6 +79,7 @@
 }
 
 .ts-dash-continue-art {
+  grid-column: span 5;
   position: relative;
   align-self: stretch;
   min-height: 180px;
@@ -202,22 +191,12 @@
   outline-offset: 2px;
 }
 
-.ts-dash-explainer {
-  display: grid;
-  gap: var(--space-sm);
-}
-
-.ts-dash-explainer > h2 {
-  margin: 0;
-  color: var(--clay-ink);
-  font-size: var(--text-lg);
-}
-
 .ts-dash-step-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
 }
 
 .ts-dash-step-card {
+  grid-column: span 4;
   display: grid;
   align-content: start;
   gap: var(--space-xs);
@@ -248,13 +227,11 @@
   line-height: 1.5;
 }
 
-@media (max-width: 720px) {
-  .ts-dash-step-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .ts-dash-continue-card {
-    grid-template-columns: 1fr;
+@media (max-width: 900px) {
+  .ts-dash-continue-copy,
+  .ts-dash-continue-art,
+  .ts-dash-step-card {
+    grid-column: auto;
   }
 
   .ts-dash-continue-action {

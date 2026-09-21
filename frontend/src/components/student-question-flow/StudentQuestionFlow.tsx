@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 import "./StudentQuestionFlow.css";
+import {
+  StudentSection,
+  StudentSectionBody,
+  StudentSectionFooter,
+} from "../student-workspace/student-section";
 
 type StudentQuestionFlowProps = {
   ariaLabel: string;
@@ -25,17 +30,23 @@ export function StudentQuestionFlow({
   className = "",
 }: StudentQuestionFlowProps) {
   return (
-    <section className={`student-question-flow story-vocab-quiz vocab-quiz-question-screen ${className}`.trim()} aria-label={ariaLabel}>
+    <StudentSection
+      variant="task"
+      className={`student-question-flow story-vocab-quiz vocab-quiz-question-screen ${className}`.trim()}
+      aria-label={ariaLabel}
+    >
       <div className="vocab-quiz-topbar">{topbar}</div>
-      <div className="vocab-quiz-content" key={questionKey}>
+      <StudentSectionBody layout="task" className="vocab-quiz-content" key={questionKey}>
         <div className="vocab-quiz-question-panel">
           <div className="vocab-quiz-header">{prompt}</div>
         </div>
         <div className="vocab-quiz-answer-panel">
           {answers}
-          <div className="vocab-quiz-actions">{actions}</div>
+          <StudentSectionFooter align="center" className="vocab-quiz-actions">
+            {actions}
+          </StudentSectionFooter>
         </div>
-      </div>
-    </section>
+      </StudentSectionBody>
+    </StudentSection>
   );
 }

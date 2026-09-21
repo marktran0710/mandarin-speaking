@@ -105,7 +105,6 @@
 
 /* Keep the practice flow close to the instructor demo: quiet paper cards and one amber action. */
 .voice-test-page {
-  padding: 20px 0 48px;
   color: var(--clay-ink);
   font-family: var(--font-student);
 }
@@ -224,11 +223,6 @@
 }
 
 @media (max-width: 420px) {
-  .voice-test-page {
-    width: min(calc(100% - 24px), var(--content-max));
-    padding-top: 16px;
-  }
-
   .voice-test-controls > * {
     max-width: 100%;
   }
@@ -244,4 +238,3 @@
     min-width: 0;
   }
 }
-
