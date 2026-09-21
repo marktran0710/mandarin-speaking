@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import List
 
 
 def _word_prosody_feedback(
@@ -19,6 +22,12 @@ def _word_prosody_feedback(
     with a concrete vocal action derived from what the student's pitch
     actually did, instead of only restating that it was wrong.
     """
+    from .phrase_rescue import (
+        _TONE_EXAGGERATION_TIPS,
+        _TONE_NAMES,
+        _tone_mismatch_diagnosis,
+    )
+
     if expected_tones:
         tone_label = "+".join(_TONE_NAMES.get(t, str(t)) for t in expected_tones)
         # First non-neutral tone anchors the diagnosis: it's the syllable

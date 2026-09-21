@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+import re
+from typing import Dict, List, Tuple
+
+import numpy as np
 
 
 def estimate_word_prosody(
@@ -46,6 +52,27 @@ def estimate_word_prosody(
     ``_apply_phrase_rescue`` — a syllable/word that measured INCORRECT on its
     own can be promoted if the combined phrase span clears a stricter bar.
     """
+    from .pause_fluency import (
+        SYLLABLE_PASS_THRESHOLD,
+        _PLACEHOLDER_SCORE_PROVENANCES,
+        _aligner,
+        _contextual_tone_plan,
+        _diagnose_token,
+        _syllable_vowels,
+        _windows_for_spans,
+    )
+    from .phrase_rescue import (
+        _apply_phrase_rescue,
+        _classify_content_word,
+        _contour_shape,
+        _prosody_tokens,
+        _reference_curve_for_token,
+        _snap_to_onset,
+        _voicing_onset_times,
+    )
+    from .prosody_feedback import _word_prosody_feedback
+    from .verdicts import _combine_word_verdict
+
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
         return []

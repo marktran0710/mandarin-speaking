@@ -1,3 +1,16 @@
+from typing import Dict, List, Tuple
+
+import numpy as np
+
+from .reference_contours import (
+    TONE_REFERENCES,
+    _shape_match_score,
+    _smooth_for_directional_scoring,
+    apply_tone_sandhi,
+    build_phrase_reference_pattern,
+    directional_tone_scores,
+    normalize_pitch_contour,
+)
 
 
 def reference_syllable_scores(

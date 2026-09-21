@@ -160,8 +160,15 @@ def analyze_all(
 
     Returns a tuple matching the order expected by _run_praat in main.py:
     (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
-     word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
+    word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
     """
+    from .pause_fluency import (
+        _aggregate_tone_from_words,
+        analyze_fluency,
+        get_pitch_statistics,
+    )
+    from .word_prosody import estimate_word_prosody
+
     if parselmouth is None:
         pitch_contour = extract_pitch(audio_path)
         formants = extract_formants(audio_path)
@@ -229,6 +236,8 @@ def extract_pitch(
 ) -> List[Tuple[float, float]]:
     """Extract voiced pitch samples as (time_seconds, frequency_hz)."""
     if parselmouth is None:
+        from .pause_fluency import _extract_pitch_fallback
+
         return _extract_pitch_fallback(audio_path, time_step, pitch_floor, pitch_ceiling)
 
     sound = _load_sound(audio_path)

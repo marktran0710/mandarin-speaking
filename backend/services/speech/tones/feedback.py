@@ -1,3 +1,6 @@
+from typing import Dict, List, Tuple
+
+from .scoring import generate_phrase_tone_feedback, get_tone_feedback
 
 
 def generate_comprehensive_feedback(

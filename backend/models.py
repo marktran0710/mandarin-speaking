@@ -492,7 +492,8 @@ class AnalysisResponse(BaseModel):
     #: `ENABLE_ASSISTIVE_FEEDBACK=1` is set AND the layer could compute a
     #: result for this utterance -- additive and diagnostic only, exactly
     #: like `tone_diagnostics`: does not touch `word_prosody[].passed` or
-    #: any progression gate. See `assistive_feedback/pipeline.py`.
+    #: any progression gate. The optional research integration is kept outside
+    #: the production scoring modules.
     assistive_feedback: Optional[List[dict]] = None
     processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 

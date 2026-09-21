@@ -459,6 +459,11 @@ def directional_tone_scores_with_provenance(
 
     Returns ([], []) when the contour or tone list can't be scored.
     """
+    # The window helper and segment scorer live in the sibling scoring module.
+    # Keep this import local so the two modules can remain independently
+    # importable without introducing an initialization cycle.
+    from .scoring import _score_segment, _window_for
+
     user_pitch = normalize_pitch_contour(pitch_contour)
     if len(user_pitch) == 0 or not tones:
         return [], []

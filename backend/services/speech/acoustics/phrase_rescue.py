@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+import re
+from typing import Dict, List, Tuple
+
+import numpy as np
 
 
 def _clean_target_phrases(raw: List[str] | None) -> List[str]:
@@ -62,6 +68,7 @@ def _apply_phrase_rescue(
     if not phrases or len(segments) < 2:
         return
 
+    from .pause_fluency import _PLACEHOLDER_SCORE_PROVENANCES
     from chinese_tones import calculate_directional_tone_accuracy, calculate_phrase_shape_accuracy
     from tone_decision import (
         DiagnosticStatus,

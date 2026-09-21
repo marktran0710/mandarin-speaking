@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 
 def _combine_word_verdict(word_decision, syllables: list) -> tuple:
@@ -26,6 +27,7 @@ def _combine_word_verdict(word_decision, syllables: list) -> tuple:
     and attaching a `word_rescue` evidence dict — so the row is never left
     showing "Likely tone mismatch" for a syllable now counted as passed.
     """
+    from .pause_fluency import _PLACEHOLDER_SCORE_PROVENANCES
     from tone_decision import (
         DiagnosticStatus,
         PHRASE_RESCUE_DIRECTION_SUPPORT,

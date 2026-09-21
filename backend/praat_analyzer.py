@@ -1,4 +1,19 @@
-"""Compatibility facade; implementation is split into bounded parts."""
-from _module_loader import load_module_parts
+"""Compatibility facade for the speech acoustics service.
 
-load_module_parts(globals(), __file__)
+The historical top-level import path remains stable while the implementation
+is grouped under ``services.speech.acoustics`` by responsibility.
+"""
+
+from services.speech.acoustics import *  # noqa: F401,F403
+from services.speech.acoustics import (
+    _apply_phrase_rescue,
+    _classify_content_word,
+    _combine_word_verdict,
+    _contour_shape,
+    _correct_octave_jumps,
+    _clean_target_phrases,
+    _find_contiguous_token_run,
+    _prosody_tokens,
+    _reference_curve_for_token,
+    _word_prosody_feedback,
+)

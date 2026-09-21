@@ -1,3 +1,11 @@
+from __future__ import annotations
+
+import wave
+import os
+import re
+from typing import Dict, List, Tuple
+
+import numpy as np
 
 
 def _extract_pitch_fallback(
@@ -13,6 +21,8 @@ def _extract_pitch_fallback(
     not a replacement for Praat, but it keeps the speech-analysis API usable
     until the Docker/Praat backend is available again.
     """
+    from .audio_features import _correct_octave_jumps
+
     try:
         with wave.open(audio_path, "rb") as wav_file:
             frame_rate = wav_file.getframerate()
@@ -205,6 +215,8 @@ _MIN_NUCLEUS_SECONDS = 0.045
 
 
 def _nucleus_formants(sound, start: float, end: float) -> Dict[str, float]:
+    from .audio_features import _formants_from_sound
+
     """Median F1/F2/F3 across the steady middle of one syllable's audio."""
     total = float(sound.get_total_duration())
     start = max(0.0, min(float(start), total))
