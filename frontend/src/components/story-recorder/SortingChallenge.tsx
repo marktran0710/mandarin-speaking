@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { BiLabel, BiText } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel, BiText } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 import type { Topic } from "./StoryRecorder";
 
 interface SortingChallengeProps {

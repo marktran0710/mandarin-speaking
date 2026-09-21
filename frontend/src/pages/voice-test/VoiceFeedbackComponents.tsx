@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BiLabel, BiText } from "../../components/BiLabel";
+import { BiLabel, BiText } from "../../components/ui/BiLabel";
 import type { WordProsody } from "./types";
 
 export function ScriptWordLevel({ transcription, wordProsody = [] }: { transcription: string; wordProsody?: WordProsody[] }) {

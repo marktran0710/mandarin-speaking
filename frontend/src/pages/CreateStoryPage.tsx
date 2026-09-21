@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
+import TopicSelector, { type TopicStartOptions } from "../components/content/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
 import { replaceHistorySnapshot, pushHistorySnapshot } from "../utils/studentHistory";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import "./CreateStoryPage.css";
-import "../components/BiLabel.css";
+import "../components/ui/BiLabel.css";
 
 interface CreateStoryPageProps {
   onAddRecord: (record: NewAudioRecord) => void;

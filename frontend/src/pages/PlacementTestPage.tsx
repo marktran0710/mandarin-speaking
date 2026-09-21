@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import StudentPageHeader from "../components/StudentPageHeader";
-import { BiLabel } from "../components/BiLabel";
+import StudentPageHeader from "../components/navigation/StudentPageHeader";
+import { BiLabel } from "../components/ui/BiLabel";
 import { StudentQuestionFlow } from "../components/student-question-flow/StudentQuestionFlow";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import {

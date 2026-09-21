@@ -3,8 +3,8 @@ import { ASSISTIVE_MESSAGE, matchAssistiveRecord } from "../../utils/assistiveFe
 import { primePinyin } from "../../utils/pinyin";
 import { scriptAlignmentText } from "../../utils/scriptAlignment";
 import { toneArrow } from "../../utils/storyRecorderFeedback";
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 import { SUMMARY_BUCKETS, TONE_STATUS } from "./constants";
 import { breakdownGroups, breakdownPhraseGroups, countByBucket, displayWordsForScript, referenceEvidenceAccepted, statusLabel } from "./model";
 import { RowDetail, VowelChip } from "./RowDetail";

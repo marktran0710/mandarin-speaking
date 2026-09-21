@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 import "./JourneyPath.css";
 
 export type JourneyStopStatus = "done" | "current" | "upcoming";

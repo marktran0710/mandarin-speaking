@@ -1,4 +1,4 @@
-import { BiLabel } from "../BiLabel";
+import { BiLabel } from "../ui/BiLabel";
 import Icon from "../../shared/ui/Icon";
 import "./ReferenceAudioCard.css";
 

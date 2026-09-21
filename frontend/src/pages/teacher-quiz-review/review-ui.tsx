@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { BiLabel } from "../../components/BiLabel";
-import StudentIcon from "../../components/StudentIcon";
+import { BiLabel } from "../../components/ui/BiLabel";
+import StudentIcon from "../../components/navigation/StudentIcon";
 import { isExcluded } from "../../utils/quizExclusions";
 import { isApproved } from "../../utils/quizPendingApprovals";
 import { pendingKeyFor } from "./model-core";

@@ -12,11 +12,11 @@ import {
   toneArrow,
 } from "../../utils/storyRecorderFeedback";
 import type { ContentDiffSegment, WordProsody } from "../story-recorder/StoryRecorder";
-import ContentDiffDisplay from "../ContentDiffDisplay";
-import { BiLabel } from "../BiLabel";
+import ContentDiffDisplay from "../content/ContentDiffDisplay";
+import { BiLabel } from "../ui/BiLabel";
 import MiniContourChart from "../pitch/MiniContourChart";
-import VoiceFeedbackReliabilityNotice from "../VoiceFeedbackReliabilityNotice";
-import StudentIcon from "../StudentIcon";
+import VoiceFeedbackReliabilityNotice from "../student/VoiceFeedbackReliabilityNotice";
+import StudentIcon from "../navigation/StudentIcon";
 import {
   assessVoiceFeedbackReliability,
   type VoiceFeedbackReliability,

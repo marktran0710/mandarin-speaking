@@ -7,8 +7,8 @@ import {
   assessReferenceAudio,
   type ReferenceAudioAssessment,
 } from "../../utils/referenceAudioQuality";
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 import PraatTimeline from "../pitch/PraatTimeline";
 import type { WordProsody } from "../story-recorder/StoryRecorder";
 import "./ModelRecordingPractice.css";

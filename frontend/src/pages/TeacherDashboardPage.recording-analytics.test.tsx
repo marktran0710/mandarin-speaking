@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TopicSelector from "../components/TopicSelector";
+import TopicSelector from "../components/content/TopicSelector";
 import TeacherDashboardPage from "./TeacherDashboardPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import * as db from "../services/database";

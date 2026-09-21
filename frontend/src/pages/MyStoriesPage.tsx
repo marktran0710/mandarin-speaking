@@ -8,13 +8,13 @@ import {
   listVocabQuizAttempts,
   type StorySubmission,
 } from "../services/database";
-import { BiLabel } from "../components/BiLabel";
-import StudentIcon from "../components/StudentIcon";
-import "../components/BiLabel.css";
+import { BiLabel } from "../components/ui/BiLabel";
+import StudentIcon from "../components/navigation/StudentIcon";
+import "../components/ui/BiLabel.css";
 import "./MyStoriesPage.css";
 import "./MyStoriesStudent.css";
 import StudentHelpCard from "../components/student/StudentHelpCard";
-import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
+import MyStoryFeedbackHistory from "../components/student/MyStoryFeedbackHistory";
 import {
   getAverageMetric,
   getStudentTopics,
@@ -32,13 +32,13 @@ import {
 import { loadLocalStars, starsByStory } from "../utils/quizTiers";
 import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import {
   StudentSection,
   StudentSectionBody,
 } from "../components/student-workspace/student-section";
-import StudentPageHeader from "../components/StudentPageHeader";
+import StudentPageHeader from "../components/navigation/StudentPageHeader";
 
 export interface AudioRecord {
   id: string;
@@ -69,7 +69,7 @@ interface MyStoriesPageProps {
   records: AudioRecord[];
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
-  publishedTopics?: import("../components/TopicSelector").Topic[];
+  publishedTopics?: import("../components/content/TopicSelector").Topic[];
   /** Sends the student back to the lesson list (table of contents) to
    * actually practice — this page is an overview only, no per-picture
    * recording detail lives here anymore. */

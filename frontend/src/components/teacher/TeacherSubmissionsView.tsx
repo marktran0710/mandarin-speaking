@@ -6,8 +6,8 @@ import {
 import { resolveImageUrl } from "../../utils/teacherStories";
 import StoryFeedbackCard from "../story-recorder/StoryFeedbackCard";
 import Icon from "../../shared/ui/Icon";
-import SelfEvalIcon from "../SelfEvalIcon";
-import StudentIcon from "../StudentIcon";
+import SelfEvalIcon from "../student/SelfEvalIcon";
+import StudentIcon from "../navigation/StudentIcon";
 
 function submittedTime(submission: StorySubmission) {
   const time = Date.parse(submission.submittedAt);

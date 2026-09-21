@@ -1,6 +1,6 @@
 import { ASSISTIVE_MESSAGE, type AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 import MiniContourChart from "../pitch/MiniContourChart";
 import type { WordProsody, WordProsodySyllable, VowelZone } from "../story-recorder/StoryRecorder";
 import { BACKNESS_SHORT, HEIGHT_SHORT, NO_VOWEL_REASON, REASON_TEXT, RULE_TEXT } from "./constants";

@@ -1,5 +1,5 @@
-import StudentIcon from "../StudentIcon";
-import { BiText } from "../BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
+import { BiText } from "../ui/BiLabel";
 
 interface StudentWorkspaceHeaderProps {
   username: string;

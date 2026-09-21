@@ -18,10 +18,10 @@ import {
   type Teacher,
   type VocabQuizAttempt,
 } from "./services/database";
-import AdminIrtStudentPanel from "./components/AdminIrtStudentPanel";
-import MeasurementAnalyticsPanel from "./components/MeasurementAnalyticsPanel";
+import AdminIrtStudentPanel from "./components/analytics/AdminIrtStudentPanel";
+import MeasurementAnalyticsPanel from "./components/analytics/MeasurementAnalyticsPanel";
 import type { MeasurementEvent } from "./utils/measurement";
-import KnowledgeModelPilotPanel from "./components/KnowledgeModelPilotPanel";
+import KnowledgeModelPilotPanel from "./components/analytics/KnowledgeModelPilotPanel";
 import type { AudioRecord } from "./pages/MyStoriesPage";
 import TeacherPracticeDebugPage from "./pages/TeacherPracticeDebugPage";
 import AdminAsrComparePage from "./pages/AdminAsrComparePage";

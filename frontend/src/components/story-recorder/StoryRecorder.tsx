@@ -4,7 +4,7 @@ import type { HelpRequest } from "../../services/database";
 import StoryRecorderRuntime from "./StoryRecorderRuntime";
 import type { NewAudioRecord } from "./StoryRecorder/types";
 import type { Topic } from "./StoryRecorder/storyContent";
-import { BiLabel } from "../BiLabel";
+import { BiLabel } from "../ui/BiLabel";
 
 export interface StoryRecorderProps {
   topic: Topic;

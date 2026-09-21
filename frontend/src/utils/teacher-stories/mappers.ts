@@ -1,4 +1,4 @@
-import type { Topic } from "../../components/TopicSelector";
+import type { Topic } from "../../components/content/TopicSelector";
 import { numericToToneMarked } from "../pinyin";
 import { storyApprovedSnapshot } from "../quizApprovedMaterial";
 import { resolveImageUrl, splitCsvField, parseJsonArray, tierText, TIER_SUFFIX } from "./helpers";
@@ -59,7 +59,7 @@ export function storyToTopic(
     {},
   );
 
-  const vocabularyGroups: Record<number, import("../../components/TopicSelector").VocabGroup[]> = {};
+  const vocabularyGroups: Record<number, import("../../components/content/TopicSelector").VocabGroup[]> = {};
   const phrases: Record<number, string[]> = {};
   const phrasesTranslation: Record<number, string[]> = {};
   const vocabularyPinyin: Record<number, string[]> = {};

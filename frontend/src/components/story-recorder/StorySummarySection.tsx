@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import type { SceneSubmission, StoryFeedback } from "../../services/database";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import JourneyPath, { type JourneyStopStatus } from "../journey/JourneyPath";
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 
 /** Scene-stop data shared with the practice header's journey path — everything
  * but the per-caller `onClick`, which this section supplies itself. */

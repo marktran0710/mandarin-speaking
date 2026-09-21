@@ -1,12 +1,12 @@
 // @ts-nocheck
-import { BiLabel } from "../BiLabel";
-import AppButton from "../AppButton";
-import StudentIcon from "../StudentIcon";
-import SelfEvalIcon from "../SelfEvalIcon";
-import ContentDiffDisplay from "../ContentDiffDisplay";
+import { BiLabel } from "../ui/BiLabel";
+import AppButton from "../ui/AppButton";
+import StudentIcon from "../navigation/StudentIcon";
+import SelfEvalIcon from "../student/SelfEvalIcon";
+import ContentDiffDisplay from "../content/ContentDiffDisplay";
 import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
-} from "../VoiceFeedbackReliabilityNotice";
+} from "../student/VoiceFeedbackReliabilityNotice";
 import { worstState } from "../../utils/assistiveFeedback";
 import {
   systemContentLevel,

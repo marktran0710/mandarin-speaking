@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { HelpRequest } from "../../services/database";
-import { BiLabel, BiText } from "../BiLabel";
+import { BiLabel, BiText } from "../ui/BiLabel";
 import { getStudentName } from "../../utils/studentSession";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 
 /** The quiet "raise your hand" form students use mid-practice. Lives at the
  * bottom of the story-session sidebar during a practice session (compact,

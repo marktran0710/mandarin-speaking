@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { BiLabel } from "../BiLabel";
-import AppButton from "../AppButton";
-import StudentIcon from "../StudentIcon";
-import ContentDiffDisplay from "../ContentDiffDisplay";
+import { BiLabel } from "../ui/BiLabel";
+import AppButton from "../ui/AppButton";
+import StudentIcon from "../navigation/StudentIcon";
+import ContentDiffDisplay from "../content/ContentDiffDisplay";
 
 export default function SpeakingResultsFixStep({
   accepted,

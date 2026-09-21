@@ -16,7 +16,7 @@ import TeacherHelpQueue from "../components/teacher/TeacherHelpQueue";
 import TeacherRecordingsView from "../components/teacher/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/teacher/TeacherSubmissionsView";
 import QuizAnalyticsPanel from "../components/teacher/QuizAnalyticsPanel";
-import RecordingAnalyticsPanel from "../components/RecordingAnalyticsPanel";
+import RecordingAnalyticsPanel from "../components/analytics/RecordingAnalyticsPanel";
 import TeacherRosterTable from "../components/teacher/TeacherRosterTable";
 import TeacherStudentProfile from "../components/teacher/TeacherStudentProfile";
 import { buildStudentAssessments } from "../utils/studentAssessment";

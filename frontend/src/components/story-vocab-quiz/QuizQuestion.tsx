@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { BiLabel } from "../BiLabel";
+import { BiLabel } from "../ui/BiLabel";
 import { effectiveTierPassCount, tierConfigFromMode, type TierConfig } from "../../utils/quizTiers";
 import { assessmentAnswerIsCorrect, CLOZE_BLANK, type VocabQuizMode, type VocabQuizQuestion, type VocabQuizQuestionResult } from "./model";
 import { correctAnswer } from "./useQuizSession";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 import { StudentQuestionFlow } from "../student-question-flow/StudentQuestionFlow";
 
 // One compact progress rail used by EVERY bounded round. Two rows only: a

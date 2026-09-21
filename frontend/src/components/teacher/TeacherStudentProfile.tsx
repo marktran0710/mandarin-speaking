@@ -1,10 +1,10 @@
-import DashboardStat from "../DashboardStat";
-import { AccuracyTimeChart, FluencyToneTimeChart } from "../MyStoriesCharts";
+import DashboardStat from "../analytics/DashboardStat";
+import { AccuracyTimeChart, FluencyToneTimeChart } from "../analytics/MyStoriesCharts";
 import type { AudioRecord } from "../../pages/MyStoriesPage";
 import type { VocabQuizAttempt } from "../../services/database";
 import { getTopicLabel, quizAttemptAccuracy } from "../../utils/myStoriesUtils";
 import type { StudentAssessment } from "../../utils/studentAssessment";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 
 function score(value: number | null, suffix = "") {
   return value === null ? "--" : `${value}${suffix}`;

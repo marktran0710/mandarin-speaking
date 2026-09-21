@@ -7,7 +7,7 @@ import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentModeFrame, { STUDENT_WORKSPACE_VIEWS } from "./StudentModeFrame";
 import { loadLocalStars } from "../../utils/quizTiers";
 import { topicHasQuiz } from "../../utils/topicQuiz";
-import "../../components/BiLabel.css";
+import "../../components/ui/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
 

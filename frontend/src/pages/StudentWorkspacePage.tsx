@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import CreateStoryPage from "./CreateStoryPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
-import StudentIcon, { type StudentIconName } from "../components/StudentIcon";
-import { BiLabel, BiText } from "../components/BiLabel";
+import StudentIcon, { type StudentIconName } from "../components/navigation/StudentIcon";
+import { BiLabel, BiText } from "../components/ui/BiLabel";
 import type { HelpRequest } from "../services/database";
 import type { NewAudioRecord } from "../components/story-recorder/StoryRecorder";
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import { getStudentName } from "../utils/studentSession";
 import type { WorkspaceView } from "../types/studentWorkspace";
 import { StudentWorkspaceShell } from "../features/student-workspace";
 import { studentWorkspaceShellEnabled } from "../app/featureFlags";
-import "../components/BiLabel.css";
+import "../components/ui/BiLabel.css";
 import "./StudentWorkspacePage.css";
 
 export type StudentWorkspaceView = WorkspaceView;

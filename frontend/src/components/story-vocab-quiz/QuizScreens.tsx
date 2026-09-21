@@ -1,5 +1,5 @@
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 import { toPinyin } from "../../utils/pinyin";
 import { TIER_CARDS, REVIEW_CARD, type VocabAssessmentLevel, type VocabQuizEntry, type VocabQuizMode, type VocabQuizQuestionResult } from "./model";
 import type { ReviewQueueItem, VocabPriorityReviewWord } from "../../services/database";

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 import "./ScenePracticeWord.css";
 
 /**

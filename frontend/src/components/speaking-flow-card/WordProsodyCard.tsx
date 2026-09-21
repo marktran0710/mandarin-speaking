@@ -9,8 +9,8 @@ import { toPinyin, toPinyinSyllables } from "../../utils/pinyin";
 import type { WordProsody } from "../story-recorder/StoryRecorder";
 import MiniContourChart from "../pitch/MiniContourChart";
 import WordPracticeDrill from "./WordPracticeDrill";
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 
 export default function WordProsodyCard({
   item,

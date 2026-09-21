@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { BiLabel } from "../../components/BiLabel";
-import StudentIcon, { type StudentIconName } from "../../components/StudentIcon";
+import { BiLabel } from "../../components/ui/BiLabel";
+import StudentIcon, { type StudentIconName } from "../../components/navigation/StudentIcon";
 import { lessonTitle } from "../../utils/lessonGroups";
 import { lessonKeyFor, lessonOptionLabel } from "./model-core";
 

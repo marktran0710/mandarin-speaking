@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { createPortal } from "react-dom";
-import { BiLabel } from "../BiLabel";
-import AppButton from "../AppButton";
-import PronunciationBreakdown from "../PronunciationBreakdown";
+import { BiLabel } from "../ui/BiLabel";
+import AppButton from "../ui/AppButton";
+import PronunciationBreakdown from "../pronunciation-breakdown";
 import { AudioCompare, STEP_LABELS } from "./SpeakingResultsFlow.helpers";
 import { shouldOfferRetry } from "../../utils/retryPolicy";
 import { worstState } from "../../utils/assistiveFeedback";

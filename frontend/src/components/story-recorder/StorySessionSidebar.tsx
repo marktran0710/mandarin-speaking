@@ -6,8 +6,8 @@ import {
   type WheelEvent,
 } from "react";
 import JourneyPath, { type JourneyStop } from "../journey/JourneyPath";
-import StudentIcon from "../StudentIcon";
-import { BiLabel } from "../BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
 import "./StorySessionSidebar.css";
 
 export type SidebarSummaryStatus = "locked" | "available" | "active" | "done";

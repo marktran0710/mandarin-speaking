@@ -1,15 +1,15 @@
 // @ts-nocheck
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
-import { BiLabel } from "../BiLabel";
-import AppButton from "../AppButton";
+import { BiLabel } from "../ui/BiLabel";
+import AppButton from "../ui/AppButton";
 import RecordingPlayback from "./RecordingPlayback";
 import ReferenceAudioCard from "./ReferenceAudioCard";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
-import ContentDiffDisplay from "../ContentDiffDisplay";
+import ContentDiffDisplay from "../content/ContentDiffDisplay";
 import WordProsodyCard from "./WordProsodyCard";
-import PronunciationBreakdown from "../PronunciationBreakdown";
-import SelfEvalStep from "../SelfEvalStep";
+import PronunciationBreakdown from "../pronunciation-breakdown";
+import SelfEvalStep from "../student/SelfEvalStep";
 import {
   failedProsodyWords,
   isContentAccepted,
@@ -33,7 +33,7 @@ import type { PraatMetrics, Topic, WordProsody } from "../story-recorder/StoryRe
 import { toPinyin } from "../../utils/pinyin";
 import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
-} from "../VoiceFeedbackReliabilityNotice";
+} from "../student/VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";
 import { worstState, type AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
 import { shouldOfferRetry } from "../../utils/retryPolicy";

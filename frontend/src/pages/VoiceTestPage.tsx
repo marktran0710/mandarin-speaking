@@ -1,13 +1,13 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
-import StudentPageHeader from "../components/StudentPageHeader";
+import StudentPageHeader from "../components/navigation/StudentPageHeader";
 import StudentAudioActionPanel from "../components/student/StudentAudioActionPanel";
-import { BiLabel } from "../components/BiLabel";
+import { BiLabel } from "../components/ui/BiLabel";
 import { convertBlobToWav } from "../utils/audio";
 import { ensureWavBlob, formatBackendError, normalizeWavFileName, readErrorResponse } from "./voice-test/helpers";
 import VoiceTestResults from "./voice-test/VoiceTestResults";
 import type { VoiceMetrics } from "./voice-test/types";
 import { getBackendUrl as getRuntimeBackendUrl, getVoiceTestAsrModel } from "../config/runtimeEnv";
-import "../components/BiLabel.css";
+import "../components/ui/BiLabel.css";
 import "./VoiceTestPage.css";
 
 const BACKEND_URL = getRuntimeBackendUrl();

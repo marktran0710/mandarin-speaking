@@ -1,4 +1,4 @@
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import { isAdminSession } from "./studentSession";
 import { loadLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
 import { topicHasQuiz } from "./topicQuiz";

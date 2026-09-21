@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { BiLabel } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
+import { BiLabel } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
 import WordProsodyCard from "./WordProsodyCard";
 import { toPinyin } from "../../utils/pinyin";

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import { buildSceneOptions, DEFAULT_LISTEN_SCENE } from "./listen-retell/scenes";
 import { convertBlobToWav } from "../utils/audio";
-import { BiLabel } from "../components/BiLabel";
-import StudentIcon from "../components/StudentIcon";
-import StudentPageHeader from "../components/StudentPageHeader";
-import ScoreCard from "../components/ScoreCard";
+import { BiLabel } from "../components/ui/BiLabel";
+import StudentIcon from "../components/navigation/StudentIcon";
+import StudentPageHeader from "../components/navigation/StudentPageHeader";
+import ScoreCard from "../components/analytics/ScoreCard";
 import StudentAnalysisGate from "../components/student/StudentAnalysisGate";
 import StudentAudioActionPanel from "../components/student/StudentAudioActionPanel";
 import {
@@ -17,7 +17,7 @@ import {
   isUsableScore,
   type AnalysisResult,
 } from "../utils/narrationAnalysis";
-import "../components/BiLabel.css";
+import "../components/ui/BiLabel.css";
 import "./ListenRetellPage.css";
 
 interface ListenRetellPageProps {

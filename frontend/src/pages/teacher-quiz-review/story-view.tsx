@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { BiLabel } from "../../components/BiLabel";
+import { BiLabel } from "../../components/ui/BiLabel";
 import { diffWord } from "../../utils/quizMaterialDiff";
 import { isExcluded } from "../../utils/quizExclusions";
 import { translationFieldForLevel, pinyinFieldForLevel, reviewOptions } from "./model-core";
-import StudentIcon from "../../components/StudentIcon";
+import StudentIcon from "../../components/navigation/StudentIcon";
 import { ReviewActionRail, ReviewIcon, diffBadge } from "./review-chrome";
 import { useQuizReviewContext } from "./context";
 import { useQuizReviewActions } from "./review-actions";

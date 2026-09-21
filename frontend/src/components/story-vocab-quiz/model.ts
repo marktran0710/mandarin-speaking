@@ -1,5 +1,5 @@
 import { numericToToneMarked, toPinyin } from "../../utils/pinyin";
-import type { StudentIconName } from "../StudentIcon";
+import type { StudentIconName } from "../navigation/StudentIcon";
 import { toneTrapVariants } from "../../utils/toneTraps";
 import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type DiagnosticRoundType, type TierMode } from "../../utils/quizTiers";
 import {

@@ -1,5 +1,5 @@
 import type { ChangeEvent, ReactNode } from "react";
-import StudentIcon, { type StudentIconName } from "../StudentIcon";
+import StudentIcon, { type StudentIconName } from "../navigation/StudentIcon";
 import "./StudentAudioActionPanel.css";
 
 interface StudentAudioActionPanelProps {

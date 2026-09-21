@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { HelpRequest } from "../../services/database";
-import { BiLabel, BiText } from "../BiLabel";
+import { BiLabel, BiText } from "../ui/BiLabel";
 import { getStudentName } from "../../utils/studentSession";
 
 export default function StudentHelpCard({

@@ -1,7 +1,7 @@
-import { BiLabel, BiText } from "../BiLabel";
+import { BiLabel, BiText } from "../ui/BiLabel";
 import type { QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
 import ActionButton from "../../shared/ui/ActionButton";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 
 interface LearningOverviewProps {
   topicSummary?: WorkspaceTopicSummary;

@@ -12,7 +12,7 @@ const topic = {
   lessonNumber: 1,
 };
 
-vi.mock("../components/TopicSelector", () => ({
+vi.mock("../components/content/TopicSelector", () => ({
   default: ({ onTopicSelect }: { onTopicSelect: (selectedTopic: typeof topic) => void }) => (
     <button
       type="button"

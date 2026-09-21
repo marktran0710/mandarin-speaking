@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import StudentIcon, { type StudentIconName } from "../StudentIcon";
-import { BiLabel, type BiLabelProps } from "../BiLabel";
-import SourceAttribution from "../SourceAttribution";
+import StudentIcon, { type StudentIconName } from "../navigation/StudentIcon";
+import { BiLabel, type BiLabelProps } from "../ui/BiLabel";
+import SourceAttribution from "../ui/SourceAttribution";
 import useColorMode from "../../hooks/useColorMode";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentSidebar.css";

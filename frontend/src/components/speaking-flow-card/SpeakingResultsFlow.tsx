@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useEffect, useRef, useState } from "react";
-import { BiLabel } from "../BiLabel";
-import SelfEvalStep from "../SelfEvalStep";
+import { BiLabel } from "../ui/BiLabel";
+import SelfEvalStep from "../student/SelfEvalStep";
 import { failedProsodyWords, isContentAccepted, weakToneGuideItems } from "../../utils/storyRecorderFeedback";
 import { scoreScriptChunks, scriptAlignmentText, scriptMismatchTokens, splitScriptIntoChunks, splitTeacherScriptIntoPhrases } from "../../utils/scriptAlignment";
 import { primePinyin } from "../../utils/pinyin";

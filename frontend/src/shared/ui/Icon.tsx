@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import AppIcon, { type AppIconName } from "../../components/AppIcon";
+import AppIcon, { type AppIconName } from "../../components/ui/AppIcon";
 
 export type UiIconName = AppIconName;
 

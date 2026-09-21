@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import useColorMode from "../../hooks/useColorMode";
 import ToneMark from "../tone/ToneMark";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
-import SourceAttribution from "../SourceAttribution";
+import SourceAttribution from "../ui/SourceAttribution";
 import "./ManagementShell.css";
 
 export type ManagementRole = "teacher" | "admin";

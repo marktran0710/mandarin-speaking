@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import StudentSidebar from "./StudentSidebar";
-import type { StudentIconName } from "../StudentIcon";
+import type { StudentIconName } from "../navigation/StudentIcon";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentModeCompact.css";
 

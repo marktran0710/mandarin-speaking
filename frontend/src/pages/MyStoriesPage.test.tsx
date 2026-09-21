@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import MyStoriesPage, { topicWasStarted } from "./MyStoriesPage";
 
 vi.mock("../services/database", () => ({

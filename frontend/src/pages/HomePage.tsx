@@ -1,11 +1,11 @@
 import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
-import { BiLabel, BiText } from "../components/BiLabel";
+import { BiLabel, BiText } from "../components/ui/BiLabel";
 import ToneStroke from "../components/tone/ToneStroke";
-import StudentIcon from "../components/StudentIcon";
-import SourceAttribution from "../components/SourceAttribution";
-import "../components/BiLabel.css";
+import StudentIcon from "../components/navigation/StudentIcon";
+import SourceAttribution from "../components/ui/SourceAttribution";
+import "../components/ui/BiLabel.css";
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;

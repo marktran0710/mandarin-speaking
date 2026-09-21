@@ -5,11 +5,11 @@ import PlacementTestPage from "./pages/PlacementTestPage";
 import StudentWorkspacePage, {
   type StudentWorkspaceView,
 } from "./pages/StudentWorkspacePage";
-import ErrorBoundary from "./components/ErrorBoundary";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 
 import StudentLoginPage from "./pages/StudentLoginPage";
-import { BiLabel } from "./components/BiLabel";
-import Navigation from "./components/Navigation";
+import { BiLabel } from "./components/ui/BiLabel";
+import Navigation from "./components/navigation/Navigation";
 import AppJourneyBubble from "./components/journey/AppJourneyBubble";
 import {
   getStudentName,
@@ -47,7 +47,7 @@ import {
   loadPublishedTeacherTopics,
   saveCustomStories,
 } from "./utils/teacherStories";
-import type { Topic } from "./components/TopicSelector";
+import type { Topic } from "./components/content/TopicSelector";
 import { topicHasQuiz } from "./utils/topicQuiz";
 import { primePinyin } from "./utils/pinyin";
 import type { Page } from "./types/page";

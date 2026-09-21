@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { BiLabel } from "../BiLabel";
+import { BiLabel } from "../ui/BiLabel";
 
 export default function RecordingPlayback({ blob }: { blob: Blob }) {
   const [url, setUrl] = useState<string | null>(null);

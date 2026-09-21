@@ -3,7 +3,7 @@ import {
   getLastPracticeTarget as readTarget,
   getLastVisitedPage as readLastPage,
 } from "../utils/studentSession";
-import type { Topic } from "../components/TopicSelector";
+import type { Topic } from "../components/content/TopicSelector";
 import type { Page } from "../types/page";
 import type { StudentAppBootstrapState } from "../app/appTypes";
 

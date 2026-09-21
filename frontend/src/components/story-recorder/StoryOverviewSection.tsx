@@ -1,6 +1,6 @@
-import { BiLabel, BiText } from "../BiLabel";
-import StudentIcon from "../StudentIcon";
-import { SkillFocusLabel } from "../TopicSelector";
+import { BiLabel, BiText } from "../ui/BiLabel";
+import StudentIcon from "../navigation/StudentIcon";
+import { SkillFocusLabel } from "../content/TopicSelector";
 import type { Topic } from "./StoryRecorder";
 
 interface StoryOverviewSectionProps {

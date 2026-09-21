@@ -1,4 +1,4 @@
-import type { Topic } from "../../components/TopicSelector";
+import type { Topic } from "../../components/content/TopicSelector";
 import type { CustomTeacherStory } from "./types";
 import { storyToTopic } from "./mappers";
 

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
 import VocabularyTable from "./VocabularyTable";
 import PhraseTable from "./PhraseTable";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 
 function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
   return <>

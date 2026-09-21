@@ -3,10 +3,10 @@ import { convertBlobToWav } from "../../utils/audio";
 import { formatBackendError, getBackendUrl } from "../../utils/storyRecorderFeedback";
 import { toPinyin } from "../../utils/pinyin";
 import type { ContentDiffSegment, WordProsody } from "../story-recorder/StoryRecorder";
-import ContentDiffDisplay from "../ContentDiffDisplay";
+import ContentDiffDisplay from "../content/ContentDiffDisplay";
 import MiniContourChart from "../pitch/MiniContourChart";
-import { BiLabel } from "../BiLabel";
-import VoiceFeedbackReliabilityNotice from "../VoiceFeedbackReliabilityNotice";
+import { BiLabel } from "../ui/BiLabel";
+import VoiceFeedbackReliabilityNotice from "../student/VoiceFeedbackReliabilityNotice";
 import {
   assessVoiceFeedbackReliability,
   type VoiceFeedbackReliability,

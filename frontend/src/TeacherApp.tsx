@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import type { TeacherView } from "./pages/TeacherDashboardPage";
 import LoginPage from "./pages/LoginPage";
-import Navigation from "./components/Navigation";
-import ErrorBoundary from "./components/ErrorBoundary";
+import Navigation from "./components/navigation/Navigation";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { currentRole, signOut } from "./utils/session";
 import {
   canUseDatabase,

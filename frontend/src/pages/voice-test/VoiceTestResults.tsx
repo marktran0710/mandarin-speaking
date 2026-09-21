@@ -1,6 +1,6 @@
 import PraatTimeline from "../../components/pitch/PraatTimeline";
-import { BiLabel, BiText } from "../../components/BiLabel";
-import VoiceFeedbackReliabilityNotice from "../../components/VoiceFeedbackReliabilityNotice";
+import { BiLabel, BiText } from "../../components/ui/BiLabel";
+import VoiceFeedbackReliabilityNotice from "../../components/student/VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";
 import { normalizeWordProsody } from "./helpers";
 import { FeedbackBlock, formatContourShape, getToneFocusItems, ModelExampleCard, ScoreCard, ScriptWordLevel, StudentFeedbackCards } from "./VoiceFeedbackComponents";

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { BiLabel } from "../BiLabel";
+import { BiLabel } from "../ui/BiLabel";
 import { canUseDatabase, listVocabQuizAttempts } from "../../services/database";
 import {
   loadLocalStars,
@@ -7,7 +7,7 @@ import {
   PRACTICE_UNLOCK_STARS,
 } from "../../utils/quizTiers";
 import { pickStripMessage, type StripMessage } from "../../utils/journeyStrip";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 import "./JourneyBubble.css";
 
 /** The floating star bubble of every non-practice student page — the

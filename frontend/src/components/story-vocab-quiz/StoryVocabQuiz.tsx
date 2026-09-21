@@ -1,6 +1,6 @@
 import "./StoryVocabQuiz.css";
 import { useEffect, useRef } from "react";
-import { BiLabel } from "../BiLabel";
+import { BiLabel } from "../ui/BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./QuizScreens";
 import { ChallengeEntry } from "./LessonVocabularyProgress";
 import { QuizQuestion } from "./QuizQuestion";

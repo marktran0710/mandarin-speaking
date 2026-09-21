@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { BiLabel } from "../BiLabel";
-import AppButton from "../AppButton";
+import { BiLabel } from "../ui/BiLabel";
+import AppButton from "../ui/AppButton";
 import SpeakingResultsFlow from "./SpeakingResultsFlow";
 import { sceneReady } from "../../utils/storyRecorderFeedback";
 import type { SelfEvalLevel } from "../../utils/selfEvalComparison";
@@ -9,7 +9,7 @@ import type {
   SpeechModel,
 } from "../story-recorder/StoryRecorder";
 import ModelRecordingPractice from "./ModelRecordingPractice";
-import StudentIcon from "../StudentIcon";
+import StudentIcon from "../navigation/StudentIcon";
 import "./SpeakingFlowCard.css";
 
 const MAX_RECORDING_SECONDS = 30;

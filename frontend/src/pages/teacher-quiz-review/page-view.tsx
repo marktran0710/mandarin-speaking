@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { BiText } from "../../components/BiLabel";
+import { BiText } from "../../components/ui/BiLabel";
 import { useQuizReviewContext } from "./context";
 import { useQuizReviewActions } from "./review-actions";
 import { ReviewFilterBar } from "./review-chrome";
