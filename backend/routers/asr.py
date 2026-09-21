@@ -8,8 +8,9 @@ from services.ai_feedback import available_providers, default_provider
 import auth
 import main
 import services.asr as asr_service
-from main import AnalysisResponse
+from models import AnalysisResponse
 from services.asr import AsrStatusResponse, TranscriptionResponse
+from services.text_normalization import correct_homophones
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
@@ -297,7 +298,7 @@ async def transcribe_speech(
             run_bounded_transcription(), timeout=main.ANALYZE_TIMEOUT_SECONDS
         )
         if vocab_hint.strip():
-            result.text = main.correct_homophones(result.text, vocab_hint)
+            result.text = correct_homophones(result.text, vocab_hint)
         return result
 
     except HTTPException:

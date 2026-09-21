@@ -41,45 +41,45 @@ def clear_asr_globals():
     asr_service._vibevoice_load_error = original_vv_error
 
 
-# main.OPENAI_API_KEY/GEMINI_API_KEY/GROQ_API_KEY and services.asr's copies of
-# the same are each read once from config.settings, independently - patching
-# one does not affect the other, so these fixtures cover both. main's own
-# consumers (vocab extraction, quiz review chat, story images) are as much a
-# reason for these fixtures to exist as the ASR ones are.
+# services.speech_analysis's and services.asr's copies of OPENAI_API_KEY/
+# GEMINI_API_KEY/GROQ_API_KEY are each read once from config.settings,
+# independently - patching one does not affect the other, so these fixtures
+# cover both. speech_analysis's _do_analyze (audio-native provider routing)
+# is as much a reason for these fixtures to exist as the ASR ones are.
 
 @pytest.fixture()
 def with_openai_key(monkeypatch):
-    monkeypatch.setattr("main.OPENAI_API_KEY", "sk-test-openai-key")
+    monkeypatch.setattr("services.speech_analysis.OPENAI_API_KEY", "sk-test-openai-key")
     monkeypatch.setattr("services.asr.OPENAI_API_KEY", "sk-test-openai-key")
 
 
 @pytest.fixture()
 def with_gemini_key(monkeypatch):
-    monkeypatch.setattr("main.GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr("services.speech_analysis.GEMINI_API_KEY", "test-gemini-key")
     monkeypatch.setattr("services.asr.GEMINI_API_KEY", "test-gemini-key")
 
 
 @pytest.fixture()
 def no_openai_key(monkeypatch):
-    monkeypatch.setattr("main.OPENAI_API_KEY", None)
+    monkeypatch.setattr("services.speech_analysis.OPENAI_API_KEY", None)
     monkeypatch.setattr("services.asr.OPENAI_API_KEY", None)
 
 
 @pytest.fixture()
 def no_gemini_key(monkeypatch):
-    monkeypatch.setattr("main.GEMINI_API_KEY", None)
+    monkeypatch.setattr("services.speech_analysis.GEMINI_API_KEY", None)
     monkeypatch.setattr("services.asr.GEMINI_API_KEY", None)
 
 
 @pytest.fixture()
 def with_groq_key(monkeypatch):
-    monkeypatch.setattr("main.GROQ_API_KEY", "gsk-test-groq-key")
+    monkeypatch.setattr("services.speech_analysis.GROQ_API_KEY", "gsk-test-groq-key")
     monkeypatch.setattr("services.asr.GROQ_API_KEY", "gsk-test-groq-key")
 
 
 @pytest.fixture()
 def no_groq_key(monkeypatch):
-    monkeypatch.setattr("main.GROQ_API_KEY", None)
+    monkeypatch.setattr("services.speech_analysis.GROQ_API_KEY", None)
     monkeypatch.setattr("services.asr.GROQ_API_KEY", None)
 
 

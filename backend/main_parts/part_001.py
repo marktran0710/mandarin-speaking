@@ -59,50 +59,24 @@ from db import (
 import anyio
 from psycopg.types.json import Jsonb
 
-import helpers.caf_metrics as caf_metrics
-
-from praat_analyzer import (
-    extract_pitch,
-    extract_formants,
-    calculate_speech_rate,
-    analyze_fluency,
-    get_pitch_statistics,
-    estimate_word_prosody,
-    word_stress_summary,
-    analyze_all,
-)
-from chinese_tones import (
-    detect_tone,
-    calculate_tone_accuracy,
-    generate_comprehensive_feedback,
-)
-from services.ai_feedback import (
-    generate_language_feedback,
-    GEMINI_FEEDBACK_MODEL,
-    GROQ_FEEDBACK_MODEL,
-)
-from helpers.pinyin_service import canonical_pinyin, canonical_pinyin_tone3
-# transcribe_audio_content is the one ASR entry point still called as a bare
-# name from unmigrated main_parts code (_verify_word_transcription,
-# _acoustic_scoring_source). _post_with_retry moved with the ASR engines it
-# was written for, but is also a general retry-wrapped POST used by the
-# vocab/phrase/distractor/cloze/synonym/image-generation callers in
-# part_007/part_008 - both re-exported here so that keeps working exactly as
-# it did when the whole implementation lived in this module.
-from services.asr import transcribe_audio_content, _post_with_retry
-# resolve_image_b64 is called as a bare name from _do_analyze (part_005).
 # resolve_media_b64/save_uploaded_audio/save_verified_audio_record/
 # remove_uploaded_file are re-exported only for routers/verified_speaking.py
 # (which reaches everything through one lazily-imported `main` module for
 # testability) and tests that exercise them directly on `main` - other
 # callers import services.media directly.
 from services.media import (
-    resolve_image_b64,
     resolve_media_b64,
     save_uploaded_audio,
     save_verified_audio_record,
     remove_uploaded_file,
 )
+# _MAX_AUDIO_BYTES and _do_analyze are re-exported for the same reason: the
+# routers/verified_speaking.py test-stub seam, and tests that patch/call them
+# directly on `main`. Everything _do_analyze itself needs (ASR, content
+# verification, pronunciation scoring, AI feedback, Praat) is now a real
+# import inside services/speech_analysis.py, not a bare name here.
+from services.content_verification import _MAX_AUDIO_BYTES
+from services.speech_analysis import _do_analyze
 # Pure data models, re-exported bare so every existing `from main import X`
 # router/test import keeps working unchanged.
 from models import (
@@ -138,6 +112,12 @@ from models import (
     MAX_VOCAB_SYNONYM_PER_WORD,
     VocabularySynonymUpdateRequest,
     TTSRequest,
+    RecordingQualityMetrics,
+    FeedbackQuality,
+    ProcessingTraceStage,
+    ProcessingTrace,
+    ContentDiffSegment,
+    AnalysisResponse,
 )
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
@@ -390,117 +370,7 @@ def clean_api_key(value: Optional[str]) -> Optional[str]:
     return key
 
 
-# API Keys from environment. ASR-specific config (fallback order, ctwhisper/
-# vibevoice tuning, model warm-up state) lives in services/asr.py now; these
-# three keys stay here too since other main_parts code (vocab extraction,
-# quiz review chat, story images) reads them independently.
-OPENAI_API_KEY = settings.openai_api_key
-GEMINI_API_KEY = settings.gemini_api_key
-GROQ_API_KEY = settings.groq_api_key
-
-
 # Pydantic models
-class RecordingQualityMetrics(BaseModel):
-    duration_seconds: float = Field(default=0.0, ge=0.0)
-    rms: float = Field(default=0.0, ge=0.0)
-    peak: float = Field(default=0.0, ge=0.0)
-    clipping_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
-    voiced_seconds: float = Field(default=0.0, ge=0.0)
-    voiced_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
-    energy_variation: float = Field(default=0.0, ge=0.0)
-    pitch_points: int = Field(default=0, ge=0)
-
-
-class FeedbackQuality(BaseModel):
-    """Evidence gate for student-facing automated feedback.
-
-    ``status`` is one of reliable/review/retry.  A score is only suitable
-    for mastery/progress decisions when its corresponding ``can_score_*``
-    flag is true.  Reason codes are stable API values; ``student_message`` is
-    presentation text and may evolve independently.
-    """
-
-    status: Literal["reliable", "review", "retry"] = "retry"
-    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-    can_score_pronunciation: bool = False
-    can_score_content: bool = False
-    reason_codes: List[str] = Field(default_factory=list)
-    student_message: str = ""
-    metrics: RecordingQualityMetrics = Field(default_factory=RecordingQualityMetrics)
-
-
-class ProcessingTraceStage(BaseModel):
-    stage: str
-    status: str
-    duration_ms: float = 0.0
-    model: Optional[str] = None
-    provider: Optional[str] = None
-    detail: Optional[str] = None
-    reason_codes: List[str] = Field(default_factory=list)
-    # What this stage actually received/produced, for the teacher debugger's
-    # per-step input/output cards. Deliberately compact (not the full
-    # response) — just this stage's own contract.
-    input: Optional[Dict[str, Any]] = None
-    output: Optional[Dict[str, Any]] = None
-
-
-class ProcessingTrace(BaseModel):
-    stages: List[ProcessingTraceStage] = Field(default_factory=list)
-    total_duration_ms: float = 0.0
-
-
-class ContentDiffSegment(BaseModel):
-    type: Literal["match", "replace", "missing", "extra"]
-    target: str = ""
-    heard: str = ""
-
-
-class AnalysisResponse(BaseModel):
-    description: str = ""
-    transcription: str = ""
-    transcription_model: str = ""
-    pitch_contour: List[Tuple[float, float]]
-    word_prosody: List[dict]
-    detected_tone: int
-    tone_accuracy: float
-    formants: dict
-    vowel_quality: str = ""
-    speech_rate: float
-    fluency_score: float
-    pitch_statistics: dict
-    tone_direction: str = ""
-    pause_analysis: dict = {}
-    feedback: str
-    ai_feedback: dict
-    # Set only when the caller passed `verify_word` — an independent real ASR
-    # pass confirming whether the recording actually contains that word,
-    # since `transcription` may have been supplied by the caller (not
-    # detected) to score tone against a known target. None means no check
-    # was requested (e.g. this wasn't a word-practice attempt).
-    recognized_text: Optional[str] = None
-    content_match: Optional[bool] = None
-    content_diff: List[ContentDiffSegment] = Field(default_factory=list)
-    feedback_quality: FeedbackQuality = Field(default_factory=FeedbackQuality)
-    #: Sentence-level roll-up of the four-state tone diagnosis, plus the
-    #: reason codes behind it. Diagnostic only: `controls_progression` is
-    #: False and the lesson gate still runs on word_prosody[].passed.
-    #: Per-syllable detail lives in word_prosody[].syllables[].
-    tone_diagnostics: dict = Field(default_factory=dict)
-    #: Backend-authoritative pronunciation gate used by the student UI. This
-    #: is separate from the numeric tone score so a learner can see exactly
-    #: whether every judged syllable cleared the current evidence threshold.
-    pronunciation_mastery: dict = Field(default_factory=dict)
-    #: Optional ACCEPT/UNCERTAIN/NEEDS_PRACTICE assistive layer (Candidate F1
-    #: risk signal + Candidate E2 diagnostic, combined per the frozen
-    #: `feedback_policy_protocol.json` rule). `None` unless
-    #: `ENABLE_ASSISTIVE_FEEDBACK=1` is set AND the layer could compute a
-    #: result for this utterance -- additive and diagnostic only, exactly
-    #: like `tone_diagnostics`: does not touch `word_prosody[].passed` or
-    #: any progression gate. See `assistive_feedback/pipeline.py`.
-    assistive_feedback: Optional[List[dict]] = None
-    processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
-
-
 class ReferenceToneResponse(BaseModel):
     tone: int
     name: str

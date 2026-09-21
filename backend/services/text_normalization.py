@@ -1,3 +1,11 @@
+"""Text normalization utilities used across ASR and content-verification:
+replacing ASR homophones with known vocabulary, and converting Simplified
+to Traditional Chinese. Pure text transforms, no scoring or grading logic.
+"""
+
+from __future__ import annotations
+
+from helpers.pinyin_service import canonical_pinyin_tone3
 
 
 def correct_homophones(text: str, vocab_hint: str) -> str:

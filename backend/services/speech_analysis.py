@@ -1,3 +1,59 @@
+"""The central speech-analysis orchestration: given one recording, run
+ASR, Praat acoustic analysis, content verification, pronunciation scoring,
+and AI feedback together and assemble the combined AnalysisResponse.
+
+This module composes the other services/* domains (asr, content_verification,
+pronunciation_scoring, ai_feedback, media, text_normalization) plus the
+dedicated grading modules (praat_analyzer, chinese_tones, tone_decision,
+reached indirectly through analyze_all) into one request-level use case. It
+does not itself decide what a "correct" tone or pronunciation looks like —
+that logic stays in the modules it calls.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import importlib
+import logging
+import os
+import tempfile
+import time
+from typing import Any, Callable, Dict, Optional
+
+from starlette.concurrency import run_in_threadpool
+
+import helpers.caf_metrics as caf_metrics
+from config import settings
+from helpers.pinyin_service import canonical_pinyin
+from models import AnalysisResponse, ProcessingTrace, ProcessingTraceStage
+from praat_analyzer import analyze_all
+from services.asr import transcribe_audio_content
+from services.content_verification import (
+    assess_recording_quality,
+    _target_syllable_count,
+    _scene_content_match,
+    _scene_content_diff,
+    _acoustic_scoring_source,
+    _missing_scene_content_units,
+    finalize_feedback_quality,
+    _verify_word_transcription,
+    build_analysis_description,
+)
+from services.media import resolve_image_b64
+from services.ai_feedback import generate_language_feedback
+from services.pronunciation_scoring import (
+    apply_recording_qc_to_diagnostics,
+    build_pronunciation_mastery,
+    classify_vowel_quality,
+    build_tone_direction,
+)
+from services.text_normalization import convert_to_traditional_chinese
+
+logger = logging.getLogger("speaking_app")
+
+GEMINI_API_KEY = settings.gemini_api_key
+OPENAI_API_KEY = settings.openai_api_key
+GROQ_API_KEY = settings.groq_api_key
 
 
 async def _do_analyze(
@@ -101,7 +157,6 @@ async def _do_analyze(
             api_key, module, fn_name, tag = _audio_assessors[chosen_provider]
             if api_key:
                 try:
-                    import importlib
                     mod = importlib.import_module(module)
                     audio_result = await getattr(mod, fn_name)(
                         content, scene_prompt, scene_vocabulary,

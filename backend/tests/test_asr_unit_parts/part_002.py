@@ -196,19 +196,19 @@ class TestAnalysisProcessingTrace:
             "practice_prompt": "",
         }
 
-        with patch("main.assess_recording_quality", return_value={
+        with patch("services.speech_analysis.assess_recording_quality", return_value={
             "status": "reliable",
             "reason_codes": [],
             "student_message": "Sound check passed.",
-        }), patch("main.resolve_image_b64", new_callable=AsyncMock, return_value=None), \
-             patch("main.transcribe_audio_content", new_callable=AsyncMock) as transcribe, \
-             patch("main.analyze_all", return_value=praat_result), \
-             patch("main.generate_language_feedback", new_callable=AsyncMock) as feedback, \
-             patch("main.finalize_feedback_quality", return_value=quality), \
-             patch("main.classify_vowel_quality", return_value="Clear vowels"), \
-             patch("main.build_tone_direction", return_value="rising"), \
-             patch("main.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}), \
-             patch("main.caf_metrics.classify_pauses", return_value={"judged": False}), \
+        }), patch("services.speech_analysis.resolve_image_b64", new_callable=AsyncMock, return_value=None), \
+             patch("services.speech_analysis.transcribe_audio_content", new_callable=AsyncMock) as transcribe, \
+             patch("services.speech_analysis.analyze_all", return_value=praat_result), \
+             patch("services.speech_analysis.generate_language_feedback", new_callable=AsyncMock) as feedback, \
+             patch("services.speech_analysis.finalize_feedback_quality", return_value=quality), \
+             patch("services.speech_analysis.classify_vowel_quality", return_value="Clear vowels"), \
+             patch("services.speech_analysis.build_tone_direction", return_value="rising"), \
+             patch("services.speech_analysis.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}), \
+             patch("services.speech_analysis.caf_metrics.classify_pauses", return_value={"judged": False}), \
              patch("services.ai_feedback.fallback_language_feedback", return_value=local_feedback), \
              patch("services.ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_args, **_kwargs: value):
             transcribe.return_value = MagicMock(text="我在市場買菜。", model="ctwhisper")

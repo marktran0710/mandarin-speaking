@@ -33,6 +33,7 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from services.ai_feedback import GEMINI_FEEDBACK_MODEL
+from services.text_normalization import convert_to_traditional_chinese
 from config import settings
 
 logger = logging.getLogger("speaking_app")
@@ -98,10 +99,10 @@ def _has_speech(audio_content: bytes) -> bool:
     that pass RMS). Fails open - any decode problem (non-WAV upload, odd
     encoding) assumes speech, so the gate can only ever *prevent* a
     hallucination, never block a real recording."""
-    # Deferred: assess_recording_quality lives in main (not yet migrated) and
-    # main imports this module during its own startup, so importing it at
-    # module scope here would be circular.
-    from main import assess_recording_quality
+    # Deferred: content_verification imports transcribe_audio_content from
+    # this module, so importing assess_recording_quality at module scope
+    # here would be circular.
+    from services.content_verification import assess_recording_quality
 
     quality = assess_recording_quality(audio_content)
     # Keep the legacy fail-open behavior for formats this WAV-only preflight
@@ -131,9 +132,6 @@ def _filter_asr_phantoms(text: str) -> str:
 
 
 def _to_traditional(text: str) -> str:
-    # Deferred for the same reason as assess_recording_quality above.
-    from main import convert_to_traditional_chinese
-
     return convert_to_traditional_chinese(text)
 
 

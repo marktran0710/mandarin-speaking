@@ -33,17 +33,17 @@ LOCAL_FEEDBACK = {
 
 def _common_patches(analyze_all_mock):
     return [
-        patch("main.assess_recording_quality", return_value={
+        patch("services.speech_analysis.assess_recording_quality", return_value={
             "status": "reliable", "reason_codes": [], "student_message": "Sound check passed.",
         }),
-        patch("main.resolve_image_b64", new_callable=AsyncMock, return_value=None),
-        patch("main.analyze_all", analyze_all_mock),
-        patch("main.generate_language_feedback", new_callable=AsyncMock, return_value=LOCAL_FEEDBACK),
-        patch("main.finalize_feedback_quality", return_value=QUALITY),
-        patch("main.classify_vowel_quality", return_value="Clear vowels"),
-        patch("main.build_tone_direction", return_value="rising"),
-        patch("main.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}),
-        patch("main.caf_metrics.classify_pauses", return_value={"judged": False}),
+        patch("services.speech_analysis.resolve_image_b64", new_callable=AsyncMock, return_value=None),
+        patch("services.speech_analysis.analyze_all", analyze_all_mock),
+        patch("services.speech_analysis.generate_language_feedback", new_callable=AsyncMock, return_value=LOCAL_FEEDBACK),
+        patch("services.speech_analysis.finalize_feedback_quality", return_value=QUALITY),
+        patch("services.speech_analysis.classify_vowel_quality", return_value="Clear vowels"),
+        patch("services.speech_analysis.build_tone_direction", return_value="rising"),
+        patch("services.speech_analysis.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}),
+        patch("services.speech_analysis.caf_metrics.classify_pauses", return_value={"judged": False}),
         patch("services.ai_feedback.fallback_language_feedback", return_value=LOCAL_FEEDBACK),
         patch("services.ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_a, **_k: value),
     ]
@@ -70,7 +70,7 @@ async def test_praat_starts_before_asr_resolves_when_scene_target_is_known():
         return PRAAT_RESULT
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch("main.transcribe_audio_content", fake_transcribe))
+        stack.enter_context(patch("services.speech_analysis.transcribe_audio_content", fake_transcribe))
         for cm in _common_patches(fake_analyze_all):
             stack.enter_context(cm)
         result = await main._do_analyze(
@@ -105,7 +105,7 @@ async def test_confirmed_mismatch_still_scores_the_real_transcript():
         return PRAAT_RESULT
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch("main.transcribe_audio_content", fake_transcribe))
+        stack.enter_context(patch("services.speech_analysis.transcribe_audio_content", fake_transcribe))
         for cm in _common_patches(fake_analyze_all):
             stack.enter_context(cm)
         result = await main._do_analyze(
@@ -136,7 +136,7 @@ async def test_word_practice_verify_word_path_is_unaffected():
         return PRAAT_RESULT
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch("main._verify_word_transcription", fake_verify))
+        stack.enter_context(patch("services.speech_analysis._verify_word_transcription", fake_verify))
         for cm in _common_patches(fake_analyze_all):
             stack.enter_context(cm)
         result = await main._do_analyze(

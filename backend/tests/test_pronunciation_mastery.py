@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from main import build_pronunciation_mastery
+from services.pronunciation_scoring import build_pronunciation_mastery
 
 
 def _word(token, scores, *, judged=True):

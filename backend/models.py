@@ -7,7 +7,7 @@ against these models).
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -394,3 +394,104 @@ class GenerateModelVoiceBulkRequest(BaseModel):
 class TTSRequest(BaseModel):
     text: str
     voice: str = ""
+
+
+class RecordingQualityMetrics(BaseModel):
+    duration_seconds: float = Field(default=0.0, ge=0.0)
+    rms: float = Field(default=0.0, ge=0.0)
+    peak: float = Field(default=0.0, ge=0.0)
+    clipping_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+    voiced_seconds: float = Field(default=0.0, ge=0.0)
+    voiced_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+    energy_variation: float = Field(default=0.0, ge=0.0)
+    pitch_points: int = Field(default=0, ge=0)
+
+
+class FeedbackQuality(BaseModel):
+    """Evidence gate for student-facing automated feedback.
+
+    ``status`` is one of reliable/review/retry.  A score is only suitable
+    for mastery/progress decisions when its corresponding ``can_score_*``
+    flag is true.  Reason codes are stable API values; ``student_message`` is
+    presentation text and may evolve independently.
+    """
+
+    status: Literal["reliable", "review", "retry"] = "retry"
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    can_score_pronunciation: bool = False
+    can_score_content: bool = False
+    reason_codes: List[str] = Field(default_factory=list)
+    student_message: str = ""
+    metrics: RecordingQualityMetrics = Field(default_factory=RecordingQualityMetrics)
+
+
+class ProcessingTraceStage(BaseModel):
+    stage: str
+    status: str
+    duration_ms: float = 0.0
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    detail: Optional[str] = None
+    reason_codes: List[str] = Field(default_factory=list)
+    # What this stage actually received/produced, for the teacher debugger's
+    # per-step input/output cards. Deliberately compact (not the full
+    # response) — just this stage's own contract.
+    input: Optional[Dict[str, Any]] = None
+    output: Optional[Dict[str, Any]] = None
+
+
+class ProcessingTrace(BaseModel):
+    stages: List[ProcessingTraceStage] = Field(default_factory=list)
+    total_duration_ms: float = 0.0
+
+
+class ContentDiffSegment(BaseModel):
+    type: Literal["match", "replace", "missing", "extra"]
+    target: str = ""
+    heard: str = ""
+
+
+class AnalysisResponse(BaseModel):
+    description: str = ""
+    transcription: str = ""
+    transcription_model: str = ""
+    pitch_contour: List[Tuple[float, float]]
+    word_prosody: List[dict]
+    detected_tone: int
+    tone_accuracy: float
+    formants: dict
+    vowel_quality: str = ""
+    speech_rate: float
+    fluency_score: float
+    pitch_statistics: dict
+    tone_direction: str = ""
+    pause_analysis: dict = {}
+    feedback: str
+    ai_feedback: dict
+    # Set only when the caller passed `verify_word` — an independent real ASR
+    # pass confirming whether the recording actually contains that word,
+    # since `transcription` may have been supplied by the caller (not
+    # detected) to score tone against a known target. None means no check
+    # was requested (e.g. this wasn't a word-practice attempt).
+    recognized_text: Optional[str] = None
+    content_match: Optional[bool] = None
+    content_diff: List[ContentDiffSegment] = Field(default_factory=list)
+    feedback_quality: FeedbackQuality = Field(default_factory=FeedbackQuality)
+    #: Sentence-level roll-up of the four-state tone diagnosis, plus the
+    #: reason codes behind it. Diagnostic only: `controls_progression` is
+    #: False and the lesson gate still runs on word_prosody[].passed.
+    #: Per-syllable detail lives in word_prosody[].syllables[].
+    tone_diagnostics: dict = Field(default_factory=dict)
+    #: Backend-authoritative pronunciation gate used by the student UI. This
+    #: is separate from the numeric tone score so a learner can see exactly
+    #: whether every judged syllable cleared the current evidence threshold.
+    pronunciation_mastery: dict = Field(default_factory=dict)
+    #: Optional ACCEPT/UNCERTAIN/NEEDS_PRACTICE assistive layer (Candidate F1
+    #: risk signal + Candidate E2 diagnostic, combined per the frozen
+    #: `feedback_policy_protocol.json` rule). `None` unless
+    #: `ENABLE_ASSISTIVE_FEEDBACK=1` is set AND the layer could compute a
+    #: result for this utterance -- additive and diagnostic only, exactly
+    #: like `tone_diagnostics`: does not touch `word_prosody[].passed` or
+    #: any progression gate. See `assistive_feedback/pipeline.py`.
+    assistive_feedback: Optional[List[dict]] = None
+    processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)

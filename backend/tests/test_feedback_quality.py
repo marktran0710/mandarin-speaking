@@ -33,7 +33,7 @@ def _short_single_syllable_wav() -> bytes:
 
 
 def test_silence_is_retry_and_cannot_be_scored():
-    from main import assess_recording_quality
+    from services.content_verification import assess_recording_quality
 
     quality = assess_recording_quality(SILENT_WAV)
 
@@ -47,9 +47,10 @@ def test_silence_is_retry_and_cannot_be_scored():
 @pytest.mark.asyncio
 async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch):
     import services.ai_feedback as ai_feedback
+    import services.speech_analysis as speech_analysis
     import main
 
-    monkeypatch.setattr(main, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(speech_analysis, "GEMINI_API_KEY", "test-key")
     empty_analysis = (
         [],  # pitch contour
         {},  # formants
@@ -79,13 +80,13 @@ async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch)
             new_callable=AsyncMock,
         ) as audio_ai,
         patch.object(
-            main,
+            speech_analysis,
             "generate_language_feedback",
             new_callable=AsyncMock,
         ) as language_ai,
-        patch.object(main, "analyze_all", return_value=empty_analysis),
+        patch.object(speech_analysis, "analyze_all", return_value=empty_analysis),
         patch.object(
-            main,
+            speech_analysis,
             "resolve_image_b64",
             new_callable=AsyncMock,
             return_value=None,
@@ -105,7 +106,7 @@ async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch)
 
 
 def test_audible_signal_needs_post_analysis_before_it_can_be_scored():
-    from main import assess_recording_quality
+    from services.content_verification import assess_recording_quality
 
     quality = assess_recording_quality(SPEECH_WAV)
 
@@ -116,7 +117,7 @@ def test_audible_signal_needs_post_analysis_before_it_can_be_scored():
 
 
 def test_single_syllable_target_uses_a_shorter_voiced_floor():
-    from main import assess_recording_quality
+    from services.content_verification import assess_recording_quality
 
     audio = _short_single_syllable_wav()
     generic = assess_recording_quality(audio)
@@ -127,7 +128,7 @@ def test_single_syllable_target_uses_a_shorter_voiced_floor():
 
 
 def test_open_story_audio_is_review_only_without_independent_content_check():
-    from main import assess_recording_quality, finalize_feedback_quality
+    from services.content_verification import assess_recording_quality, finalize_feedback_quality
 
     preflight = assess_recording_quality(SPEECH_WAV)
     pitch = [(index * 0.02, 200.0 + index) for index in range(20)]
@@ -140,7 +141,7 @@ def test_open_story_audio_is_review_only_without_independent_content_check():
 
 
 def test_verified_target_can_be_reliable():
-    from main import finalize_feedback_quality
+    from services.content_verification import finalize_feedback_quality
 
     preflight = {
         "status": "review",
@@ -165,7 +166,7 @@ def test_verified_target_can_be_reliable():
 
 
 def test_sentence_content_match_tolerates_common_asr_name_confusion():
-    from main import _scene_content_match
+    from services.content_verification import _scene_content_match
 
     target = "友美，妳這個週末要做什麼？"
     recognized = "遊妹,你這個週末要做什麼?"
@@ -174,7 +175,7 @@ def test_sentence_content_match_tolerates_common_asr_name_confusion():
 
 
 def test_sentence_content_match_rejects_an_omitted_required_name():
-    from main import _scene_content_match
+    from services.content_verification import _scene_content_match
 
     target = "友美，妳這個週末要做什麼？"
     recognized = "你這個週末要做什麼?"
@@ -183,7 +184,7 @@ def test_sentence_content_match_rejects_an_omitted_required_name():
 
 
 def test_content_mismatch_keeps_pronunciation_feedback_but_blocks_content_pass():
-    from main import finalize_feedback_quality
+    from services.content_verification import finalize_feedback_quality
 
     preflight = {
         "status": "review",
@@ -209,7 +210,7 @@ def test_content_mismatch_keeps_pronunciation_feedback_but_blocks_content_pass()
 
 
 def test_sentence_content_match_rejects_unrelated_answer():
-    from main import _scene_content_match
+    from services.content_verification import _scene_content_match
 
     target = "友美，妳這個週末要做什麼？"
 
@@ -217,7 +218,7 @@ def test_sentence_content_match_rejects_unrelated_answer():
 
 
 def test_sustained_tone_never_becomes_reliable_mastery_evidence():
-    from main import assess_recording_quality, finalize_feedback_quality
+    from services.content_verification import assess_recording_quality, finalize_feedback_quality
 
     preflight = assess_recording_quality(SPEECH_WAV)
     pitch = [(index * 0.02, 220.0) for index in range(20)]
@@ -235,7 +236,7 @@ def test_sustained_tone_never_becomes_reliable_mastery_evidence():
 
 
 def test_unverified_target_cannot_receive_pronunciation_score():
-    from main import assess_recording_quality, finalize_feedback_quality
+    from services.content_verification import assess_recording_quality, finalize_feedback_quality
 
     preflight = assess_recording_quality(SPEECH_WAV)
     pitch = [(index * 0.02, 200.0 + index) for index in range(20)]
@@ -253,7 +254,7 @@ def test_unverified_target_cannot_receive_pronunciation_score():
 
 
 def test_feedback_quality_serializes_stable_contract_and_defaults_are_isolated():
-    from main import FeedbackQuality
+    from models import FeedbackQuality
 
     first = FeedbackQuality()
     second = FeedbackQuality()
