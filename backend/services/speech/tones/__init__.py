@@ -1,55 +1,12 @@
-"""Mandarin tone references, scoring, and learner-facing tone feedback."""
+"""Compatibility alias for the speech tone domain package."""
 
-from .feedback import generate_comprehensive_feedback
-from .reference_contours import (
-    TONE_REFERENCES,
-    _shape_match_score,
-    _smooth_for_directional_scoring,
-    apply_tone_sandhi,
-    build_phrase_reference_pattern,
-    calculate_tone_accuracy,
-    detect_tone,
-    directional_tone_scores,
-    directional_tone_scores_with_provenance,
-    get_reference_tone_pattern,
-    normalize_pitch_contour,
-    parse_pinyin_tones,
-    scaled_reference_contour,
-    syllable_parts,
-    word_tones,
-)
-from .scoring import (
-    calculate_directional_tone_accuracy,
-    calculate_phrase_shape_accuracy,
-    calculate_phrase_tone_accuracy,
-    contextual_tone_scores,
-    generate_phrase_tone_feedback,
-    get_tone_feedback,
-    phrase_shape_curves,
-    reference_syllable_scores,
-)
+from importlib import import_module
+import sys
 
-__all__ = [
-    "TONE_REFERENCES",
-    "build_phrase_reference_pattern",
-    "apply_tone_sandhi",
-    "calculate_directional_tone_accuracy",
-    "calculate_phrase_shape_accuracy",
-    "calculate_phrase_tone_accuracy",
-    "calculate_tone_accuracy",
-    "contextual_tone_scores",
-    "detect_tone",
-    "directional_tone_scores",
-    "directional_tone_scores_with_provenance",
-    "generate_comprehensive_feedback",
-    "generate_phrase_tone_feedback",
-    "get_reference_tone_pattern",
-    "get_tone_feedback",
-    "normalize_pitch_contour",
-    "parse_pinyin_tones",
-    "phrase_shape_curves",
-    "reference_syllable_scores",
-    "scaled_reference_contour",
-    "syllable_parts",
-    "word_tones",
-]
+
+_implementation = import_module("domain.speech.tones")
+for _module_name in ("feedback", "reference_contours", "scoring"):
+    sys.modules[f"{__name__}.{_module_name}"] = import_module(
+        f"domain.speech.tones.{_module_name}"
+    )
+sys.modules[__name__] = _implementation
