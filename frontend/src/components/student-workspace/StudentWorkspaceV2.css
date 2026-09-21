@@ -163,12 +163,12 @@
 .workspace-primary-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 70%, white); outline-offset: 3px; }
 .workspace-primary-action:disabled { cursor: not-allowed; opacity: .55; }
 
-.student-workspace-content-v2 > .student-page-shell > .my-stories-page { padding-top: 0; }
+.student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .my-stories-page { padding-top: 0; }
 
 /* Standalone student tools use the same rail, but their own page component
    already owns the content width. Do not apply a second narrow max-width or
    the voice-test canvas becomes visibly smaller than the workspace pages. */
-.student-standalone-shell > .student-workspace-content-v2 > .student-page-shell > .voice-test-page {
+.student-standalone-shell > .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .voice-test-page {
   width: 100%;
   margin: 0;
   padding: 0 0 var(--space-3xl);

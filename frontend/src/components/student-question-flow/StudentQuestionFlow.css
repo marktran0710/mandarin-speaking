@@ -14,8 +14,18 @@
 
 /* Assessment pages use the shared page boundary, while this component keeps
    ownership of the active question's internal geometry. */
-.student-page-shell--quiz > .placement-test-page {
+.student-page-shell--task .student-page-shell__rail > .placement-test-page {
   min-height: 0;
+}
+
+.student-page-shell--task .student-page-shell__rail > .placement-test-page > .student-question-flow {
+  width: 100%;
+  max-width: none;
+}
+
+.student-page-shell--task .student-page-shell__rail > .placement-test-page > .student-question-flow > .vocab-quiz-content {
+  width: 100%;
+  max-width: none;
 }
 
 .student-question-flow.story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-content {

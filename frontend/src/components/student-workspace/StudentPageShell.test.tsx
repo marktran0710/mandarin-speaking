@@ -18,14 +18,16 @@ describe("StudentPageShell", () => {
 
   it("exposes semantic layout ownership and a stable page identity", () => {
     render(
-      <StudentPageShell layout="stage" pageId="story-practice">
+      <StudentPageShell layout="stage" pageId="story-practice" data-testid="stage-shell">
         <p>Story practice content</p>
       </StudentPageShell>,
     );
 
-    const shell = screen.getByText("Story practice content").parentElement;
+    const shell = screen.getByTestId("stage-shell");
     expect(shell).toHaveClass("student-page-shell", "student-page-shell--stage");
     expect(shell).toHaveAttribute("data-student-page", "story-practice");
     expect(shell).not.toHaveAttribute("role");
+    expect(screen.getByText("Story practice content").parentElement)
+      .toHaveClass("student-page-shell__rail");
   });
 });

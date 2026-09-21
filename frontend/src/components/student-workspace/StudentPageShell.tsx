@@ -36,7 +36,7 @@ export default function StudentPageShell({
       className={`student-page-shell student-page-shell--${resolvedLayout}${legacyVariantClass}${className ? ` ${className}` : ""}`}
       data-student-page={pageId}
     >
-      {children}
+      <div className="student-page-shell__rail">{children}</div>
     </div>
   );
 }

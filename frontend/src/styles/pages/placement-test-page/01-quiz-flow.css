@@ -20,10 +20,10 @@
    its progress rail with the shared question content instead of leaving a
    short detached rail at the panel's left edge. */
 .placement-test-question-flow .placement-test-progress {
-  flex: 0 1 860px;
-  width: min(100%, 860px);
+  flex: 1 1 auto;
+  width: 100%;
   max-width: none;
-  margin-inline: auto;
+  margin-inline: 0;
 }
 
 .placement-test-page .vocab-quiz-option-selected {

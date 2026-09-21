@@ -2,13 +2,13 @@
    The shell owns navigation; this page owns one heading, one summary strip,
    one support action, and one progress list. Keep the hierarchy open and
    editorial instead of stacking another set of rounded game tiles. */
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .my-stories-page {
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .my-stories-page {
   min-height: auto;
   padding: 0 0 var(--space-3xl);
   background: transparent;
 }
 
-.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .my-stories-page .stories-header {
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .my-stories-page .stories-header {
   display: block;
   width: 100%;
   max-width: none;
@@ -40,13 +40,14 @@
 }
 
 .student-workspace.student-workspace-v2 .profile-stats {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--space-sm);
   max-width: none;
   margin: 0 0 var(--space-lg);
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-card {
+  grid-column: span 3;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -119,9 +120,17 @@
 }
 
 .student-workspace.student-workspace-v2 .student-help-card {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, .85fr);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--space-lg);
   padding: var(--space-md) var(--space-lg);
+}
+
+.student-workspace.student-workspace-v2 .student-help-card > :first-child {
+  grid-column: span 5;
+}
+
+.student-workspace.student-workspace-v2 .student-help-card > :last-child {
+  grid-column: span 7;
 }
 
 .student-workspace.student-workspace-v2 .student-help-card h2 {
@@ -319,11 +328,20 @@
 
 @media (max-width: 900px) {
   .student-workspace.student-workspace-v2 .profile-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .student-workspace.student-workspace-v2 .profile-stat-card {
+    grid-column: auto;
   }
 
   .student-workspace.student-workspace-v2 .student-help-card {
     grid-template-columns: 1fr;
+  }
+
+  .student-workspace.student-workspace-v2 .student-help-card > :first-child,
+  .student-workspace.student-workspace-v2 .student-help-card > :last-child {
+    grid-column: auto;
   }
 }
 
