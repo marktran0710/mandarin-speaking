@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import auth
-from routers import vocabulary
+from routers import story_quiz_vocabulary, vocabulary
 
 
 def word_payload(*, target_word="桌子", word_id=None, suffix="one"):
@@ -57,7 +57,7 @@ def api():
         yield Database()
 
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(vocabulary, "connect_db", connect)
+    monkeypatch.setattr(story_quiz_vocabulary, "connect_db", connect)
     app = FastAPI()
     app.include_router(vocabulary.router)
     with TestClient(app) as client:

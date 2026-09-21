@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import auth
-from routers import vocabulary
+from routers import story_vocabulary_metadata, vocabulary
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def api(monkeypatch, story):
     def connect():
         yield Database()
 
-    monkeypatch.setattr(vocabulary, "connect_db", connect)
+    monkeypatch.setattr(story_vocabulary_metadata, "connect_db", connect)
     app = FastAPI()
     app.include_router(vocabulary.router)
     with TestClient(app) as client:

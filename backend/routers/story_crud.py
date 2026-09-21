@@ -5,18 +5,18 @@ from db import connect_db, row_to_custom_story
 import auth
 import services.media as media_service
 from models import CustomStoryRequest
-from routers.vocabulary import router as vocabulary_metadata_router
+from routers.story_quiz_vocabulary import router as story_quiz_vocabulary_router
+from routers.story_vocabulary_metadata import router as story_vocabulary_metadata_router
 from vocab_assessment import validate_assessment_payload
 
 # Students may read lesson content after login; story writes and generated
 # media are restricted by auth.require_story_access to teacher/admin accounts.
 router = APIRouter(dependencies=[Depends(auth.require_story_access)])
 
-# Nested so vocabulary-metadata edits pick up BOTH this router's
-# require_story_access dependency and vocabulary_metadata_router's own
-# require_admin - matches the auth chain the old stories.py facade built by
-# including this same router from its own part_003.py.
-router.include_router(vocabulary_metadata_router)
+# Nested so both story-vocabulary responsibilities pick up this router's
+# require_story_access dependency and their own require_admin dependency.
+router.include_router(story_vocabulary_metadata_router)
+router.include_router(story_quiz_vocabulary_router)
 
 # Stories carried per-difficulty-tier fields before the Medium/Hard tiers
 # were removed; kept for now since deleting it isn't this move's job.
