@@ -1,4 +1,11 @@
+from fastapi import APIRouter, Depends
+
+import auth
 from analytics.frex import compute_frex
+from db import connect_db
+
+
+router = APIRouter()
 
 
 @router.get("/api/analytics/vocab-quiz/frex")

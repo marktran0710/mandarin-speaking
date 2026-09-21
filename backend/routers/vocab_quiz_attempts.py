@@ -1,4 +1,4 @@
-from collections import defaultdict
+import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
@@ -7,7 +7,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
 import auth
+from analytics.bkt_assessment_resolver import resolve_assessment_response
+from analytics.bkt_mastery import get_vocabulary_mastery, record_attempt_and_rebuild
+from analytics.srs import DAY_SECONDS
+from analytics.srs_store import apply_srs_updates, enroll_strong_words
 from config import settings
+from db import connect_db, row_to_vocab_quiz_attempt
+from models import VocabQuizAttemptRequest
+
+
+logger = logging.getLogger("speaking_app")
+
+router = APIRouter()
 
 
 def _dev_srs_today(today: Optional[str]) -> Optional[datetime]:
@@ -22,7 +33,7 @@ def _dev_srs_today(today: Optional[str]) -> Optional[datetime]:
     Keep the same query parameter while answering a review so its schedule
     update uses the simulated date too. Removing it returns to the real clock;
     it does not reset development schedule data. The simulated date is read as
-    midnight UTC — precise enough for "pretend a day has passed" testing; use
+    midnight UTC ??precise enough for "pretend a day has passed" testing; use
     ``SRS_DAY_SECONDS`` (see ``_effective_srs_day_seconds``) instead when the
     goal is watching the schedule advance in real time.
     """
@@ -40,7 +51,7 @@ def _dev_srs_today(today: Optional[str]) -> Optional[datetime]:
 def _effective_srs_day_seconds() -> float:
     """Dev-only SM-2 interval compression, e.g. SRS_DAY_SECONDS=60 for "1 day = 1 minute".
 
-    Only honored when APP_ENV is "development" — any other environment always
+    Only honored when APP_ENV is "development" ??any other environment always
     schedules on a real 24h day regardless of the env var, so a stray setting
     can never shrink a real student's review intervals in production. Lets a
     developer watch the whole due/review cycle happen live (waiting minutes or
@@ -49,22 +60,6 @@ def _effective_srs_day_seconds() -> float:
     if settings.app_env.strip().lower() != "development":
         return DAY_SECONDS
     return settings.srs_day_seconds
-from analytics.bkt_assessment_resolver import resolve_assessment_response
-from analytics.bkt_mastery import (
-    diagnostic_status,
-    get_priority_review_words,
-    get_vocabulary_mastery,
-    record_attempt_and_rebuild,
-    seen_item_ids,
-)
-from analytics.review_queue import build_review_queue
-from analytics.srs import DAY_SECONDS
-from analytics.srs_store import apply_srs_updates, enroll_strong_words
-from db import connect_db, row_to_vocab_quiz_attempt
-import main
-from main import VocabQuizAttemptRequest
-
-router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 @router.get("/api/vocab-quiz-attempts")
@@ -108,11 +103,6 @@ def list_vocab_quiz_attempts(
     return [row_to_vocab_quiz_attempt(row) for row in rows]
 
 
-def _assert_student_scope(identity: auth.Identity, student_id: str) -> None:
-    if identity.role == "student" and identity.id != student_id:
-        raise HTTPException(status_code=403, detail="Students may only view their own vocabulary mastery.")
-
-
 def _validated_question_results(db, attempt: VocabQuizAttemptRequest) -> list[dict]:
     """Resolve answers to published assessment facts before BKT sees them."""
     question_results = []
@@ -120,7 +110,7 @@ def _validated_question_results(db, attempt: VocabQuizAttemptRequest) -> list[di
         payload = result.model_dump(exclude_none=True, exclude_defaults=True)
         resolved = resolve_assessment_response(db, attempt, payload)
         if not resolved.get("authoritativeResolved"):
-            main.logger.warning(
+            logger.warning(
                 "BKT_UPDATE_SKIPPED question_id=%s reason=UNRESOLVED_ASSESSMENT_SOURCE",
                 payload.get("itemId") or payload.get("word") or "unknown",
             )
@@ -155,91 +145,6 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
         now=_dev_srs_today(today),
         day_seconds=_effective_srs_day_seconds(),
     )
-
-
-@router.get("/api/students/{student_id}/weak-words")
-def get_student_priority_review_words(
-    student_id: str,
-    review_count: Optional[int] = None,
-    story_id: Optional[str] = None,
-    include_all: bool = False,
-    identity: auth.Identity = Depends(auth.get_current_identity),
-):
-    """Return learner-relative Bottom-K BKT review priorities."""
-    _assert_student_scope(identity, student_id)
-    options = {key: value for key, value in (("reviewCount", review_count), ("storyId", story_id)) if value is not None}
-    if include_all:
-        options["includeAllWeak"] = True
-    with connect_db() as db:
-        return get_priority_review_words(db, student_id, options)
-
-
-@router.get("/api/students/{student_id}/review-queue")
-async def get_student_review_queue(
-    student_id: str,
-    review_count: Optional[int] = None,
-    story_id: Optional[str] = None,
-    include_all: bool = False,
-    today: Optional[str] = None,
-    identity: auth.Identity = Depends(auth.get_current_identity),
-):
-    """Weak words (BKT) ∪ due words (SM-2), tagged weak|due for the UI.
-
-    Scheduling-only: BKT mastery is unchanged; this just adds SM-2 due words to
-    the existing weak-word priorities so mastered-but-due words resurface.
-    """
-    _assert_student_scope(identity, student_id)
-    options = {key: value for key, value in (("reviewCount", review_count), ("storyId", story_id)) if value is not None}
-    if include_all:
-        options["includeAllWeak"] = True
-    with connect_db() as db:
-        return build_review_queue(db, student_id, options, now=_dev_srs_today(today))
-
-
-@router.get("/api/students/{student_id}/vocabulary-mastery")
-def get_student_vocabulary_mastery(
-    student_id: str,
-    story_id: Optional[str] = None,
-    identity: auth.Identity = Depends(auth.get_current_identity),
-):
-    _assert_student_scope(identity, student_id)
-    with connect_db() as db:
-        return {
-            **diagnostic_status(db, student_id, story_id=story_id),
-            "words": get_vocabulary_mastery(db, student_id, story_id=story_id),
-        }
-
-
-@router.get("/api/students/{student_id}/vocabulary-mastery/{word_id:path}/seen-items")
-def get_seen_vocabulary_items(
-    student_id: str,
-    word_id: str,
-    identity: auth.Identity = Depends(auth.get_current_identity),
-):
-    _assert_student_scope(identity, student_id)
-    with connect_db() as db:
-        return {"itemIds": seen_item_ids(db, student_id, word_id)}
-
-
-@router.get("/api/vocab-quiz-attempts/weak-words")
-def get_weak_words(
-    story_id: str,
-    include_all: bool = False,
-    identity: auth.Identity = Depends(auth.require_student),
-):
-    """Compatibility-shaped response backed by guarded standard BKT."""
-    with connect_db() as db:
-        result = get_priority_review_words(db, identity.id, {"storyId": story_id, "includeAllWeak": include_all})
-    return {
-        "words": [word["word"] for word in result["words"]],
-        "diagnostic": {
-            key: result[key]
-            for key in (
-                "unlocked", "requiredDiagnosticQuizzes", "completedDiagnosticQuizzes",
-                "requiredWords", "sufficientWords", "wordCoverage", "roundPresence", "diagnosticComplete",
-            )
-        },
-    }
 
 
 @router.post("/api/vocab-quiz-attempts")

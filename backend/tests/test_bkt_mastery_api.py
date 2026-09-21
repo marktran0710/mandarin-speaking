@@ -3,7 +3,7 @@ from psycopg.types.json import Jsonb
 from types import SimpleNamespace
 
 import db
-from routers.vocab_quiz_parts.part_001 import _srs_event_results
+from routers.vocab_quiz_attempts import _srs_event_results
 
 
 _MODE_LEVEL = {"tier1": "easy", "tier2": "medium", "tier3": "hard", "weak_words": "easy"}

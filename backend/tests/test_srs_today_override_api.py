@@ -3,7 +3,8 @@ from dataclasses import replace
 from datetime import datetime, timezone
 
 import main  # noqa: F401  # Loads the router facade before the test patches it.
-import routers.vocab_quiz as vocab_routes
+from routers import vocab_quiz_attempts as attempt_routes
+from routers import vocab_quiz_mastery as mastery_routes
 
 
 def _review_attempt(attempt_id: str) -> dict:
@@ -28,7 +29,7 @@ def test_development_today_override_reaches_review_queue(logged_in_student, monk
         captured.append((student_id, options, now))
         return {"queue": []}
 
-    monkeypatch.setattr(vocab_routes, "build_review_queue", fake_queue)
+    monkeypatch.setattr(mastery_routes, "build_review_queue", fake_queue)
 
     response = client.get(f"/api/students/{student['id']}/review-queue?today=2026-09-17")
 
@@ -44,13 +45,13 @@ def test_today_override_is_ignored_when_missing_malformed_or_not_development(log
         captured.append(now)
         return {"queue": []}
 
-    monkeypatch.setattr(vocab_routes, "build_review_queue", fake_queue)
+    monkeypatch.setattr(mastery_routes, "build_review_queue", fake_queue)
     assert client.get(f"/api/students/{student['id']}/review-queue").status_code == 200
     for invalid in ("tomorrow", "2026-09-17junk", "2026-02-30", "2026-9-17"):
         assert client.get(f"/api/students/{student['id']}/review-queue?today={invalid}").status_code == 200
-    base_settings = vocab_routes.settings
+    base_settings = attempt_routes.settings
     for app_env in ("production", "staging", "unknown"):
-        monkeypatch.setattr(vocab_routes, "settings", replace(base_settings, app_env=app_env))
+        monkeypatch.setattr(attempt_routes, "settings", replace(base_settings, app_env=app_env))
         assert client.get(f"/api/students/{student['id']}/review-queue?today=2026-09-17").status_code == 200
 
     assert captured == [None] * 8
@@ -64,7 +65,7 @@ def test_development_today_override_reaches_completed_and_partial_review_updates
         captured.append(now)
         return 0
 
-    monkeypatch.setattr(vocab_routes, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_routes, "apply_srs_updates", fake_apply)
 
     completed = client.post("/api/vocab-quiz-attempts?today=2026-09-17", json=_review_attempt("srs-completed"))
     partial = client.post("/api/vocab-quiz-responses?today=2026-09-23", json=_review_attempt("srs-partial"))
@@ -82,8 +83,8 @@ def test_production_today_override_does_not_change_review_update_date(logged_in_
         captured.append(now)
         return 0
 
-    monkeypatch.setattr(vocab_routes, "apply_srs_updates", fake_apply)
-    monkeypatch.setattr(vocab_routes, "settings", replace(vocab_routes.settings, app_env="production"))
+    monkeypatch.setattr(attempt_routes, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, app_env="production"))
 
     completed = client.post("/api/vocab-quiz-attempts?today=2026-09-17", json=_review_attempt("srs-production-completed"))
     partial = client.post("/api/vocab-quiz-responses?today=2026-09-17", json=_review_attempt("srs-production-partial"))
@@ -102,8 +103,8 @@ def test_development_day_seconds_override_reaches_review_updates(logged_in_stude
         captured.append(day_seconds)
         return 0
 
-    monkeypatch.setattr(vocab_routes, "apply_srs_updates", fake_apply)
-    monkeypatch.setattr(vocab_routes, "settings", replace(vocab_routes.settings, srs_day_seconds=60.0))
+    monkeypatch.setattr(attempt_routes, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, srs_day_seconds=60.0))
 
     response = client.post("/api/vocab-quiz-attempts", json=_review_attempt("srs-day-seconds"))
 
@@ -119,8 +120,8 @@ def test_production_ignores_day_seconds_override(logged_in_student, monkeypatch)
         captured.append(day_seconds)
         return 0
 
-    monkeypatch.setattr(vocab_routes, "apply_srs_updates", fake_apply)
-    monkeypatch.setattr(vocab_routes, "settings", replace(vocab_routes.settings, app_env="production", srs_day_seconds=60.0))
+    monkeypatch.setattr(attempt_routes, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, app_env="production", srs_day_seconds=60.0))
 
     response = client.post("/api/vocab-quiz-attempts", json=_review_attempt("srs-day-seconds-prod"))
 
