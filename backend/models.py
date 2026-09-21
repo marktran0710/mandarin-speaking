@@ -495,3 +495,14 @@ class AnalysisResponse(BaseModel):
     #: any progression gate. See `assistive_feedback/pipeline.py`.
     assistive_feedback: Optional[List[dict]] = None
     processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
+
+
+class ReferenceToneResponse(BaseModel):
+    tone: int
+    name: str
+    character: str
+    pinyin: str
+    description: str
+    pitch_pattern: List[float]
+    frequency_range: Tuple[int, int]
+    expected_mean: int

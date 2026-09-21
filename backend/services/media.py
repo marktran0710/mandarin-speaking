@@ -45,6 +45,10 @@ IMAGE_UPLOAD_DIR = settings.image_upload_dir
 STORY_AUDIO_UPLOAD_DIR = settings.story_audio_upload_dir
 _MAX_AUDIO_BYTES = settings.max_audio_bytes
 
+os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
+os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
+os.makedirs(STORY_AUDIO_UPLOAD_DIR, exist_ok=True)
+
 
 class AudioRecordRequest(BaseModel):
     id: str

@@ -1,7 +1,8 @@
 """Caps concurrent CPU-bound work (Praat, local ASR) behind /api/analyze -
 without this, a classroom of ~50 students recording around the same moment
 would spin up dozens of simultaneous analyses and thrash every core. See
-main.analyze_semaphore and its usage in routers/asr.py.
+application.analysis_capacity.analyze_semaphore and its usage in
+routers/asr.py.
 """
 import asyncio
 import io
@@ -9,6 +10,7 @@ import io
 import pytest
 from fastapi import UploadFile
 
+import application.analysis_capacity as analysis_capacity
 import main
 from routers import asr
 
@@ -36,7 +38,7 @@ def _text_form_args() -> dict:
 @pytest.mark.asyncio
 async def test_analyze_speech_caps_concurrent_cpu_bound_work(monkeypatch):
     limit = 2
-    monkeypatch.setattr(main, "analyze_semaphore", asyncio.Semaphore(limit))
+    monkeypatch.setattr(analysis_capacity, "analyze_semaphore", asyncio.Semaphore(limit))
 
     in_flight = 0
     peak = 0
@@ -68,7 +70,7 @@ async def test_analyze_speech_caps_concurrent_cpu_bound_work(monkeypatch):
 @pytest.mark.asyncio
 async def test_analyze_speech_stream_shares_the_same_concurrency_cap(monkeypatch):
     limit = 2
-    monkeypatch.setattr(main, "analyze_semaphore", asyncio.Semaphore(limit))
+    monkeypatch.setattr(analysis_capacity, "analyze_semaphore", asyncio.Semaphore(limit))
 
     in_flight = 0
     peak = 0

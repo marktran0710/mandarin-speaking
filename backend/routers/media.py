@@ -1,12 +1,74 @@
+import mimetypes
+import os
+from pathlib import Path
+from urllib.parse import unquote_to_bytes
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import FileResponse
 
 import auth
 import main
 import services.media as media_service
 import services.story_images as story_images_service
+from db import connect_db
 from services.story_images import StoryImageGenerationRequest, StoryImageGenerationResponse
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
+
+
+@router.get("/uploads/{relative_path:path}")
+def serve_upload(
+    relative_path: str,
+    identity: auth.Identity = Depends(auth.get_current_identity),
+):
+    """Serve uploaded media only to an authenticated session."""
+    upload_root = Path(media_service.UPLOAD_DIR).resolve()
+    requested = (upload_root / unquote_to_bytes(relative_path).decode("utf-8")).resolve()
+    if requested != upload_root and upload_root not in requested.parents:
+        raise HTTPException(status_code=404, detail="Media not found.")
+    if not requested.is_file():
+        raise HTTPException(status_code=404, detail="Media not found.")
+    if identity.role == "student":
+        stored_url = f"/uploads/{relative_path.replace(os.sep, '/')}"
+        # Evaluate the three ownership checks cheapest-first and stop at the
+        # first match. Same authorization result as testing all three, but a
+        # student replaying their own audio (the common case) never reaches the
+        # published-lesson check, whose `frames::text LIKE '%url%'` is an
+        # unindexable full-table scan - kept last so it runs only when the two
+        # indexed lookups both miss (i.e. only for published lesson media).
+        with connect_db() as db:
+            allowed = bool(
+                db.execute(
+                    "SELECT 1 FROM audio_records WHERE student_id = %s AND audio_url = %s LIMIT 1",
+                    (identity.id, stored_url),
+                ).fetchone()
+            )
+            if not allowed:
+                allowed = bool(
+                    db.execute(
+                        "SELECT 1 FROM story_submissions WHERE student_id = %s AND concatenated_audio_url = %s LIMIT 1",
+                        (identity.id, stored_url),
+                    ).fetchone()
+                )
+            if not allowed:
+                allowed = bool(
+                    db.execute(
+                        "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
+                        (f"%{stored_url}%",),
+                    ).fetchone()
+                )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="Media access is not allowed.")
+    media_type, _ = mimetypes.guess_type(str(requested))
+    # Uploaded media is immutable (its URL is content/id-addressed), and it is
+    # the highest-volume request type, so let the browser cache it and skip the
+    # round-trip (and this authorization check) when a student reopens a story.
+    # `private`, never a shared/CDN cache, because the media is auth-gated.
+    return FileResponse(
+        requested,
+        media_type=media_type or "application/octet-stream",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
 
 
 @router.get("/api/inline-media")

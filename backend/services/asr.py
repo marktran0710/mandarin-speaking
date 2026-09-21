@@ -54,9 +54,9 @@ class AsrStatusResponse(BaseModel):
 
 # ── Config ───────────────────────────────────────────────────────────────────
 # OPENAI_API_KEY/GEMINI_API_KEY/GROQ_API_KEY are also read independently by
-# main_parts (vocab extraction, quiz review chat, story images) - both sides
-# read the same config.settings, so there is one source of truth even though
-# each module caches its own copy.
+# services/speech_analysis.py and services/story_images.py - all three read
+# the same config.settings, so there is one source of truth even though each
+# module caches its own copy.
 OPENAI_API_KEY = settings.openai_api_key
 GEMINI_API_KEY = settings.gemini_api_key
 GROQ_API_KEY = settings.groq_api_key

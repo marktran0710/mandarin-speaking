@@ -1,6 +1,6 @@
 """Praat should run CONCURRENTLY with ASR for whole-sentence practice (a known
 scene_target_text, no verify_word), not sequentially after it - see the
-overlap comment in main_parts/part_005.py. These tests prove the overlap
+overlap comment in services/speech_analysis.py. These tests prove the overlap
 actually happens (timing) and that the rare confirmed-mismatch case still
 falls back to scoring the real transcript, unchanged from before."""
 
