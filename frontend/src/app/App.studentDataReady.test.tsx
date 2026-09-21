@@ -8,8 +8,8 @@ import App from "./App";
 // piece by piece on a slow connection. App.tsx now gates every student
 // route behind all three settling once — this file proves that gate
 // actually blocks, and actually releases, instead of trusting the wiring.
-vi.mock("./services/database", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./services/database")>();
+vi.mock("../services/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/database")>();
   return {
     ...actual,
     canUseDatabase: () => true,
@@ -35,7 +35,7 @@ describe("App — student data must be ready before a student route renders", ()
   });
 
   it("does not request protected student data for anonymous home", async () => {
-    const api = await import("./services/database");
+    const api = await import("../services/database");
     const listAudioRecords = vi.spyOn(api, "listAudioRecords");
 
     render(<App />);
@@ -46,7 +46,7 @@ describe("App — student data must be ready before a student route renders", ()
   });
 
   it("shows the loading gate, not the workspace, while a fetch is still pending, then releases it once all three settle", async () => {
-    const api = await import("./services/database");
+    const api = await import("../services/database");
     let resolveAudio!: (value: never[]) => void;
     const audioPromise = new Promise<never[]>((resolve) => {
       resolveAudio = resolve;
@@ -83,7 +83,7 @@ describe("App — student data must be ready before a student route renders", ()
   });
 
   it("releases the gate even when a fetch fails, instead of loading forever", async () => {
-    const api = await import("./services/database");
+    const api = await import("../services/database");
     vi.spyOn(api, "listAudioRecords").mockRejectedValue(new Error("network down"));
 
     signInAsStudent();

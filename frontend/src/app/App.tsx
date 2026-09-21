@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import HomePage from "./pages/HomePage";
-import VoiceTestPage from "./pages/VoiceTestPage";
-import PlacementTestPage from "./pages/PlacementTestPage";
+import HomePage from "../pages/HomePage";
+import VoiceTestPage from "../pages/VoiceTestPage";
+import PlacementTestPage from "../pages/PlacementTestPage";
 import StudentWorkspacePage, {
   type StudentWorkspaceView,
-} from "./pages/StudentWorkspacePage";
-import ErrorBoundary from "./components/ui/ErrorBoundary";
+} from "../pages/StudentWorkspacePage";
+import ErrorBoundary from "../components/ui/ErrorBoundary";
 
-import StudentLoginPage from "./pages/StudentLoginPage";
-import { BiLabel } from "./components/ui/BiLabel";
-import Navigation from "./components/navigation/Navigation";
-import AppJourneyBubble from "./components/journey/AppJourneyBubble";
+import StudentLoginPage from "../pages/StudentLoginPage";
+import { BiLabel } from "../components/ui/BiLabel";
+import Navigation from "../components/navigation/Navigation";
+import AppJourneyBubble from "../components/journey/AppJourneyBubble";
 import {
   getStudentName,
   getStudentId,
@@ -18,8 +18,8 @@ import {
   clearLastVisitedPage,
   saveLastPracticeTarget,
   clearLastPracticeTarget,
-} from "./utils/studentSession";
-import { signOut } from "./utils/session";
+} from "../utils/studentSession";
+import { signOut } from "../utils/session";
 import {
   canUseDatabase,
   createAudioRecord,
@@ -29,33 +29,33 @@ import {
   listCustomStories,
   logoutStudent,
   StoredAudioRecord,
-} from "./services/database";
-import { getStudentAppBootstrapState, collectPinyinTexts } from "./config/appNavigation";
-import type { AudioRecord, PracticeTarget } from "./app/appTypes";
+} from "../services/database";
+import { getStudentAppBootstrapState, collectPinyinTexts } from "../config/appNavigation";
+import type { AudioRecord, PracticeTarget } from "./appTypes";
 import {
   recordsFromStored,
   serializeAudioRecord,
   updateStoredAudioRecord,
   writeAudioRecordsCache,
-} from "./helpers/audioRecords";
+} from "../helpers/audioRecords";
 import {
   loadLocalHelpRequests,
   saveHelpRequestsLocally,
   upsertHelpRequest,
-} from "./helpers/helpRequests";
+} from "../helpers/helpRequests";
 import {
   loadPublishedTeacherTopics,
   saveCustomStories,
-} from "./utils/teacherStories";
-import type { Topic } from "./components/content/TopicSelector";
-import { topicHasQuiz } from "./utils/topicQuiz";
-import { primePinyin } from "./utils/pinyin";
-import type { Page } from "./types/page";
-import { getJourneyBubbleTargetIds } from "./helpers/journeyBubble";
-import StudentModeFrame from "./components/student-workspace/StudentModeFrame";
-import StudentPageShell from "./components/student-workspace/StudentPageShell";
-import { loadLocalStars } from "./utils/quizTiers";
-import { pushHistorySnapshot, replaceHistorySnapshot } from "./utils/studentHistory";
+} from "../utils/teacherStories";
+import type { Topic } from "../components/content/TopicSelector";
+import { topicHasQuiz } from "../utils/topicQuiz";
+import { primePinyin } from "../utils/pinyin";
+import type { Page } from "../types/page";
+import { getJourneyBubbleTargetIds } from "../helpers/journeyBubble";
+import StudentModeFrame from "../components/student-workspace/StudentModeFrame";
+import StudentPageShell from "../components/student-workspace/StudentPageShell";
+import { loadLocalStars } from "../utils/quizTiers";
+import { pushHistorySnapshot, replaceHistorySnapshot } from "../utils/studentHistory";
 
 const STUDENT_APP_HISTORY_KEY = "mandarinApp";
 
@@ -68,7 +68,7 @@ type StudentAppHistoryState = {
 export type { Page };
 
 export type { AudioRecord, PracticeTarget };
-export { getStudentAppBootstrapState } from "./config/appNavigation";
+export { getStudentAppBootstrapState } from "../config/appNavigation";
 
 export default function App() {
   const [bootstrapState] = useState(getStudentAppBootstrapState);

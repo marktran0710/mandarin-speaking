@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import StudentWorkspaceShell from "../components/student-workspace/StudentWorkspaceShell";
 import StudentLoginPage from "../pages/StudentLoginPage";
-import App from "../App";
+import App from "../app/App";
 import { currentRole, signIn, signOut } from "../utils/session";
 import type { Topic } from "../components/content/TopicSelector";
 

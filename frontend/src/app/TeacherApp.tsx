@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import type { TeacherView } from "./pages/TeacherDashboardPage";
-import LoginPage from "./pages/LoginPage";
-import Navigation from "./components/navigation/Navigation";
-import ErrorBoundary from "./components/ui/ErrorBoundary";
-import { currentRole, signOut } from "./utils/session";
+import TeacherDashboardPage from "../pages/TeacherDashboardPage";
+import type { TeacherView } from "../pages/TeacherDashboardPage";
+import LoginPage from "../pages/LoginPage";
+import Navigation from "../components/navigation/Navigation";
+import ErrorBoundary from "../components/ui/ErrorBoundary";
+import { currentRole, signOut } from "../utils/session";
 import {
   canUseDatabase,
   deleteAudioRecordFromDatabase,
@@ -15,7 +15,7 @@ import {
   logoutTeacher,
   resolveHelpRequest,
   StoredAudioRecord,
-} from "./services/database";
+} from "../services/database";
 
 export default function TeacherApp({ embedded = false, onExit, initialView }: { embedded?: boolean; onExit?: () => void; initialView?: TeacherView } = {}) {
   const [activeRole, setActiveRole] = useState<"teacher" | null>(() =>

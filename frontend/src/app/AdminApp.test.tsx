@@ -2,13 +2,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import AdminApp from "./AdminApp";
-import ManagementShell from "./components/management/ManagementShell";
-import { SESSION_EXPIRED_EVENT } from "./services/api/client";
+import ManagementShell from "../components/management/ManagementShell";
+import { SESSION_EXPIRED_EVENT } from "../services/api/client";
 
-vi.mock("./pages/TeacherPracticeDebugPage", () => ({
+vi.mock("../pages/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,
 }));
-vi.mock("./pages/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
+vi.mock("../pages/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
 
 describe("admin-only diagnostic navigation", () => {
   beforeEach(() => {

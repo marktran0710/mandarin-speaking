@@ -17,20 +17,20 @@ import {
   type Student,
   type Teacher,
   type VocabQuizAttempt,
-} from "./services/database";
-import AdminIrtStudentPanel from "./components/analytics/AdminIrtStudentPanel";
-import MeasurementAnalyticsPanel from "./components/analytics/MeasurementAnalyticsPanel";
-import type { MeasurementEvent } from "./utils/measurement";
-import KnowledgeModelPilotPanel from "./components/analytics/KnowledgeModelPilotPanel";
-import type { AudioRecord } from "./pages/MyStoriesPage";
-import TeacherPracticeDebugPage from "./pages/TeacherPracticeDebugPage";
-import AdminAsrComparePage from "./pages/AdminAsrComparePage";
-import AdminBktDebugPage from "./pages/AdminBktDebugPage";
-import AdminMaterialsPage from "./pages/AdminMaterialsPage";
-import AdminVocabularyPage from "./pages/AdminVocabularyPage";
-import ManagementShell from "./components/management/ManagementShell";
-import { isDevelopmentRuntime, isTestRuntime } from "./config/runtimeEnv";
-import "./admin.css";
+} from "../services/database";
+import AdminIrtStudentPanel from "../components/analytics/AdminIrtStudentPanel";
+import MeasurementAnalyticsPanel from "../components/analytics/MeasurementAnalyticsPanel";
+import type { MeasurementEvent } from "../utils/measurement";
+import KnowledgeModelPilotPanel from "../components/analytics/KnowledgeModelPilotPanel";
+import type { AudioRecord } from "../pages/MyStoriesPage";
+import TeacherPracticeDebugPage from "../pages/TeacherPracticeDebugPage";
+import AdminAsrComparePage from "../pages/AdminAsrComparePage";
+import AdminBktDebugPage from "../pages/AdminBktDebugPage";
+import AdminMaterialsPage from "../pages/AdminMaterialsPage";
+import AdminVocabularyPage from "../pages/AdminVocabularyPage";
+import ManagementShell from "../components/management/ManagementShell";
+import { isDevelopmentRuntime, isTestRuntime } from "../config/runtimeEnv";
+import "../styles/apps/admin.css";
 
 type Role = "Teacher" | "Student";
 type AccountStatus = "Active" | "Inactive";

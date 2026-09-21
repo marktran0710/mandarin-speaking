@@ -76,8 +76,8 @@ vi.mock("../services/database", async (importOriginal) => {
   };
 });
 
-import AdminApp from "../AdminApp";
-import TeacherApp from "../TeacherApp";
+import AdminApp from "../app/AdminApp";
+import TeacherApp from "../app/TeacherApp";
 
 describe("teacher and admin integration flows", () => {
   beforeEach(() => {
