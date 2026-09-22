@@ -45,15 +45,6 @@
   margin-inline: auto;
 }
 
-/* Activity stages use the complete workspace width inside the shared inset.
-   Feature pages own their internal columns and action rhythm. */
-.student-page-shell--activity .student-page-shell__rail,
-.student-page-shell--stage .student-page-shell__rail {
-  width: 100%;
-  max-width: none;
-  gap: 0;
-}
-
 .student-page-shell--activity > .student-page-shell__rail > *,
 .student-page-shell--stage > .student-page-shell__rail > * {
   height: 100%;
