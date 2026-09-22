@@ -3,6 +3,19 @@ import { describe, expect, it } from "vitest";
 import StudentPageShell from "./StudentPageShell";
 
 describe("StudentPageShell", () => {
+  it("exposes one canonical template contract for each student page", () => {
+    render(
+      <StudentPageShell template="dashboard" pageId="my-learning" data-testid="dashboard-shell">
+        <p>Progress content</p>
+      </StudentPageShell>,
+    );
+
+    const shell = screen.getByTestId("dashboard-shell");
+    expect(shell).toHaveClass("student-page-shell", "student-page-shell--dashboard");
+    expect(shell).toHaveAttribute("data-student-template", "dashboard");
+    expect(shell).toHaveAttribute("data-student-page", "my-learning");
+  });
+
   it("creates the shared student page boundary without a competing landmark", () => {
     render(
       <StudentPageShell variant="quiz" data-testid="student-page-shell">

@@ -1,8 +1,9 @@
-/** Feature entry point; implementation remains compatible with legacy pages during migration. */
+/** Public feature boundary for the shared Student Mode composition system. */
 export { default as StudentWorkspaceShell } from "../../components/student-workspace/StudentWorkspaceShell";
 export {
   default as StudentPageShell,
   type StudentPageShellLayout,
+  type StudentPageTemplate,
   type StudentPageShellVariant,
 } from "../../components/student-workspace/StudentPageShell";
 export { default as StudentWorkspaceHeader } from "../../components/student-workspace/StudentWorkspaceHeader";

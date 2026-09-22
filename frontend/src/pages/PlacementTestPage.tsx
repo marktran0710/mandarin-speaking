@@ -23,7 +23,7 @@ type Answer = { question: PlacementTestQuestion; selected: string; correct: bool
  * for everyone. Submits one attempt per lesson (see placementTestSampling.ts
  * for why: the server's answer resolver is scoped to a single story). Not
  * gated - a student can already be mid-course and take it, or skip it. */
-export default function PlacementTestPage() {
+function PlacementTestContent() {
   const [questions, setQuestions] = useState<PlacementTestQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function PlacementTestPage() {
 
   if (questions === null) {
     return (
-      <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
+      <>
         <div className="placement-test-page">
           <StudentSection
             variant="task"
@@ -63,13 +63,13 @@ export default function PlacementTestPage() {
             </StudentSectionBody>
           </StudentSection>
         </div>
-      </StudentPageShell>
+      </>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
+      <>
         <div className="placement-test-page">
           <StudentSection variant="task" className="placement-test-state" aria-label="Placement test">
             <StudentSectionBody layout="stack">
@@ -77,7 +77,7 @@ export default function PlacementTestPage() {
             </StudentSectionBody>
           </StudentSection>
         </div>
-      </StudentPageShell>
+      </>
     );
   }
 
@@ -141,7 +141,7 @@ export default function PlacementTestPage() {
 
   if (done) {
     return (
-      <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
+      <>
         <div className="placement-test-page">
           <StudentSection variant="task" className="placement-test-state" aria-label="Placement test complete">
             <StudentSectionBody layout="stack">
@@ -153,7 +153,7 @@ export default function PlacementTestPage() {
             </StudentSectionBody>
           </StudentSection>
         </div>
-      </StudentPageShell>
+      </>
     );
   }
 
@@ -178,7 +178,7 @@ export default function PlacementTestPage() {
   };
 
   return (
-    <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
+    <>
       <div className="placement-test-page">
       <StudentQuestionFlow
         ariaLabel="Placement test question"
@@ -233,6 +233,19 @@ export default function PlacementTestPage() {
         }
       />
       </div>
+    </>
+  );
+}
+
+/**
+ * Placement has one page boundary for its loading, empty, active, submitting,
+ * and completed states. State changes replace the content inside the same
+ * assessment template instead of creating a new coordinate system each time.
+ */
+export default function PlacementTestPage() {
+  return (
+    <StudentPageShell template="assessment" pageId="placement-test">
+      <PlacementTestContent />
     </StudentPageShell>
   );
 }

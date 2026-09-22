@@ -235,7 +235,7 @@ export default function MyStoriesPage({
   const lessonsTotal = numberedGroups.length;
 
   return (
-    <StudentPageShell layout="content" variant="progress" pageId="my-learning">
+    <StudentPageShell template="dashboard" pageId="my-learning">
       <div className="my-stories-page">
         <StudentPageHeader
           eyebrow={{ zh: "學習進度", pinyin: "Xuéxí jìndù", en: "Learning progress" }}

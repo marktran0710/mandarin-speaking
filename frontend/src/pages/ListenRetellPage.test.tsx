@@ -67,6 +67,12 @@ describe("ListenRetellPage student audio flow", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<ListenRetellPage publishedTopics={[topic]} />);
 
+    const shell = screen.getByRole("heading", { name: /Listen & Retell/ }).closest(".student-page-shell");
+    expect(shell).toHaveClass("student-page-shell--activity");
+    expect(shell).toHaveAttribute("data-student-template", "activity");
+    expect(shell).toHaveAttribute("data-student-page", "listen-retell");
+    expect(document.querySelectorAll("main")).toHaveLength(0);
+
     expect(screen.getByText("Listen to the passage at least once before you retell it.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Start retelling/ })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: /Listen/ }));

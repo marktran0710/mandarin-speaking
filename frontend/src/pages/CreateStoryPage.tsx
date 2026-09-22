@@ -174,7 +174,7 @@ export default function CreateStoryPage({
 
   if (!selectedTopic) {
     return (
-      <StudentPageShell layout="content" variant="catalogue" pageId="lessons">
+      <StudentPageShell template="catalogue" pageId="lessons">
         <div className="create-story-page">
           <TopicSelector
             onTopicSelect={handleTopicSelect}
@@ -186,12 +186,7 @@ export default function CreateStoryPage({
   }
 
   return (
-    <StudentPageShell
-      layout="stage"
-      variant="activity"
-      pageId="story-practice"
-      className="student-page-shell--story-session"
-    >
+    <StudentPageShell template="activity" pageId="story-practice">
     <div className="create-story-page">
       <div className="csp-recorder-body">
         {/* The catalogue chooses the story; this overview chooses the

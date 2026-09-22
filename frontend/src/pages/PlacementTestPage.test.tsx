@@ -57,7 +57,7 @@ describe("PlacementTestPage", () => {
     render(<PlacementTestPage />);
     expect(await screen.findByText(/No questions available yet/)).toBeInTheDocument();
     expect(screen.getByText(/No questions available yet/).closest(".student-page-shell"))
-      .toHaveClass("student-page-shell--quiz");
+      .toHaveClass("student-page-shell--assessment");
   });
 
   it("keeps the compact loading state and primary action hierarchy accessible", async () => {
@@ -68,9 +68,12 @@ describe("PlacementTestPage", () => {
     render(<PlacementTestPage />);
 
     expect(screen.getByRole("status")).toHaveClass("placement-test-loading");
+    const pageShell = screen.getByRole("status").closest(".student-page-shell");
+    expect(pageShell).toHaveAttribute("data-student-template", "assessment");
     resolveStories(makeStories());
 
     const question = await screen.findByRole("heading", { name: /Choose the correct English meaning/ });
+    expect(question.closest(".student-page-shell")).toBe(pageShell);
     expect(question).toHaveClass("vocab-quiz-assessment-prompt");
     const next = screen.getByRole("button", { name: /Next question/ });
     expect(next).toBeDisabled();

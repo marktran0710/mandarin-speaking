@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
-import CreateStoryPage from "./CreateStoryPage";
-import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
-import StudentIcon, { type StudentIconName } from "../components/navigation/StudentIcon";
-import { BiLabel, BiText } from "../components/ui/BiLabel";
 import type { HelpRequest } from "../services/database";
 import type { NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import type { Topic } from "../components/content/TopicSelector";
-import { getStudentName } from "../utils/studentSession";
 import type { WorkspaceView } from "../types/studentWorkspace";
 import { StudentWorkspaceShell } from "../features/student-workspace";
-import { studentWorkspaceShellEnabled } from "../app/featureFlags";
-import "../components/ui/BiLabel.css";
+
 import "./StudentWorkspacePage.css";
 
 export type StudentWorkspaceView = WorkspaceView;
@@ -26,175 +19,20 @@ export interface StudentWorkspacePageProps {
   helpRequests: HelpRequest[];
   onRaiseHand: (message: string) => void;
   storyTopics: Topic[];
-  audioRecords: AudioRecord[];
+  audioRecords: import("./MyStoriesPage").AudioRecord[];
   onSessionActiveChange: (active: boolean) => void;
   isInPracticeSession: boolean;
   onStartActivity?: (topicId: string, startAtQuiz: boolean) => void;
-  /** Signs the student out from the workspace's own left rail — the rail
-   * replaced the top navbar that used to carry this action. */
   onLogout: () => void;
-  /** Jumps to the standalone placement test — see StudentSidebar for why
-   * this is a plain extra rail item rather than a third workspace view. */
   onOpenPlacementTest?: () => void;
 }
 
-const WORKSPACE_VIEWS: Array<{
-  id: StudentWorkspaceView;
-  icon: StudentIconName;
-  label: { zh: string; pinyin: string; en: string };
-}> = [
-  {
-    id: "practice",
-    icon: "image",
-    label: { zh: "課程", pinyin: "Kèchéng", en: "Practice" },
-  },
-  {
-    id: "progress",
-    icon: "chart",
-    label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" },
-  },
-];
-
-function LegacyStudentWorkspacePage({
-  view,
-  onViewChange,
-  onAddRecord,
-  initialTopicId,
-  initialImageIndex,
-  helpRequests,
-  onRaiseHand,
-  storyTopics,
-  audioRecords,
-  onSessionActiveChange,
-  isInPracticeSession,
-}: StudentWorkspacePageProps) {
-  const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
-
-  useEffect(() => {
-    setPracticeStarted(isInPracticeSession);
-  }, [isInPracticeSession]);
-
-  const selectView = (nextView: StudentWorkspaceView) => {
-    if (nextView === view) return;
-    onViewChange(nextView);
-  };
-
-  const renderView = () => {
-    if (view === "progress") {
-      return (
-        <MyStoriesPage
-          records={audioRecords}
-          onBrowsePractice={() => selectView("practice")}
-          helpRequests={helpRequests}
-          onRaiseHand={onRaiseHand}
-          publishedTopics={storyTopics}
-        />
-      );
-    }
-
-    return (
-      <CreateStoryPage
-        key={initialTopicId ? `${initialTopicId}:${initialImageIndex ?? 0}` : "browse"}
-        onAddRecord={onAddRecord}
-        initialTopicId={initialTopicId}
-        initialImageIndex={initialImageIndex}
-        helpRequests={helpRequests}
-        onRaiseHand={onRaiseHand}
-        publishedTopics={storyTopics}
-        onSessionActiveChange={(active) => {
-          setPracticeStarted(active);
-          onSessionActiveChange(active);
-        }}
-      />
-    );
-  };
-
-  return (
-    <main className={`student-workspace ${practiceStarted ? "is-practicing" : ""}`}>
-      {!practiceStarted && (
-        <header className="student-workspace-header">
-          <div className="student-workspace-header-copy">
-            <h1>
-              <span lang="zh-Hant">我的學習</span>
-            </h1>
-            <div className="student-workspace-title-meta">
-              <span className="student-workspace-pinyin">Wǒ de xuéxí</span>
-              <span
-                className="student-workspace-identity"
-                aria-label={`Student username: ${getStudentName()}`}
-              >
-                <span className="student-workspace-identity-avatar" aria-hidden="true">
-                  <StudentIcon name="user" size={19} />
-                </span>
-                <span className="student-workspace-identity-copy">
-                  <span className="student-workspace-identity-label">
-                    <span lang="zh-Hant">學生帳號</span>
-                    <span aria-hidden="true"> · </span>
-                    <span>Username</span>
-                  </span>
-                  <strong className="student-workspace-identity-name">{getStudentName()}</strong>
-                </span>
-              </span>
-            </div>
-            <p className="student-workspace-intro">
-              <BiText
-                zh="選一個方向，慢慢練習。"
-                pinyin="Xuǎn yí ge fāngxiàng, mànmàn liànxí."
-                en="Choose a path and keep learning, little by little."
-              />
-            </p>
-          </div>
-          <div className="student-workspace-mark" aria-hidden="true">
-            <span>慢</span>
-            <span>慢</span>
-          </div>
-        </header>
-      )}
-
-      {!practiceStarted && (
-        <nav
-          className={`student-workspace-tabs student-workspace-tabs-count-${WORKSPACE_VIEWS.length}`}
-          aria-label="Student learning areas"
-          role="tablist"
-        >
-          {WORKSPACE_VIEWS.map((item) => (
-            <button
-              key={item.id}
-              id={`student-workspace-tab-${item.id}`}
-              type="button"
-              role="tab"
-              aria-selected={view === item.id}
-              aria-controls="student-workspace-panel"
-              className={`student-workspace-tab ${view === item.id ? "active" : ""}`}
-              onClick={() => selectView(item.id)}
-            >
-              <span className="student-workspace-tab-icon"><StudentIcon name={item.icon} size={23} /></span>
-              <span className="student-workspace-tab-copy">
-                <BiLabel {...item.label} />
-              </span>
-              <StudentIcon name="arrow-right" size={16} className="student-workspace-tab-arrow" aria-hidden="true" />
-            </button>
-          ))}
-        </nav>
-      )}
-
-      <section
-        id="student-workspace-panel"
-        className="student-workspace-content"
-        role="tabpanel"
-        tabIndex={-1}
-        aria-labelledby={`student-workspace-tab-${view}`}
-        aria-live="polite"
-      >
-        {renderView()}
-      </section>
-    </main>
-  );
-}
-
+/**
+ * Route-level composition boundary for Student Mode.
+ *
+ * The old legacy branch has been removed so every workspace entry uses the
+ * same StudentModeFrame → StudentPageShell hierarchy.
+ */
 export default function StudentWorkspacePage(props: StudentWorkspacePageProps) {
-  if (studentWorkspaceShellEnabled) {
-    return <StudentWorkspaceShell {...props} />;
-  }
-  return <LegacyStudentWorkspacePage {...props} />;
+  return <StudentWorkspaceShell {...props} />;
 }

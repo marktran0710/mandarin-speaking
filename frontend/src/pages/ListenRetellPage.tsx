@@ -8,6 +8,7 @@ import StudentPageHeader from "../components/navigation/StudentPageHeader";
 import ScoreCard from "../components/analytics/ScoreCard";
 import StudentAnalysisGate from "../components/student/StudentAnalysisGate";
 import StudentAudioActionPanel from "../components/student/StudentAudioActionPanel";
+import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import {
   averageWordProsodyAccuracy,
   getBackendUrl,
@@ -273,7 +274,8 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
   const prosodyLines = prosodyFeedbackLines(result?.word_prosody);
 
   return (
-    <main className="listen-retell-page">
+    <StudentPageShell template="activity" pageId="listen-retell">
+      <div className="listen-retell-page">
       <StudentPageHeader
         eyebrow={{ zh: "原型 · 聽和說", pinyin: "Yuánxíng · tīng hé shuō", en: "Prototype · Listen & Retell" }}
         title={{ zh: "聽和說", pinyin: "Tīng hé shuō", en: "Listen & Retell" }}
@@ -487,6 +489,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           )}
         </section>
       )}
-    </main>
+      </div>
+    </StudentPageShell>
   );
 }

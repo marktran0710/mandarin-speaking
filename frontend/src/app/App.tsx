@@ -53,7 +53,6 @@ import { primePinyin } from "../utils/pinyin";
 import type { Page } from "../types/page";
 import { getJourneyBubbleTargetIds } from "../helpers/journeyBubble";
 import StudentModeFrame from "../components/student-workspace/StudentModeFrame";
-import StudentPageShell from "../components/student-workspace/StudentPageShell";
 import { loadLocalStars } from "../utils/quizTiers";
 import { pushHistorySnapshot, replaceHistorySnapshot } from "../utils/studentHistory";
 
@@ -591,13 +590,7 @@ export default function App() {
           ariaLabel="Voice practice"
           onOpenPlacementTest={() => setCurrentPage("placement-test")}
         >
-          <StudentPageShell
-            layout="stage"
-            pageId="voice-practice"
-            className="student-page-shell--voice"
-          >
-            <VoiceTestPage />
-          </StudentPageShell>
+          <VoiceTestPage />
         </StudentModeFrame>
       )}
       {currentPage === "placement-test" && activeRole === "student" && studentDataReady && (

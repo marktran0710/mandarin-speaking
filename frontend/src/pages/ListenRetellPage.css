@@ -1,7 +1,9 @@
 .listen-retell-page {
-  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto;
-  padding: 24px 0 60px;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 var(--space-2xl);
+  color: var(--clay-ink);
+  font-family: var(--font-student);
 }
 
 .lr-hero {
@@ -245,9 +247,7 @@
 
 /* Student practice refresh: compact paper surfaces and clear amber actions. */
 .listen-retell-page {
-  padding: 20px 0 48px;
-  color: var(--clay-ink);
-  font-family: var(--font-student);
+  padding-bottom: var(--space-2xl);
 }
 
 .listen-retell-page .student-page-header {

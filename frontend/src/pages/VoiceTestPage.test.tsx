@@ -42,6 +42,12 @@ describe("VoiceTestPage student audio flow", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<VoiceTestPage />);
 
+    const shell = screen.getByRole("heading", { name: /Analyze Your Voice/ }).closest(".student-page-shell");
+    expect(shell).toHaveClass("student-page-shell--activity");
+    expect(shell).toHaveAttribute("data-student-template", "activity");
+    expect(shell).toHaveAttribute("data-student-page", "voice-practice");
+    expect(document.querySelectorAll("main")).toHaveLength(0);
+
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, new File(["RIFF"], "voice.wav", { type: "audio/wav" }));
     expect(fetchMock).not.toHaveBeenCalled();

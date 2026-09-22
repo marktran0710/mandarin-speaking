@@ -35,8 +35,10 @@
   min-width: 0;
 }
 
-/* Focused question/task pages use a narrower working rail while retaining the
-   same outer gutter and panel ownership as content pages. */
+/* Focused assessment pages use a narrower working rail while retaining the
+   same outer gutter and panel ownership as catalogue/dashboard pages. The
+   task selector remains below as a compatibility alias for old callers. */
+.student-page-shell--assessment .student-page-shell__rail > *,
 .student-page-shell--task .student-page-shell__rail > * {
   width: min(100%, var(--student-task-width));
   max-width: var(--student-task-width);
@@ -45,12 +47,14 @@
 
 /* Activity stages use the complete workspace width inside the shared inset.
    Feature pages own their internal columns and action rhythm. */
+.student-page-shell--activity .student-page-shell__rail,
 .student-page-shell--stage .student-page-shell__rail {
   width: 100%;
   max-width: none;
   gap: 0;
 }
 
+.student-page-shell--activity > .student-page-shell__rail > *,
 .student-page-shell--stage > .student-page-shell__rail > * {
   height: 100%;
   min-height: 0;
@@ -79,6 +83,7 @@
   gap: var(--space-sm);
 }
 
+.student-page-shell--activity,
 .student-page-shell--stage {
   display: grid;
   grid-template-rows: minmax(0, 1fr);
@@ -89,11 +94,13 @@
 /* Voice practice is a stage page, but its header and controls use the same
    page-level inset as catalogue/progress pages. Keep that inset here so the
    feature page cannot create a second coordinate system. */
-.student-page-shell--stage.student-page-shell--voice {
+.student-page-shell--activity[data-student-page="voice-practice"],
+.student-page-shell--stage[data-student-page="voice-practice"] {
   padding: var(--space-lg) 0 var(--space-2xl);
 }
 
-.student-page-shell--stage.student-page-shell--voice > .student-page-shell__rail > * {
+.student-page-shell--activity[data-student-page="voice-practice"] > .student-page-shell__rail > *,
+.student-page-shell--stage[data-student-page="voice-practice"] > .student-page-shell__rail > * {
   padding: 0;
 }
 
@@ -107,15 +114,18 @@
     padding-inline: var(--content-gutter);
   }
 
+  .student-page-shell--activity,
   .student-page-shell--stage {
     min-height: 0;
     padding: 0;
   }
 
-  .student-page-shell--stage.student-page-shell--voice {
+  .student-page-shell--activity[data-student-page="voice-practice"],
+  .student-page-shell--stage[data-student-page="voice-practice"] {
     padding: var(--space-md) 0 var(--space-2xl);
   }
 
+  .student-page-shell--activity > .student-page-shell__rail > *,
   .student-page-shell--stage > .student-page-shell__rail > * {
     height: auto;
   }
