@@ -129,6 +129,10 @@
   overflow-x: visible;
   width: max-content;
   min-width: 100%;
+  /* Keep the path at its content width when the stop row is longer than the
+     viewport. With flex-shrink: 1, centered overflow paints the first stop
+     into negative space that a scroll container can never reach. */
+  flex-shrink: 0;
   justify-content: center;
   padding: var(--space-xs) var(--space-md);
   gap: var(--space-md);
