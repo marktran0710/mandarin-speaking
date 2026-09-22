@@ -87,6 +87,13 @@ export {
   vocabTooltip,
 } from "./StoryRecorder/storyContent";
 
+export { normalizeConversationTurns } from "./StoryRecorder/conversation";
+
+export type {
+  ConversationSpeaker,
+  ConversationTurn,
+} from "./StoryRecorder/conversation";
+
 export type {
   AiProviderOption,
   ClozeGrowthCandidate,

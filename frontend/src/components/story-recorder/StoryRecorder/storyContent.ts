@@ -5,6 +5,7 @@ import type {
 } from "../../../services/database";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../../../utils/teacherStories";
 import type { VocabAssessmentQuestion } from "../../story-vocab-quiz/model";
+import type { ConversationTurn } from "./conversation";
 
 const MAX_VOCAB_DISTRACTORS_PER_WORD = 8;
 const MAX_VOCAB_CLOZE_PER_WORD = 4;
@@ -30,6 +31,7 @@ export interface Topic {
   skillFocus?: string;
   level?: string;
   images: string[];
+  conversationTurns?: ConversationTurn[];
   prompts?: string[];
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;

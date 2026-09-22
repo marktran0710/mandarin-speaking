@@ -1,5 +1,6 @@
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../../../utils/teacherStories";
 import type { VocabAssessmentQuestion } from "../../story-vocab-quiz/model";
+import type { ConversationTurn } from "../../story-recorder/StoryRecorder/conversation";
 
 export interface VocabGroup {
   name: string;
@@ -12,6 +13,7 @@ export interface Topic {
   description: string;
   skillFocus: string;
   images: string[];
+  conversationTurns?: ConversationTurn[];
   prompts?: string[];
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;

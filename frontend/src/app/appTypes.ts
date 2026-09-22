@@ -14,6 +14,9 @@ export interface AudioRecord {
   studentId?: string | null;
   imageUrl?: string;
   imageIndex?: number;
+  conversationId?: string;
+  turnId?: string;
+  turnIndex?: number;
   audioUrl?: string;
   audioName?: string;
   analysisVersion?: "stable_v1";

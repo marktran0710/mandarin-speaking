@@ -283,6 +283,9 @@ export interface NewAudioRecord {
   topicId: string;
   imageUrl: string;
   imageIndex: number;
+  conversationId?: string;
+  turnId?: string;
+  turnIndex?: number;
   praatMetrics: PraatMetrics;
   analysisVersion?: "stable_v1";
   analysisSchemaVersion?: string;
