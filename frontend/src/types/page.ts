@@ -10,4 +10,5 @@ export type Page =
   | "student-practice"
   | "student-stories"
   | "voice-test"
+  | "listen-retell"
   | "placement-test";

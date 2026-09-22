@@ -9,6 +9,8 @@ import ScoreCard from "../components/analytics/ScoreCard";
 import StudentAnalysisGate from "../components/student/StudentAnalysisGate";
 import StudentAudioActionPanel from "../components/student/StudentAudioActionPanel";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
+import { StudentCluster, StudentGrid, StudentPageBody } from "../components/student-workspace/student-layout";
+import { StudentSection } from "../components/student-workspace/student-section";
 import {
   averageWordProsodyAccuracy,
   getBackendUrl,
@@ -275,7 +277,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
 
   return (
     <StudentPageShell template="activity" pageId="listen-retell">
-      <div className="listen-retell-page">
+      <StudentPageBody variant="stage" className="listen-retell-page">
       <StudentPageHeader
         eyebrow={{ zh: "原型 · 聽和說", pinyin: "Yuánxíng · tīng hé shuō", en: "Prototype · Listen & Retell" }}
         title={{ zh: "聽和說", pinyin: "Tīng hé shuō", en: "Listen & Retell" }}
@@ -286,7 +288,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
         }}
       />
 
-      <section className="lr-scene-picker">
+      <StudentCluster density="tight" className="lr-scene-picker">
         {scenes.map((option, index) => (
           <button
             key={option.image + index}
@@ -300,9 +302,9 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
             </span>
           </button>
         ))}
-      </section>
+      </StudentCluster>
 
-      <section className="lr-workspace">
+      <StudentGrid columns={2} className="lr-workspace">
         <div className="lr-image-panel">
           <img src={scene.image} alt="Scene for support" className="lr-image" />
           {scene.audioUrl && (
@@ -411,10 +413,10 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           {audioUrl && <audio controls src={audioUrl} className="lr-audio-preview" />}
           {error && <p className="lr-error">{error}</p>}
         </div>}
-      </section>
+      </StudentGrid>
 
       {result && (
-        <section className="lr-result">
+        <StudentSection variant="plain" density="compact" className="lr-result">
           {visibility.needsRetry && <StudentAnalysisGate result={result} />}
           <div className="lr-transcript-card">
             <span><BiLabel k="you_said" /></span>
@@ -487,9 +489,9 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
               <p>{ai.practice_prompt}</p>
             </div>
           )}
-        </section>
+        </StudentSection>
       )}
-      </div>
+      </StudentPageBody>
     </StudentPageShell>
   );
 }

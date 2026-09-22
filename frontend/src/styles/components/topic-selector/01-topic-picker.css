@@ -1,8 +1,5 @@
 /* Feature composition only: StudentPageShell owns the outer rail and rhythm. */
 .topic-selector {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
   min-width: 0;
 }
 
@@ -33,9 +30,6 @@
 
 /* ── Card grid ── */
 .ts-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
   align-items: start;
 }
 
@@ -271,14 +265,8 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1024px) {
+@media (min-width: 901px) and (max-width: 1024px) {
   .ts-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 600px) {
-  .ts-grid {
-    grid-template-columns: 1fr;
   }
 }

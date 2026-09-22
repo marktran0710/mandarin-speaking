@@ -13,6 +13,7 @@ components/
 ├── student/                    # reusable student-facing feedback and controls
 ├── analytics/                  # teacher/admin measurement and progress panels
 ├── student-workspace/           # student shell, sidebar, page shell, workspace layout
+│   └── student-layout/          # shared page body, stack, grid, row, action primitives
 ├── student-question-flow/      # reusable question-flow behavior and geometry
 ├── story-recorder/              # story recording workflow
 ├── story-vocab-quiz/            # vocabulary quiz workflow
@@ -43,6 +44,11 @@ components/
    legacy `StoryRecorderRuntime.js` bundle. New code must import from `ui/` or
    `student/`; remove these bridges when that bundle is rebuilt and its import
    paths are updated.
+
+7. Student Mode pages use `student-workspace/student-layout` for page bodies,
+   sibling rhythm, repeated grids, rows, and action groups. Feature CSS may
+   style content inside those primitives, but must not create a second page
+   rail, outer surface, or scroll container.
 
 This structure is intentionally incremental: existing workflow folders already
 have clear ownership and are not flattened or renamed merely for symmetry.

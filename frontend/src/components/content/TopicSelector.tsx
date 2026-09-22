@@ -35,7 +35,8 @@ import {
   StudentSection,
   StudentSectionBody,
   StudentSectionHeader,
-} from "../student-workspace/student-section/StudentSection";
+} from "../student-workspace/student-layout";
+import { StudentGrid, StudentStack } from "../student-workspace/student-layout";
 import "../ui/BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
@@ -184,19 +185,19 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
 
   if (loading) {
     return (
-      <div className="topic-selector">
+      <StudentStack className="topic-selector">
         {pageHeader}
         <StudentSection className="empty-state" variant="soft" aria-labelledby="ts-loading-title">
           <div className="empty-icon"><StudentIcon name="spark" size={28} /></div>
           <StudentSectionHeader headingId="ts-loading-title" title={<BiLabel k="loading_activities" />} />
         </StudentSection>
-      </div>
+      </StudentStack>
     );
   }
 
   if (topics.length === 0) {
     return (
-      <div className="topic-selector">
+      <StudentStack className="topic-selector">
         {pageHeader}
         <StudentSection className="empty-state" variant="soft" aria-labelledby="ts-empty-title">
           <div className="empty-icon"><StudentIcon name="stories" size={28} /></div>
@@ -206,7 +207,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
           />
           <p><BiText k="your_teacher_will_create_and_publish_spe" /></p>
         </StudentSection>
-      </div>
+      </StudentStack>
     );
   }
 
@@ -366,7 +367,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
             headingId="ts-dash-steps-title"
             title={<BiLabel zh="三步開始" en="Three steps" align="left" />}
           />
-          <StudentSectionBody layout="grid" className="ts-dash-step-grid">
+          <StudentGrid columns={3} className="ts-dash-step-grid">
             <article className="ts-dash-step-card">
               <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
                 <StudentIcon name="image" size={22} />
@@ -388,7 +389,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
               <h3><BiLabel zh="看回饋" en="Improve" align="left" /></h3>
               <p><BiText zh="看看回饋，知道下一步怎麼進步。" en="Use your feedback to choose the next step." /></p>
             </article>
-          </StudentSectionBody>
+          </StudentGrid>
         </StudentSection>
       </>
     );
@@ -470,9 +471,9 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
 
         {isOpen && (
           <div className="ts-lesson-expanded">
-            <div className="ts-grid">
+            <StudentGrid columns={3} className="ts-grid">
               {group.topics.map((t, i) => renderTopicCard(t, group, i))}
-            </div>
+            </StudentGrid>
           </div>
         )}
       </div>
@@ -480,7 +481,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
   };
 
   return (
-    <div className="topic-selector">
+    <StudentStack className="topic-selector">
       {pageHeader}
       {renderDashboard()}
       <StudentSection className="ts-catalogue" variant="plain" aria-labelledby="ts-catalogue-title">
@@ -494,7 +495,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
                 時代華語 第一冊
                 <span className="ts-lesson-sub">Modern Chinese · Book 1</span>
               </span>
-            </div>
+                </div>
           )}
         />
         <StudentSectionBody className="ts-catalogue-body">
@@ -537,18 +538,18 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
                 </span>
               </span>
             </button>
-              </div>
+            </div>
               {openLesson === "other" && (
                 <div className="ts-lesson-expanded">
-                  <div className="ts-grid">
+                  <StudentGrid columns={3} className="ts-grid">
                     {otherGroup.topics.map((t, i) => renderTopicCard(t, otherGroup, i))}
-                  </div>
+                  </StudentGrid>
                 </div>
               )}
             </section>
           )}
         </StudentSectionBody>
       </StudentSection>
-    </div>
+    </StudentStack>
   );
 }

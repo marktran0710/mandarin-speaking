@@ -65,6 +65,26 @@ describe("App role flows", () => {
     window.history.pushState({}, "", "/");
   });
 
+  it("gives a signed-in student the listen-and-retell URL precedence over saved navigation", () => {
+    localStorage.setItem(
+      "studentSession",
+      JSON.stringify({
+        role: "student",
+        name: "Ada",
+        signedInAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+    localStorage.setItem("studentLastPage:ada", "student-stories");
+    window.history.pushState({}, "", "/listen-retell");
+
+    expect(getStudentAppBootstrapState()).toMatchObject({
+      activeRole: "student",
+      currentPage: "listen-retell",
+    });
+
+    window.history.pushState({}, "", "/");
+  });
+
   it("replaces the pre-login history entry on login, so Back out of a story doesn't bounce to the marketing page", async () => {
     // Before this fix: the browser history entry created on first mount
     // (while logged out) keeps its "home" snapshot forever, because

@@ -1,9 +1,5 @@
 .my-stories-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
   min-height: 0;
-  padding: 0 0 var(--space-2xl);
   background: transparent;
 }
 
@@ -277,12 +273,6 @@
 }
 
 /* ── My Profile: stat strip + lesson/story overview tabs ── */
-.profile-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-md);
-}
-
 .profile-stat-card {
   padding: 16px;
   border: 1px solid var(--clay-hairline);

@@ -9,16 +9,26 @@ export {
 export { default as StudentWorkspaceHeader } from "../../components/student-workspace/StudentWorkspaceHeader";
 export { default as LearningOverview } from "../../components/student-workspace/LearningOverview";
 export {
+  StudentActionBar,
+  StudentCluster,
+  StudentGrid,
+  StudentPageBody,
+  StudentRow,
   StudentSection,
   StudentSectionBody,
   StudentSectionFooter,
   StudentSectionHeader,
-} from "../../components/student-workspace/student-section";
+  StudentStack,
+} from "../../components/student-workspace/student-layout";
 export type {
+  StudentActionAlignment,
+  StudentGridColumns,
+  StudentLayoutDensity,
+  StudentPageBodyVariant,
   StudentSectionBodyLayout,
   StudentSectionDensity,
   StudentSectionVariant,
-} from "../../components/student-workspace/student-section";
+} from "../../components/student-workspace/student-layout";
 export { QuizGateStatus } from "../../components/student-workspace/LearningOverview";
 export type {
   ContinuePracticeTarget,

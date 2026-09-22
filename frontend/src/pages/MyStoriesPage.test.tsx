@@ -52,6 +52,8 @@ describe("MyStoriesPage student history states", () => {
     expect(screen.getByRole("heading", { name: /My learning/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /My learning/ }).closest(".student-page-shell"))
       .toHaveClass("student-page-shell--dashboard");
+    expect(screen.getByRole("heading", { name: /My learning/ }).closest(".student-page-body"))
+      .toHaveAttribute("data-student-body", "flow");
     expect(screen.getByRole("tab", { name: /By lesson/ })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Total stars")).toBeInTheDocument();
     expect(screen.getByText("Tone accuracy (avg)")).toBeInTheDocument();

@@ -1,7 +1,4 @@
 .listen-retell-page {
-  width: 100%;
-  margin: 0;
-  padding: 0 0 var(--space-2xl);
   color: var(--clay-ink);
   font-family: var(--font-student);
 }
@@ -29,11 +26,7 @@
 }
 
 .lr-scene-picker {
-  display: flex;
-  gap: 12px;
   justify-content: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
 }
 .lr-scene-thumb {
   border: 2px solid var(--clay-hairline);
@@ -60,17 +53,6 @@
 .lr-scene-thumb span {
   font-size: 12px;
   color: var(--clay-body);
-}
-
-.lr-workspace {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 24px;
-}
-@media (max-width: 760px) {
-  .lr-workspace {
-    grid-template-columns: 1fr;
-  }
 }
 
 .lr-image-panel {
@@ -176,10 +158,6 @@
 }
 
 .lr-result {
-  margin-top: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 .lr-transcript-card {
   background: var(--clay-ink);
@@ -246,19 +224,6 @@
 }
 
 /* Student practice refresh: compact paper surfaces and clear amber actions. */
-.listen-retell-page {
-  padding-bottom: var(--space-2xl);
-}
-
-.listen-retell-page .student-page-header {
-  margin-bottom: 18px;
-}
-
-.lr-scene-picker {
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
 .lr-scene-thumb {
   border-width: 1px;
   border-radius: var(--clay-radius-sm);
@@ -270,10 +235,6 @@
 .lr-scene-thumb.active {
   border-color: var(--seal-deep);
   box-shadow: inset 0 0 0 1px var(--seal);
-}
-
-.lr-workspace {
-  gap: 16px;
 }
 
 .lr-image-panel,
@@ -339,11 +300,6 @@
   box-shadow: 0 1px 2px rgba(42, 35, 24, 0.12);
 }
 
-.lr-result {
-  margin-top: 20px;
-  gap: 12px;
-}
-
 .lr-transcript-card,
 .lr-content-accuracy {
   border-radius: var(--clay-radius-md);
@@ -359,11 +315,6 @@
 }
 
 @media (max-width: 420px) {
-  .listen-retell-page {
-    width: min(calc(100% - 24px), var(--content-max));
-    padding-top: 16px;
-  }
-
   .lr-scene-picker {
     justify-content: flex-start;
   }

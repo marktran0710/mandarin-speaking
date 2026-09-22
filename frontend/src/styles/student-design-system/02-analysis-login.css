@@ -66,14 +66,6 @@
     flex-direction: column;
   }
 
-  .student-app .narration-page,
-  .student-app .listen-retell-page,
-  .student-app .voice-test-page {
-    width: min(100% - var(--space-lg), var(--student-content-width));
-    padding-top: var(--space-lg);
-    padding-bottom: var(--space-2xl);
-  }
-
   .student-app .student-page-header {
     width: 100%;
   }

@@ -27,8 +27,7 @@
 }
 
 .ts-dash-step-grid {
-  display: grid;
-  gap: var(--space-md);
+  align-items: stretch;
 }
 
 .ts-dash-icon-chip {
@@ -191,12 +190,7 @@
   outline-offset: 2px;
 }
 
-.ts-dash-step-grid {
-  align-items: stretch;
-}
-
 .ts-dash-step-card {
-  grid-column: span 4;
   display: grid;
   align-content: start;
   gap: var(--space-xs);

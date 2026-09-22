@@ -101,4 +101,21 @@ describe("App — student data must be ready before a student route renders", ()
       screen.getByRole("navigation", { name: "Learning areas" }),
     ).toBeInTheDocument();
   });
+
+  it("mounts listen and retell inside the shared student frame and page body", async () => {
+    const api = await import("../services/database");
+    vi.spyOn(api, "listAudioRecords").mockResolvedValue([]);
+    signInAsStudent();
+    window.history.pushState({}, "", "/listen-retell");
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /Listen & Retell/ })).toBeInTheDocument();
+    const shell = document.querySelector('[data-student-template="activity"]');
+    expect(shell).toHaveAttribute("data-student-page", "listen-retell");
+    expect(shell?.querySelector('[data-student-body="stage"]')).toBeInTheDocument();
+    expect(shell?.closest("main")).toHaveAttribute("id", "student-workspace-panel");
+
+    window.history.pushState({}, "", "/");
+  });
 });

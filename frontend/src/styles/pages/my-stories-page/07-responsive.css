@@ -94,10 +94,6 @@
 }
 
 @media (max-width: 768px) {
-  .my-stories-page {
-    padding: 0 0 var(--space-2xl);
-  }
-
   .stories-header h1 {
     font-size: 32px;
   }

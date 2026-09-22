@@ -3,15 +3,10 @@
    one support action, and one progress list. Keep the hierarchy open and
    editorial instead of stacking another set of rounded game tiles. */
 .student-workspace.student-workspace-v2 .profile-stats {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-}
-
-.student-workspace.student-workspace-v2 .my-stories-page {
-  gap: var(--space-lg);
+  align-items: stretch;
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-card {
-  grid-column: span 3;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -281,14 +276,6 @@
 }
 
 @media (max-width: 900px) {
-  .student-workspace.student-workspace-v2 .profile-stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .student-workspace.student-workspace-v2 .profile-stat-card {
-    grid-column: auto;
-  }
-
   .student-workspace.student-workspace-v2 .student-help-card {
     grid-template-columns: 1fr;
   }

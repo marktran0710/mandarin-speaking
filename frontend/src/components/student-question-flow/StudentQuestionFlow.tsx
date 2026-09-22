@@ -4,7 +4,8 @@ import {
   StudentSection,
   StudentSectionBody,
   StudentSectionFooter,
-} from "../student-workspace/student-section";
+} from "../student-workspace/student-layout";
+import { StudentActionBar } from "../student-workspace/student-layout";
 
 type StudentQuestionFlowProps = {
   ariaLabel: string;
@@ -43,7 +44,7 @@ export function StudentQuestionFlow({
         <div className="vocab-quiz-answer-panel">
           {answers}
           <StudentSectionFooter align="center" className="vocab-quiz-actions">
-            {actions}
+            <StudentActionBar align="center">{actions}</StudentActionBar>
           </StudentSectionFooter>
         </div>
       </StudentSectionBody>

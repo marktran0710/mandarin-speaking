@@ -71,6 +71,8 @@ describe("ListenRetellPage student audio flow", () => {
     expect(shell).toHaveClass("student-page-shell--activity");
     expect(shell).toHaveAttribute("data-student-template", "activity");
     expect(shell).toHaveAttribute("data-student-page", "listen-retell");
+    expect(screen.getByRole("heading", { name: /Listen & Retell/ }).closest(".student-page-body"))
+      .toHaveAttribute("data-student-body", "stage");
     expect(document.querySelectorAll("main")).toHaveLength(0);
 
     expect(screen.getByText("Listen to the passage at least once before you retell it.")).toBeInTheDocument();

@@ -34,10 +34,11 @@ import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
 import type { Topic } from "../components/content/TopicSelector";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
+import { StudentGrid, StudentPageBody } from "../components/student-workspace/student-layout";
 import {
   StudentSection,
   StudentSectionBody,
-} from "../components/student-workspace/student-section";
+} from "../components/student-workspace/student-layout";
 import StudentPageHeader from "../components/navigation/StudentPageHeader";
 
 export interface AudioRecord {
@@ -236,7 +237,7 @@ export default function MyStoriesPage({
 
   return (
     <StudentPageShell template="dashboard" pageId="my-learning">
-      <div className="my-stories-page">
+      <StudentPageBody variant="flow" className="my-stories-page">
         <StudentPageHeader
           eyebrow={{ zh: "學習進度", pinyin: "Xuéxí jìndù", en: "Learning progress" }}
           title={{ zh: "我的學習", en: "My learning" }}
@@ -247,7 +248,7 @@ export default function MyStoriesPage({
         />
 
         <StudentSection className="profile-summary" aria-label="Overall progress">
-          <StudentSectionBody layout="grid" className="profile-stats">
+          <StudentGrid columns={4} className="profile-stats">
             <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="star" /></span>
           <span className="profile-stat-label">
@@ -298,7 +299,7 @@ export default function MyStoriesPage({
             {averageFluency === null ? "—" : `${averageFluency}/100`}
           </strong>
             </div>
-          </StudentSectionBody>
+          </StudentGrid>
         </StudentSection>
 
       <StudentHelpCard helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
@@ -500,7 +501,7 @@ export default function MyStoriesPage({
         )}
           </StudentSectionBody>
         </StudentSection>
-      </div>
+      </StudentPageBody>
     </StudentPageShell>
   );
 }

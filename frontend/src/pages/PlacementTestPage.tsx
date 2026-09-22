@@ -3,11 +3,12 @@ import StudentPageHeader from "../components/navigation/StudentPageHeader";
 import { BiLabel } from "../components/ui/BiLabel";
 import { StudentQuestionFlow } from "../components/student-question-flow/StudentQuestionFlow";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
+import { StudentPageBody } from "../components/student-workspace/student-layout";
 import {
   StudentSection,
   StudentSectionBody,
   StudentSectionHeader,
-} from "../components/student-workspace/student-section";
+} from "../components/student-workspace/student-layout";
 import { canUseDatabase, listCustomStories, recordVocabQuizResponse, type VocabQuizAttempt } from "../services/database";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import { samplePlacementTestQuestions, type PlacementTestQuestion } from "../utils/placementTestSampling";
@@ -43,13 +44,11 @@ function PlacementTestContent() {
 
   if (questions === null) {
     return (
-      <>
-        <div className="placement-test-page">
-          <StudentSection
-            variant="task"
-            className="placement-test-state"
-            aria-labelledby="placement-loading-title"
-          >
+      <StudentSection
+        variant="task"
+        className="placement-test-state"
+        aria-labelledby="placement-loading-title"
+      >
             <StudentSectionHeader
               headingLevel={1}
               headingId="placement-loading-title"
@@ -61,23 +60,17 @@ function PlacementTestContent() {
           <h2><BiLabel zh="準備中…" en="Loading…" /></h2>
         </div>
             </StudentSectionBody>
-          </StudentSection>
-        </div>
-      </>
+      </StudentSection>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <>
-        <div className="placement-test-page">
-          <StudentSection variant="task" className="placement-test-state" aria-label="Placement test">
+      <StudentSection variant="task" className="placement-test-state" aria-label="Placement test">
             <StudentSectionBody layout="stack">
         <StudentPageHeader eyebrow={{ zh: "分班測驗", en: "Placement test" }} title={{ zh: "還沒有題目", en: "No questions available yet" }} lede={{ zh: "老師還沒發布任何生詞題庫。", en: "No published lesson has a vocabulary question bank yet." }} />
             </StudentSectionBody>
-          </StudentSection>
-        </div>
-      </>
+      </StudentSection>
     );
   }
 
@@ -141,9 +134,7 @@ function PlacementTestContent() {
 
   if (done) {
     return (
-      <>
-        <div className="placement-test-page">
-          <StudentSection variant="task" className="placement-test-state" aria-label="Placement test complete">
+      <StudentSection variant="task" className="placement-test-state" aria-label="Placement test complete">
             <StudentSectionBody layout="stack">
         <StudentPageHeader
           eyebrow={{ zh: "分班測驗", en: "Placement test" }}
@@ -151,9 +142,7 @@ function PlacementTestContent() {
           lede={{ zh: "我們會依照你的答案安排接下來的複習。", en: "We'll personalize your review with what you shared." }}
         />
             </StudentSectionBody>
-          </StudentSection>
-        </div>
-      </>
+      </StudentSection>
     );
   }
 
@@ -178,8 +167,6 @@ function PlacementTestContent() {
   };
 
   return (
-    <>
-      <div className="placement-test-page">
       <StudentQuestionFlow
         ariaLabel="Placement test question"
         className="placement-test-question-flow"
@@ -232,8 +219,6 @@ function PlacementTestContent() {
           </button>
         }
       />
-      </div>
-    </>
   );
 }
 
@@ -245,7 +230,9 @@ function PlacementTestContent() {
 export default function PlacementTestPage() {
   return (
     <StudentPageShell template="assessment" pageId="placement-test">
-      <PlacementTestContent />
+      <StudentPageBody variant="task" className="placement-test-page">
+        <PlacementTestContent />
+      </StudentPageBody>
     </StudentPageShell>
   );
 }

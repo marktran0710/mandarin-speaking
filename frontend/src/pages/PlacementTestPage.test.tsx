@@ -58,6 +58,8 @@ describe("PlacementTestPage", () => {
     expect(await screen.findByText(/No questions available yet/)).toBeInTheDocument();
     expect(screen.getByText(/No questions available yet/).closest(".student-page-shell"))
       .toHaveClass("student-page-shell--assessment");
+    expect(screen.getByText(/No questions available yet/).closest(".student-page-body"))
+      .toHaveAttribute("data-student-body", "task");
   });
 
   it("keeps the compact loading state and primary action hierarchy accessible", async () => {

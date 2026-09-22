@@ -12,6 +12,7 @@ const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
   "student-practice",
   "student-stories",
   "voice-test",
+  "listen-retell",
   "placement-test",
 ];
 
@@ -32,6 +33,9 @@ export function getStudentAppBootstrapState(): StudentAppBootstrapState {
   if (["/analyze", "/voice-test"].includes(window.location.pathname)) {
     return { ...defaultState, activeRole: "student", currentPage: "voice-test" };
   }
+  if (window.location.pathname === "/listen-retell") {
+    return { ...defaultState, activeRole: "student", currentPage: "listen-retell" };
+  }
   if (window.location.pathname === "/placement-test") {
     return { ...defaultState, activeRole: "student", currentPage: "placement-test" };
   }
@@ -47,7 +51,9 @@ export function getStudentAppBootstrapState(): StudentAppBootstrapState {
   return {
     activeRole: "student",
     currentPage:
-      restoredPage === "voice-test" || restoredPage === "placement-test" ? restoredPage : "student-workspace",
+      restoredPage === "voice-test" || restoredPage === "listen-retell" || restoredPage === "placement-test"
+        ? restoredPage
+        : "student-workspace",
     studentWorkspaceView,
     practiceTarget: lastTarget
       ? { topicId: lastTarget.topicId, imageIndex: lastTarget.imageIndex }

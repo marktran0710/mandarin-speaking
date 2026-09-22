@@ -7,6 +7,7 @@ import type { Topic } from "../components/content/TopicSelector";
 import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
 import { replaceHistorySnapshot, pushHistorySnapshot } from "../utils/studentHistory";
 import StudentPageShell from "../components/student-workspace/StudentPageShell";
+import { StudentPageBody } from "../components/student-workspace/student-layout";
 import "./CreateStoryPage.css";
 import "../components/ui/BiLabel.css";
 
@@ -175,19 +176,19 @@ export default function CreateStoryPage({
   if (!selectedTopic) {
     return (
       <StudentPageShell template="catalogue" pageId="lessons">
-        <div className="create-story-page">
+        <StudentPageBody variant="flow" className="create-story-page">
           <TopicSelector
             onTopicSelect={handleTopicSelect}
             publishedTopics={publishedTopics}
           />
-        </div>
+        </StudentPageBody>
       </StudentPageShell>
     );
   }
 
   return (
     <StudentPageShell template="activity" pageId="story-practice">
-    <div className="create-story-page">
+    <StudentPageBody variant="stage" className="create-story-page">
       <div className="csp-recorder-body">
         {/* The catalogue chooses the story; this overview chooses the
           activity the student wants to do next. */}
@@ -208,7 +209,7 @@ export default function CreateStoryPage({
           onRaiseHand={onRaiseHand}
         />
       </div>
-    </div>
+    </StudentPageBody>
     </StudentPageShell>
   );
 }

@@ -46,6 +46,8 @@ describe("VoiceTestPage student audio flow", () => {
     expect(shell).toHaveClass("student-page-shell--activity");
     expect(shell).toHaveAttribute("data-student-template", "activity");
     expect(shell).toHaveAttribute("data-student-page", "voice-practice");
+    expect(screen.getByRole("heading", { name: /Analyze Your Voice/ }).closest(".student-page-body"))
+      .toHaveAttribute("data-student-body", "stage");
     expect(document.querySelectorAll("main")).toHaveLength(0);
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;

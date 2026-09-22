@@ -62,6 +62,8 @@ describe("CreateStoryPage back navigation", () => {
       .toHaveClass("student-page-shell--catalogue");
     expect(screen.getByTestId("topic-open").closest(".student-page-shell"))
       .toHaveAttribute("data-student-page", "lessons");
+    expect(screen.getByTestId("topic-open").closest(".student-page-body"))
+      .toHaveAttribute("data-student-body", "flow");
     const listState = window.history.state;
 
     fireEvent.click(screen.getByTestId("topic-open"));
@@ -70,6 +72,8 @@ describe("CreateStoryPage back navigation", () => {
       .toHaveClass("student-page-shell--activity");
     expect(screen.getByTestId("story-back").closest(".student-page-shell"))
       .toHaveAttribute("data-student-page", "story-practice");
+    expect(screen.getByTestId("story-back").closest(".student-page-body"))
+      .toHaveAttribute("data-student-body", "stage");
     expect(window.history.state[CREATE_STORY_HISTORY_KEY]).toMatchObject({
       topicId: topic.id,
       imageIndex: 0,
