@@ -12,6 +12,7 @@ import {
   type ConversationState,
 } from "./StoryRecorder/conversationCoordinator";
 import type { NewAudioRecord, PraatMetrics } from "./StoryRecorder/types";
+import { canUseDatabase, saveSpeakingProgress, type SceneSubmission } from "../../services/database";
 import { convertBlobToWav } from "../../utils/audio";
 import { buildPracticeAnalysisFormData } from "../../utils/practiceAnalysis";
 import {
@@ -80,6 +81,9 @@ export default function SpeakingConversationFlow({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [attempts, setAttempts] = useState(0);
+  const [latestResult, setLatestResult] = useState<SceneSubmission | null>(null);
+  const [progressFlags, setProgressFlags] = useState({ masteryPassed: false, contentPassed: false });
+  const [verifiedRecordId, setVerifiedRecordId] = useState<string | undefined>();
   const [pendingUpload, setPendingUpload] = useState<File | null>(null);
   const [pendingUploadUrl, setPendingUploadUrl] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -92,7 +96,7 @@ export default function SpeakingConversationFlow({
   const analysisInFlightRef = useRef(false);
 
   const activeTurn = currentConversationTurn(state, turns);
-  const studentTurn = state.step === "summary" ? null : turns[state.turnIndex - (state.step === "system" ? 0 : 0)];
+  const studentTurn = state.step === "summary" ? null : turns[state.turnIndex];
   const previousSystemTurn = state.turnIndex > 0 ? turns[state.turnIndex - 1] : undefined;
 
   const applyTransition = useCallback((event: Parameters<typeof transitionConversation>[1]) => {
@@ -108,6 +112,9 @@ export default function SpeakingConversationFlow({
     setAnalysisAudioBlob(null);
     setError(null);
     setAttempts(0);
+    setLatestResult(null);
+    setProgressFlags({ masteryPassed: false, contentPassed: false });
+    setVerifiedRecordId(undefined);
   }, [initialState, topic.id]);
 
   useEffect(() => {
@@ -143,6 +150,41 @@ export default function SpeakingConversationFlow({
     if (pendingUploadUrl) URL.revokeObjectURL(pendingUploadUrl);
   }, [clearTimers, pendingUploadUrl, stopStream]);
 
+  const persistProgress = useCallback(async (
+    result: SceneSubmission,
+    flags: {
+      masteryPassed: boolean;
+      contentPassed: boolean;
+      attempts: number;
+      verifiedAudioRecordId?: string;
+    },
+  ) => {
+    if (!studentId || !canUseDatabase()) return;
+    try {
+      await saveSpeakingProgress({
+        studentId,
+        topicId: topic.id,
+        sceneIndex: result.sceneIndex,
+        attempts: flags.attempts,
+        bestTone: result.toneAccuracy,
+        bestFluency: result.fluencyScore ?? 0,
+        masteryPassed: flags.masteryPassed,
+        contentPassed: flags.contentPassed,
+        clearedWords: [],
+        conversationId: result.conversationId,
+        turnId: result.turnId,
+        turnIndex: result.turnIndex,
+        latestResult: result,
+        baseStoryId: topic.sourceStory?.id ?? topic.id,
+        difficultyLevel: topic.difficultyLevel ?? "easy",
+        promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${result.turnId}`,
+        verifiedAudioRecordId: flags.verifiedAudioRecordId,
+      });
+    } catch (cause) {
+      console.warn("Failed to save conversation progress:", cause);
+    }
+  }, [studentId, topic]);
+
   const analyzeRecording = useCallback(async (audioBlob: Blob, transcript: string, model: SpeechModel) => {
     if (analysisInFlightRef.current || !studentTurn || studentTurn.speaker !== "student") return;
     analysisInFlightRef.current = true;
@@ -152,12 +194,19 @@ export default function SpeakingConversationFlow({
     const attemptId = `conversation-attempt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const pilot = resolvePilotContext();
     const targetText = studentTurn.targetText?.trim() || studentTurn.text;
+    const aiProvider = selectedModel === "groq" || selectedModel === "openai"
+      ? selectedModel
+      : groqAvailable
+        ? "groq"
+        : openaiAvailable
+          ? "openai"
+          : undefined;
     try {
       const wav = await convertBlobToWav(audioBlob);
       const formData = buildPracticeAnalysisFormData(wav, {
         transcription: transcript,
         asrModel: model,
-        aiProvider: selectedModel,
+        aiProvider,
         sceneVocabulary: (topic.vocabulary[selectedImageIndex] || []).join(", "),
         scenePrompt: topic.prompts?.[selectedImageIndex] || topic.name,
         sceneImageUrl: selectedImage,
@@ -172,6 +221,9 @@ export default function SpeakingConversationFlow({
         attemptNumber,
         attemptType: attemptNumber === 1 ? "WHOLE_SENTENCE_INITIAL" : "WHOLE_SENTENCE_FINAL",
         studyPhase: pilot.studyPhase,
+        conversationId,
+        turnId: studentTurn.id,
+        turnIndex: state.turnIndex,
       });
       const verified = Boolean(studentId);
       if (verified) {
@@ -201,6 +253,17 @@ export default function SpeakingConversationFlow({
       setMetrics(analysis);
       setAnalysisAudioBlob(audioBlob);
       setAttempts(attemptNumber);
+      const masteryPassed = verified
+        ? Boolean(payload.verdicts?.masteryPassed)
+        : analysis.pronunciation_mastery?.passed === true;
+      const contentPassed = verified
+        ? Boolean(payload.verdicts?.contentPassed)
+        : analysis.content_match === true;
+      setProgressFlags({ masteryPassed, contentPassed });
+      const responseAudioUrl = verified && typeof payload.audioUrl === "string"
+        ? payload.audioUrl
+        : undefined;
+      setVerifiedRecordId(verified ? payload.audioRecordId : undefined);
       recordMeasurementEvent(createMeasurementEvent("analysis_completed", {
         studentId: studentId ?? getStudentId(),
         sessionId: pilot.sessionId,
@@ -209,7 +272,7 @@ export default function SpeakingConversationFlow({
         sceneIndex: selectedImageIndex,
         properties: { conversationId, turnId: studentTurn.id, analysisVersion: "stable_v1" },
       }));
-      await onAddRecord({
+      const savedAudioUrl = await onAddRecord({
         id: `audio-${Date.now()}`,
         audioBlob,
         timestamp: new Date().toLocaleString(),
@@ -232,6 +295,37 @@ export default function SpeakingConversationFlow({
         attemptType: attemptNumber === 1 ? "WHOLE_SENTENCE_INITIAL" : "WHOLE_SENTENCE_FINAL",
         serverVerified: verified,
         serverRecordId: verified ? payload.audioRecordId : undefined,
+        audioUrl: responseAudioUrl,
+      });
+      const result: SceneSubmission = {
+        sceneIndex: selectedImageIndex,
+        imageUrl: selectedImage,
+        transcription: (analysis.transcription || transcript).trim(),
+        vocabUsed: analysis.ai_feedback?.vocabulary_coverage?.used ?? [],
+        vocabMissing: analysis.ai_feedback?.vocabulary_coverage?.missing ?? [],
+        vocabScore: analysis.ai_feedback?.vocabulary_coverage?.score ?? 0,
+        toneAccuracy: Math.round(analysis.tone_accuracy ?? 0),
+        pronScore: Math.round(analysis.tone_accuracy ?? 0),
+        fluencyScore: Math.round(analysis.fluency_score ?? 0),
+        audioUrl: responseAudioUrl ?? savedAudioUrl,
+        pauseCount: analysis.pause_analysis?.pause_count ?? 0,
+        longestPause: analysis.pause_analysis?.longest_pause ?? 0,
+        utteranceCount: analysis.pause_analysis?.utterance_count ?? 0,
+        choppyPauseCount: analysis.pause_analysis?.choppy_pause_count ?? 0,
+        articulationRate: analysis.pause_analysis?.articulation_rate ?? 0,
+        conversationId,
+        turnId: studentTurn.id,
+        turnIndex: state.turnIndex,
+        baseStoryId: topic.sourceStory?.id ?? topic.id,
+        difficultyLevel: topic.difficultyLevel ?? "easy",
+        promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${studentTurn.id}`,
+      };
+      setLatestResult(result);
+      await persistProgress(result, {
+        masteryPassed,
+        contentPassed,
+        attempts: attemptNumber,
+        verifiedAudioRecordId: verified ? payload.audioRecordId : undefined,
       });
       applyTransition({ type: "studentRecordingCompleted", recordingId: studentTurn.id });
     } catch (cause) {
@@ -241,7 +335,7 @@ export default function SpeakingConversationFlow({
       setIsAnalyzing(false);
       setIsTranscribing(false);
     }
-  }, [applyTransition, attempts, conversationId, onAddRecord, selectedImage, selectedImageIndex, selectedModel, state.turnIndex, studentId, studentTurn, topic]);
+  }, [applyTransition, attempts, conversationId, groqAvailable, onAddRecord, openaiAvailable, persistProgress, selectedImage, selectedImageIndex, selectedModel, state.turnIndex, studentId, studentTurn, topic]);
 
   const finishRecording = useCallback(() => {
     recognitionRef.current?.stop();
@@ -327,8 +421,35 @@ export default function SpeakingConversationFlow({
     void analyzeRecording(file, "", selectedModel);
   }, [analyzeRecording, clearPendingUpload, pendingUpload, selectedModel]);
 
-  const handleSelfEvalSubmit = useCallback(() => applyTransition({ type: "selfEvaluationSubmitted" }), [applyTransition]);
-  const handleSelfEvalSkip = useCallback(() => applyTransition({ type: "selfEvaluationSkipped" }), [applyTransition]);
+  const handleSelfEvalSubmit = useCallback((levels: { content: "good" | "ok" | "bad"; pronunciation: "good" | "ok" | "bad" }) => {
+    if (latestResult) {
+      const enriched = {
+        ...latestResult,
+        selfEvalContent: levels.content,
+        selfEvalPronunciation: levels.pronunciation,
+      } satisfies SceneSubmission;
+      setLatestResult(enriched);
+      void persistProgress(enriched, {
+        masteryPassed: progressFlags.masteryPassed,
+        contentPassed: progressFlags.contentPassed,
+        attempts,
+        verifiedAudioRecordId: verifiedRecordId,
+      });
+    }
+    applyTransition({ type: "selfEvaluationSubmitted" });
+  }, [applyTransition, attempts, latestResult, persistProgress, progressFlags, verifiedRecordId]);
+
+  const handleSelfEvalSkip = useCallback(() => {
+    if (latestResult) {
+      void persistProgress(latestResult, {
+        masteryPassed: progressFlags.masteryPassed,
+        contentPassed: progressFlags.contentPassed,
+        attempts,
+        verifiedAudioRecordId: verifiedRecordId,
+      });
+    }
+    applyTransition({ type: "selfEvaluationSkipped" });
+  }, [applyTransition, attempts, latestResult, persistProgress, progressFlags, verifiedRecordId]);
   const handleAdvance = useCallback(() => applyTransition({ type: "feedbackCompleted" }), [applyTransition]);
 
   if (state.step === "summary") {

@@ -34,6 +34,10 @@ export interface PracticeAnalysisRequestContext {
   attemptNumber?: number;
   attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
   studyPhase?: "" | "pilot";
+  /** Optional identity for an alternating conversation response. */
+  conversationId?: string;
+  turnId?: string;
+  turnIndex?: number;
 }
 
 export function buildPracticeAnalysisFormData(
@@ -73,8 +77,13 @@ export function buildPracticeAnalysisFormData(
   appendIfPresent("attempt_id", context.attemptId);
   appendIfPresent("attempt_type", context.attemptType);
   appendIfPresent("study_phase", context.studyPhase);
+  appendIfPresent("conversation_id", context.conversationId);
+  appendIfPresent("turn_id", context.turnId);
   if (context.attemptNumber !== undefined) {
     formData.append("attempt_number", String(context.attemptNumber));
+  }
+  if (context.turnIndex !== undefined) {
+    formData.append("turn_index", String(context.turnIndex));
   }
 
   return formData;

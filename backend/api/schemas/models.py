@@ -12,6 +12,16 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 from pydantic import BaseModel, Field
 
 
+class ConversationTurnRequest(BaseModel):
+    id: str = Field(..., min_length=1, max_length=128)
+    speaker: Literal["system", "student"]
+    text: str = Field(..., min_length=1, max_length=4000)
+    audioUrl: Optional[str] = Field(default=None, max_length=2000)
+    targetText: Optional[str] = Field(default=None, max_length=4000)
+    pinyin: Optional[str] = Field(default=None, max_length=4000)
+    translation: Optional[str] = Field(default=None, max_length=4000)
+
+
 class SpeakingProgressRequest(BaseModel):
     studentId: str
     topicId: str
@@ -34,6 +44,9 @@ class SpeakingProgressRequest(BaseModel):
     # record; legacy request values remain supported for history round-trips.
     verifiedAudioRecordId: Optional[str] = Field(default=None, max_length=128)
     progressionEligible: bool = False
+    conversationId: Optional[str] = Field(default=None, max_length=200)
+    turnId: Optional[str] = Field(default=None, max_length=128)
+    turnIndex: Optional[int] = Field(default=None, ge=0)
 
 
 class CustomStoryFrameRequest(BaseModel):
@@ -78,6 +91,7 @@ class CustomStoryRequest(BaseModel):
     id: str
     title: str
     frames: List[CustomStoryFrameRequest]
+    conversationTurns: Optional[List[ConversationTurnRequest]] = None
     # Canonical vocabulary and reusable phrases for the complete story, keyed
     # by level. These remain optional so stories authored before story-level
     # learning content was introduced can still be read and re-saved unchanged.

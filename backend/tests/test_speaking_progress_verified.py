@@ -115,7 +115,13 @@ async def test_verified_progress_ignores_forged_scores_and_flags(monkeypatch):
     _db(monkeypatch, db)
 
     result = await speaking_progress.upsert_speaking_progress(
-        _progress(), SimpleNamespace(id="student-1")
+        _progress(
+            conversationId="conversation:story-1",
+            turnId="student-1",
+            turnIndex=1,
+            promptId="story-1:conversation:student-1",
+        ),
+        SimpleNamespace(id="student-1"),
     )
 
     assert result.progressionEligible is True
@@ -128,6 +134,9 @@ async def test_verified_progress_ignores_forged_scores_and_flags(monkeypatch):
     assert result.latestResult["pronScore"] == 62.5
     assert result.latestResult["vocabScore"] == 80.0
     assert result.latestResult["selfEvalContent"] == "good"
+    assert result.latestResult["conversationId"] == "conversation:story-1"
+    assert result.latestResult["turnId"] == "student-1"
+    assert result.latestResult["turnIndex"] == 1
     assert db.insert_params[11] == "audio-1"
 
 

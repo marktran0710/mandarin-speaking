@@ -127,6 +127,14 @@ def _verified_record_scene_result(record: dict[str, Any], progress: SpeakingProg
         "difficultyLevel": progress.difficultyLevel or "easy",
         "snapshotId": record["id"],
     }
+    if progress.conversationId:
+        result["conversationId"] = progress.conversationId
+    if progress.turnId:
+        result["turnId"] = progress.turnId
+    if progress.turnIndex is not None:
+        result["turnIndex"] = progress.turnIndex
+    if progress.promptId:
+        result["promptId"] = progress.promptId
     incoming = progress.latestResult
     if isinstance(incoming, dict):
         for key in _SELF_EVAL_FIELDS:
@@ -175,12 +183,12 @@ def list_speaking_progress(
 
 
 @router.put("/api/speaking-progress")
-def upsert_speaking_progress(
+async def upsert_speaking_progress(
     progress: SpeakingProgressRequest,
     identity: auth.Identity = Depends(auth.require_student),
 ):
     progress.studentId = identity.id
-    row_id = f"{progress.studentId}:{progress.topicId}:{progress.sceneIndex}"
+    row_id = f"{progress.studentId}:{progress.topicId}:{progress.turnId or progress.sceneIndex}"
     latest_result = dict(progress.latestResult) if progress.latestResult is not None else None
     if progress.baseStoryId or progress.difficultyLevel or progress.promptId:
         if latest_result is not None:
@@ -359,8 +367,8 @@ def upsert_speaking_progress(
             INSERT INTO speaking_progress
                 (id, student_id, topic_id, scene_index, attempts, best_tone,
                  best_fluency, mastery_passed, content_passed, cleared_words,
-                 latest_result, verified_audio_record_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 latest_result, verified_audio_record_id, conversation_id, turn_id, turn_index)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 attempts = EXCLUDED.attempts,
                 best_tone = EXCLUDED.best_tone,
@@ -370,6 +378,9 @@ def upsert_speaking_progress(
                 cleared_words = EXCLUDED.cleared_words,
                 latest_result = EXCLUDED.latest_result,
                 verified_audio_record_id = EXCLUDED.verified_audio_record_id,
+                conversation_id = EXCLUDED.conversation_id,
+                turn_id = EXCLUDED.turn_id,
+                turn_index = EXCLUDED.turn_index,
                 updated_at = to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')
             """,
             (
@@ -385,6 +396,9 @@ def upsert_speaking_progress(
                 Jsonb(merged_cleared_words),
                 Jsonb(merged_latest_result) if merged_latest_result is not None else None,
                 merged_verified_record_id,
+                progress.conversationId,
+                progress.turnId,
+                progress.turnIndex,
             ),
         )
     progress.attempts = merged_attempts

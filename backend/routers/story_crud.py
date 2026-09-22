@@ -74,9 +74,10 @@ async def create_custom_story(story: CustomStoryRequest):
             INSERT INTO custom_stories (
                 id, title, frames, published,
                 lesson_number, lesson_sub_order, rubric_scores,
-                story_vocabulary, story_phrases, vocab_assessment
+                story_vocabulary, story_phrases, vocab_assessment,
+                conversation_turns
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
                 frames = EXCLUDED.frames,
@@ -86,6 +87,7 @@ async def create_custom_story(story: CustomStoryRequest):
                 rubric_scores = EXCLUDED.rubric_scores,
                 story_vocabulary = EXCLUDED.story_vocabulary,
                 story_phrases = EXCLUDED.story_phrases,
+                conversation_turns = EXCLUDED.conversation_turns,
                 {assessment_update}
             """,
             (
@@ -99,6 +101,7 @@ async def create_custom_story(story: CustomStoryRequest):
                 Jsonb(story.storyVocabulary) if story.storyVocabulary is not None else None,
                 Jsonb(story.storyPhrases) if story.storyPhrases is not None else None,
                 Jsonb(story.vocabAssessment) if story.vocabAssessment is not None else None,
+                Jsonb([turn.model_dump() for turn in story.conversationTurns]) if story.conversationTurns is not None else None,
             ),
         )
     return {

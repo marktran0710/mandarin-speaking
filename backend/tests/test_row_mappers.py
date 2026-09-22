@@ -15,6 +15,7 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
         "story_vocabulary": {"easy": {"vocabulary": "房間"}},
         "story_phrases": {"easy": {"phrases": "在房間裡"}},
         "vocab_assessment": [{"questionId": "MC1_001_EASY", "level": "easy"}],
+        "conversation_turns": [{"id": "system-1", "speaker": "system", "text": "Hello"}],
         "published": True,
         "lesson_number": 5,
         "quiz_exclusions": [{"word": "房間", "kind": "cloze"}],
@@ -24,6 +25,7 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
     assert result["storyVocabulary"] == {"easy": {"vocabulary": "房間"}}
     assert result["storyPhrases"] == {"easy": {"phrases": "在房間裡"}}
     assert result["vocabAssessment"] == [{"questionId": "MC1_001_EASY", "level": "easy"}]
+    assert result["conversationTurns"] == [{"id": "system-1", "speaker": "system", "text": "Hello"}]
     assert len(result["vocabAssessmentRevision"]) == 64
     assert result["published"] is True
     assert result["lessonNumber"] == 5
@@ -109,6 +111,9 @@ def test_row_to_audio_record_shape():
         "server_verified_at": "2026-09-18T00:00:00+00:00",
         "audio_sha256": "abc123",
         "server_verification_version": "v1",
+        "conversation_id": "conversation-1",
+        "turn_id": "student-1",
+        "turn_index": 1,
     }
     result = db.row_to_audio_record(row)
     assert result["praatMetrics"] == {"toneAccuracy": 0.8}
@@ -117,6 +122,9 @@ def test_row_to_audio_record_shape():
     assert result["serverVerifiedAt"] == "2026-09-18T00:00:00+00:00"
     assert result["audioSha256"] == "abc123"
     assert result["serverVerificationVersion"] == "v1"
+    assert result["conversationId"] == "conversation-1"
+    assert result["turnId"] == "student-1"
+    assert result["turnIndex"] == 1
 
 
 def test_row_to_speaking_progress_exposes_verified_audio_record_id():
@@ -132,10 +140,16 @@ def test_row_to_speaking_progress_exposes_verified_audio_record_id():
         "cleared_words": [],
         "updated_at": "2026-09-18 00:00:00",
         "verified_audio_record_id": "record-1",
+        "conversation_id": "conversation-1",
+        "turn_id": "student-1",
+        "turn_index": 1,
     }
     result = db.row_to_speaking_progress(row)
     assert result["verifiedAudioRecordId"] == "record-1"
     assert result["progressionEligible"] is True
+    assert result["conversationId"] == "conversation-1"
+    assert result["turnId"] == "student-1"
+    assert result["turnIndex"] == 1
 
 
 def test_ensure_column_helpers_are_gone():

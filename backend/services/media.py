@@ -71,6 +71,9 @@ class AudioRecordRequest(BaseModel):
     attemptId: Optional[str] = None
     attemptNumber: Optional[int] = None
     attemptType: Optional[str] = None
+    conversationId: Optional[str] = None
+    turnId: Optional[str] = None
+    turnIndex: Optional[int] = None
 
 
 def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None):
@@ -96,9 +99,10 @@ def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None
             INSERT INTO audio_records (
                 id, timestamp, duration, transcription, model, topic_id, student_id,
                 image_url, image_index, audio_url, audio_name, praat_metrics,
-                session_id, attempt_id, attempt_number, attempt_type
+                session_id, attempt_id, attempt_number, attempt_type,
+                conversation_id, turn_id, turn_index
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 timestamp = EXCLUDED.timestamp,
                 duration = EXCLUDED.duration,
@@ -114,7 +118,10 @@ def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None
                 session_id = EXCLUDED.session_id,
                 attempt_id = EXCLUDED.attempt_id,
                 attempt_number = EXCLUDED.attempt_number,
-                attempt_type = EXCLUDED.attempt_type
+                attempt_type = EXCLUDED.attempt_type,
+                conversation_id = EXCLUDED.conversation_id,
+                turn_id = EXCLUDED.turn_id,
+                turn_index = EXCLUDED.turn_index
             """,
             (
                 record.id,
@@ -133,6 +140,9 @@ def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None
                 record.attemptId,
                 record.attemptNumber,
                 record.attemptType,
+                record.conversationId,
+                record.turnId,
+                record.turnIndex,
             ),
         )
 
@@ -152,6 +162,9 @@ def save_verified_audio_record(
     transcription: str,
     model: str,
     praat_metrics: dict,
+    conversation_id: Optional[str] = None,
+    turn_id: Optional[str] = None,
+    turn_index: Optional[int] = None,
 ) -> dict:
     """Persist a server-owned stable-analysis result.
 
@@ -197,17 +210,18 @@ def save_verified_audio_record(
                 id, timestamp, duration, transcription, model, topic_id, student_id,
                 image_url, image_index, audio_url, audio_name, praat_metrics,
                 attempt_id, server_verified_at, audio_sha256,
-                server_verification_version
+                server_verification_version, conversation_id, turn_id, turn_index
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, NOW(), %s, %s
+                %s, NOW(), %s, %s, %s, %s, %s
             )
             """,
             (
                 record_id, datetime.datetime.now(datetime.timezone.utc).isoformat(), 0,
                 transcription, model, topic_id, student_id, image_url, scene_index,
                 audio_url, audio_name, Jsonb(praat_metrics), attempt_id,
-                audio_sha256, verification_version,
+                audio_sha256, verification_version, conversation_id, turn_id,
+                turn_index,
             ),
         )
         return {

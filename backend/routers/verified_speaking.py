@@ -135,6 +135,9 @@ async def analyze_verified_speech(
     asr_model: str = Form(""),
     ai_provider: str = Form(""),
     transcription: str = Form(""),
+    conversation_id: str = Form("", max_length=200),
+    turn_id: str = Form("", max_length=128),
+    turn_index: int | None = Form(None, ge=0),
     identity: auth.Identity = Depends(auth.require_student),
 ):
     if difficulty_level not in _TIER_SUFFIX:
@@ -200,6 +203,9 @@ async def analyze_verified_speech(
             audio_name=audio_url.rsplit("/", 1)[-1], image_url=scene["image_url"],
             transcription=str(payload.get("transcription") or transcription),
             model=asr_model or "stable", praat_metrics=payload,
+            conversation_id=conversation_id or None,
+            turn_id=turn_id or None,
+            turn_index=turn_index,
         )
     except Exception:
         if audio_url:

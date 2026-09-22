@@ -124,6 +124,9 @@ def row_to_audio_record(row: dict) -> dict:
         "attemptId": row.get("attempt_id"),
         "attemptNumber": row.get("attempt_number"),
         "attemptType": row.get("attempt_type"),
+        "conversationId": row.get("conversation_id"),
+        "turnId": row.get("turn_id"),
+        "turnIndex": row.get("turn_index"),
         "serverVerifiedAt": row.get("server_verified_at"),
         "audioSha256": row.get("audio_sha256"),
         "serverVerificationVersion": row.get("server_verification_version"),
@@ -154,6 +157,7 @@ def row_to_custom_story(row: dict) -> dict:
         "id": row["id"],
         "title": row["title"],
         "frames": row["frames"] or [],
+        "conversationTurns": row.get("conversation_turns"),
         "storyVocabulary": row.get("story_vocabulary"),
         "storyPhrases": row.get("story_phrases"),
         "vocabAssessment": vocab_assessment,
@@ -225,6 +229,9 @@ def row_to_speaking_progress(row: dict) -> dict:
         "latestResult": row.get("latest_result"),
         "verifiedAudioRecordId": row.get("verified_audio_record_id"),
         "progressionEligible": bool(row.get("verified_audio_record_id")),
+        "conversationId": row.get("conversation_id"),
+        "turnId": row.get("turn_id"),
+        "turnIndex": row.get("turn_index"),
         "updatedAt": row["updated_at"],
     }
 

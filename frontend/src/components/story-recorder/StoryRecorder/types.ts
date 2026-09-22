@@ -286,6 +286,8 @@ export interface NewAudioRecord {
   conversationId?: string;
   turnId?: string;
   turnIndex?: number;
+  audioUrl?: string;
+  audioName?: string;
   praatMetrics: PraatMetrics;
   analysisVersion?: "stable_v1";
   analysisSchemaVersion?: string;

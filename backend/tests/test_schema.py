@@ -28,6 +28,7 @@ JSONB_COLUMNS = [
     ("story_submissions", "story_feedback"),
     ("vocab_quiz_attempts", "question_results"),
     ("audio_records", "praat_metrics"),
+    ("custom_stories", "conversation_turns"),
     ("speaking_progress", "cleared_words"),
     ("speaking_progress", "latest_result"),
 ]
@@ -43,6 +44,12 @@ LINKAGE_COLUMNS = [
     ("audio_records", "audio_sha256"),
     ("audio_records", "server_verification_version"),
     ("speaking_progress", "verified_audio_record_id"),
+    ("audio_records", "conversation_id"),
+    ("audio_records", "turn_id"),
+    ("audio_records", "turn_index"),
+    ("speaking_progress", "conversation_id"),
+    ("speaking_progress", "turn_id"),
+    ("speaking_progress", "turn_index"),
 ]
 
 REMOVED_CUSTOM_STORY_COLUMNS = (
