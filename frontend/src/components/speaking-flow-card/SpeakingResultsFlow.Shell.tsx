@@ -72,7 +72,9 @@ export default function SpeakingResultsFlowShell({
             <span><BiLabel zh={practicePartCount > 0 ? `還有 ${practicePartCount} 個部分要練習` : "已通過評量音調"} en={practicePartCount > 0 ? `${practicePartCount} part${practicePartCount === 1 ? "" : "s"} to practise` : "Measured tones cleared"} /></span>
           </button>
         </div>}
-        {step !== "selfEval" && <ResultsFooter {...{ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />}
+        {step === "selfEval"
+          ? <SelfEvalRecordAgain onRecordAgain={onRecordAgain} />
+          : <ResultsFooter {...{ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />}
       </div>
     </div>
 
@@ -87,6 +89,20 @@ export default function SpeakingResultsFlowShell({
     )}
 
   </section>;
+}
+
+/** The self-eval step has its own forward action ("See system feedback"),
+ * so it must not also offer the results footer's skip-ahead continue button
+ * — that would let a student jump straight to the next scene without ever
+ * seeing their verdict, overview, or remediation steps. It still needs the
+ * record-again escape hatch every other step has, so a student who dislikes
+ * their take is never stuck on this screen with no way back to the mic. */
+function SelfEvalRecordAgain({ onRecordAgain }) {
+  return <footer className="sfc-footer sfc-results-footer">
+    <div className="sfc-footer-actions">
+      <AppButton tone="subtle" className="sfc-btn-again" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" /></AppButton>
+    </div>
+  </footer>;
 }
 
 function ResultsFooter({ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }) {
