@@ -88,20 +88,6 @@
   display: grid;
   grid-template-rows: minmax(0, 1fr);
   min-height: 100%;
-  padding: 0;
-}
-
-/* Voice practice is a stage page, but its header and controls use the same
-   page-level inset as catalogue/progress pages. Keep that inset here so the
-   feature page cannot create a second coordinate system. */
-.student-page-shell--activity[data-student-page="voice-practice"],
-.student-page-shell--stage[data-student-page="voice-practice"] {
-  padding: var(--space-lg) 0 var(--space-2xl);
-}
-
-.student-page-shell--activity[data-student-page="voice-practice"] > .student-page-shell__rail > *,
-.student-page-shell--stage[data-student-page="voice-practice"] > .student-page-shell__rail > * {
-  padding: 0;
 }
 
 @media (max-width: 900px) {
@@ -117,12 +103,6 @@
   .student-page-shell--activity,
   .student-page-shell--stage {
     min-height: 0;
-    padding: 0;
-  }
-
-  .student-page-shell--activity[data-student-page="voice-practice"],
-  .student-page-shell--stage[data-student-page="voice-practice"] {
-    padding: var(--space-md) 0 var(--space-2xl);
   }
 
   .student-page-shell--activity > .student-page-shell__rail > *,
