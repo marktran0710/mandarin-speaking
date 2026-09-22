@@ -35,4 +35,14 @@ describe("storyToTopic approved question pools", () => {
 
     expect(topic.quizVocabularyDistractors?.[0]?.[0]).toEqual(["easy"]);
   });
+
+  it("preserves an optional conversation contract for student runtime selection", () => {
+    const conversation = [
+      { id: "system-1", speaker: "system" as const, text: "你好吗？" },
+      { id: "student-1", speaker: "student" as const, text: "我很好。" },
+    ];
+    const topic = storyToTopic({ ...story({}), conversationTurns: conversation });
+
+    expect(topic.conversationTurns).toEqual(conversation);
+  });
 });

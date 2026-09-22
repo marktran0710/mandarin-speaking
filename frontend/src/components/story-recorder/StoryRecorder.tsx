@@ -1,9 +1,11 @@
 import { createPortal } from "react-dom";
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import type { HelpRequest } from "../../services/database";
 import StoryRecorderRuntime from "./StoryRecorderRuntime";
+import SpeakingConversationFlow from "./SpeakingConversationFlow";
 import type { NewAudioRecord } from "./StoryRecorder/types";
 import type { Topic } from "./StoryRecorder/storyContent";
+import { normalizeConversationTurns } from "./StoryRecorder/conversation";
 import { BiLabel } from "../ui/BiLabel";
 
 export interface StoryRecorderProps {
@@ -62,6 +64,22 @@ function StudyScriptCard({ topic, selectedImageIndex }: Pick<StoryRecorderProps,
 }
 
 function StoryRecorderWithStudyScript(props: StoryRecorderProps) {
+  const conversationTurns = useMemo(
+    () => normalizeConversationTurns(props.topic.conversationTurns),
+    [props.topic.conversationTurns],
+  );
+  if (conversationTurns) {
+    return (
+      <SpeakingConversationFlow
+        topic={props.topic}
+        turns={conversationTurns}
+        selectedImage={props.selectedImage}
+        selectedImageIndex={props.selectedImageIndex}
+        onAddRecord={props.onAddRecord}
+        studentId={props.studentId}
+      />
+    );
+  }
   return <>
     <TypedStoryRecorder {...props} />
     <StudyScriptCard topic={props.topic} selectedImageIndex={props.selectedImageIndex} />

@@ -4,6 +4,7 @@ export interface VocabGroup {
 }
 
 import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
+import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder/conversation";
 
 // Stories run a single text level. The old multi-level story-text system was
 // retired when the quiz moved to one vocabulary set + three rounds; this stays
@@ -72,6 +73,8 @@ export interface CustomTeacherStory {
   id: string;
   title: string;
   frames: CustomStoryFrame[];
+  /** Optional alternating system/student dialogue. Legacy stories omit it. */
+  conversationTurns?: ConversationTurn[];
   /** Canonical story-wide vocabulary, keyed by difficulty tier. */
   storyVocabulary?: StoryVocabularyByLevel;
   /** Canonical story-wide reusable phrases, keyed by difficulty tier. */

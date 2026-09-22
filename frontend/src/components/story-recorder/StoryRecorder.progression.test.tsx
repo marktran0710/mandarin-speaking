@@ -90,6 +90,10 @@ describe("StoryRecorder student prototype", () => {
       await waitFor(() => {
         expect(container.querySelector(".sfc-unlock-note")).not.toBeInTheDocument();
       });
+      // Self-check intentionally owns the screen until the student submits
+      // or skips it; the global feedback/footer controls stay out of the way.
+      expect(screen.queryByRole("button", { name: /Next scene/ })).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Skip/ }));
       expect(await screen.findByRole("button", { name: /Next scene/ })).toBeInTheDocument();
       // The bounded, optional one-retry offer (never a hard gate) is still shown.
       expect(container.querySelector(".sfc-assistive-retry-hint")).toBeInTheDocument();

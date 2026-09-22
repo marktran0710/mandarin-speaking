@@ -164,6 +164,7 @@ export interface SpeakingResultsFlowProps {
     content: SelfEvalLevel;
     pronunciation: SelfEvalLevel;
   }) => void;
+  onSelfEvalSkip?: () => void;
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;

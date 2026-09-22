@@ -63,6 +63,7 @@ interface SpeakingFlowCardProps {
     content: SelfEvalLevel;
     pronunciation: SelfEvalLevel;
   }) => void;
+  onSelfEvalSkip?: () => void;
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;
@@ -117,6 +118,7 @@ export default function SpeakingFlowCard({
   clearedWords,
   onWordDrillPass,
   onSelfEvalSubmit,
+  onSelfEvalSkip,
   hasNextScene,
   onNextScene,
   onViewSummary,
@@ -387,6 +389,7 @@ export default function SpeakingFlowCard({
       clearedWords={clearedWords}
       onWordDrillPass={onWordDrillPass}
       onSelfEvalSubmit={onSelfEvalSubmit}
+      onSelfEvalSkip={onSelfEvalSkip}
       hasNextScene={hasNextScene}
       onNextScene={onNextScene}
       onViewSummary={onViewSummary}

@@ -66,13 +66,13 @@ export default function SpeakingResultsFlowShell({
         </nav>}
         <AudioCompare modelAudioUrl={modelAudioUrl} modelSentence={modelSentence} analysisAudioBlob={analysisAudioBlob} />
         {stepBody}
-        <div className="sfc-results-utility">
+        {step !== "selfEval" && <div className="sfc-results-utility">
           <button ref={feedbackTriggerRef} type="button" className="sfc-left-feedback-summary" aria-haspopup="dialog" aria-expanded={feedbackModalOpen} aria-controls="sfc-feedback-modal" onClick={onOpenFeedback}>
             <BiLabel zh="發音分析" en="Pronunciation feedback" />
             <span><BiLabel zh={practicePartCount > 0 ? `還有 ${practicePartCount} 個部分要練習` : "已通過評量音調"} en={practicePartCount > 0 ? `${practicePartCount} part${practicePartCount === 1 ? "" : "s"} to practise` : "Measured tones cleared"} /></span>
           </button>
-        </div>
-        <ResultsFooter {...{ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />
+        </div>}
+        {step !== "selfEval" && <ResultsFooter {...{ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />}
       </div>
     </div>
 

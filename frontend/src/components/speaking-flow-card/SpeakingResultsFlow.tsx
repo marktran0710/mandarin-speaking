@@ -16,7 +16,7 @@ import SpeakingResultsFlowShell from "./SpeakingResultsFlow.Shell";
 export default function SpeakingResultsFlow({
   selectedImage, selectedImageIndex, modelSentence, modelAudioUrl,
   attempts, ready, canContinue = ready, masteryPassed, praatMetrics, analysisAudioBlob, submittedAudioName,
-  clearedWords, onWordDrillPass, onSelfEvalSubmit, hasNextScene, onNextScene,
+  clearedWords, onWordDrillPass, onSelfEvalSubmit, onSelfEvalSkip, hasNextScene, onNextScene,
   onViewSummary, onRecordAgain, assistiveFeedback = null, assistiveRetriesUsed = 0,
 }: SpeakingResultsFlowProps) {
   const ai = praatMetrics.ai_feedback;
@@ -177,7 +177,7 @@ export default function SpeakingResultsFlow({
   }[verdict];
 
   const stepBody = {
-    selfEval: <SelfEvalStep onSubmit={handleSelfEvalSubmit} onSkip={() => goToStep("overview")} />,
+    selfEval: <SelfEvalStep onSubmit={handleSelfEvalSubmit} onSkip={() => { onSelfEvalSkip?.(); goToStep("overview"); }} />,
     overview: <SpeakingResultsOverviewStep {...{ verdict, verdictContent, feedbackReliability, attempts, hasTargetScript, targetScript, recognizedText, praatMetrics, pronunciationMastery, contentNeedsRetry, selfEvalAnswer, hasScriptMismatch, submittedAudioName, practicePartCount, assistiveFeedback, hasFix, hasPractice, hasPhrasePractice, goToStep, onRecordAgain }} />,
     fix: <SpeakingResultsFixStep {...{ accepted, meaningJudged, showCorrective, contentAccuracy, corrective, hasScriptMismatch, isChunked, targetScript, recognizedText, praatMetrics, chunkScores, scriptMismatches, missing, hasPractice, hasPhrasePractice, goToStep, onRecordAgain }} />,
     practice: <SpeakingResultsPracticeStep {...{ hasPhrasePractice, allDrillsCleared, practiceTargets, clearedWords, focusKey, setFocusKey, focusTarget, focusWord, onDrillPass: handleDrillPass, allPhrasesCleared, phrasePracticeItems, clearedPhrases, phraseFocusIndex, setPhraseFocusIndex, focusPhrase, onPhrasePass: handlePhrasePass, onRecordAgain }} />,

@@ -383,6 +383,7 @@ export function storyToTopic(
   return {
     id: topicId,
     name: story.title,
+    ...(story.conversationTurns ? { conversationTurns: story.conversationTurns } : {}),
     ...(Array.isArray(story.vocabAssessment) ? { vocabAssessment: story.vocabAssessment } : {}),
     description: "Teacher published activity",
     skillFocus: "Teacher published activity",

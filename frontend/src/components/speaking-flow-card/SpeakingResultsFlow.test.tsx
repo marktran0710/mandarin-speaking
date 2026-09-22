@@ -83,17 +83,20 @@ describe("SpeakingResultsFlow — self-eval step", () => {
 
   it("skips straight to the overview verdict without calling onSelfEvalSubmit", () => {
     const onSelfEvalSubmit = vi.fn();
+    const onSelfEvalSkip = vi.fn();
     render(
       <SpeakingResultsFlow
         {...baseProps}
         ready
         onSelfEvalSubmit={onSelfEvalSubmit}
+        onSelfEvalSkip={onSelfEvalSkip}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Skip/ }));
 
     expect(onSelfEvalSubmit).not.toHaveBeenCalled();
+    expect(onSelfEvalSkip).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/Recording done!/)).not.toBeInTheDocument();
     expect(screen.queryByText("Meaning")).not.toBeInTheDocument();
   });
