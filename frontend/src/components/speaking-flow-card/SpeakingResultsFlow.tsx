@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "../ui/BiLabel";
 import SelfEvalStep from "../student/SelfEvalStep";
-import { failedProsodyWords, isContentAccepted, weakToneGuideItems } from "../../utils/storyRecorderFeedback";
-import { scoreScriptChunks, scriptAlignmentText, scriptMismatchTokens, splitScriptIntoChunks, splitTeacherScriptIntoPhrases } from "../../utils/scriptAlignment";
+import { scriptAlignmentText } from "../../utils/scriptAlignment";
 import { primePinyin } from "../../utils/pinyin";
 import type { SelfEvalLevel } from "../../utils/selfEvalComparison";
-import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";
-import { buildPracticeTargets, type ResultsStep, type SpeakingResultsFlowProps } from "./SpeakingResultsFlow.helpers";
+import type { ResultsStep, SpeakingResultsFlowProps } from "./SpeakingResultsFlow.helpers";
+import { analyzeSpeakingResult } from "./SpeakingResultsFlow.analysis";
 import SpeakingResultsOverviewStep from "./SpeakingResultsFlow.OverviewStep";
 import SpeakingResultsFixStep from "./SpeakingResultsFlow.FixStep";
 import SpeakingResultsPracticeStep from "./SpeakingResultsFlow.PracticeStep";
@@ -19,13 +18,14 @@ export default function SpeakingResultsFlow({
   clearedWords, onWordDrillPass, onSelfEvalSubmit, onSelfEvalSkip, hasNextScene, onNextScene,
   onViewSummary, onRecordAgain, assistiveFeedback = null, assistiveRetriesUsed = 0,
 }: SpeakingResultsFlowProps) {
-  const ai = praatMetrics.ai_feedback;
-  const targetScript = modelSentence ?? "";
-  const hasTargetScript = Boolean(targetScript.trim());
-  const accepted = isContentAccepted(praatMetrics);
-  const vocabCoverage = ai?.vocabulary_coverage;
-  const missing = vocabCoverage?.missing ?? [];
-  const recognizedText = praatMetrics.recognized_text ?? (hasTargetScript && praatMetrics.content_match === null ? "" : praatMetrics.transcription ?? "");
+  const {
+    accepted, targetScript, hasTargetScript, recognizedText, missing, scriptMismatches,
+    teacherPhraseChunks, isChunked, chunkScores, weakItems, pronunciationMastery, masteryCounts,
+    contentAccuracy, corrective, meaningJudged, feedbackReliability, contentNeedsRetry,
+    hasScriptMismatch, phrasePracticeItems, practiceTargets, practicePartCount, verdict,
+    showCorrective, hasFix, hasPhrasePractice, hasPractice, steps,
+  } = analyzeSpeakingResult({ modelSentence, praatMetrics, ready, selectedImageIndex });
+
   const alignmentPinyinQuery = [scriptAlignmentText(targetScript), scriptAlignmentText(recognizedText)].join("\u0000");
   const [, setAlignmentPinyinRevision] = useState(0);
   useEffect(() => {
@@ -36,46 +36,11 @@ export default function SpeakingResultsFlow({
     return () => { active = false; };
   }, [alignmentPinyinQuery]);
 
-  const scriptMismatches = scriptMismatchTokens(targetScript, recognizedText);
-  const scriptChunks = splitScriptIntoChunks(targetScript);
-  const teacherPhraseChunks = splitTeacherScriptIntoPhrases(targetScript);
-  const isChunked = scriptChunks.length > 1;
-  const chunkScores = isChunked ? scoreScriptChunks(targetScript, recognizedText, praatMetrics.word_prosody) : [];
-  const failedChunks = chunkScores.filter((chunk) => !chunk.passed);
-  const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
-  const pronunciationMastery = praatMetrics.pronunciation_mastery;
-  const masteryCounts = pronunciationMastery && typeof pronunciationMastery.passed_syllables === "number" && typeof pronunciationMastery.total_syllables === "number" ? { passed: pronunciationMastery.passed_syllables, total: pronunciationMastery.total_syllables } : undefined;
-  const contentAccuracy = ai?.content_accuracy;
-  const corrective = ai?.corrective_feedback;
-  const meaningJudged = Boolean(contentAccuracy?.judged);
-  const feedbackReliability = assessVoiceFeedbackReliability({ feedbackQuality: praatMetrics.feedback_quality, contentJudged: meaningJudged, pitchContour: praatMetrics.pitch_contour, wordProsody: praatMetrics.word_prosody, transcription: recognizedText });
-  const failedWords = failedProsodyWords(praatMetrics.word_prosody);
-  const contentMatchVerified = praatMetrics.content_match === true;
-  const contentNeedsRetry = hasTargetScript && !contentMatchVerified;
-  const contentMismatchChunks = contentMatchVerified ? [] : failedChunks.filter((chunk) => chunk.mismatch.length > 0);
-  const hasChunkMismatch = isChunked && contentMismatchChunks.length > 0;
-  const effectiveScriptMismatches = contentMatchVerified ? [] : scriptMismatches;
-  const legacyPracticeWords = [...failedWords].sort((a, b) => (a.shape_accuracy ?? a.tone_accuracy ?? 0) - (b.shape_accuracy ?? b.tone_accuracy ?? 0));
-  const hasScriptMismatch = contentNeedsRetry || (isChunked ? hasChunkMismatch : effectiveScriptMismatches.length > 0);
-  const needsPhrasePractice = hasScriptMismatch || ((!accepted || missing.length > 0) && scriptChunks.length > 0);
-  const phrasePracticeItems = needsPhrasePractice ? (isChunked ? (contentMismatchChunks.length > 0 ? contentMismatchChunks.map((chunk) => chunk.text) : (() => {
-    const vocabChunks = scriptChunks.filter((chunk) => missing.some((word) => chunk.includes(word)));
-    return vocabChunks.length > 0 ? vocabChunks : scriptChunks;
-  })()) : scriptChunks) : [];
   const [clearedPhrases, setClearedPhrases] = useState<string[]>([]);
   const remainingPracticePhrases = phrasePracticeItems.filter((phrase) => !clearedPhrases.includes(phrase));
   const allPhrasesCleared = phrasePracticeItems.length > 0 && remainingPracticePhrases.length === 0;
-  const practicePartLabels = pronunciationMastery ? pronunciationMastery.practice_parts ?? Array.from(new Set([...(pronunciationMastery.failed_words ?? []), ...(pronunciationMastery.missing_target_units ?? [])])) : legacyPracticeWords.map((word) => word.token);
-  const practiceTargets = buildPracticeTargets(practicePartLabels, praatMetrics.word_prosody ?? []);
-  const practicePartCount = practiceTargets.length;
   const remainingDrillTargets = practiceTargets.filter((target) => !target.word || !clearedWords.includes(target.word.token));
   const allDrillsCleared = practiceTargets.length > 0 && practiceTargets.every((target) => Boolean(target.word) && clearedWords.includes(target.word!.token));
-  const verdict: "meaning" | "ready" | "vocab" | "pronounce" | "join" = !accepted || hasScriptMismatch ? "meaning" : missing.length > 0 ? "vocab" : isChunked && !ready ? "join" : ready ? "ready" : "pronounce";
-  const showCorrective = !(accepted && missing.length === 0) && corrective && (corrective.errors.length > 0 || corrective.hint || corrective.correct_version);
-  const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
-  const hasPhrasePractice = phrasePracticeItems.length > 0;
-  const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceTargets.length > 0);
-  const steps: ResultsStep[] = [...(ready ? (["selfEval"] as const) : []), "overview", ...(hasFix ? (["fix"] as const) : []), ...(hasPractice ? (["practice"] as const) : [])];
 
   const [step, setStep] = useState<ResultsStep>(() => steps[0]);
   const [maxVisited, setMaxVisited] = useState(0);
