@@ -1711,6 +1711,11 @@
     min-height: 0;
     padding: var(--space-sm) var(--space-md) var(--space-xs);
     gap: var(--space-sm);
+    /* The desktop stage is a bounded rail, but its self-evaluation rows must
+       size to their content before the rail becomes scrollable. Without
+       explicit max-content tracks, the fieldsets shrink to their legends and
+       the emoji choices overflow into the CTA and feedback utility. */
+    grid-template-rows: repeat(5, max-content);
   }
 
   .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-stepper {
@@ -1726,10 +1731,12 @@
   .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-step {
     gap: var(--space-sm);
     padding: 0;
+    min-height: max-content;
+    grid-template-rows: repeat(3, max-content);
   }
 
   .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-question {
-    min-height: 0;
+    min-height: max-content;
     padding: var(--space-xs);
   }
 
