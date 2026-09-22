@@ -94,6 +94,21 @@ export type {
   ConversationTurn,
 } from "./StoryRecorder/conversation";
 
+export {
+  createConversationState,
+  currentConversationTurn,
+  isStudentRecordingStep,
+  shouldAnalyzeConversationTurn,
+  transitionConversation,
+} from "./StoryRecorder/conversationCoordinator";
+
+export type {
+  ConversationEvent,
+  ConversationState,
+  ConversationStep,
+  ConversationTransition,
+} from "./StoryRecorder/conversationCoordinator";
+
 export type {
   AiProviderOption,
   ClozeGrowthCandidate,
