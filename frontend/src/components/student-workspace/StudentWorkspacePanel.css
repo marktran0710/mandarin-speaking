@@ -155,6 +155,32 @@
     overflow: visible;
   }
 
+  /* Conversation practice is a natural-flow activity. Its recording panel
+     can be taller than a short desktop viewport, so let the outer student
+     panel own the scroll instead of clipping the turn card inside the fixed
+     recorder track used by legacy story practice. */
+  .student-workspace-v2 > #student-workspace-panel:has(.speaking-conversation-flow) {
+    grid-template-rows: auto;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel > .student-page-shell.student-page-shell--stage:has(.speaking-conversation-flow) {
+    display: block;
+    height: auto;
+    min-height: 0;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel > .student-page-shell.student-page-shell--stage:has(.speaking-conversation-flow) > .student-page-shell__rail,
+  .student-workspace-v2 > #student-workspace-panel > .student-page-shell.student-page-shell--stage > .student-page-shell__rail > .create-story-page:has(.speaking-conversation-flow),
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body:has(.speaking-conversation-flow) {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body:has(.speaking-conversation-flow) {
+    display: block;
+  }
+
   .student-workspace-v2 > #student-workspace-panel .story-session-main:has(> .practice-stage) {
     display: flex;
     flex-direction: column;

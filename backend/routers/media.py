@@ -33,9 +33,11 @@ def serve_upload(
         # Evaluate the three ownership checks cheapest-first and stop at the
         # first match. Same authorization result as testing all three, but a
         # student replaying their own audio (the common case) never reaches the
-        # published-lesson check, whose `frames::text LIKE '%url%'` is an
-        # unindexable full-table scan - kept last so it runs only when the two
-        # indexed lookups both miss (i.e. only for published lesson media).
+        # published-content check, whose JSONB text search is an unindexable
+        # full-table scan - kept last so it runs only when the two indexed
+        # lookups both miss (i.e. only for published lesson media). Conversation
+        # turns are published content too, but live outside the legacy frames
+        # payload.
         with connect_db() as db:
             allowed = bool(
                 db.execute(
@@ -53,8 +55,17 @@ def serve_upload(
             if not allowed:
                 allowed = bool(
                     db.execute(
-                        "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
-                        (f"%{stored_url}%",),
+                        """
+                        SELECT 1
+                        FROM custom_stories
+                        WHERE published = TRUE
+                          AND (
+                            frames::text LIKE %s
+                            OR COALESCE(conversation_turns::text, '') LIKE %s
+                          )
+                        LIMIT 1
+                        """,
+                        (f"%{stored_url}%", f"%{stored_url}%"),
                     ).fetchone()
                 )
         if not allowed:
