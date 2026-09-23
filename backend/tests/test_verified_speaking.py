@@ -133,6 +133,9 @@ async def test_verified_analysis_uses_published_scene_context(monkeypatch):
         asr_model="groq",
         ai_provider="groq",
         transcription="client transcript hint",
+        conversation_id="",
+        turn_id="",
+        turn_index=None,
         identity=SimpleNamespace(id="student-1"),
     )
 
@@ -184,7 +187,8 @@ async def test_same_verified_attempt_is_idempotent_without_reanalysis(monkeypatc
     result = await verified_speaking.analyze_verified_speech(
         file=FakeUpload(content), attempt_id="attempt-1", story_id="story-1",
         base_story_id="", scene_index=0, difficulty_level="easy", asr_model="",
-        ai_provider="", transcription="", identity=SimpleNamespace(id="student-1"),
+        ai_provider="", transcription="", conversation_id="", turn_id="", turn_index=None,
+        identity=SimpleNamespace(id="student-1"),
     )
 
     assert result["audioRecordId"] == "record-1"
@@ -247,7 +251,8 @@ async def test_failed_analysis_never_persists_verified_audio(monkeypatch):
         await verified_speaking.analyze_verified_speech(
             file=FakeUpload(b"audio-one"), attempt_id="attempt-1", story_id="story-1",
             base_story_id="", scene_index=0, difficulty_level="easy", asr_model="",
-            ai_provider="", transcription="", identity=SimpleNamespace(id="student-1"),
+            ai_provider="", transcription="", conversation_id="", turn_id="", turn_index=None,
+            identity=SimpleNamespace(id="student-1"),
         )
     assert exc.value.status_code == 500
     assert not any(call[0] == "remove" for call in calls if isinstance(call, tuple))

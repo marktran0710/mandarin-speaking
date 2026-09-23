@@ -83,6 +83,75 @@ def _load_published_scene(story_id: str, scene_index: int, difficulty_level: str
     }
 
 
+def _load_conversation_turns(story_id: str) -> list[dict[str, Any]] | None:
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT conversation_turns FROM custom_stories WHERE id = %s AND published = TRUE",
+            (story_id,),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Published story not found.")
+    turns = row.get("conversation_turns")
+    return turns if isinstance(turns, list) else None
+
+
+def resolve_verified_speaking_target(
+    story_id: str,
+    scene_index: int,
+    difficulty_level: str,
+    *,
+    conversation_id: str = "",
+    turn_id: str = "",
+    turn_index: int | None = None,
+) -> dict[str, Any]:
+    """Server-authoritative target resolution (Dual Speaking Modes plan,
+    Epic 2). Never trust a client-submitted target sentence for verified
+    scoring.
+
+    No conversation identity -> the existing scene-based target (legacy
+    Story Practice path, unchanged). Conversation identity present -> the
+    student's OWN resolved turn's targetText, re-derived server-side from
+    the published story's conversation_turns - never the scene's
+    suggestedAnswer/listenScript, which is a different sentence belonging
+    to a different (legacy) activity. A conversation turn also does not
+    reuse the scene's reference pitch curves (Epic 2's "do not forge a
+    reference curve" rule): those curves were recorded for the scene's own
+    target sentence, not this turn's, so comparing against them would
+    silently score the wrong contour.
+    """
+    scene = _load_published_scene(story_id, scene_index, difficulty_level)
+    if not conversation_id and not turn_id:
+        return scene
+
+    turns = _load_conversation_turns(story_id)
+    if not turns:
+        raise HTTPException(status_code=422, detail="This story has no conversation turns to resolve.")
+
+    if turn_index is not None:
+        if (
+            turn_index < 0
+            or turn_index >= len(turns)
+            or not isinstance(turns[turn_index], dict)
+            or turns[turn_index].get("id") != turn_id
+        ):
+            raise HTTPException(status_code=422, detail="Conversation turn index does not match turn id.")
+        turn = turns[turn_index]
+    else:
+        matches = [row for row in turns if isinstance(row, dict) and row.get("id") == turn_id]
+        if len(matches) != 1:
+            raise HTTPException(status_code=422, detail="Conversation turn id not found for this story.")
+        turn = matches[0]
+
+    if turn.get("speaker") != "student":
+        raise HTTPException(status_code=422, detail="Only a student conversation turn can be analyzed as a response.")
+
+    target_text = str(turn.get("targetText") or turn.get("text") or "").strip()
+    if not target_text:
+        raise HTTPException(status_code=422, detail="Conversation turn has no target text.")
+
+    return {**scene, "target_text": target_text, "reference_word_curves": {}}
+
+
 def _find_attempts(attempt_id: str) -> list[dict]:
     with connect_db() as db:
         return list(db.execute(
@@ -161,16 +230,23 @@ async def analyze_verified_speech(
     if existing is not None:
         if existing.get("audio_sha256") != audio_sha256:
             raise HTTPException(status_code=409, detail="Attempt ID was already used with different audio.")
-        # The scene is resolved even for a replay so the response cannot echo
-        # forged client scene data and a removed/unpublished story stays gone.
-        scene = _load_published_scene(base_story_id or story_id, scene_index, difficulty_level)
+        # The scene/turn is resolved even for a replay so the response cannot
+        # echo forged client scene data and a removed/unpublished story or an
+        # invalid conversation turn stays rejected.
+        scene = resolve_verified_speaking_target(
+            base_story_id or story_id, scene_index, difficulty_level,
+            conversation_id=conversation_id, turn_id=turn_id, turn_index=turn_index,
+        )
         if existing.get("topic_id") != scene["story_id"] or existing.get("image_index") != scene["scene_index"]:
             raise HTTPException(status_code=409, detail="Attempt ID was already used for a different scene.")
         return _response(existing["id"], attempt_id, scene, difficulty_level, existing.get("praat_metrics") or {}, existing.get("audio_url"))
     if attempts:
         raise HTTPException(status_code=409, detail="Attempt ID already exists without server verification.")
 
-    scene = _load_published_scene(base_story_id or story_id, scene_index, difficulty_level)
+    scene = resolve_verified_speaking_target(
+        base_story_id or story_id, scene_index, difficulty_level,
+        conversation_id=conversation_id, turn_id=turn_id, turn_index=turn_index,
+    )
     try:
         async def run_stable_analysis():
             async with app_main.acquire_analysis_slot():
