@@ -12,7 +12,7 @@ import {
   type ConversationState,
 } from "./StoryRecorder/conversationCoordinator";
 import type { NewAudioRecord, PraatMetrics } from "./StoryRecorder/types";
-import { canUseDatabase, saveSpeakingProgress, type SceneSubmission } from "../../services/database";
+import { canUseDatabase, listSpeakingProgress, saveSpeakingProgress, type SceneSubmission } from "../../services/database";
 import { convertBlobToWav } from "../../utils/audio";
 import { buildPracticeAnalysisFormData } from "../../utils/practiceAnalysis";
 import {
@@ -115,6 +115,30 @@ export default function SpeakingConversationFlow({
     setProgressFlags({ masteryPassed: false, contentPassed: false });
     setVerifiedRecordId(undefined);
   }, [initialState, topic.id]);
+
+  // Epic 9: resume at the next incomplete exchange rather than always
+  // restarting at turn 0 - a refresh or reopen must not lose progress
+  // already saved via persistProgress's conversationId/turnId/turnIndex.
+  useEffect(() => {
+    if (!studentId || !canUseDatabase() || !initialState) return;
+    let cancelled = false;
+    listSpeakingProgress(studentId, topic.id)
+      .then((records) => {
+        if (cancelled) return;
+        const completedTurnIndexes = records
+          .filter((record) => record.conversationId === conversationId && typeof record.turnIndex === "number")
+          .map((record) => record.turnIndex as number);
+        if (completedTurnIndexes.length === 0) return;
+        const nextTurnIndex = Math.max(...completedTurnIndexes) + 1;
+        setState(
+          nextTurnIndex >= turns.length
+            ? { turnIndex: turns.length, step: "summary" }
+            : { turnIndex: nextTurnIndex, step: "system" },
+        );
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [studentId, topic.id, conversationId, initialState, turns.length]);
 
   useEffect(() => {
     let active = true;
