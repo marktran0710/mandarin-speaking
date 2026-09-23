@@ -30,6 +30,7 @@ from routers.submissions import router as submissions_router
 from routers.tones import router as tones_router
 from routers.tts import router as tts_router
 from routers.vocab_quiz import router as vocab_quiz_router
+from routers.vocab_quiz_research import router as vocab_quiz_research_router
 from routers.frontend import router as frontend_router
 
 
@@ -56,4 +57,5 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(tts_router)
     app.include_router(tones_router)
     app.include_router(vocab_quiz_router)
+    app.include_router(vocab_quiz_research_router)
     app.include_router(frontend_router)
