@@ -16,8 +16,12 @@ class ConversationTurnRequest(BaseModel):
     id: str = Field(..., min_length=1, max_length=128)
     speaker: Literal["system", "student"]
     text: str = Field(..., min_length=1, max_length=4000)
+    # SYSTEM turn: audio the learner listens to as the conversation partner.
     audioUrl: Optional[str] = Field(default=None, max_length=2000)
+    # STUDENT turn: the expected response, plus an optional model recording
+    # of it - never the same thing as audioUrl above (the character's line).
     targetText: Optional[str] = Field(default=None, max_length=4000)
+    targetAudioUrl: Optional[str] = Field(default=None, max_length=2000)
     pinyin: Optional[str] = Field(default=None, max_length=4000)
     translation: Optional[str] = Field(default=None, max_length=4000)
 

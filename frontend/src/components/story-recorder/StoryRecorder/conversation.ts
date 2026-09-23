@@ -4,13 +4,22 @@ export interface ConversationTurn {
   id: string;
   speaker: ConversationSpeaker;
   text: string;
-  audioUrl?: string;
-  targetText?: string;
+
   pinyin?: string;
   translation?: string;
+
+  // SYSTEM turn: audio the learner listens to as the conversation partner.
+  audioUrl?: string;
+
+  // STUDENT turn: the response the learner is expected to produce.
+  targetText?: string;
+  // STUDENT turn only, optional: a model recording of the expected
+  // response - never the same thing as `audioUrl` above, which is the
+  // character's line, not the student's own target sentence.
+  targetAudioUrl?: string;
 }
 
-const OPTIONAL_TEXT_FIELDS = ["audioUrl", "targetText", "pinyin", "translation"] as const;
+const OPTIONAL_TEXT_FIELDS = ["audioUrl", "targetText", "targetAudioUrl", "pinyin", "translation"] as const;
 
 /**
  * Returns only a valid, copied explicit conversation contract. A missing or
