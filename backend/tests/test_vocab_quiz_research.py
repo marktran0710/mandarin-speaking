@@ -66,6 +66,7 @@ def test_an_active_participant_sees_research_coverage_policy(logged_in_student):
     body = response.json()
     assert body["active"] is True
     assert body["coreCompletionPolicy"] == "research_coverage"
+    assert body["practiceAvailable"] is True
 
 
 def test_response_never_exposes_study_id_or_condition_or_versions(logged_in_student):

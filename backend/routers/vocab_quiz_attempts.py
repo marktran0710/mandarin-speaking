@@ -8,9 +8,11 @@ from psycopg.types.json import Jsonb
 
 import security.auth as auth
 from analytics.bkt_assessment_resolver import resolve_assessment_response
-from analytics.bkt_mastery import get_vocabulary_mastery, record_attempt_and_rebuild
+from analytics.bkt_mastery import diagnostic_status, get_vocabulary_mastery, record_attempt_and_rebuild
 from analytics.srs import DAY_SECONDS
 from analytics.srs_store import apply_srs_updates, enroll_strong_words
+from application.research_retention import apply_retention_review, enroll_section_retention
+from application.vocabulary_research import get_research_context
 from config import settings
 from db import connect_db, row_to_vocab_quiz_attempt
 from api.schemas.models import VocabQuizAttemptRequest
@@ -80,7 +82,7 @@ def list_vocab_quiz_attempts(
     # stays true for the student/admin callers that need the per-question data.
     columns = (
         "id, story_id, student_id, student_name, mode, completed_at, "
-        "total_questions, correct_count, total_time_ms"
+        "total_questions, correct_count, total_time_ms, progression_policy"
     )
     if include_results:
         columns += ", question_results"
@@ -147,6 +149,24 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
     )
 
 
+def _enroll_research_retention(db, student_id: str, attempt: VocabQuizAttemptRequest, research_context, today: Optional[str]) -> None:
+    """Research Policy Layer, Epic 5, Task 5.3: once an active research
+    participant's core rounds for a section are complete, every word
+    assigned to them in that section enters the retention pipeline -
+    regardless of BKT status, unlike production's enroll_strong_words. No-op
+    for non-participants and for any mode other than the three core rounds.
+    """
+    if not research_context.active or not research_context.study_id or attempt.mode not in ("tier1", "tier2", "tier3"):
+        return
+    story_id = attempt.baseStoryId or attempt.storyId
+    if not story_id or not diagnostic_status(db, student_id, story_id=story_id)["unlocked"]:
+        return
+    enroll_section_retention(
+        db, student_id, research_context.study_id, story_id,
+        now=_dev_srs_today(today) or datetime.now(timezone.utc), day_seconds=_effective_srs_day_seconds(),
+    )
+
+
 @router.post("/api/vocab-quiz-attempts")
 def create_vocab_quiz_attempt(
     attempt: VocabQuizAttemptRequest,
@@ -156,6 +176,10 @@ def create_vocab_quiz_attempt(
     attempt.studentId = identity.id
     raw_question_results = [result.model_dump(exclude_none=True, exclude_defaults=True) for result in attempt.questionResults]
     with connect_db() as db:
+        # Resolved server-side, never trusted from the client (Epic 3, Task
+        # 3.4) - this is the one authoritative stamp of which progression
+        # policy actually applied when this attempt was recorded.
+        research_context = get_research_context(db, identity.id)
         question_results = _validated_question_results(db, attempt)
         existing = db.execute(
             "SELECT * FROM vocab_quiz_attempts WHERE id = %s",
@@ -192,8 +216,9 @@ def create_vocab_quiz_attempt(
             """
             INSERT INTO vocab_quiz_attempts
                 (id, story_id, student_name, student_id, mode, completed_at,
-                 total_questions, correct_count, total_time_ms, question_results)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 total_questions, correct_count, total_time_ms, question_results,
+                 progression_policy, research_study_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO NOTHING
             """,
             (
@@ -207,6 +232,8 @@ def create_vocab_quiz_attempt(
                 attempt.correctCount,
                 attempt.totalTimeMs,
                 Jsonb(raw_question_results),
+                research_context.progression_policy.value,
+                research_context.study_id,
             ),
         )
         # JSONB remains the client-facing attempt source of truth, while this
@@ -214,23 +241,39 @@ def create_vocab_quiz_attempt(
         normalized_attempt = attempt.model_dump(exclude_none=True)
         normalized_attempt["questionResults"] = question_results
         try:
-            record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+            record_attempt_and_rebuild(
+                db, normalized_attempt, identity.id, response_results=question_results,
+                research_study_id=research_context.study_id,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         # Spaced-repetition schedule update for review sessions. Scheduling only
         # (BKT already updated above); a review answer advances/resets the
         # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
+        # An active research participant's review answers go to the separate
+        # research retention schedule instead (Epic 5, Task 5.1) - production's
+        # student_vocab_srs must never be overloaded with research evidence.
         if attempt.mode == "maintenance_review":
-            apply_srs_updates(
-                db, identity.id, _srs_event_results(attempt, question_results),
-                now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
-            )
+            if research_context.active and research_context.study_id:
+                apply_retention_review(
+                    db, identity.id, research_context.study_id, question_results,
+                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+                )
+            else:
+                apply_srs_updates(
+                    db, identity.id, _srs_event_results(attempt, question_results),
+                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+                )
         _enroll_newly_strong_words(db, identity.id, attempt, today)
+        _enroll_research_retention(db, identity.id, attempt, research_context, today)
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
     # round-trip representation of an attempt without a selected mode.
     payload.setdefault("mode", attempt.mode)
+    payload["progressionPolicy"] = research_context.progression_policy.value
+    payload["roundCompleted"] = True
+    payload["researchStudyId"] = research_context.study_id
     return payload
 
 
@@ -248,20 +291,34 @@ async def record_vocab_quiz_response(
     """
     attempt.studentId = identity.id
     with connect_db() as db:
+        research_context = get_research_context(db, identity.id)
         question_results = _validated_question_results(db, attempt)
         normalized_attempt = attempt.model_dump(exclude_none=True)
         normalized_attempt["questionResults"] = question_results
         try:
-            record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+            record_attempt_and_rebuild(
+                db, normalized_attempt, identity.id, response_results=question_results,
+                research_study_id=research_context.study_id,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         # Spaced-repetition schedule update for review sessions. Scheduling only
         # (BKT already updated above); a review answer advances/resets the
         # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
+        # An active research participant's review answers go to the separate
+        # research retention schedule instead (Epic 5, Task 5.1) - production's
+        # student_vocab_srs must never be overloaded with research evidence.
         if attempt.mode == "maintenance_review":
-            apply_srs_updates(
-                db, identity.id, _srs_event_results(attempt, question_results),
-                now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
-            )
+            if research_context.active and research_context.study_id:
+                apply_retention_review(
+                    db, identity.id, research_context.study_id, question_results,
+                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+                )
+            else:
+                apply_srs_updates(
+                    db, identity.id, _srs_event_results(attempt, question_results),
+                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+                )
         _enroll_newly_strong_words(db, identity.id, attempt, today)
+        _enroll_research_retention(db, identity.id, attempt, research_context, today)
     return {"acceptedResponses": len(question_results)}

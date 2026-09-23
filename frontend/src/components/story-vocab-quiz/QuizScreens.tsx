@@ -13,9 +13,25 @@ interface WeakWordsCardProps {
   interimReviewEntries: VocabQuizEntry[];
   chooseWeakWords: () => void;
   chooseInterimReview: () => void;
+  researchMode?: boolean;
 }
 
-function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries, chooseWeakWords, chooseInterimReview }: WeakWordsCardProps) {
+function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries, chooseWeakWords, chooseInterimReview, researchMode }: WeakWordsCardProps) {
+  // Epic 4, Task 4.8: a research participant's practice round is a fixed,
+  // server-selected budget, not an accuracy-derived "you got these wrong"
+  // list - the card copy must stay neutral so it can't hint at a mastery-
+  // blind student's own weak/strong classification.
+  if (researchMode) {
+    return (
+      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}>
+        <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
+        <strong><BiLabel zh="練習" pinyin="Liànxí" en="Practice" /></strong>
+        <p><BiLabel zh="練習這一課的生詞。" pinyin="Liànxí zhè yí kè de shēngcí." en="Practice this lesson's words." /></p>
+        <StudentIcon name="arrow-right" size={18} />
+      </button>
+    );
+  }
+
   // 1) The BKT weak-word list — the diagnostic verdict, available only once
   //    all three rounds are complete (>=3 observations per word).
   if (weakEntries.length > 0) {
@@ -63,12 +79,22 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
  * second, hand-duplicated check at the call site — that decides whether a
  * due-review card is on screen. Two copies of the same condition is how the
  * secondary-grid's card count used to drift from what actually rendered. */
-function DueReviewCard({ dueWords, chooseDueReview }: { dueWords: ReviewQueueItem[]; chooseDueReview: () => void }) {
+function DueReviewCard({ dueWords, chooseDueReview, researchMode = false, researchDueCount = 0 }: { dueWords: ReviewQueueItem[]; chooseDueReview: () => void; researchMode?: boolean; researchDueCount?: number }) {
+  // Epic 5, Task 5.9: a research participant's due count comes from the
+  // separate research retention schedule, and the copy must not hint at
+  // *why* a word is due (no "SM-2"/"adaptive"/"yoked") - both conditions
+  // already share this card's neutral "been a while" framing, so only the
+  // count source and the second line's wording differ from production.
+  const count = researchMode ? researchDueCount : dueWords.length;
   return (
     <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-due-review" onClick={chooseDueReview}>
       <span className="vocab-quiz-mode-icon"><StudentIcon name="clock" size={30} /></span>
-      <strong><BiLabel zh={`該複習了 (${dueWords.length})`} pinyin="Gāi fùxí le" en={`Due for review (${dueWords.length})`} /></strong>
-      <p><BiLabel zh="因為隔了一段時間沒複習 — 趁還記得再鞏固一次。" pinyin="Yīnwèi gé le yí duàn shíjiān méi fùxí — chèn hái jìde zài gǒnggù yí cì." en="Because it's been a while — refresh them before you forget." /></p>
+      {researchMode
+        ? <strong><BiLabel zh={`該複習了 (${count})`} pinyin="Gāi fùxí le" en={`Review today (${count})`} /></strong>
+        : <strong><BiLabel zh={`該複習了 (${count})`} pinyin="Gāi fùxí le" en={`Due for review (${count})`} /></strong>}
+      {researchMode
+        ? <p><BiLabel zh="複習之前學過的生詞。" pinyin="Fùxí zhīqián xué guò de shēngcí." en="Review vocabulary from earlier lessons." /></p>
+        : <p><BiLabel zh="因為隔了一段時間沒複習 — 趁還記得再鞏固一次。" pinyin="Yīnwèi gé le yí duàn shíjiān méi fùxí — chèn hái jìde zài gǒnggù yí cì." en="Because it's been a while — refresh them before you forget." /></p>}
       <StudentIcon name="arrow-right" size={18} />
     </button>
   );
@@ -141,7 +167,7 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], strongWords = [], dueWords = [], chooseDueReview, assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; strongWords?: VocabPriorityReviewWord[]; dueWords?: ReviewQueueItem[]; chooseDueReview?: () => void; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], strongWords = [], dueWords = [], chooseDueReview, researchDueCount = 0, assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish, researchMode = false }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; strongWords?: VocabPriorityReviewWord[]; dueWords?: ReviewQueueItem[]; chooseDueReview?: () => void; researchDueCount?: number; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void; researchMode?: boolean }) {
   // Maps a round to the external quiz bank's difficulty label so we can count
   // that round's published questions (see VocabAssessmentLevel). The round
   // dimension itself is the mode (tier1/2/3), not this bank label.
@@ -162,7 +188,7 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
   const challenge = progress && startChallenge && progress.challenge.available
     ? { progress, onStart: startChallenge }
     : null;
-  const hasDueReview = dueWords.length > 0;
+  const hasDueReview = researchMode ? researchDueCount > 0 : dueWords.length > 0;
   // 生詞表 + weak words card always render; due-review and challenge are each
   // optional, so the secondary row holds 2-4 cards. hasDueReview/challenge
   // are the SAME booleans the JSX below uses to decide whether to render
@@ -238,8 +264,9 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
           interimReviewEntries={interimReviewEntries}
           chooseWeakWords={chooseWeakWords}
           chooseInterimReview={chooseInterimReview}
+          researchMode={researchMode}
         />
-        {hasDueReview && <DueReviewCard dueWords={dueWords} chooseDueReview={chooseDueReview ?? (() => {})} />}
+        {hasDueReview && <DueReviewCard dueWords={dueWords} chooseDueReview={chooseDueReview ?? (() => {})} researchMode={researchMode} researchDueCount={researchDueCount} />}
         {challenge && <QuizChallengeCard progress={challenge.progress} onStart={challenge.onStart} />}
       </div>
 
@@ -268,7 +295,7 @@ export function ReviewScreen({ entries }: { entries: VocabQuizEntry[] }) {
   return <section className="story-vocab-quiz vocab-quiz-review" aria-label="Vocabulary review"><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh="複習模式" pinyin="Fùxí móshì" en="Review Mode" /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh="所有生詞" pinyin="Suǒyǒu shēngcí" en="All vocabulary" /></h1></div><ul className="vocab-quiz-review-list" aria-label="Vocabulary list">{entries.map((entry) => <li className="vocab-quiz-review-item" key={entry.word}><span className="vocab-quiz-review-lead"><span className="vocab-quiz-review-word">{entry.word}</span><span className="vocab-quiz-review-pinyin">{entry.pinyin || toPinyin(entry.word)}</span></span><span className="vocab-quiz-review-translation">{entry.translation}</span></li>)}</ul></section>;
 }
 
-export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRetryRound, stars, onDone, startTier, backToModes, progress, onStartChallenge, challengeBestScore, onStartStrengthen }: { mode: VocabQuizMode | null; results: VocabQuizQuestionResult[]; missedEntries: VocabQuizEntry[]; roundEntries: VocabQuizEntry[]; isRetryRound: boolean; stars: 0 | QuizTier; onDone: () => void; startTier: (mode: TierMode) => void; backToModes: () => void; progress?: LessonVocabularyProgress; onStartChallenge?: () => void; challengeBestScore?: number; onStartStrengthen?: () => void }) {
+export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRetryRound, stars, onDone, startTier, backToModes, progress, onStartChallenge, challengeBestScore, onStartStrengthen, researchMode = false }: { mode: VocabQuizMode | null; results: VocabQuizQuestionResult[]; missedEntries: VocabQuizEntry[]; roundEntries: VocabQuizEntry[]; isRetryRound: boolean; stars: 0 | QuizTier; onDone: () => void; startTier: (mode: TierMode) => void; backToModes: () => void; progress?: LessonVocabularyProgress; onStartChallenge?: () => void; challengeBestScore?: number; onStartStrengthen?: () => void; researchMode?: boolean }) {
   const correctCount = results.filter((result) => result.correct).length;
   // Two-group word breakdown for the results screen: words demonstrated this
   // round (strong — tagged "improved" when BKT shows they were strengthened
@@ -307,7 +334,7 @@ export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRe
       : null;
   const showContinue = practiceUnlocked(stars);
   return <section className={`story-vocab-quiz vocab-quiz-summary${isChallenge ? " is-challenge-result" : ""}`} aria-label="Vocabulary quiz results"><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh={isChallenge ? "課程挑戰結果" : isRetryRound ? "複習結果" : roundLabel ? `${roundLabel} 完成` : "測驗結果"} pinyin={isChallenge ? "Kèchéng tiǎozhàn jiéguǒ" : isRetryRound ? "Fùxí jiéguǒ" : "Cèyàn jiéguǒ"} en={isChallenge ? "Challenge complete" : isRetryRound ? "Review results" : roundLabel ? `${roundLabel} complete` : "Quiz results"} /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh={isChallenge ? "課程挑戰完成" : `答對 ${correctCount} / ${results.length} 題`} pinyin={isChallenge ? "Kèchéng tiǎozhàn wánchéng" : `Dá duì ${correctCount} / ${results.length} tí`} en={isChallenge ? "Challenge Complete" : `${correctCount} / ${results.length} correct`} /></h1>{isChallenge && <p className="vocab-quiz-star-result is-earned">Best score: {challengeBestScore ?? correctCount} / {results.length}</p>}{tierConfig && passed && <p className="vocab-quiz-star-result is-earned"><BiLabel zh={`你拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Nǐ nádào dì ${tierConfig.tier} kē xīng le!`} en={`You earned star ${tierConfig.tier}!`} /></p>}{tierConfig && !passed && <p className="vocab-quiz-star-result is-near-miss"><BiLabel zh={`再答對 ${gap} 題就拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Zài dá duì ${gap} tí jiù nádào dì ${tierConfig.tier} kē xīng le!`} en={`Just ${gap} more right for star ${tierConfig.tier}!`} /></p>}</div>
-    {progress && mode === "tier3" && <FocusWords progress={progress} onStart={onStartStrengthen} />}
+    {progress && mode === "tier3" && !researchMode && <FocusWords progress={progress} onStart={onStartStrengthen} />}
     <div className="vqr-stats">
       <div className="vqr-counts">
         <div className="vqr-count is-mastered">

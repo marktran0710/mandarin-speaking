@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DIAGNOSTIC_ROUNDS,
   attemptEarnsStar,
+  effectiveTimeLimitMs,
   loadLocalStars,
   recordLocalStars,
   starsFromAttempts,
-  tierConfigFromMode,
   type QuizTier,
   type TierMode,
 } from "../../utils/quizTiers";
@@ -38,6 +38,8 @@ import {
   type VocabQuizSummary,
 } from "./model";
 import { getStudentScopeKey } from "../../utils/studentSession";
+import { getResearchReviewSession, postResearchPracticeSession } from "../../services/api/vocabulary-research";
+import { getCachedResearchContext } from "../../utils/researchContext";
 import {
   buildLessonVocabularyProgress,
   loadLessonProgressSnapshot,
@@ -232,7 +234,10 @@ export function useQuizSession({
   // readiness gate — a slow or failed queue fetch must never delay the mode
   // screen. Best-effort: empty on any error.
   const refreshDueWords = useCallback(async () => {
-    if (!storyId || !studentId || !canUseDatabase()) {
+    // An active research participant's due words come from the separate
+    // research retention schedule (see researchDueWordIds below), never
+    // this production SM-2 queue.
+    if (!storyId || !studentId || !canUseDatabase() || getCachedResearchContext().active) {
       setDueWords([]);
       return;
     }
@@ -244,6 +249,26 @@ export function useQuizSession({
     refreshDueWords().catch(() => { if (!cancelled) setDueWords([]); });
     return () => { cancelled = true; };
   }, [refreshDueWords]);
+
+  // Epic 5: a research participant's due words come from the separate
+  // research retention schedule, never production's SM-2 queue above. The
+  // review-session endpoint is read-only, so prefetching it just to size
+  // the "Review today" card (unlike the practice-session endpoint, which
+  // writes a treatment-BKT snapshot and is deliberately NOT prefetched) is
+  // safe.
+  const [researchDueWordIds, setResearchDueWordIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (!getCachedResearchContext().active) { setResearchDueWordIds([]); return; }
+    let cancelled = false;
+    getResearchReviewSession()
+      .then((session) => { if (!cancelled) setResearchDueWordIds(session.wordIds); })
+      .catch(() => { if (!cancelled) setResearchDueWordIds([]); });
+    return () => { cancelled = true; };
+  }, [storyId]);
+  const researchDueEntries = useMemo(() => {
+    const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
+    return researchDueWordIds.map((wordId) => byWordId.get(wordId)).filter((entry): entry is VocabQuizEntry => Boolean(entry));
+  }, [entries, researchDueWordIds]);
 
   const sessionReady = starsReady && weakWordsReady;
   const lessonProgress: LessonVocabularyProgress = useMemo(() => buildLessonVocabularyProgress({
@@ -293,7 +318,7 @@ export function useQuizSession({
     .map((row) => row.entry);
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
-  const timeLimitMs = tierConfigFromMode(mode)?.timeLimitMs ?? null;
+  const timeLimitMs = effectiveTimeLimitMs(mode);
 
   const finish = (finalResults: VocabQuizQuestionResult[]) => {
     if (finishedRef.current) return;
@@ -475,7 +500,7 @@ export function useQuizSession({
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
-    setSelected(null); setResults([]); setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
+    setSelected(null); setResults([]); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
     const startedEvent = picked === "tier1"
       ? "know_it_started"
       : picked === "tier2"
@@ -551,6 +576,30 @@ export function useQuizSession({
   // multiple-choice questions; the answer still feeds BKT, so getting it wrong
   // pulls the word back into the weak-word list on its own.
   const practiceWord = (target: VocabQuizEntry) => { setIsRetryRound(false); chooseMode("weak_words", [target], 1, entries); };
+  // Epic 4: a research participant's practice round uses server-selected
+  // words (the equal-budget BKT selection), never the client's own
+  // accuracy-derived weakEntries. The quiz-taking mechanics stay the
+  // existing "weak_words" flow - only word selection differs.
+  const startResearchPractice = async () => {
+    setIsRetryRound(false);
+    try {
+      const { wordIds } = await postResearchPracticeSession();
+      const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
+      const matched = wordIds.map((wordId) => byWordId.get(wordId)).filter((entry): entry is VocabQuizEntry => Boolean(entry));
+      if (matched.length > 0) chooseMode("weak_words", matched, matched.length, entries);
+    } catch {
+      // Never strand the student on a dead button if the research endpoint
+      // fails - fall back to the ordinary weak-words flow.
+      if (weakEntries.length > 0) chooseMode("weak_words", weakEntries, weakEntries.length);
+    }
+  };
+  // Epic 5: a research participant's "Review today" round uses the
+  // already-fetched research retention due list (read-only, prefetched
+  // above), never production's due-words queue.
+  const startResearchReview = () => {
+    setIsRetryRound(false);
+    if (researchDueEntries.length > 0) chooseMode("maintenance_review", researchDueEntries, researchDueEntries.length);
+  };
   const returnToModes = () => {
     setScreen("mode-select");
     if (lessonProgress.lessonCompleted) recordLessonEvent("lesson_completed", { strongWords: lessonProgress.strongWords, remainingWords: lessonProgress.remainingWords });
@@ -564,7 +613,8 @@ export function useQuizSession({
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord, returnToModes, sessionReady,
+    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
+    startResearchPractice, researchDueEntries, startResearchReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }

@@ -181,7 +181,7 @@ def _ledger_row():
         "answered_at": "2026-09-06T10:00:00Z", "correct": True, "response_time_ms": 1200,
         "occurred_at": "2026-09-06T10:00:00Z", "occurred_at_utc": None,
         "evidence_origin": "real", "resolver_version": ASSESSMENT_RESOLVER_VERSION,
-        "attempt_order": 0, "quiz_level": "tier1", "quiz_mode": "tier1",
+        "attempt_order": 0, "quiz_level": "tier1", "quiz_mode": "tier1", "research_study_id": None,
     }
 
 

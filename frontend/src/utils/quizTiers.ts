@@ -6,6 +6,7 @@
 // working off the same table; the localStorage mirror below covers the
 // no-database mode, following the storyLevelProgress.ts pattern.
 
+import { getCachedResearchContext } from "./researchContext";
 import { getStudentScopeKey, isAdminSession } from "./studentSession";
 
 export type QuizTier = 1 | 2 | 3;
@@ -59,6 +60,15 @@ export function tierConfigFromMode(mode: string | null | undefined): TierConfig 
   return null;
 }
 
+/** The time limit that actually applies to a tier right now (Epic 3, Task
+ * 3.7): production uses the tier's configured limit (only tier3 has one);
+ * an active research participant never gets a timer, so speed pressure
+ * cannot become an uncontrolled confound in round completion. */
+export function effectiveTimeLimitMs(mode: string | null | undefined): number | null {
+  if (getCachedResearchContext().coreCompletionPolicy === "research_coverage") return null;
+  return tierConfigFromMode(mode)?.timeLimitMs ?? null;
+}
+
 /** Preserve a tier's pass ratio when a leak-free planner has fewer distinct
  * concepts than the tier's nominal question count. */
 export function effectiveTierPassCount(config: TierConfig, totalQuestions: number): number {
@@ -67,7 +77,19 @@ export function effectiveTierPassCount(config: TierConfig, totalQuestions: numbe
 }
 
 /** The star (tier number) a finished attempt earns, or null if it failed
- * its tier's threshold or wasn't a tier run at all. */
+ * its tier's threshold or wasn't a tier run at all.
+ *
+ * Epic 3 (research-mode plan), Task 3.2/3.3/3.5: for an active research
+ * participant, completing a round earns its star regardless of accuracy -
+ * only the production default gates on the pass threshold below. Reads the
+ * ambient research context (see researchContext.ts) rather than taking a
+ * policy parameter, since this function's callers span code reached
+ * through a minified, unmodifiable build artifact
+ * (StoryRecorderRuntime.js) that cannot be changed to pass a new prop
+ * through. This is the single point where policy actually changes star
+ * derivation - every caller (starsFromAttempts below, TopicSelector,
+ * StudentSidebar, MyStoriesPage, the quiz session itself) inherits correct
+ * behavior automatically without being individually policy-aware. */
 export function attemptEarnsStar(
   mode: string | null | undefined,
   correctCount: number,
@@ -75,6 +97,12 @@ export function attemptEarnsStar(
 ): QuizTier | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
+  if (getCachedResearchContext().coreCompletionPolicy === "research_coverage") {
+    // This function is only ever called with a finished round's totals, so
+    // a positive totalQuestions is the completion signal - accuracy is
+    // recorded elsewhere for display but does not gate the star.
+    return (totalQuestions ?? 0) > 0 ? config.tier : null;
+  }
   const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
   return correctCount >= passCount ? config.tier : null;
 }

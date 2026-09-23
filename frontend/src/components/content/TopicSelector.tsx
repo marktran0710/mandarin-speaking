@@ -6,6 +6,8 @@ import {
   listCustomStories,
   listStorySubmissions,
 } from "../../services/database";
+import { getCachedResearchContext } from "../../utils/researchContext";
+import { getResearchReviewSession } from "../../services/api/vocabulary-research";
 import { loadLocalStars } from "../../utils/quizTiers";
 import {
   loadCustomStories,
@@ -169,6 +171,15 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
       return;
     }
     let cancelled = false;
+    // Epic 5, Task 5.8: an active research participant's dashboard hint
+    // comes from the separate research retention queue, never production's
+    // combined weak+due queue.
+    if (getCachedResearchContext().active) {
+      getResearchReviewSession()
+        .then((session) => { if (!cancelled) setPendingReviewCount(session.wordIds.length); })
+        .catch(() => { if (!cancelled) setPendingReviewCount(0); });
+      return () => { cancelled = true; };
+    }
     getVocabQuizReviewQueue(continueTopic.id, studentId, { includeAllWeak: true })
       .then((result) => { if (!cancelled) setPendingReviewCount(result.queue?.length ?? 0); })
       .catch(() => { if (!cancelled) setPendingReviewCount(0); });

@@ -200,6 +200,10 @@ def row_to_vocab_quiz_attempt(row: dict) -> dict:
         "correctCount": row["correct_count"],
         "totalTimeMs": row["total_time_ms"],
         "questionResults": question_results,
+        # Server-stamped at write time (see routers/vocab_quiz_attempts.py) -
+        # never trusted from the client. Rows recorded before this column
+        # existed are null, which only ever meant production_accuracy.
+        "progressionPolicy": row.get("progression_policy") or "production_accuracy",
         # Attempt-level fields are derived from the first new-format item;
         # legacy rows simply omit them.
         **({"baseStoryId": first_result["baseStoryId"]} if first_result.get("baseStoryId") else {}),

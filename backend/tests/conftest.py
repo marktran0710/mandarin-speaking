@@ -114,6 +114,12 @@ TRUNCATED_TABLES = (
     "student_vocab_mastery",
     "student_vocab_srs",
     "student_vocab_srs_events",
+    "vocab_research_assignments",
+    "vocab_research_bkt_state",
+    "vocab_research_participants",
+    "vocab_research_retention_events",
+    "vocab_research_retention_state",
+    "vocab_research_studies",
 )
 
 
