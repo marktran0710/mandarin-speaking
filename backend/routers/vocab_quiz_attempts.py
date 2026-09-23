@@ -8,11 +8,14 @@ from psycopg.types.json import Jsonb
 
 import security.auth as auth
 from analytics.bkt_assessment_resolver import resolve_assessment_response
-from analytics.bkt_mastery import diagnostic_status, get_vocabulary_mastery, record_attempt_and_rebuild
+from analytics.bkt_mastery import get_vocabulary_mastery, record_attempt_and_rebuild
 from analytics.srs import DAY_SECONDS
-from analytics.srs_store import apply_srs_updates, enroll_strong_words
-from application.research_retention import apply_retention_review, enroll_section_retention
-from application.vocabulary_research import get_research_context
+from analytics.srs_store import enroll_strong_words
+from application.vocabulary_research import (
+    apply_response_routing,
+    enroll_research_retention_for_attempt,
+    get_research_context,
+)
 from config import settings
 from db import connect_db, row_to_vocab_quiz_attempt
 from api.schemas.models import VocabQuizAttemptRequest
@@ -120,23 +123,6 @@ def _validated_question_results(db, attempt: VocabQuizAttemptRequest) -> list[di
     return question_results
 
 
-def _srs_event_results(attempt: VocabQuizAttemptRequest, question_results: list[dict]) -> list[dict]:
-    """Attach stable source identities so repeated API persistence is idempotent."""
-    return [
-        {
-            **result,
-            # Partial-save and completed-attempt requests can legitimately use
-            # different transport ids. The quiz id carried on each answer is
-            # the stable learner-response identity; include its question slot
-            # so two answers for one word in a round remain distinct.
-            "sourceResponseId": f"{result.get('quizId') or attempt.id}:{index}",
-            "attemptId": attempt.id,
-            "quizId": result.get("quizId") or attempt.id,
-        }
-        for index, result in enumerate(question_results)
-    ]
-
-
 def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptRequest, today: Optional[str]) -> None:
     """Start SRS only after the server marks a current-lesson word STRONG."""
     story_id = attempt.baseStoryId or attempt.storyId
@@ -146,24 +132,6 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
         get_vocabulary_mastery(db, student_id, story_id=story_id),
         now=_dev_srs_today(today),
         day_seconds=_effective_srs_day_seconds(),
-    )
-
-
-def _enroll_research_retention(db, student_id: str, attempt: VocabQuizAttemptRequest, research_context, today: Optional[str]) -> None:
-    """Research Policy Layer, Epic 5, Task 5.3: once an active research
-    participant's core rounds for a section are complete, every word
-    assigned to them in that section enters the retention pipeline -
-    regardless of BKT status, unlike production's enroll_strong_words. No-op
-    for non-participants and for any mode other than the three core rounds.
-    """
-    if not research_context.active or not research_context.study_id or attempt.mode not in ("tier1", "tier2", "tier3"):
-        return
-    story_id = attempt.baseStoryId or attempt.storyId
-    if not story_id or not diagnostic_status(db, student_id, story_id=story_id)["unlocked"]:
-        return
-    enroll_section_retention(
-        db, student_id, research_context.study_id, story_id,
-        now=_dev_srs_today(today) or datetime.now(timezone.utc), day_seconds=_effective_srs_day_seconds(),
     )
 
 
@@ -250,22 +218,19 @@ def create_vocab_quiz_attempt(
         # Spaced-repetition schedule update for review sessions. Scheduling only
         # (BKT already updated above); a review answer advances/resets the
         # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
-        # An active research participant's review answers go to the separate
-        # research retention schedule instead (Epic 5, Task 5.1) - production's
-        # student_vocab_srs must never be overloaded with research evidence.
-        if attempt.mode == "maintenance_review":
-            if research_context.active and research_context.study_id:
-                apply_retention_review(
-                    db, identity.id, research_context.study_id, question_results,
-                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
-                )
-            else:
-                apply_srs_updates(
-                    db, identity.id, _srs_event_results(attempt, question_results),
-                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
-                )
+        # Routes to the separate research retention schedule instead of
+        # production's for an active participant (Epic 6, Task 6.1/6.2) -
+        # production's student_vocab_srs must never be overloaded with
+        # research evidence.
+        apply_response_routing(
+            db, identity.id, research_context, attempt, question_results,
+            now_override=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+        )
         _enroll_newly_strong_words(db, identity.id, attempt, today)
-        _enroll_research_retention(db, identity.id, attempt, research_context, today)
+        enroll_research_retention_for_attempt(
+            db, identity.id, research_context, attempt,
+            now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+        )
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
@@ -305,20 +270,17 @@ async def record_vocab_quiz_response(
         # Spaced-repetition schedule update for review sessions. Scheduling only
         # (BKT already updated above); a review answer advances/resets the
         # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
-        # An active research participant's review answers go to the separate
-        # research retention schedule instead (Epic 5, Task 5.1) - production's
-        # student_vocab_srs must never be overloaded with research evidence.
-        if attempt.mode == "maintenance_review":
-            if research_context.active and research_context.study_id:
-                apply_retention_review(
-                    db, identity.id, research_context.study_id, question_results,
-                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
-                )
-            else:
-                apply_srs_updates(
-                    db, identity.id, _srs_event_results(attempt, question_results),
-                    now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
-                )
+        # Routes to the separate research retention schedule instead of
+        # production's for an active participant (Epic 6, Task 6.1/6.2) -
+        # production's student_vocab_srs must never be overloaded with
+        # research evidence.
+        apply_response_routing(
+            db, identity.id, research_context, attempt, question_results,
+            now_override=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+        )
         _enroll_newly_strong_words(db, identity.id, attempt, today)
-        _enroll_research_retention(db, identity.id, attempt, research_context, today)
+        enroll_research_retention_for_attempt(
+            db, identity.id, research_context, attempt,
+            now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+        )
     return {"acceptedResponses": len(question_results)}
