@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
 import StoryRecorder, { practiceSceneIndicesFor } from "./StoryRecorder";
@@ -158,41 +158,27 @@ describe("StoryRecorder student prototype", () => {
     // Complete the quiz ladder from the mode-select screen.
     await completeVocabQuiz(user);
 
-    // One-Time Vocabulary Preview plan, Epic C: whether speaking is
-    // unlocked is only evaluated once, at mount - the runtime's own
-    // internal unlock during quiz auto-advance is deliberately NOT
-    // watched reactively (that was tried and reverted: it raced the
-    // runtime's own Round 3 results screen and could yank it away before
-    // the student clicked "Continue to practice"). So within this same
-    // mount, quiz completion still lands directly on the scene vocabulary
-    // table, exactly as before this plan - the preview appears starting
-    // from the next fresh mount instead (checked below).
-    expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Vocabulary preview" })).not.toBeInTheDocument();
-
-    // Simulate a reload of the same session: a fresh mount now re-checks
-    // the (persisted) unlock and shows the one-time preview, since it was
-    // never shown/dismissed during the mount above.
-    unmount();
-    const secondRender = render(
-      <StoryRecorder
-        topic={topicWithQuizVocab}
-        selectedImage={topicWithQuizVocab.images[0]}
-        selectedImageIndex={0}
-        onImageSelect={vi.fn()}
-        onImageChange={vi.fn()}
-        onAddRecord={vi.fn()}
-        enableOverview={true}
-      />,
+    // One-Time Vocabulary Preview plan, Epic C: the runtime always mounts
+    // and handles overview/quiz/scene navigation completely unchanged -
+    // the preview appears as a dismissible overlay on TOP of the already-
+    // rendered scene vocabulary table (never replacing/gating it), once
+    // per session. Both are simultaneously in the DOM; dismissing the
+    // overlay just reveals what was already there underneath.
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Vocabulary preview" })).toBeInTheDocument(),
     );
-    expect(screen.getByRole("region", { name: "Vocabulary preview" })).toBeInTheDocument();
-    expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Start Speaking/i }));
+    expect(screen.queryByRole("region", { name: "Vocabulary preview" })).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
 
-    // A second reload after the preview was dismissed resumes speaking
-    // directly, with no preview shown again this session.
-    secondRender.unmount();
+    // Simulate a reload of the same session: it resumes the last active
+    // phase (practice) instead of dropping back to the choice screen —
+    // the scene vocabulary table is visible immediately, no re-click
+    // needed, and the preview does not show again (already dismissed this
+    // session). Speaking's unlock still holds too (completion was
+    // persisted).
+    unmount();
     render(
       <StoryRecorder
         topic={topicWithQuizVocab}
@@ -204,8 +190,8 @@ describe("StoryRecorder student prototype", () => {
         enableOverview={true}
       />,
     );
-    expect(screen.queryByRole("region", { name: "Vocabulary preview" })).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Vocabulary preview" })).not.toBeInTheDocument();
 
     // This used to go on to click back to the choice screen via the phase
     // nav's "Overview" step, re-enter the quiz, and re-check both the
@@ -338,6 +324,13 @@ describe("StoryRecorder student prototype", () => {
     // Finish the mandatory vocab quiz gate (this topic has 1 translated
     // word, enough to trigger it) to reach the practice-phase vocab table.
     await completeVocabQuiz(user);
+
+    // Dismiss the one-time vocabulary preview overlay (it shows its own
+    // "Listen" button per word too) to get back to the scene's own row.
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Vocabulary preview" })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: /Start Speaking/i }));
 
     const listenButton = screen.getByRole("button", {
       name: "Listen to the model pronunciation of market",

@@ -9,7 +9,6 @@ import type { NewAudioRecord } from "./StoryRecorder/types";
 import type { Topic } from "./StoryRecorder/storyContent";
 import { normalizeConversationTurns } from "./StoryRecorder/conversation";
 import { speakingVocabularyItems } from "../../utils/speakingVocabulary";
-import { loadLocalStars, practiceUnlocked } from "../../utils/quizTiers";
 import { BiLabel } from "../ui/BiLabel";
 
 export interface StoryRecorderProps {
@@ -105,61 +104,75 @@ function clearVocabularyPreviewSeen(storyId: string): void {
 
 /** One-Time Vocabulary Preview plan, Epic C: Story Practice only (never
  * Conversation Practice, which has its own listen-then-respond flow) -
- * shows the exact quiz vocabulary once, before scenes, instead of the
- * legacy per-scene Study step repeating it. Epic D (removing that
- * per-scene Study step from the legacy runtime itself) is intentionally
- * out of scope here - see the runtime-editing note on StoryRecorderRuntime
- * above; this wrapper only decides what happens BEFORE the runtime mounts.
+ * shows the exact quiz vocabulary once, right before scenes, instead of
+ * the legacy per-scene Study step repeating it every time. Epic D
+ * (removing that per-scene Study step from the legacy runtime itself) is
+ * intentionally out of scope - see the runtime-editing note on
+ * StoryRecorderRuntime above.
+ *
+ * The runtime (a minified bundle this wrapper never edits into) always
+ * mounts and handles overview / vocab quiz / scene navigation exactly as
+ * before - this never gates in front of it (an earlier version did, and
+ * incorrectly blocked reaching the quiz/overview screens for any student
+ * whose speaking was already unlocked from a prior visit). Instead this
+ * watches for the same ".practice-stage" DOM marker StudyScriptCard
+ * already watches for, and shows the preview as a dismissible overlay
+ * only once the runtime has organically reached that phase - regardless
+ * of whether it got there by auto-advancing after the quiz, by the
+ * student clicking "Speaking Practice" from the overview, or by resuming
+ * a remembered phase. Because the overlay only appears once that DOM is
+ * already rendered, it can never race or interrupt the runtime's own
+ * quiz-to-practice handoff the way reactively polling localStorage did
+ * (tried and reverted for exactly that reason).
  */
 function StoryPracticeWithVocabularyPreview(props: StoryRecorderProps) {
   const previewItems = useMemo(() => speakingVocabularyItems(props.topic), [props.topic]);
-  // Evaluated only at mount (and on a topic change) - deliberately NOT
-  // reactive to the legacy runtime's own internal unlock. The runtime
-  // (StoryRecorderRuntime.js, a minified bundle this wrapper never edits
-  // into) marks speaking unlocked internally slightly BEFORE its own
-  // Round 3 results screen hands off to the student - polling to catch
-  // that moment mid-session was tried and reverted: it raced the
-  // runtime's own transition and could yank its results screen away
-  // (with its "Continue to practice" button) before the student clicked
-  // it. Safer to under-show the preview once (it appears on the next
-  // fresh mount instead, e.g. a reload) than to risk interrupting the
-  // one flow every student depends on.
-  const [speakingUnlocked] = useState(() => practiceUnlocked(loadLocalStars(props.topic.id)));
   const [previewDismissed, setPreviewDismissed] = useState(() =>
     hasSeenVocabularyPreviewThisSession(props.topic.id),
   );
+  const [practiceStageVisible, setPracticeStageVisible] = useState(false);
+
+  useEffect(() => {
+    setPreviewDismissed(hasSeenVocabularyPreviewThisSession(props.topic.id));
+    setPracticeStageVisible(false);
+  }, [props.topic.id]);
+
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.body) return;
+    let mounted = true;
+    const checkPracticeStage = () => {
+      const present = Boolean(document.querySelector(".practice-stage"));
+      if (mounted) setPracticeStageVisible((current) => (current === present ? current : present));
+    };
+    checkPracticeStage();
+    const observer = new MutationObserver(checkPracticeStage);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      mounted = false;
+      observer.disconnect();
+    };
+  }, [props.topic.id]);
 
   const handleExit = () => {
     clearVocabularyPreviewSeen(props.topic.id);
     props.onExit?.();
   };
 
-  const showPreview = Boolean(previewItems.length) && speakingUnlocked && !previewDismissed;
-  if (showPreview) {
-    return (
+  const showPreviewOverlay =
+    Boolean(previewItems.length) && practiceStageVisible && !previewDismissed;
+
+  return <>
+    <TypedStoryRecorder {...props} onExit={props.onExit ? handleExit : undefined} />
+    <StudyScriptCard topic={props.topic} selectedImageIndex={props.selectedImageIndex} />
+    {showPreviewOverlay && (
       <SpeakingVocabularyPreview
         items={previewItems}
         onStart={() => {
           markVocabularyPreviewSeen(props.topic.id);
           setPreviewDismissed(true);
         }}
-        onBack={props.onExit ? handleExit : undefined}
       />
-    );
-  }
-
-  // Once this story's preview has been shown (this session), every
-  // re-entry (refresh, next scene) should land straight on speaking, not
-  // the runtime's own "overview" phase - a story with no preview content
-  // at all keeps enableOverview exactly as passed, fully unaffected.
-  const skipRuntimeOverview = Boolean(previewItems.length) && previewDismissed;
-  return <>
-    <TypedStoryRecorder
-      {...props}
-      onExit={props.onExit ? handleExit : undefined}
-      enableOverview={skipRuntimeOverview ? false : props.enableOverview}
-    />
-    <StudyScriptCard topic={props.topic} selectedImageIndex={props.selectedImageIndex} />
+    )}
   </>;
 }
 

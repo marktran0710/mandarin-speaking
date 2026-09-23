@@ -30,13 +30,10 @@ describe("SpeakingVocabularyPreview", () => {
     expect(onStart).toHaveBeenCalled();
   });
 
-  it("shows a Back button only when onBack is provided", () => {
-    const { rerender } = render(<SpeakingVocabularyPreview items={items} onStart={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: /Back/i })).not.toBeInTheDocument();
-
-    const onBack = vi.fn();
-    rerender(<SpeakingVocabularyPreview items={items} onStart={vi.fn()} onBack={onBack} />);
-    fireEvent.click(screen.getByRole("button", { name: /Back/i }));
-    expect(onBack).toHaveBeenCalled();
+  it("also calls onStart from the close (X) button - both dismiss the same way", () => {
+    const onStart = vi.fn();
+    render(<SpeakingVocabularyPreview items={items} onStart={onStart} />);
+    fireEvent.click(screen.getByRole("button", { name: /Close preview/i }));
+    expect(onStart).toHaveBeenCalled();
   });
 });
