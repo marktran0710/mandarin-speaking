@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint
 from analytics.bkt_mastery import get_treatment_vocabulary_mastery
+from application.research_logging import record_policy_event
 from application.vocabulary_research import get_research_context
 from domain.vocabulary.research_assignment import BktPolicy, CONDITION_POLICIES, RetentionPolicy, condition_for_policies
 from domain.vocabulary.research_practice import allocate_slots, select_bkt_ranked, select_mastery_blind
@@ -51,7 +52,8 @@ def build_practice_session(db, student_id: str, params: BktConfig = BKT_CONFIG) 
     budget = context.practice_budget or DEFAULT_PRACTICE_BUDGET
     slots_by_condition = allocate_slots(budget, list(words_by_condition))
 
-    now = datetime.now(timezone.utc).isoformat()
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
     selected: list[str] = []
     for condition, word_ids in words_by_condition.items():
         slot_count = slots_by_condition.get(condition, 0)
@@ -80,5 +82,25 @@ def build_practice_session(db, student_id: str, params: BktConfig = BKT_CONFIG) 
             exposure_counts = repo.count_research_practice_exposures(db, study_id, student_id, word_ids)
             candidates = [(word_id, exposure_counts.get(word_id, 0)) for word_id in word_ids]
             selected.extend(select_mastery_blind(candidates, slot_count))
+
+    if selected:
+        # Task 8.1: one practice_session_created plus one practice_item_selected
+        # per word, each stamped with the condition it came from - the source
+        # a fidelity query reads back for "matched exposure by condition"
+        # (Task 8.2) without re-deriving it from vocab_research_assignments.
+        record_policy_event(
+            db, study_id=study_id, student_id=student_id, event_type="practice_session_created",
+            payload={"wordCount": len(selected)}, occurred_at=now_dt,
+        )
+        condition_by_word = {
+            word_id: condition.value
+            for condition, word_ids in words_by_condition.items()
+            for word_id in word_ids
+        }
+        for word_id in selected:
+            record_policy_event(
+                db, study_id=study_id, student_id=student_id, event_type="practice_item_selected",
+                word_id=word_id, payload={"condition": condition_by_word.get(word_id)}, occurred_at=now_dt,
+            )
 
     return {"studyId": study_id, "wordIds": selected}

@@ -14,6 +14,7 @@ from typing import Any, Iterable, Optional
 from analytics.bkt_mastery import diagnostic_status
 from analytics.srs import DAY_SECONDS
 from analytics.srs_store import apply_srs_updates
+from application.research_logging import record_policy_event
 from application.research_probes import enroll_section_probes
 from application.research_retention import apply_retention_review, enroll_section_retention
 from domain.vocabulary.research_policy import ResearchContext, build_research_context
@@ -92,9 +93,13 @@ def apply_response_routing(
     routing = route_research_response(activity_type)
     event_results = _event_results(attempt, question_results)
     if research_context.active and research_context.study_id and routing.retention:
-        apply_retention_review(
+        updated = apply_retention_review(
             db, student_id, research_context.study_id, event_results,
             now=now_override, day_seconds=day_seconds,
+        )
+        record_policy_event(
+            db, study_id=research_context.study_id, student_id=student_id, event_type="review_completed",
+            payload={"wordsUpdated": updated}, occurred_at=now_override,
         )
     else:
         apply_srs_updates(db, student_id, event_results, now=now_override, day_seconds=day_seconds)
@@ -115,6 +120,28 @@ def _completed_core_section_id(db, student_id: str, research_context: ResearchCo
     if not story_id or not diagnostic_status(db, student_id, story_id=story_id)["unlocked"]:
         return None
     return story_id
+
+
+def log_core_completion_event(
+    db, student_id: str, research_context: ResearchContext, attempt: Any, *, now: Optional[datetime] = None,
+) -> None:
+    """Epic 8, Task 8.1: assignment_loaded + core_completed - the two
+    events that mark the same core-round-completion moment
+    enroll_research_retention_for_attempt/enroll_research_probes_for_attempt
+    act on. Logged once per attempt via the same shared guard, independent
+    of whether those two hooks actually find anything to enroll (a section
+    with zero eligible words is still a real, loggable completion)."""
+    story_id = _completed_core_section_id(db, student_id, research_context, attempt)
+    if story_id is None:
+        return
+    record_policy_event(
+        db, study_id=research_context.study_id, student_id=student_id, event_type="assignment_loaded",
+        payload={"sectionId": story_id}, occurred_at=now,
+    )
+    record_policy_event(
+        db, study_id=research_context.study_id, student_id=student_id, event_type="core_completed",
+        payload={"sectionId": story_id}, occurred_at=now,
+    )
 
 
 def enroll_research_retention_for_attempt(

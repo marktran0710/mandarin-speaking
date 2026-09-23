@@ -16,6 +16,7 @@ from application.vocabulary_research import (
     enroll_research_probes_for_attempt,
     enroll_research_retention_for_attempt,
     get_research_context,
+    log_core_completion_event,
 )
 from config import settings
 from db import connect_db, row_to_vocab_quiz_attempt
@@ -228,6 +229,7 @@ def create_vocab_quiz_attempt(
             now_override=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
         )
         _enroll_newly_strong_words(db, identity.id, attempt, today)
+        log_core_completion_event(db, identity.id, research_context, attempt, now=_dev_srs_today(today))
         enroll_research_retention_for_attempt(
             db, identity.id, research_context, attempt,
             now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
@@ -283,6 +285,7 @@ async def record_vocab_quiz_response(
             now_override=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
         )
         _enroll_newly_strong_words(db, identity.id, attempt, today)
+        log_core_completion_event(db, identity.id, research_context, attempt, now=_dev_srs_today(today))
         enroll_research_retention_for_attempt(
             db, identity.id, research_context, attempt,
             now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),

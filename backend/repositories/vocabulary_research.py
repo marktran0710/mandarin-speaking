@@ -86,6 +86,16 @@ def find_study(db, study_id: str) -> Optional[dict]:
     ).fetchone()
 
 
+def count_all_participants_for_study(db, study_id: str) -> int:
+    """Unlike find_participants_for_study (active-only, Epic 2's roster
+    ordering need), this counts every participant row regardless of
+    active - Task 8.4's admin summary reports "58 / 60 active"."""
+    return db.execute(
+        "SELECT COUNT(*) AS total FROM vocab_research_participants WHERE study_id = %s",
+        (study_id,),
+    ).fetchone()["total"]
+
+
 def find_participants_for_study(db, study_id: str) -> list[dict]:
     """Active participants only, ordered by student_id for a deterministic
     roster position (round-robin sequence assignment depends on this order
@@ -493,3 +503,74 @@ def record_retention_event(
         ),
     )
     return cursor.fetchone() is not None
+
+
+def insert_policy_event(
+    db,
+    *,
+    study_id: str,
+    student_id: str,
+    event_type: str,
+    word_id: Optional[str],
+    payload: Optional[dict],
+    occurred_at,
+    created_at: str,
+) -> None:
+    from psycopg.types.json import Jsonb
+
+    db.execute(
+        """
+        INSERT INTO vocab_research_policy_events
+            (study_id, student_id, event_type, word_id, payload_json, occurred_at, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """,
+        (study_id, student_id, event_type, word_id, Jsonb(payload) if payload is not None else None, occurred_at, created_at),
+    )
+
+
+def count_policy_events_by_type(db, study_id: str) -> dict[str, int]:
+    """Task 8.2: the raw counts every fidelity ratio is built from."""
+    rows = db.execute(
+        "SELECT event_type, COUNT(*) AS total FROM vocab_research_policy_events WHERE study_id = %s GROUP BY event_type",
+        (study_id,),
+    ).fetchall()
+    return {row["event_type"]: int(row["total"]) for row in rows}
+
+
+def count_word_events_by_condition(db, study_id: str, event_type: str) -> dict[str, int]:
+    """Task 8.2: e.g. how many practice_item_selected events landed in each
+    of C/B/S/BS - read back from payload_json['condition'], which the
+    writer stamped once from the frozen assignment row it already had, so
+    this never needs to re-join vocab_research_assignments."""
+    rows = db.execute(
+        """
+        SELECT payload_json ->> 'condition' AS condition, COUNT(*) AS total
+        FROM vocab_research_policy_events
+        WHERE study_id = %s AND event_type = %s
+        GROUP BY payload_json ->> 'condition'
+        """,
+        (study_id, event_type),
+    ).fetchall()
+    return {(row["condition"] or "unknown"): int(row["total"]) for row in rows}
+
+
+def average_review_delay_days(db, study_id: str) -> Optional[float]:
+    """Task 8.2's "delay days": how late, on average, a word actually got
+    reviewed relative to when SM-2 said it was due. Read from
+    vocab_research_retention_events (Epic 5), whose old_due_on/occurred_at
+    on a maintenance_success/failure row are exactly "due" vs "answered" -
+    the current retention-state row only holds the NEXT due date computed
+    from this review, not the one that was actually due, so it can't answer
+    this question."""
+    row = db.execute(
+        """
+        SELECT AVG(EXTRACT(EPOCH FROM (occurred_at - old_due_on)) / 86400.0) AS avg_delay_days
+        FROM vocab_research_retention_events
+        WHERE study_id = %s
+          AND event_type IN ('maintenance_success', 'maintenance_failure')
+          AND old_due_on IS NOT NULL
+        """,
+        (study_id,),
+    ).fetchone()
+    value = row["avg_delay_days"] if row else None
+    return float(value) if value is not None else None

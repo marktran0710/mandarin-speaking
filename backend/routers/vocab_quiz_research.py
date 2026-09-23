@@ -9,6 +9,7 @@ from application.research_probes import (
     build_due_probes,
     submit_probe_response,
 )
+from application.research_fidelity import ResearchStudyNotFoundError, build_admin_summary
 from application.research_retention import ResearchReviewUnavailableError, build_review_session
 from application.vocabulary_research import get_research_context
 from db import connect_db
@@ -112,3 +113,20 @@ def submit_research_probe_response(
         except ResearchProbeAssignmentNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result
+
+
+@router.get("/api/research/vocabulary/admin/summary")
+def get_research_admin_summary(study_id: str, identity: auth.Identity = Depends(auth.require_admin)):
+    """Task 8.3/8.4: the research admin page's one data call - study status,
+    participant counts, assignment balance, and fidelity (Task 8.2). Admin
+    only, unlike every other endpoint in this router, and the only one that
+    is allowed to return condition information - it never reaches a student
+    or a teacher (Task 8.5's blinding is enforced by this dependency, not by
+    trusting every caller to only ask for their own data).
+    """
+    with connect_db() as db:
+        try:
+            summary = build_admin_summary(db, study_id)
+        except ResearchStudyNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return summary

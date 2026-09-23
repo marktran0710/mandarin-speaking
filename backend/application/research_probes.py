@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from application.research_logging import condition_label, record_policy_event
 from domain.vocabulary.research_probes import PROBE_TYPES, due_at_for_probe_type, partition_probe_pool
 from repositories import vocabulary_research as repo
 
@@ -35,6 +36,7 @@ def enroll_section_probes(db, student_id: str, study_id: str, section_id: str, *
     if not assignments:
         return 0
     word_ids = [row["word_id"] for row in assignments]
+    condition_by_word = {row["word_id"]: condition_label(row["bkt_policy"], row["retention_policy"]) for row in assignments}
     already_scheduled = repo.find_probe_assignments_for_student(db, study_id, student_id, word_ids)
     pending_word_ids = [word_id for word_id in word_ids if word_id not in already_scheduled]
     if not pending_word_ids:
@@ -56,6 +58,10 @@ def enroll_section_probes(db, student_id: str, study_id: str, section_id: str, *
                 db, study_id=study_id, student_id=student_id, word_id=word_id,
                 assessment_item_id=item["id"], probe_type=probe_type,
                 due_at=due_at, assigned_at=now, created_at=now.isoformat(),
+            )
+            record_policy_event(
+                db, study_id=study_id, student_id=student_id, event_type="probe_assigned", word_id=word_id,
+                payload={"condition": condition_by_word.get(word_id)}, occurred_at=now,
             )
             scheduled += 1
     return scheduled
@@ -106,5 +112,11 @@ def submit_probe_response(
         word_id=assignment["word_id"], assessment_item_id=assignment["assessment_item_id"],
         response_value=response_value, correct=correct, source_response_id=source_response_id,
         responded_at=now, created_at=now.isoformat(),
+    )
+    # The log may hold `correct` (Task 8.2's outcome data, later exported by
+    # Epic 9) even though the HTTP response to the student never does.
+    record_policy_event(
+        db, study_id=assignment["study_id"], student_id=student_id, event_type="probe_completed",
+        word_id=assignment["word_id"], payload={"probeType": assignment["probe_type"], "correct": correct}, occurred_at=now,
     )
     return {"accepted": True}

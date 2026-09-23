@@ -21,6 +21,7 @@ from analytics.srs import (
     review,
     should_advance,
 )
+from application.research_logging import condition_label, record_policy_event
 from domain.vocabulary.research_retention import initial_enrollment_state, mirror_yoked_state
 from repositories import vocabulary_research as repo
 
@@ -82,6 +83,10 @@ def enroll_section_retention(
             db, student_id=student_id, study_id=study_id, word_id=word_id,
             state=state, algorithm_version=SRS_ALGORITHM_VERSION, now=now.isoformat(),
         )
+        record_policy_event(
+            db, study_id=study_id, student_id=student_id, event_type="retention_enrolled", word_id=word_id,
+            payload={"condition": condition_label(row["bkt_policy"], row["retention_policy"])}, occurred_at=now,
+        )
         enrolled += 1
     return enrolled
 
@@ -102,6 +107,7 @@ def apply_retention_review(
     now = now or datetime.now(timezone.utc)
     assignments = repo.find_assignments_for_student(db, study_id, student_id)
     policy_by_word = {row["word_id"]: row["retention_policy"] for row in assignments}
+    condition_by_word = {row["word_id"]: condition_label(row["bkt_policy"], row["retention_policy"]) for row in assignments}
 
     last_by_word: dict[str, dict[str, Any]] = {}
     for result in question_results:
@@ -163,6 +169,10 @@ def apply_retention_review(
         )
         states[word_id] = next_state
         updated += 1
+        record_policy_event(
+            db, study_id=study_id, student_id=student_id, event_type="review_scheduled", word_id=word_id,
+            payload={"condition": condition_by_word.get(word_id), "correct": bool(result["correct"])}, occurred_at=now,
+        )
 
         for dependent_id in repo.find_yoked_dependents(db, study_id, student_id, word_id):
             dependent_state = states.get(dependent_id)
@@ -186,6 +196,10 @@ def apply_retention_review(
             )
             states[dependent_id] = mirrored
             updated += 1
+            record_policy_event(
+                db, study_id=study_id, student_id=student_id, event_type="review_yoked", word_id=dependent_id,
+                payload={"condition": condition_by_word.get(dependent_id), "sourceWordId": word_id}, occurred_at=now,
+            )
     return updated
 
 
