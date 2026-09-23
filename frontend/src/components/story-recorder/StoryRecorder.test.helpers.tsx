@@ -341,6 +341,12 @@ function mockBackendAnalyze(
 }
 export function resetStoryRecorderTestEnvironment() {
   localStorage.clear();
+  // One-Time Vocabulary Preview plan: the preview-seen flag lives in
+  // sessionStorage, scoped by topic id - several tests in this suite reuse
+  // the same fixture topic, so leaving a prior test's flag in place would
+  // silently suppress the preview (or skip the runtime's own overview
+  // phase) in a later, unrelated test.
+  sessionStorage.clear();
   activeRecorder = null;
   activeRecognition = null;
   vi.stubGlobal("MediaRecorder", MockMediaRecorder);

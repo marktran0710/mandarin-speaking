@@ -1,0 +1,75 @@
+.speaking-vocabulary-preview {
+  display: grid;
+  gap: var(--space-md, 16px);
+  padding: var(--space-md, 16px) 0;
+}
+.speaking-vocabulary-preview__back {
+  justify-self: start;
+  border: none;
+  background: none;
+  color: var(--seal-deep, #7a5a2c);
+  font-weight: 700;
+  cursor: pointer;
+}
+.speaking-vocabulary-preview__header h2 {
+  margin: 0 0 4px;
+}
+.speaking-vocabulary-preview__count {
+  margin: 0 0 8px;
+  color: var(--seal-deep, #7a5a2c);
+  font-weight: 700;
+}
+.speaking-vocabulary-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm, 10px);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.speaking-vocabulary-preview__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 8px;
+  padding: var(--space-sm, 10px);
+  border: 1px solid var(--clay-hairline, #e5ded0);
+  border-radius: var(--clay-radius-md, 12px);
+  background: var(--clay-surface-card, #fff);
+}
+.speaking-vocabulary-preview__word {
+  grid-column: 1;
+  font-size: 18px;
+  font-weight: 700;
+}
+.speaking-vocabulary-preview__pinyin {
+  grid-column: 1;
+  color: var(--clay-ink-soft, #6b7280);
+  font-size: 12px;
+}
+.speaking-vocabulary-preview__meaning {
+  grid-column: 1;
+  font-size: 13px;
+  color: var(--clay-ink-soft, #6b7280);
+}
+.speaking-vocabulary-preview__pos {
+  font-weight: 700;
+}
+.speaking-vocabulary-preview__item .scene-practice-listen {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+.speaking-vocabulary-preview__footer {
+  display: flex;
+  justify-content: center;
+}
+@media (max-width: 720px) {
+  .speaking-vocabulary-preview__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .speaking-vocabulary-preview__grid {
+    grid-template-columns: 1fr;
+  }
+}
