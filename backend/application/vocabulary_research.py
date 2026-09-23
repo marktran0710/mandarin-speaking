@@ -14,6 +14,7 @@ from typing import Any, Iterable, Optional
 from analytics.bkt_mastery import diagnostic_status
 from analytics.srs import DAY_SECONDS
 from analytics.srs_store import apply_srs_updates
+from application.research_probes import enroll_section_probes
 from application.research_retention import apply_retention_review, enroll_section_retention
 from domain.vocabulary.research_policy import ResearchContext, build_research_context
 from domain.vocabulary.research_routing import ResearchActivityType, activity_type_for_mode, route_research_response
@@ -99,26 +100,48 @@ def apply_response_routing(
         apply_srs_updates(db, student_id, event_results, now=now_override, day_seconds=day_seconds)
 
 
+def _completed_core_section_id(db, student_id: str, research_context: ResearchContext, attempt: Any) -> Optional[str]:
+    """Shared guard for the two core-completion enrollment hooks (retention
+    Task 5.3, probes Task 7.3): resolves the section/story id only when the
+    attempt is a just-completed core round for an active participant whose
+    diagnostic is actually unlocked. Both callers no-op when this is None.
+    """
+    def value(name: str, default: Any = None) -> Any:
+        return attempt.get(name, default) if isinstance(attempt, dict) else getattr(attempt, name, default)
+
+    if not research_context.active or not research_context.study_id or value("mode") not in ("tier1", "tier2", "tier3"):
+        return None
+    story_id = value("baseStoryId") or value("storyId")
+    if not story_id or not diagnostic_status(db, student_id, story_id=story_id)["unlocked"]:
+        return None
+    return story_id
+
+
 def enroll_research_retention_for_attempt(
     db, student_id: str, research_context: ResearchContext, attempt: Any, *, now: Optional[datetime] = None, day_seconds: float = DAY_SECONDS,
 ) -> None:
     """Epic 5/6: once an active research participant's core rounds for a
     section are complete, every word assigned to them in that section
     enters the retention pipeline - regardless of BKT status, unlike
-    production's enroll_strong_words. No-op for non-participants and for
-    any mode other than the three core rounds. Lives here (not the router)
-    per Task 6.2 - the router should not accumulate its own research
-    branches.
+    production's enroll_strong_words. Lives here (not the router) per Task
+    6.2 - the router should not accumulate its own research branches.
     """
-    def value(name: str, default: Any = None) -> Any:
-        return attempt.get(name, default) if isinstance(attempt, dict) else getattr(attempt, name, default)
-
-    if not research_context.active or not research_context.study_id or value("mode") not in ("tier1", "tier2", "tier3"):
-        return
-    story_id = value("baseStoryId") or value("storyId")
-    if not story_id or not diagnostic_status(db, student_id, story_id=story_id)["unlocked"]:
+    story_id = _completed_core_section_id(db, student_id, research_context, attempt)
+    if story_id is None:
         return
     enroll_section_retention(
         db, student_id, research_context.study_id, story_id,
         now=now, day_seconds=day_seconds,
     )
+
+
+def enroll_research_probes_for_attempt(
+    db, student_id: str, research_context: ResearchContext, attempt: Any, *, now: Optional[datetime] = None,
+) -> None:
+    """Epic 7, Task 7.3: sibling of enroll_research_retention_for_attempt -
+    the same core-completion moment also schedules that section's disjoint
+    probe pools. Same no-op conditions, same reason for living here."""
+    story_id = _completed_core_section_id(db, student_id, research_context, attempt)
+    if story_id is None:
+        return
+    enroll_section_probes(db, student_id, research_context.study_id, story_id, now=now)

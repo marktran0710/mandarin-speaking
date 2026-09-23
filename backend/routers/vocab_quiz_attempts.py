@@ -13,6 +13,7 @@ from analytics.srs import DAY_SECONDS
 from analytics.srs_store import enroll_strong_words
 from application.vocabulary_research import (
     apply_response_routing,
+    enroll_research_probes_for_attempt,
     enroll_research_retention_for_attempt,
     get_research_context,
 )
@@ -231,6 +232,9 @@ def create_vocab_quiz_attempt(
             db, identity.id, research_context, attempt,
             now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
         )
+        enroll_research_probes_for_attempt(
+            db, identity.id, research_context, attempt, now=_dev_srs_today(today),
+        )
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
@@ -282,5 +286,8 @@ async def record_vocab_quiz_response(
         enroll_research_retention_for_attempt(
             db, identity.id, research_context, attempt,
             now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+        )
+        enroll_research_probes_for_attempt(
+            db, identity.id, research_context, attempt, now=_dev_srs_today(today),
         )
     return {"acceptedResponses": len(question_results)}

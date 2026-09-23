@@ -7,7 +7,8 @@ import {
   listStorySubmissions,
 } from "../../services/database";
 import { getCachedResearchContext } from "../../utils/researchContext";
-import { getResearchReviewSession } from "../../services/api/vocabulary-research";
+import { getResearchProbesDue, getResearchReviewSession } from "../../services/api/vocabulary-research";
+import LearningCheck from "./LearningCheck";
 import { loadLocalStars } from "../../utils/quizTiers";
 import {
   loadCustomStories,
@@ -186,6 +187,31 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
     return () => { cancelled = true; };
   }, [continueTopic?.id]);
 
+  // Epic 7, Task 7.8: a low-prominence "Learning Check" hint - never blocks
+  // the continue button, and only ever appears for an active research
+  // participant with something actually due right now.
+  const [pendingProbeCount, setPendingProbeCount] = useState(0);
+  const [showLearningCheck, setShowLearningCheck] = useState(false);
+  useEffect(() => {
+    if (!getCachedResearchContext().active) { setPendingProbeCount(0); return; }
+    let cancelled = false;
+    getResearchProbesDue()
+      .then((session) => { if (!cancelled) setPendingProbeCount(session.questions.length); })
+      .catch(() => { if (!cancelled) setPendingProbeCount(0); });
+    return () => { cancelled = true; };
+  }, [continueTopic?.id]);
+
+  if (showLearningCheck) {
+    return (
+      <LearningCheck
+        onDone={() => {
+          setShowLearningCheck(false);
+          setPendingProbeCount(0);
+        }}
+      />
+    );
+  }
+
   const pageHeader = (
     <StudentPageHeader
       eyebrow={{ zh: "課程", pinyin: "Kèchéng", en: "Lessons" }}
@@ -354,6 +380,18 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
                   en={`${pendingReviewCount} word${pendingReviewCount === 1 ? "" : "s"} to review`}
                   align="left"
                 />
+              </p>
+            )}
+            {pendingProbeCount > 0 && (
+              // Same "quiet heads-up" treatment as the review hint above -
+              // its own button so starting it is a deliberate second click,
+              // never something that hijacks "Continue story".
+              <p className="ts-dash-review-hint" role="status" aria-label="Learning check available">
+                <StudentIcon name="spark" size={14} aria-hidden="true" />
+                <BiLabel zh="小測驗" pinyin="Xiǎo cèyàn" en="Learning Check" align="left" />
+                <button type="button" className="ts-dash-probe-start" onClick={() => setShowLearningCheck(true)}>
+                  <BiLabel zh="開始" en="Start" />
+                </button>
               </p>
             )}
             <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>

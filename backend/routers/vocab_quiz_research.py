@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 import security.auth as auth
+from api.schemas.models import ResearchProbeResponseRequest
 from application.research_practice_session import ResearchPracticeUnavailableError, build_practice_session
+from application.research_probes import (
+    ResearchProbeAssignmentNotFoundError,
+    ResearchProbeUnavailableError,
+    build_due_probes,
+    submit_probe_response,
+)
 from application.research_retention import ResearchReviewUnavailableError, build_review_session
 from application.vocabulary_research import get_research_context
 from db import connect_db
@@ -17,18 +24,23 @@ def get_vocabulary_research_context(identity: auth.Identity = Depends(auth.requi
     anyone reading the network tab) infer or reason about their own
     treatment, which is exactly what the research design must prevent.
 
-    practiceAvailable/reviewAvailable now follow the student's active
-    research state (Epics 4/5 shipped their endpoints below). probeAvailable
-    stays hardcoded false - that feature doesn't exist yet (Epic 7).
+    practiceAvailable/reviewAvailable/probeAvailable all follow the
+    student's actual active research/due state (Epics 4/5/7).
     """
     with connect_db() as db:
         context = get_research_context(db, identity.id)
+        probe_available = False
+        if context.active:
+            try:
+                probe_available = bool(build_due_probes(db, identity.id)["questions"])
+            except ResearchProbeUnavailableError:
+                probe_available = False
     return {
         "active": context.active,
         "coreCompletionPolicy": context.progression_policy.value,
         "practiceAvailable": context.active,
         "reviewAvailable": context.active,
-        "probeAvailable": False,
+        "probeAvailable": probe_available,
     }
 
 
@@ -61,3 +73,42 @@ def get_research_review_session(identity: auth.Identity = Depends(auth.require_s
         except ResearchReviewUnavailableError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"wordIds": session["wordIds"]}
+
+
+@router.get("/api/research/vocabulary/probes/due")
+def get_research_probes_due(identity: auth.Identity = Depends(auth.require_student)):
+    """Task 7.5: due, unanswered "Learning Check" questions only, from the
+    independent outcome bank - never the normal quiz-attempt/core content.
+    Never returns probe_type, study_id, or the correct answer (Task 7.6);
+    the neutral "Learning Check" framing (Task 7.8) is a frontend concern
+    this endpoint only enables by staying silent about the research design.
+    """
+    with connect_db() as db:
+        try:
+            session = build_due_probes(db, identity.id)
+        except ResearchProbeUnavailableError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return session
+
+
+@router.post("/api/research/vocabulary/probes/{assignment_id}/response")
+def submit_research_probe_response(
+    assignment_id: int,
+    payload: ResearchProbeResponseRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    """Task 7.5: a probe is never submitted through the normal quiz-attempt
+    API. Task 7.6: the response is graded server-side only - this always
+    returns a plain acknowledgement, never correctness, the correct answer,
+    or an explanation, since feedback here would itself be an intervention
+    on the outcome measure it's meant to read.
+    """
+    with connect_db() as db:
+        try:
+            result = submit_probe_response(
+                db, identity.id, assignment_id, payload.response,
+                source_response_id=payload.sourceResponseId,
+            )
+        except ResearchProbeAssignmentNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return result

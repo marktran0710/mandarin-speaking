@@ -156,6 +156,45 @@
   --bi-en-color: var(--seal-deep);
 }
 
+.ts-dash-probe-start {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-2xs);
+  padding: var(--space-3xs) var(--space-sm);
+  border: none;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-primary);
+  color: var(--clay-on-seal);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+.ts-dash-probe-start:hover {
+  background: var(--clay-primary-active);
+}
+
+.lc-choice-list {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: var(--space-sm) 0;
+}
+.lc-choice {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--seal-soft);
+  border-radius: var(--clay-radius-md, 12px);
+  background: var(--clay-surface, transparent);
+  color: var(--clay-ink);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.lc-choice--selected {
+  border-color: var(--seal);
+  background: var(--seal-soft);
+}
+
 .ts-dash-continue-action {
   display: inline-flex;
   align-items: center;

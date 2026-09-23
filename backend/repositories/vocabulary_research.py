@@ -306,6 +306,166 @@ def upsert_retention_state(db, *, student_id: str, study_id: str, word_id: str, 
     )
 
 
+def insert_assessment_item(
+    db,
+    *,
+    id: str,
+    study_id: str,
+    word_id: str,
+    assessment_type: str,
+    question_type: str,
+    prompt: str,
+    choices: Optional[list],
+    correct_answer: str,
+    created_at: str,
+) -> None:
+    from psycopg.types.json import Jsonb
+
+    db.execute(
+        """
+        INSERT INTO vocab_research_assessment_items
+            (id, study_id, word_id, assessment_type, question_type, prompt, choices, correct_answer, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            id, study_id, word_id, assessment_type, question_type, prompt,
+            Jsonb(choices) if choices is not None else None, correct_answer, created_at,
+        ),
+    )
+
+
+def find_assessment_item(db, item_id: str) -> Optional[dict]:
+    return db.execute(
+        "SELECT * FROM vocab_research_assessment_items WHERE id = %s", (item_id,)
+    ).fetchone()
+
+
+def find_assessment_items_for_words(db, study_id: str, word_ids: list[str], assessment_type: str) -> dict[str, dict]:
+    """One item per word_id for a given assessment_type (first by id if more
+    than one variant exists in the bank - deterministic, not random, so
+    probe scheduling is reproducible)."""
+    if not word_ids:
+        return {}
+    rows = db.execute(
+        """
+        SELECT DISTINCT ON (word_id) *
+        FROM vocab_research_assessment_items
+        WHERE study_id = %s AND assessment_type = %s AND word_id = ANY(%s)
+        ORDER BY word_id, id
+        """,
+        (study_id, assessment_type, word_ids),
+    ).fetchall()
+    return {row["word_id"]: row for row in rows}
+
+
+def find_probe_assignments_for_student(db, study_id: str, student_id: str, word_ids: Optional[list[str]] = None) -> dict[str, dict]:
+    """word_id -> its probe assignment for this student, if scheduled. Used
+    both to check "already enrolled" (Task 7.3 idempotency) and to look up
+    an assignment by word."""
+    if word_ids is not None:
+        if not word_ids:
+            return {}
+        rows = db.execute(
+            "SELECT * FROM vocab_research_probe_assignments WHERE study_id = %s AND student_id = %s AND word_id = ANY(%s)",
+            (study_id, student_id, word_ids),
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT * FROM vocab_research_probe_assignments WHERE study_id = %s AND student_id = %s",
+            (study_id, student_id),
+        ).fetchall()
+    return {row["word_id"]: row for row in rows}
+
+
+def insert_probe_assignment(
+    db,
+    *,
+    study_id: str,
+    student_id: str,
+    word_id: str,
+    assessment_item_id: str,
+    probe_type: str,
+    due_at,
+    assigned_at,
+    created_at: str,
+) -> None:
+    db.execute(
+        """
+        INSERT INTO vocab_research_probe_assignments
+            (study_id, student_id, word_id, assessment_item_id, probe_type, due_at, assigned_at, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (study_id, student_id, word_id, probe_type) DO NOTHING
+        """,
+        (study_id, student_id, word_id, assessment_item_id, probe_type, due_at, assigned_at, created_at),
+    )
+
+
+def find_due_probe_assignments(db, study_id: str, student_id: str, now) -> list[dict]:
+    """Due AND unanswered (Task 7.5) - a probe that already has a response
+    row must never appear here again; there is no re-grading path."""
+    return db.execute(
+        """
+        SELECT a.*
+        FROM vocab_research_probe_assignments a
+        LEFT JOIN vocab_research_probe_responses r ON r.probe_assignment_id = a.id
+        WHERE a.study_id = %s AND a.student_id = %s
+          AND a.due_at IS NOT NULL AND a.due_at <= %s
+          AND r.id IS NULL
+        ORDER BY a.due_at, a.id
+        """,
+        (study_id, student_id, now),
+    ).fetchall()
+
+
+def find_probe_assignment_by_id(db, assignment_id, student_id: str) -> Optional[dict]:
+    """Scoped by student_id too - a probe assignment id alone must never be
+    enough to read or answer another student's probe."""
+    return db.execute(
+        "SELECT * FROM vocab_research_probe_assignments WHERE id = %s AND student_id = %s",
+        (assignment_id, student_id),
+    ).fetchone()
+
+
+def find_probe_response(db, probe_assignment_id) -> Optional[dict]:
+    return db.execute(
+        "SELECT * FROM vocab_research_probe_responses WHERE probe_assignment_id = %s",
+        (probe_assignment_id,),
+    ).fetchone()
+
+
+def insert_probe_response(
+    db,
+    *,
+    probe_assignment_id,
+    study_id: str,
+    student_id: str,
+    word_id: str,
+    assessment_item_id: str,
+    response_value: str,
+    correct: bool,
+    source_response_id: str,
+    responded_at,
+    created_at: str,
+) -> bool:
+    """Returns whether this was the first response recorded for the
+    assignment (mirrors record_retention_event's idempotency contract)."""
+    cursor = db.execute(
+        """
+        INSERT INTO vocab_research_probe_responses
+            (probe_assignment_id, study_id, student_id, word_id, assessment_item_id,
+             response_value, correct, source_response_id, responded_at, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (probe_assignment_id) DO NOTHING
+        RETURNING id
+        """,
+        (
+            probe_assignment_id, study_id, student_id, word_id, assessment_item_id,
+            response_value, correct, source_response_id, responded_at, created_at,
+        ),
+    )
+    return cursor.fetchone() is not None
+
+
 def record_retention_event(
     db, *, student_id: str, study_id: str, word_id: str, event_type: str,
     old_state, new_state, source_response_id: str, algorithm_version: str,

@@ -212,6 +212,14 @@ class VocabQuizAttemptRequest(BaseModel):
     questionResults: List[VocabQuizQuestionResult] = []
 
 
+class ResearchProbeResponseRequest(BaseModel):
+    # Never submitted through VocabQuizAttemptRequest/the quiz-attempt API
+    # (Epic 7, Task 7.5) - a probe is a read-only measurement, not a graded
+    # quiz round, so it gets its own minimal request shape.
+    response: str = Field(..., max_length=2000)
+    sourceResponseId: str = Field(..., max_length=128)
+
+
 class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=6, max_length=100)

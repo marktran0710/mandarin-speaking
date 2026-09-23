@@ -52,3 +52,49 @@ export async function getResearchReviewSession(): Promise<{ wordIds: string[] }>
   }
   return response.json() as Promise<{ wordIds: string[] }>;
 }
+
+/** Epic 7: one due, unanswered "Learning Check" question from the
+ * independent outcome bank - never the correct answer, probe type, or
+ * study id (see backend/application/research_probes.py, Task 7.6). */
+export interface ResearchProbeQuestion {
+  assignmentId: number;
+  wordId: string;
+  questionType: string;
+  prompt: string;
+  choices: string[] | null;
+}
+
+export async function getResearchProbesDue(): Promise<{ questions: ResearchProbeQuestion[] }> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/research/vocabulary/probes/due`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || "Could not load the learning check questions.");
+  }
+  return response.json() as Promise<{ questions: ResearchProbeQuestion[] }>;
+}
+
+/** Epic 7, Task 7.5/7.6: submits one Learning Check answer. Never a
+ * quiz-attempt call - the response always just acknowledges receipt, since
+ * showing correctness here would itself be an intervention on the outcome
+ * measure being read. */
+export async function postResearchProbeResponse(
+  assignmentId: number,
+  response: string,
+  sourceResponseId: string,
+): Promise<{ accepted: boolean }> {
+  const httpResponse = await fetchWithRetry(
+    `${BACKEND_URL}/api/research/vocabulary/probes/${assignmentId}/response`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ response, sourceResponseId }),
+    },
+  );
+  if (!httpResponse.ok) {
+    const body = await httpResponse.json().catch(() => ({}));
+    throw new Error(body.detail || "Could not submit the learning check answer.");
+  }
+  return httpResponse.json() as Promise<{ accepted: boolean }>;
+}
