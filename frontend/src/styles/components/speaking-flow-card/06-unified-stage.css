@@ -16,6 +16,13 @@
 .speaking-flow-card.sfc-screen > .practice-workspace {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* start, not stretch: on the results screen the scene column is much
+     shorter than the results column (verdict + banner + progress +
+     stepper), and stretch would leave a large empty void below the
+     image. Was previously duplicated in 02-recording.css scoped to
+     .sfc-results only; this rule already wins the cascade for both
+     screens (higher specificity than that scoped rule ever had), so
+     that duplicate was removed rather than kept in sync by hand. */
   align-items: start;
   gap: var(--space-md);
   min-width: 0;
