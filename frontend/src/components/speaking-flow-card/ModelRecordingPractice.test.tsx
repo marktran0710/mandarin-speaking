@@ -194,6 +194,42 @@ describe("ModelRecordingPractice", () => {
     );
   });
 
+  it("omits its own sentence/pinyin in external prompt mode, but keeps the model audio and steps", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("backend unreachable")));
+
+    render(
+      <ModelRecordingPractice
+        sceneIndex={0}
+        modelSentence="請描述這張圖片。"
+        modelAudioUrl="/uploads/story_audio/market.wav"
+        promptMode="external"
+      />,
+    );
+
+    expect(document.querySelector(".model-recording-script")).not.toBeInTheDocument();
+    expect(screen.queryByText("請描述這張圖片。")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Listen and repeat model recording" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Model recording:/)).toHaveAttribute(
+      "src",
+      "/uploads/story_audio/market.wav",
+    );
+  });
+
+  it("renders its own sentence/pinyin by default (embedded mode), same as every legacy caller", () => {
+    render(
+      <ModelRecordingPractice
+        sceneIndex={0}
+        modelSentence="請描述這張圖片。"
+        modelAudioUrl="/uploads/story_audio/market.wav"
+      />,
+    );
+
+    expect(document.querySelector(".model-recording-script")).toBeInTheDocument();
+    expect(screen.getAllByText("請描述這張圖片。")).toHaveLength(1);
+  });
+
   it("has no separate practice button — pressing play on the model audio loads its Praat pitch chart", async () => {
     vi.stubGlobal(
       "fetch",

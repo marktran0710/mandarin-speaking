@@ -76,6 +76,12 @@ interface SpeakingFlowCardProps {
    * never blocks a pilot student's progression. Defaults to false: no
    * behavior change until an operator turns the pilot flag on. */
   sceneReadyOverride?: boolean;
+  /** Forwarded to ModelRecordingPractice. "external" when a caller (e.g. a
+   * conversation turn) already renders the target sentence/pinyin itself, so
+   * this card's own record screen must not render a second copy. Defaults
+   * to "embedded" — every legacy caller keeps its current single-source
+   * sentence/pinyin display unchanged. */
+  promptMode?: "embedded" | "external";
 }
 
 /** The Speaking step as a two-screen app flow inside one fixed-height card:
@@ -123,6 +129,7 @@ export default function SpeakingFlowCard({
   onNextScene,
   onViewSummary,
   sceneReadyOverride = false,
+  promptMode = "embedded",
 }: SpeakingFlowCardProps) {
   const [screen, setScreen] = useState<"record" | "results">("record");
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +249,7 @@ export default function SpeakingFlowCard({
               sceneIndex={selectedImageIndex}
               modelSentence={modelSentence}
               modelAudioUrl={modelAudioUrl}
+              promptMode={promptMode}
             />
 
             <details className="sfc-recording-options">

@@ -474,6 +474,7 @@ export default function SpeakingConversationFlow({
       totalScenes={turns.length}
       modelSentence={currentStudentTurn.targetText || currentStudentTurn.text}
       modelAudioUrl={previousSystemTurn?.audioUrl}
+      promptMode="external"
       prog={{ attempts, bestTone: Math.round(metrics?.tone_accuracy ?? 0), bestFluency: Math.round(metrics?.fluency_score ?? 0) }}
       praatMetrics={metrics}
       analysisAudioBlob={analysisAudioBlob}

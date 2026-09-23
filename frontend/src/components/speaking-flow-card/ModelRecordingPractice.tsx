@@ -29,6 +29,13 @@ interface ModelRecordingPracticeProps {
   sceneIndex: number;
   modelSentence?: string;
   modelAudioUrl?: string;
+  /** "embedded" (default): this component is the single source of truth for
+   * the sentence/pinyin, same as every legacy scene-based caller.
+   * "external": some other component already owns and renders that target
+   * sentence/pinyin for this turn (e.g. a conversation turn's own text), so
+   * this component must not render a second copy — it keeps everything else
+   * (heading, model audio, listen/repeat steps, Praat visualization). */
+  promptMode?: "embedded" | "external";
 }
 
 /** Listen -> read -> repeat support for the student Speaking stage.
@@ -40,6 +47,7 @@ export default function ModelRecordingPractice({
   sceneIndex,
   modelSentence,
   modelAudioUrl,
+  promptMode = "embedded",
 }: ModelRecordingPracticeProps) {
   const [praatViz, setPraatViz] = useState<PraatVizState>({ status: "idle" });
   const [ttsAudioUrl, setTtsAudioUrl] = useState("");
@@ -219,11 +227,13 @@ export default function ModelRecordingPractice({
         </div>
       </div>
 
-      <div className="model-recording-script">
-        <p className="model-recording-hanzi" lang="zh-Hant">{recording.sentence}</p>
-        <p className="model-recording-pinyin">{recording.pinyin}</p>
-        {recording.meaning && <p className="model-recording-meaning">{recording.meaning}</p>}
-      </div>
+      {promptMode === "embedded" && (
+        <div className="model-recording-script">
+          <p className="model-recording-hanzi" lang="zh-Hant">{recording.sentence}</p>
+          <p className="model-recording-pinyin">{recording.pinyin}</p>
+          {recording.meaning && <p className="model-recording-meaning">{recording.meaning}</p>}
+        </div>
+      )}
 
       {referenceSource === "ai" && !usingAiFallback && (
         <p className="model-recording-reference-status is-ai" role="status">
