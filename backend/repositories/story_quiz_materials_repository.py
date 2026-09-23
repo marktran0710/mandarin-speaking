@@ -2,25 +2,22 @@
 pending approvals, and candidate distractors/cloze/synonym pools) stored on
 ``custom_stories.frames``.
 
-``load_frames`` raises ``fastapi.HTTPException`` directly (rather than
-returning ``None``) because it is consumed directly - by name - as a
-request-handling helper from multiple routers (story_quiz_materials,
-story_quiz_pools), not as a pure persistence function; this mirrors its
-pre-refactor behavior exactly and keeps those other routers' 404 handling
-unchanged.
+Pure CRUD only - no HTTPException. The 404-raising ``load_frames`` wrapper
+that story_quiz_pools.py and story_quiz_materials.py both consume by name
+lives in services/story_quiz_materials_service.py instead.
 """
 from typing import Optional
 
-from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 
 
-def load_frames(db, story_id: str) -> list:
+def find_frames(db, story_id: str) -> Optional[list]:
+    """Returns None if the story doesn't exist, [] if it exists with no frames."""
     row = db.execute(
         "SELECT frames FROM custom_stories WHERE id = %s", (story_id,)
     ).fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="Story not found.")
+        return None
     return row["frames"] or []
 
 

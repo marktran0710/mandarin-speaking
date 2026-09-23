@@ -23,6 +23,13 @@ def existing_pool(frame: dict, field: str) -> list:
     return pool if isinstance(pool, list) else []
 
 
+def load_frames(db, story_id: str) -> list:
+    frames = repo.find_frames(db, story_id)
+    if frames is None:
+        raise HTTPException(status_code=404, detail="Story not found.")
+    return frames
+
+
 def update_quiz_exclusions(db, story_id: str, request) -> dict:
     exclusions = [exclusion.model_dump(exclude_none=True) for exclusion in request.exclusions]
     row = repo.set_quiz_exclusions(db, story_id, exclusions, request.materialSnapshot)
@@ -40,7 +47,7 @@ def update_quiz_pending_approvals(db, story_id: str, request) -> dict:
 
 
 def replace_quiz_question(db, story_id: str, request) -> dict:
-    frames = repo.load_frames(db, story_id)
+    frames = load_frames(db, story_id)
     if request.frameIndex >= len(frames):
         raise HTTPException(status_code=404, detail="Frame not found.")
     frame = frames[request.frameIndex]
