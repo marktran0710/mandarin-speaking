@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import type { HelpRequest } from "../../services/database";
 import StoryRecorderRuntime from "./StoryRecorderRuntime";
 import SpeakingConversationFlow from "./SpeakingConversationFlow";
+import SpeakingModeChooser from "./SpeakingModeChooser";
 import type { NewAudioRecord } from "./StoryRecorder/types";
 import type { Topic } from "./StoryRecorder/storyContent";
 import { normalizeConversationTurns } from "./StoryRecorder/conversation";
@@ -63,12 +64,40 @@ function StudyScriptCard({ topic, selectedImageIndex }: Pick<StoryRecorderProps,
   );
 }
 
+type SpeakingMode = "choose" | "story" | "conversation";
+
 function StoryRecorderWithStudyScript(props: StoryRecorderProps) {
   const conversationTurns = useMemo(
     () => normalizeConversationTurns(props.topic.conversationTurns),
     [props.topic.conversationTurns],
   );
-  if (conversationTurns) {
+  // Epic 4: Conversation Practice is a second Speaking mode, chosen
+  // explicitly, never a silent replacement for Story Practice. Resets to
+  // the chooser on every new story so switching topics doesn't strand the
+  // student in whichever mode a previous story happened to use.
+  const [mode, setMode] = useState<SpeakingMode>("choose");
+  useEffect(() => {
+    setMode("choose");
+  }, [props.topic.id]);
+
+  if (!conversationTurns) {
+    return <>
+      <TypedStoryRecorder {...props} />
+      <StudyScriptCard topic={props.topic} selectedImageIndex={props.selectedImageIndex} />
+    </>;
+  }
+
+  if (mode === "choose") {
+    return (
+      <SpeakingModeChooser
+        exchangeCount={conversationTurns.length / 2}
+        onChooseStory={() => setMode("story")}
+        onChooseConversation={() => setMode("conversation")}
+      />
+    );
+  }
+
+  if (mode === "conversation") {
     return (
       <SpeakingConversationFlow
         topic={props.topic}
@@ -80,6 +109,7 @@ function StoryRecorderWithStudyScript(props: StoryRecorderProps) {
       />
     );
   }
+
   return <>
     <TypedStoryRecorder {...props} />
     <StudyScriptCard topic={props.topic} selectedImageIndex={props.selectedImageIndex} />
