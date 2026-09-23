@@ -1,10 +1,9 @@
-import uuid
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from psycopg.errors import UniqueViolation
 
 import security.auth as auth
-from db import connect_db, delete_student_cascade, row_to_audio_record, row_to_student
+import services.student_service as student_service
+from db import connect_db
+from repositories.database import row_to_student
 from main import (
     StudentCreateRequest,
     StudentLoginRequest,
@@ -13,45 +12,6 @@ from main import (
 )
 
 router = APIRouter()
-
-# The student home ("My Stories") reads only summary fields off submissions
-# and quiz attempts — earned stars and which stories were touched — so the
-# overview endpoint drops the two heavy JSONB columns those lists otherwise
-# ship (submission `scenes`, attempt `question_results`). The keys still
-# appear (empty) so the payload stays shape-compatible with the standalone
-# list responses the page used to call.
-_OVERVIEW_AUDIO_LIMIT = 1000
-
-
-def _overview_submission(row: dict) -> dict:
-    return {
-        "id": row["id"],
-        "storyId": row["story_id"],
-        "storyTitle": row["story_title"],
-        "studentName": row["student_name"],
-        "studentId": row.get("student_id"),
-        "submittedAt": row["submitted_at"],
-        "concatenatedAudioUrl": row.get("concatenated_audio_url"),
-        "reviewStatus": row.get("review_status") or "pending",
-        "teacherNote": row.get("teacher_note"),
-        "scenes": [],
-        "storyFeedback": None,
-    }
-
-
-def _overview_quiz_attempt(row: dict) -> dict:
-    return {
-        "id": row["id"],
-        "storyId": row["story_id"],
-        "studentName": row["student_name"],
-        "studentId": row.get("student_id"),
-        "mode": row.get("mode"),
-        "completedAt": row["completed_at"],
-        "totalQuestions": row["total_questions"],
-        "correctCount": row["correct_count"],
-        "totalTimeMs": row["total_time_ms"],
-        "questionResults": [],
-    }
 
 
 @router.get("/api/students/{student_id}/overview")
@@ -77,48 +37,15 @@ def get_student_overview(
         raise HTTPException(status_code=403, detail="Students may only view their own overview.")
 
     with connect_db() as db:
-        with db.pipeline():
-            submissions_cur = db.execute(
-                "SELECT id, story_id, story_title, student_name, student_id, submitted_at, "
-                "concatenated_audio_url, review_status, teacher_note "
-                "FROM story_submissions WHERE student_id = %s ORDER BY submitted_at DESC",
-                (student_id,),
-            )
-            attempts_cur = db.execute(
-                "SELECT id, story_id, student_name, student_id, mode, completed_at, "
-                "total_questions, correct_count, total_time_ms "
-                "FROM vocab_quiz_attempts WHERE student_id = %s ORDER BY completed_at DESC",
-                (student_id,),
-            )
-            audio_cur = db.execute(
-                "SELECT * FROM audio_records WHERE student_id = %s "
-                "ORDER BY created_at DESC, id DESC LIMIT %s",
-                (student_id, _OVERVIEW_AUDIO_LIMIT),
-            )
-        submissions = submissions_cur.fetchall()
-        attempts = attempts_cur.fetchall()
-        audio = audio_cur.fetchall()
-
-    return {
-        "submissions": [_overview_submission(row) for row in submissions],
-        "quizAttempts": [_overview_quiz_attempt(row) for row in attempts],
-        "audioRecords": [row_to_audio_record(row) for row in audio],
-    }
+        return student_service.get_overview(db, student_id)
 
 
 @router.get("/api/students")
 def list_students(
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
-    # Test/synthetic accounts (is_test_account) are dev/QA fixtures, not real
-    # students. A teacher's roster must never mix the two; admin tooling still
-    # needs to see everything to debug the seeded data itself.
-    where = " WHERE NOT is_test_account" if identity.role == "teacher" else ""
     with connect_db() as db:
-        # Postgres has no COLLATE NOCASE; lower() reproduces SQLite's
-        # case-insensitive roster ordering (backed by ix_students_lower_name).
-        rows = db.execute(f"SELECT * FROM students{where} ORDER BY lower(name)").fetchall()
-    return [row_to_student(row) for row in rows]
+        return student_service.list_students(db, identity.role)
 
 
 @router.post("/api/students")
@@ -126,31 +53,11 @@ def create_student(
     request: StudentCreateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
-    name = request.name.strip()
-    if not name:
-        raise HTTPException(status_code=400, detail="Provide a student name.")
-    auth.validate_password_policy(request.password)
-
     with connect_db() as db:
-        existing = db.execute(
-            "SELECT * FROM students WHERE lower(name) = lower(%s)",
-            (name,),
-        ).fetchone()
-        if existing is not None:
-            # Idempotent: re-adding a name already on the roster just hands
-            # back its existing id instead of erroring, so a teacher can
-            # re-submit the roster form without worrying about duplicates.
-            return row_to_student(existing)
-
-        student_id = str(uuid.uuid4())
         try:
-            created = db.execute(
-                "INSERT INTO students (id, name, password) VALUES (%s, %s, %s) RETURNING *",
-                (student_id, name, auth.hash_password(request.password)),
-            ).fetchone()
-        except UniqueViolation as exc:
-            raise HTTPException(status_code=409, detail="Student already exists.") from exc
-    return row_to_student(created)
+            return student_service.create_student(db, request.name, request.password)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.post("/api/students/login")
@@ -166,32 +73,12 @@ def login_student(
     auth.check_login_rate_limit(f"student:{client_ip}:{(request.studentId or request.name or '').strip().lower()}")
 
     with connect_db() as db:
-        if request.studentId:
-            row = db.execute(
-                "SELECT * FROM students WHERE id = %s", (request.studentId,)
-            ).fetchone()
-        else:
-            row = db.execute(
-                "SELECT * FROM students WHERE lower(name) = lower(%s)",
-                (request.name.strip(),),
-            ).fetchone()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Student not found")
-    if row.get("status") != "active":
-        raise HTTPException(status_code=403, detail="Student account is inactive")
-    if row.get("password_reset_required"):
-        raise HTTPException(status_code=403, detail="Student password reset required")
-
-    valid, replacement_hash = auth.verify_password(row.get("password"), request.password)
-    if not valid:
-        raise HTTPException(status_code=401, detail="Wrong password")
-    if replacement_hash is not None:
-        with connect_db() as db:
-            db.execute(
-                "UPDATE students SET password = %s WHERE id = %s",
-                (replacement_hash, row["id"]),
+        try:
+            row = student_service.authenticate_student(
+                db, request.studentId, request.name, request.password
             )
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     token = auth.issue_token("student", row["id"])
     auth.set_session_cookie(response, token, "student")
@@ -204,15 +91,11 @@ def reset_student_password(
     request: StudentPasswordResetRequest,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
-    auth.validate_password_policy(request.password)
     with connect_db() as db:
-        row = db.execute(
-            "UPDATE students SET password = %s, password_reset_required = false WHERE id = %s RETURNING *",
-            (auth.hash_password(request.password), student_id),
-        ).fetchone()
-    if row is None:
-        raise HTTPException(status_code=404, detail="Student not found")
-    return row_to_student(row)
+        try:
+            return student_service.reset_student_password(db, student_id, request.password)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.patch("/api/students/{student_id}")
@@ -221,41 +104,11 @@ def update_student(
     request: StudentUpdateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
-    updates, params = [], []
-    if request.name is not None:
-        name = request.name.strip()
-        if not name:
-            raise HTTPException(status_code=400, detail="Provide a student name.")
-        with connect_db() as db:
-            duplicate = db.execute(
-                "SELECT 1 FROM students WHERE lower(name) = lower(%s) AND id <> %s",
-                (name, student_id),
-            ).fetchone()
-        if duplicate is not None:
-            raise HTTPException(status_code=409, detail="Student already exists.")
-        updates.append("name = %s")
-        params.append(name)
-    if request.password is not None:
-        auth.validate_password_policy(request.password)
-        updates.extend(["password = %s", "password_reset_required = false"])
-        params.append(auth.hash_password(request.password))
-    if request.status is not None:
-        updates.append("status = %s")
-        params.append(request.status)
-    if not updates:
-        raise HTTPException(status_code=400, detail="No student changes supplied.")
-    params.append(student_id)
-    try:
-        with connect_db() as db:
-            row = db.execute(
-                f"UPDATE students SET {', '.join(updates)} WHERE id = %s RETURNING *",
-                tuple(params),
-            ).fetchone()
-    except UniqueViolation as exc:
-        raise HTTPException(status_code=409, detail="Student already exists.") from exc
-    if row is None:
-        raise HTTPException(status_code=404, detail="Student not found")
-    return row_to_student(row)
+    with connect_db() as db:
+        try:
+            return student_service.update_student(db, student_id, request)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.post("/api/students/logout")
@@ -270,6 +123,8 @@ def delete_student(
     identity: auth.Identity = Depends(auth.require_admin),
 ):
     with connect_db() as db:
-        if not delete_student_cascade(db, student_id):
-            raise HTTPException(status_code=404, detail="Student not found")
+        try:
+            student_service.delete_student(db, student_id)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     return {"id": student_id, "deleted": True}

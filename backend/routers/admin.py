@@ -12,12 +12,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 import security.auth as auth
-from db import (
-    connect_db,
-    row_to_student,
-    row_to_teacher,
-    row_to_vocab_quiz_attempt,
-)
+import services.admin_service as admin_service
+from db import connect_db
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -73,17 +69,4 @@ def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
     query round-trips on the connection.
     """
     with connect_db() as db:
-        with db.pipeline():
-            students_cur = db.execute("SELECT * FROM students ORDER BY lower(name)")
-            teachers_cur = db.execute("SELECT * FROM teachers ORDER BY lower(name)")
-            attempts_cur = db.execute(
-                "SELECT * FROM vocab_quiz_attempts ORDER BY completed_at DESC"
-            )
-        students = students_cur.fetchall()
-        teachers = teachers_cur.fetchall()
-        attempts = attempts_cur.fetchall()
-    return {
-        "students": [row_to_student(row) for row in students],
-        "teachers": [row_to_teacher(row) for row in teachers],
-        "quizAttempts": [row_to_vocab_quiz_attempt(row) for row in attempts],
-    }
+        return admin_service.get_roster_overview(db)
