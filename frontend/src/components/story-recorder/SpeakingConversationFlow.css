@@ -1,3 +1,5 @@
+@import "./ConversationScriptFeedback.css";
+
 .speaking-conversation-flow {
   display: grid;
   gap: var(--space-md);

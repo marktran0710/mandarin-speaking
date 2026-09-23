@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { ConversationTurn } from "./StoryRecorder/conversation";
+import type { PraatMetrics } from "./StoryRecorder/types";
+import ConversationScriptFeedback from "./ConversationScriptFeedback";
 import AppButton from "../ui/AppButton";
 import { BiLabel } from "../ui/BiLabel";
 
@@ -7,14 +9,21 @@ interface ConversationTurnCardProps {
   turn: ConversationTurn;
   children?: ReactNode;
   onSystemComplete?: () => void;
+  /** Student turn only (Epic 7): the latest analysis to score the target
+   * script against, and whether self-evaluation has happened yet - a
+   * colored script before self-evaluation would tell the learner the
+   * result before they self-assess, so this stays neutral until true. */
+  responseFeedback?: { praatMetrics: PraatMetrics | null; revealed: boolean };
 }
 
 export default function ConversationTurnCard({
   turn,
   children,
   onSystemComplete,
+  responseFeedback,
 }: ConversationTurnCardProps) {
   const isSystem = turn.speaker === "system";
+  const targetScript = turn.targetText || turn.text;
   return (
     <section
       className={`conversation-turn-card conversation-turn-card--${turn.speaker}`}
@@ -28,9 +37,17 @@ export default function ConversationTurnCard({
           en={isSystem ? "System" : "Your turn"}
         />
       </div>
-      <p className="conversation-turn-card__text" lang="zh-Hant">
-        {turn.text}
-      </p>
+      {isSystem ? (
+        <p className="conversation-turn-card__text" lang="zh-Hant">
+          {turn.text}
+        </p>
+      ) : (
+        <ConversationScriptFeedback
+          targetScript={targetScript}
+          praatMetrics={responseFeedback?.praatMetrics ?? null}
+          revealed={responseFeedback?.revealed ?? false}
+        />
+      )}
       {turn.pinyin && <p className="conversation-turn-card__pinyin">{turn.pinyin}</p>}
       {turn.translation && <p className="conversation-turn-card__translation">{turn.translation}</p>}
       {isSystem ? (

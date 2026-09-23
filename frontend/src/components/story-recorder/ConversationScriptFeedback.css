@@ -1,0 +1,26 @@
+.conversation-script-feedback--revealed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.conversation-script-feedback__token {
+  padding: 2px 3px;
+  border-radius: 4px;
+}
+.conversation-script-feedback__token--passed {
+  background: color-mix(in srgb, #1a7f37 16%, transparent);
+  color: #14532d;
+}
+.conversation-script-feedback__token--pronunciation_attention {
+  background: color-mix(in srgb, #b45309 18%, transparent);
+  color: #7c2d12;
+}
+.conversation-script-feedback__token--mismatch {
+  background: color-mix(in srgb, #b91c1c 16%, transparent);
+  color: #7f1d1d;
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, #b91c1c 50%, transparent);
+}
+.conversation-script-feedback__token--unmeasured {
+  color: #6b7280;
+}

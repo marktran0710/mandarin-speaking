@@ -542,7 +542,10 @@ export default function SpeakingConversationFlow({
   return <section className="speaking-conversation-flow" aria-label="Conversation practice">
     <ConversationTurnProgress turns={turns} state={state} />
     {isStudentTurn ? (
-      <ConversationTurnCard turn={activeTurn}>
+      <ConversationTurnCard
+        turn={activeTurn}
+        responseFeedback={{ praatMetrics: metrics, revealed: state.step === "feedback" }}
+      >
         {responseCard}
       </ConversationTurnCard>
     ) : (
