@@ -106,6 +106,7 @@ function StoryRecorderWithStudyScript(props: StoryRecorderProps) {
         selectedImageIndex={props.selectedImageIndex}
         onAddRecord={props.onAddRecord}
         studentId={props.studentId}
+        studentName={props.studentName}
       />
     );
   }

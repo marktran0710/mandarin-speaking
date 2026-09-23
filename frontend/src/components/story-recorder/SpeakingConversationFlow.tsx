@@ -12,7 +12,14 @@ import {
   type ConversationState,
 } from "./StoryRecorder/conversationCoordinator";
 import type { NewAudioRecord, PraatMetrics } from "./StoryRecorder/types";
-import { canUseDatabase, listSpeakingProgress, saveSpeakingProgress, type SceneSubmission } from "../../services/database";
+import {
+  canUseDatabase,
+  createStorySubmission,
+  listSpeakingProgress,
+  saveSpeakingProgress,
+  type SceneSubmission,
+} from "../../services/database";
+import { markStoryLevelSubmitted } from "../../utils/storyLevelProgress";
 import { convertBlobToWav } from "../../utils/audio";
 import { buildPracticeAnalysisFormData } from "../../utils/practiceAnalysis";
 import {
@@ -53,10 +60,34 @@ interface SpeakingConversationFlowProps {
   selectedImageIndex: number;
   onAddRecord: (record: NewAudioRecord) => Promise<string | undefined> | void;
   studentId?: string;
+  studentName?: string;
 }
 
 function makeConversationId(topicId: string): string {
   return `conversation:${topicId}`;
+}
+
+/** Epic 10: the story-submission payload for a completed conversation,
+ * mirroring the legacy runtime's own submission shape exactly (same
+ * fields, same id scheme) so createStorySubmission/isStoryFinished can't
+ * tell the two modes apart. Pure so the shape is testable without
+ * simulating a full record -> analyze cycle. */
+export function buildConversationSubmission(
+  topic: Topic,
+  studentId: string,
+  studentName: string,
+  scenes: SceneSubmission[],
+  now: () => number = Date.now,
+): Parameters<typeof createStorySubmission>[0] {
+  return {
+    id: `submission-${now()}`,
+    storyId: topic.id,
+    storyTitle: topic.name,
+    studentName,
+    studentId,
+    submittedAt: new Date(now()).toISOString(),
+    scenes,
+  };
 }
 
 export default function SpeakingConversationFlow({
@@ -66,6 +97,7 @@ export default function SpeakingConversationFlow({
   selectedImageIndex,
   onAddRecord,
   studentId,
+  studentName = "Student",
 }: SpeakingConversationFlowProps) {
   const conversationId = useMemo(() => makeConversationId(topic.id), [topic.id]);
   const initialState = useMemo(() => createConversationState(turns), [turns]);
@@ -86,6 +118,11 @@ export default function SpeakingConversationFlow({
   const [verifiedRecordId, setVerifiedRecordId] = useState<string | undefined>();
   const [pendingUpload, setPendingUpload] = useState<File | null>(null);
   const [pendingUploadUrl, setPendingUploadUrl] = useState("");
+  // Epic 10: every completed student turn's result, accumulated so the
+  // conversation's eventual story submission carries the whole exchange
+  // history, not just the latest turn - mirrors the legacy runtime's own
+  // `scenes` array built from every recorded scene.
+  const [completedResponses, setCompletedResponses] = useState<SceneSubmission[]>([]);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -94,6 +131,7 @@ export default function SpeakingConversationFlow({
   const recordingStartedAtRef = useRef<number | null>(null);
   const durationTimerRef = useRef<number | null>(null);
   const analysisInFlightRef = useRef(false);
+  const hasSubmittedConversationRef = useRef(false);
 
   const activeTurn = currentConversationTurn(state, turns);
   const studentTurn = state.step === "summary" ? null : turns[state.turnIndex];
@@ -114,6 +152,8 @@ export default function SpeakingConversationFlow({
     setLatestResult(null);
     setProgressFlags({ masteryPassed: false, contentPassed: false });
     setVerifiedRecordId(undefined);
+    setCompletedResponses([]);
+    hasSubmittedConversationRef.current = false;
   }, [initialState, topic.id]);
 
   // Epic 9: resume at the next incomplete exchange rather than always
@@ -139,6 +179,31 @@ export default function SpeakingConversationFlow({
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, [studentId, topic.id, conversationId, initialState, turns.length]);
+
+  // Epic 10: reaching "summary" is only possible once every student turn
+  // has gone through the full record -> analyze -> self-eval -> feedback
+  // cycle (conversationCoordinator's own state machine guarantees this),
+  // so it is conversation mode's equivalent of the legacy runtime's story
+  // submission. Without this, isStoryFinished() (next-section/lesson
+  // unlock, My Learning, teacher review queue) would never see a
+  // conversation-only story as complete - "Speaking complete = Story
+  // Practice complete OR Conversation Practice complete" only holds if
+  // both modes actually signal completion the same way.
+  useEffect(() => {
+    if (state.step !== "summary" || hasSubmittedConversationRef.current || completedResponses.length === 0) return;
+    hasSubmittedConversationRef.current = true;
+    const baseStoryId = topic.sourceStory?.id ?? topic.id;
+    void (async () => {
+      if (studentId && canUseDatabase()) {
+        try {
+          await createStorySubmission(buildConversationSubmission(topic, studentId, studentName, completedResponses));
+        } catch (cause) {
+          console.warn("Failed to submit conversation story:", cause);
+        }
+      }
+      markStoryLevelSubmitted(baseStoryId);
+    })();
+  }, [state.step, completedResponses, topic, studentId, studentName]);
 
   useEffect(() => {
     let active = true;
@@ -344,6 +409,10 @@ export default function SpeakingConversationFlow({
         promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${studentTurn.id}`,
       };
       setLatestResult(result);
+      setCompletedResponses((current) => [
+        ...current.filter((entry) => entry.turnId !== studentTurn.id),
+        result,
+      ]);
       await persistProgress(result, {
         masteryPassed,
         contentPassed,
