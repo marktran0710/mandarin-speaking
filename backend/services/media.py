@@ -324,6 +324,47 @@ def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
     return stored_frames
 
 
+def persist_story_conversation_audio(
+    story_id: str, conversation_turns: Optional[list[dict]]
+) -> Optional[list[dict]]:
+    """Conversation Practice authoring (Dual Speaking Modes plan, Epic 3):
+    converts each turn's data:audio/... upload to a persisted /uploads/
+    file, exactly like persist_story_frame_audio does for scenes. A system
+    turn's audioUrl (the character's line) and a student turn's
+    targetAudioUrl (an optional model response recording) never share a
+    field, so each is persisted and cleaned up independently - replacing
+    one never touches the other.
+    """
+    if not conversation_turns:
+        return conversation_turns
+
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT conversation_turns FROM custom_stories WHERE id = %s", (story_id,)
+        ).fetchone()
+    old_turns = (row["conversation_turns"] or []) if row else []
+    old_by_id = {turn.get("id"): turn for turn in old_turns if isinstance(turn, dict)}
+
+    stored_turns = []
+    for index, turn in enumerate(conversation_turns, start=1):
+        turn = dict(turn)
+        old_turn = old_by_id.get(turn.get("id"), {})
+        for field in ("audioUrl", "targetAudioUrl"):
+            value = turn.get(field) or ""
+            old_value = old_turn.get(field, "") or ""
+            if value.startswith("data:audio/"):
+                new_url = save_data_url_audio(value, story_id, index)
+                if old_value and old_value != new_url and old_value.startswith("/uploads/"):
+                    remove_uploaded_file(old_value)
+                turn[field] = new_url
+            elif not value and old_value.startswith("/uploads/"):
+                # Teacher cleared this turn's audio rather than replacing it -
+                # without this the old file stays orphaned on disk.
+                remove_uploaded_file(old_value)
+        stored_turns.append(turn)
+    return stored_turns
+
+
 def _refresh_scene_reference_curves(
     story_id: str, frame_index: int, frame: dict, old_frame: dict, suffix: str, audio_url: str
 ) -> None:

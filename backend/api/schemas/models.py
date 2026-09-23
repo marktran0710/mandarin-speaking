@@ -17,11 +17,14 @@ class ConversationTurnRequest(BaseModel):
     speaker: Literal["system", "student"]
     text: str = Field(..., min_length=1, max_length=4000)
     # SYSTEM turn: audio the learner listens to as the conversation partner.
-    audioUrl: Optional[str] = Field(default=None, max_length=2000)
+    # No max_length - like frames' listenAudioUrl, this carries a base64
+    # data: URL at save time (persist_story_conversation_audio converts it
+    # to a short /uploads/ URL before it's ever stored), not just a URL.
+    audioUrl: Optional[str] = None
     # STUDENT turn: the expected response, plus an optional model recording
     # of it - never the same thing as audioUrl above (the character's line).
     targetText: Optional[str] = Field(default=None, max_length=4000)
-    targetAudioUrl: Optional[str] = Field(default=None, max_length=2000)
+    targetAudioUrl: Optional[str] = None
     pinyin: Optional[str] = Field(default=None, max_length=4000)
     translation: Optional[str] = Field(default=None, max_length=4000)
 

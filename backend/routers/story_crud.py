@@ -63,6 +63,10 @@ async def create_custom_story(story: CustomStoryRequest):
     frames = [frame.model_dump() for frame in story.frames]
     stored_frames = media_service.persist_story_frame_images(story.id, frames)
     stored_frames = media_service.persist_story_frame_audio(story.id, stored_frames)
+    stored_conversation_turns = media_service.persist_story_conversation_audio(
+        story.id,
+        [turn.model_dump() for turn in story.conversationTurns] if story.conversationTurns is not None else None,
+    )
     with connect_db() as db:
         # ON CONFLICT DO UPDATE, not the old INSERT OR REPLACE: SQLite's
         # replace was a DELETE+INSERT, so every re-save wiped the two columns
@@ -101,12 +105,13 @@ async def create_custom_story(story: CustomStoryRequest):
                 Jsonb(story.storyVocabulary) if story.storyVocabulary is not None else None,
                 Jsonb(story.storyPhrases) if story.storyPhrases is not None else None,
                 Jsonb(story.vocabAssessment) if story.vocabAssessment is not None else None,
-                Jsonb([turn.model_dump() for turn in story.conversationTurns]) if story.conversationTurns is not None else None,
+                Jsonb(stored_conversation_turns) if stored_conversation_turns is not None else None,
             ),
         )
     return {
         **story.model_dump(),
         "frames": stored_frames,
+        "conversationTurns": stored_conversation_turns,
     }
 
 
@@ -114,7 +119,7 @@ async def create_custom_story(story: CustomStoryRequest):
 def delete_custom_story(story_id: str):
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = %s",
+            "SELECT frames, conversation_turns FROM custom_stories WHERE id = %s",
             (story_id,),
         ).fetchone()
         db.execute("DELETE FROM custom_stories WHERE id = %s", (story_id,))
@@ -124,4 +129,7 @@ def delete_custom_story(story_id: str):
             media_service.remove_uploaded_file(frame.get("imageUrlMedium", ""))
             media_service.remove_uploaded_file(frame.get("imageUrlHard", ""))
             media_service.remove_uploaded_file(frame.get("listenAudioUrl", ""))
+        for turn in row["conversation_turns"] or []:
+            media_service.remove_uploaded_file(turn.get("audioUrl", ""))
+            media_service.remove_uploaded_file(turn.get("targetAudioUrl", ""))
     return {"ok": True}
