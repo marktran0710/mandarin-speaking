@@ -428,6 +428,7 @@ export default function StoryBuilderSection({
           onRemoveAudio={handleRemoveFrameAudio}
           onUpdateStoryVocabulary={updateStoryVocabulary}
           onUpdateStoryPhrases={updateStoryPhrases}
+          setValidationErrors={setValidationErrors}
         />
         <StoryBuilderLibrary
           customStories={customStories}

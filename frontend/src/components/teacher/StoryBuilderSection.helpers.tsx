@@ -173,6 +173,37 @@ export function blankStoryPhrases(): StoryPhrasesByLevel {
   return { easy: blank() };
 }
 
+/** Dual Speaking Modes plan, Epic 3: one teacher-facing "exchange" row =
+ * one system turn + one student turn once saved (see
+ * exchangesToConversationTurns in StoryBuilderSection.model.tsx). A
+ * teacher never sees/edits the low-level system/student turn split
+ * directly - "author as exchange pairs", per the plan. */
+export interface ConversationExchangeDraft {
+  id: string;
+  characterText: string;
+  characterPinyin: string;
+  characterTranslation: string;
+  characterAudioUrl: string;
+  studentText: string;
+  studentPinyin: string;
+  studentTranslation: string;
+  studentModelAudioUrl: string;
+}
+
+export function blankConversationExchange(id: string): ConversationExchangeDraft {
+  return {
+    id,
+    characterText: "",
+    characterPinyin: "",
+    characterTranslation: "",
+    characterAudioUrl: "",
+    studentText: "",
+    studentPinyin: "",
+    studentTranslation: "",
+    studentModelAudioUrl: "",
+  };
+}
+
 export const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   lessonNumber: "",
@@ -203,6 +234,8 @@ export const emptyCustomStoryDraft = {
   listenAudioUrls: blankTiers(6),
   listenAudioSources: blankTiers(6),
   listenScripts: blankTiers(6),
+  conversationEnabled: false,
+  conversationExchanges: [] as ConversationExchangeDraft[],
 };
 
 export function validateCustomStoryDraft(
@@ -244,6 +277,32 @@ export function validateCustomStoryDraft(
     );
     if (clash) {
       errors.form = `Another story is already Lesson ${lessonNumber}-${lessonSubOrder}. Pick a different story order.`;
+    }
+  }
+
+  // Epic 3: cannot publish conversation mode with 0 exchanges, a missing
+  // character/student line, or (MVP requirement - the pedagogical purpose
+  // is listen-then-respond) missing character audio. Duplicate turn ids
+  // and bad ordering are not checkable here because they can't happen -
+  // ids are generated, never typed by hand, and order always follows the
+  // exchange array.
+  if (!errors.form && draft.conversationEnabled) {
+    if (draft.conversationExchanges.length === 0) {
+      errors.form = "Add at least one conversation exchange, or turn off Conversation Practice.";
+    } else {
+      const incompleteIndex = draft.conversationExchanges.findIndex(
+        (exchange) => !exchange.characterText.trim() || !exchange.studentText.trim(),
+      );
+      if (incompleteIndex !== -1) {
+        errors.form = `Exchange ${incompleteIndex + 1} needs both the character's line and the student's response.`;
+      } else {
+        const missingAudioIndex = draft.conversationExchanges.findIndex(
+          (exchange) => !exchange.characterAudioUrl.trim(),
+        );
+        if (missingAudioIndex !== -1) {
+          errors.form = `Exchange ${missingAudioIndex + 1} needs character audio - students listen to it before responding.`;
+        }
+      }
     }
   }
 

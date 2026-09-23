@@ -6,8 +6,76 @@ import type {
   StoryPhrasesByLevel,
   StoryVocabularyByLevel,
 } from "../../utils/teacherStories";
+import type { ConversationTurn } from "../story-recorder/StoryRecorder/conversation";
 import { buildPhraseRows, buildVocabRows } from "../../utils/myStoriesUtils";
-import { blankStoryPhrases, blankStoryVocabulary, emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
+import {
+  blankStoryPhrases,
+  blankStoryVocabulary,
+  emptyCustomStoryDraft,
+  type ConversationExchangeDraft,
+} from "./StoryBuilderSection.helpers";
+
+/** Epic 3: one exchange draft -> one system turn + one student turn. Skips
+ * an exchange with no content at all (a freshly-added blank row that was
+ * never filled in), so an untouched "+ Add exchange" click doesn't block
+ * saving via validateCustomStoryDraft's completeness check. */
+export function exchangesToConversationTurns(
+  exchanges: ConversationExchangeDraft[],
+): ConversationTurn[] | undefined {
+  const meaningful = exchanges.filter(
+    (exchange) => exchange.characterText.trim() || exchange.studentText.trim(),
+  );
+  if (meaningful.length === 0) return undefined;
+
+  const turns: ConversationTurn[] = [];
+  meaningful.forEach((exchange) => {
+    turns.push({
+      id: `system-${exchange.id}`,
+      speaker: "system",
+      text: exchange.characterText.trim(),
+      ...(exchange.characterPinyin.trim() ? { pinyin: exchange.characterPinyin.trim() } : {}),
+      ...(exchange.characterTranslation.trim() ? { translation: exchange.characterTranslation.trim() } : {}),
+      ...(exchange.characterAudioUrl.trim() ? { audioUrl: exchange.characterAudioUrl.trim() } : {}),
+    });
+    turns.push({
+      id: `student-${exchange.id}`,
+      speaker: "student",
+      text: exchange.studentText.trim(),
+      targetText: exchange.studentText.trim(),
+      ...(exchange.studentPinyin.trim() ? { pinyin: exchange.studentPinyin.trim() } : {}),
+      ...(exchange.studentTranslation.trim() ? { translation: exchange.studentTranslation.trim() } : {}),
+      ...(exchange.studentModelAudioUrl.trim() ? { targetAudioUrl: exchange.studentModelAudioUrl.trim() } : {}),
+    });
+  });
+  return turns;
+}
+
+/** The inverse, for loading an existing story back into the builder.
+ * Pairs turns positionally (system, student, system, student, ...) rather
+ * than trusting id prefixes, so it tolerates turns authored outside the
+ * builder too. An unpaired trailing turn (malformed data) is dropped. */
+export function conversationTurnsToExchanges(
+  turns: ConversationTurn[] | undefined,
+): ConversationExchangeDraft[] {
+  if (!turns || turns.length === 0) return [];
+  const exchanges: ConversationExchangeDraft[] = [];
+  for (let index = 0; index + 1 < turns.length; index += 2) {
+    const system = turns[index];
+    const student = turns[index + 1];
+    exchanges.push({
+      id: system.id.replace(/^system-/, "") || `exchange-${index / 2 + 1}`,
+      characterText: system.text || "",
+      characterPinyin: system.pinyin || "",
+      characterTranslation: system.translation || "",
+      characterAudioUrl: system.audioUrl || "",
+      studentText: student.targetText || student.text || "",
+      studentPinyin: student.pinyin || "",
+      studentTranslation: student.translation || "",
+      studentModelAudioUrl: student.targetAudioUrl || "",
+    });
+  }
+  return exchanges;
+}
 
 const TIER_BACKEND_FIELD: Record<TieredDraftField, { easy: keyof CustomStoryFrame }> = {
   imageUrls: { easy: "imageUrl" },
@@ -67,6 +135,12 @@ export function createCustomStory(
     storyPhrases: draft.storyPhrases,
     ...(draft.lessonNumber.trim() ? { lessonNumber: Number(draft.lessonNumber) } : {}),
     ...(draft.lessonSubOrder.trim() ? { lessonSubOrder: Number(draft.lessonSubOrder) } : {}),
+    // Disabling the toggle and saving intentionally clears conversationTurns
+    // (undefined here -> the request omits the field -> the backend writes
+    // NULL) rather than leaving stale exchanges a teacher just turned off.
+    conversationTurns: draft.conversationEnabled
+      ? exchangesToConversationTurns(draft.conversationExchanges)
+      : undefined,
   };
 }
 
@@ -182,5 +256,7 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
     listenAudioUrls: tiersFor("listenAudioUrls"),
     listenAudioSources: tiersFor("listenAudioSources"),
     listenScripts: tiersFor("listenScripts"),
+    conversationEnabled: Boolean(story.conversationTurns?.length),
+    conversationExchanges: conversationTurnsToExchanges(story.conversationTurns),
   };
 }

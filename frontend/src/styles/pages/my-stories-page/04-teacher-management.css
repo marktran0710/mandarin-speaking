@@ -192,6 +192,90 @@
   width: auto;
 }
 
+.teacher-conversation-editor {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+.teacher-conversation-heading h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+}
+.teacher-conversation-heading p {
+  margin: 0;
+  color: var(--clay-ink-soft, #6b7280);
+  font-size: var(--text-xs);
+}
+.teacher-conversation-exchanges {
+  display: grid;
+  gap: var(--space-sm);
+}
+.teacher-conversation-exchange {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+.teacher-conversation-exchange-header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.teacher-conversation-exchange-actions {
+  display: flex;
+  gap: 6px;
+}
+.teacher-conversation-exchange-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  cursor: pointer;
+}
+.teacher-conversation-exchange-delete {
+  color: var(--seal-deep);
+}
+.teacher-conversation-side {
+  display: grid;
+  gap: 7px;
+  padding: var(--space-xs);
+  border: 0;
+}
+.teacher-conversation-side legend {
+  font-size: var(--text-xs);
+  font-weight: 900;
+  color: var(--seal-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.teacher-conversation-side audio {
+  width: 100%;
+}
+.teacher-conversation-add {
+  justify-self: start;
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  cursor: pointer;
+  font-weight: 800;
+}
+@media (max-width: 720px) {
+  .teacher-conversation-exchange {
+    grid-template-columns: 1fr;
+  }
+}
+
 .custom-story-form input,
 .custom-story-form select,
 .custom-story-form textarea {

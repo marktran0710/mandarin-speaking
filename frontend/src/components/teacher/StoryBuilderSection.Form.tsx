@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from "react";
 import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
+import StoryBuilderConversationEditor from "./StoryBuilderSection.ConversationEditor";
 import VocabularyTable from "./VocabularyTable";
 import PhraseTable from "./PhraseTable";
 import StudentIcon from "../navigation/StudentIcon";
@@ -165,6 +166,7 @@ export default function StoryBuilderForm(props) {
     </section>
     <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} savedReviewBanner={savedReviewBanner} onGoToQuizReview={onGoToQuizReview} onDismissReview={onDismissReview} />
     <StoryBuilderFrameEditor {...props} />
+    <StoryBuilderConversationEditor {...props} />
     <StoryFormActionGroup preparedFrameCount={preparedFrameCount} frameCount={draft.imageUrls.easy.length} editingStoryId={editingStoryId} onCancel={onCancel} />
     {learningContentOpen && <div className="story-learning-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeLearningContent(); }}>
       <div className="story-learning-modal" data-story-learning-dialog role="dialog" aria-modal="true" aria-labelledby="story-learning-content-title" onMouseDown={(event) => event.stopPropagation()}>
