@@ -97,7 +97,6 @@ export default function SpeakingConversationFlow({
 
   const activeTurn = currentConversationTurn(state, turns);
   const studentTurn = state.step === "summary" ? null : turns[state.turnIndex];
-  const previousSystemTurn = state.turnIndex > 0 ? turns[state.turnIndex - 1] : undefined;
 
   const applyTransition = useCallback((event: Parameters<typeof transitionConversation>[1]) => {
     setState((current) => {
@@ -473,7 +472,10 @@ export default function SpeakingConversationFlow({
       selectedImageIndex={selectedImageIndex}
       totalScenes={turns.length}
       modelSentence={currentStudentTurn.targetText || currentStudentTurn.text}
-      modelAudioUrl={previousSystemTurn?.audioUrl}
+      // The student's own optional model-response recording - never the
+      // character's line (previousSystemTurn.audioUrl), which is a
+      // different speaker saying a different sentence.
+      modelAudioUrl={currentStudentTurn.targetAudioUrl}
       promptMode="external"
       prog={{ attempts, bestTone: Math.round(metrics?.tone_accuracy ?? 0), bestFluency: Math.round(metrics?.fluency_score ?? 0) }}
       praatMetrics={metrics}
@@ -496,8 +498,12 @@ export default function SpeakingConversationFlow({
       pendingUploadUrl={pendingUploadUrl}
       onAnalyzePendingUpload={analyzePendingUpload}
       onClearPendingUpload={clearPendingUpload}
-      masteryPassed
-      contentPassed
+      masteryPassed={progressFlags.masteryPassed}
+      contentPassed={progressFlags.contentPassed}
+      // Non-blocking by design (feedback informs but doesn't gate the next
+      // exchange) - unlike masteryPassed/contentPassed above, this one is
+      // deliberately not tied to the real verdict, per the product's
+      // existing continuation policy.
       sceneReadyOverride
       clearedWords={[]}
       onWordDrillPass={() => undefined}
