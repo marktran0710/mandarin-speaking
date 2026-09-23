@@ -220,7 +220,7 @@ def test_third_tone_sandhi_never_crosses_strong_punctuation(mark):
     boundary is gone. The planner reads it off the raw transcript instead.
     """
     text = f"你好{mark}我好"
-    from praat_analyzer import _prosody_tokens
+    from domain.speech.acoustics.phrase_rescue import _prosody_tokens
 
     plan = plan_for_tokens(_prosody_tokens(text), text=text)
     assert [item.char for item in plan] == ["你", "好", "我", "好"]
@@ -240,7 +240,7 @@ def test_without_punctuation_the_same_characters_form_one_chain():
     do become a single run, which is treated as ambiguous rather than forced
     into one grouping."""
     text = "你好我好"
-    from praat_analyzer import _prosody_tokens
+    from domain.speech.acoustics.phrase_rescue import _prosody_tokens
 
     plan = plan_for_tokens(_prosody_tokens(text), text=text)
     assert [tuple(p.accepted_surface_tones) for p in plan] == [
@@ -256,7 +256,7 @@ def test_a_third_tone_before_a_pause_keeps_its_full_dip():
     """好，我… — 好 is phrase-final, so it is not the half third it would be
     if the T4 after the comma were in the same phrase."""
     text = "好，去"
-    from praat_analyzer import _prosody_tokens
+    from domain.speech.acoustics.phrase_rescue import _prosody_tokens
 
     plan = plan_for_tokens(_prosody_tokens(text), text=text)
     assert plan[0].realization == FULL_THIRD
@@ -269,7 +269,7 @@ def test_a_third_tone_before_a_pause_keeps_its_full_dip():
 def test_whitespace_alone_does_not_block_sandhi():
     """A space is not a pause. 你 好 is still one phrase."""
     text = "你 好"
-    from praat_analyzer import _prosody_tokens
+    from domain.speech.acoustics.phrase_rescue import _prosody_tokens
 
     plan = plan_for_tokens(_prosody_tokens(text), text=text)
     assert plan[0].accepted_surface_tones == (2,)
@@ -299,7 +299,7 @@ def test_han_break_flags_reads_the_raw_transcript():
     ],
 )
 def test_yi_and_bu_are_planned_over_the_whole_utterance(text, expected_first, rule):
-    from praat_analyzer import _prosody_tokens
+    from domain.speech.acoustics.phrase_rescue import _prosody_tokens
 
     tokens = _prosody_tokens(text)
     plan = plan_for_tokens(tokens, text=text)
@@ -317,7 +317,7 @@ def test_yi_and_bu_survive_however_the_segmenter_cuts_them(text):
     """Whatever jieba does with the surrounding words, the syllable after 一/不
     is still visible to the rule, because planning runs over the whole
     utterance rather than one token at a time."""
-    from praat_analyzer import _prosody_tokens
+    from domain.speech.acoustics.phrase_rescue import _prosody_tokens
 
     plan = plan_for_tokens(_prosody_tokens(text), text=text)
     target = next(item for item in plan if item.char in ("一", "不"))
