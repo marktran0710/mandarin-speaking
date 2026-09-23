@@ -5,29 +5,33 @@ from fastapi import APIRouter, HTTPException
 from routers.story_quiz_vocabulary import (
     QuizVocabularyQuestionInput,
     QuizVocabularyWordInput,
+    create_quiz_vocabulary_word,
+    delete_quiz_vocabulary_word,
+    router as story_quiz_vocabulary_router,
+    update_quiz_vocabulary_word,
+)
+from services.story_quiz_vocabulary_service import (
     _assessment_rows,
     _check_expected_revision,
     _ensure_unique_quiz_content,
     _question_rows,
     _validate_quiz_bank,
     _write_quiz_bank,
-    create_quiz_vocabulary_word,
-    delete_quiz_vocabulary_word,
-    router as story_quiz_vocabulary_router,
-    update_quiz_vocabulary_word,
 )
 from routers.story_vocabulary_metadata import (
-    FIELDS,
-    SUFFIXES,
     VocabularyColumns,
     VocabularyMetadataEdit,
+    router as story_vocabulary_metadata_router,
+    update_vocabulary_metadata,
+)
+from services.story_vocabulary_metadata_service import (
+    FIELDS,
+    SUFFIXES,
     _replace_answer_value,
     assessment_columns,
     effective_columns,
     metadata_changes,
-    router as story_vocabulary_metadata_router,
     update_assessment_metadata,
-    update_vocabulary_metadata,
 )
 
 

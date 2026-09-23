@@ -12,11 +12,11 @@ from api.schemas.models import (
     VocabularyDistractorsUpdateRequest,
     VocabularySynonymUpdateRequest,
 )
-from routers.story_quiz_materials import (
-    _existing_pool,
-    _load_frames,
-    _write_frame_field,
+from repositories.story_quiz_materials_repository import (
+    load_frames as _load_frames,
+    write_frame_field as _write_frame_field,
 )
+from services.story_quiz_materials_service import existing_pool as _existing_pool
 
 
 router = APIRouter(dependencies=[Depends(auth.require_story_access)])
