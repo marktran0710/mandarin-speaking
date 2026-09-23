@@ -223,10 +223,23 @@ export default function TeacherSubmissionsView({
                       </div>
                     )}
                     <div className="story-submission-scenes">
-                      {sub.scenes.map((scene) => (
-                        <div key={scene.sceneIndex} className="story-submission-scene">
+                      {sub.scenes.map((scene, sceneIndexInSubmission) => {
+                        // Every exchange in a Conversation Practice submission
+                        // shares the same sceneIndex (the story's single
+                        // selected image, not a per-scene counter) - keying
+                        // and labeling by it alone would collide every
+                        // exchange onto "Scene 1" and give React duplicate
+                        // list keys. turnId/turnIndex (Epic 1) disambiguate.
+                        const isConversationTurn = Boolean(scene.conversationId);
+                        const exchangeNumber = Math.floor((scene.turnIndex ?? 0) / 2) + 1;
+                        const label = isConversationTurn
+                          ? `Exchange ${exchangeNumber}`
+                          : `Scene ${scene.sceneIndex + 1}`;
+                        const key = scene.turnId ?? `${scene.sceneIndex}-${sceneIndexInSubmission}`;
+                        return (
+                        <div key={key} className="story-submission-scene">
                           <div className="sss-header">
-                            <span className="sss-scene-num">Scene {scene.sceneIndex + 1}</span>
+                            <span className="sss-scene-num">{label}</span>
                             <span className="sss-score" title="Vocab / Tone / Character-by-character prosody">
                               Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore}%
                             </span>
@@ -262,11 +275,12 @@ export default function TeacherSubmissionsView({
                               controls
                               src={resolveImageUrl(scene.audioUrl)}
                               className="sss-audio"
-                              aria-label={`Scene ${scene.sceneIndex + 1} recording`}
+                              aria-label={`${label} recording`}
                             />
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {(sub.concatenatedAudioUrl || sub.storyFeedback) && (
                       <StoryFeedbackCard

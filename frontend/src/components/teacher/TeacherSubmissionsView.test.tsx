@@ -116,6 +116,37 @@ describe("TeacherSubmissionsView", () => {
     expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("labels conversation turns as distinct exchanges instead of colliding on the same scene number", async () => {
+    // Every turn in a Conversation Practice submission shares one
+    // sceneIndex (the story's single selected image, not a per-turn
+    // counter) - Epic 11 regression: labeling/keying by sceneIndex alone
+    // used to render every exchange as "Scene 1".
+    const user = userEvent.setup();
+    const conversationSubmission: StorySubmission = {
+      ...submissions[0],
+      scenes: [
+        { ...submissions[0].scenes[0], transcription: "你好！", conversationId: "conversation:story-garden", turnId: "student-1", turnIndex: 1 },
+        { ...submissions[0].scenes[0], transcription: "我很好。", conversationId: "conversation:story-garden", turnId: "student-2", turnIndex: 3 },
+      ],
+    };
+
+    render(<TeacherSubmissionsView submissions={[conversationSubmission]} onReviewUpdate={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Details" }));
+
+    expect(screen.getByText("Exchange 1")).toBeInTheDocument();
+    expect(screen.getByText("Exchange 2")).toBeInTheDocument();
+    expect(screen.queryByText(/^Scene \d/)).not.toBeInTheDocument();
+    expect(screen.getByText("你好！", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("我很好。", { exact: false })).toBeInTheDocument();
+  });
+
+  it("still labels a legacy (non-conversation) submission by scene number", async () => {
+    const user = userEvent.setup();
+    render(<TeacherSubmissionsView submissions={[submissions[0]]} onReviewUpdate={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Details" }));
+    expect(screen.getByText("Scene 1")).toBeInTheDocument();
+  });
+
   it("narrows the list with the student filter", async () => {
     const user = userEvent.setup();
 
