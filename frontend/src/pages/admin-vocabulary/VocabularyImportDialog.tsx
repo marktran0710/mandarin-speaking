@@ -8,7 +8,7 @@ import {
   type VocabularyImportResult,
 } from "../../services/api/vocabulary";
 
-/** Admin quiz-vocabulary CSV import: upload -> server-side preview (nothing
+/** Admin quiz-vocabulary CSV/XLSX import: upload -> server-side preview (nothing
  * written yet) -> explicit confirm. Reuses the same column format and
  * validation as backend/scripts/import_question_bank_workbook.py, just
  * generalized to any section/story instead of hardcoded to Chapters 5-8.
@@ -74,9 +74,10 @@ export default function VocabularyImportDialog({ onClose, onImported }: {
     <Modal open title="Import quiz vocabulary" onClose={onClose}>
       <div className="av-import">
         <p className="av-editor-help">
-          Upload a question-bank CSV (same columns as the workbook export: Word Key, Traditional
-          Chinese, Pinyin, POS, English Meaning, Round, Question Type, Options, Correct Answer,
-          Accepted Answers, Section, …). Nothing is written until you confirm below - imported
+          Upload a question-bank CSV or XLSX (same columns as the workbook export: Word Key,
+          Traditional Chinese, Pinyin, POS, English Meaning, Round, Question Type, Options, Correct
+          Answer, Accepted Answers, Section, …). For XLSX, a sheet named "Questions" is used if
+          present, otherwise the first sheet. Nothing is written until you confirm below - imported
           words are upserted by Word Key into the story matched by Section (e.g. "5-1"); existing
           words that story already has and the file doesn't mention are left untouched.
         </p>
@@ -84,8 +85,8 @@ export default function VocabularyImportDialog({ onClose, onImported }: {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".csv,text/csv"
-          aria-label="Question bank CSV file"
+          accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          aria-label="Question bank CSV or XLSX file"
           onChange={(event) => void pickFile(event.target.files?.[0] ?? null)}
           disabled={loading || confirming}
         />

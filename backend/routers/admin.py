@@ -103,12 +103,12 @@ async def preview_vocabulary_import_upload(
     file: UploadFile = File(...),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
-    """Read-only: parse and validate an uploaded question-bank CSV, report
-    what an import would change. Writes nothing."""
+    """Read-only: parse and validate an uploaded question-bank CSV/XLSX,
+    report what an import would change. Writes nothing."""
     content = await file.read()
     try:
         with connect_db() as db:
-            return preview_vocabulary_import(db, content)
+            return preview_vocabulary_import(db, content, filename=file.filename or "")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -124,6 +124,6 @@ async def confirm_vocabulary_import_upload(
     content = await file.read()
     try:
         with connect_db() as db:
-            return apply_vocabulary_import(db, content)
+            return apply_vocabulary_import(db, content, filename=file.filename or "")
     except (ValueError, LookupError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

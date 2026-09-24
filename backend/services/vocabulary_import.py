@@ -22,6 +22,7 @@ import io
 from collections import defaultdict
 from typing import Any
 
+import openpyxl
 from psycopg.types.json import Jsonb
 
 from domain.vocabulary.assessment import validate_assessment_payload
@@ -36,6 +37,54 @@ def parse_csv_rows(content: bytes) -> list[dict[str, str]]:
     if missing:
         raise ValueError(f"File is missing required columns: {', '.join(sorted(missing))}")
     return [dict(row) for row in reader if row.get("Question ID")]
+
+
+def _cell_text(value: object) -> str:
+    """Excel stores numbers as float/int, not text - PDF Page 12 would
+    otherwise become "12.0". Everything else stringifies as typed."""
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
+
+
+def parse_xlsx_rows(content: bytes) -> list[dict[str, str]]:
+    workbook = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    try:
+        sheet = next(
+            (workbook[name] for name in workbook.sheetnames if name.strip().casefold() == "questions"),
+            workbook[workbook.sheetnames[0]],
+        )
+        rows_iter = sheet.iter_rows(values_only=True)
+        try:
+            header_row = next(rows_iter)
+        except StopIteration:
+            raise ValueError("File has no header row.") from None
+        header = [_cell_text(cell) for cell in header_row]
+        missing = REQUIRED_COLUMNS.difference(header)
+        if missing:
+            raise ValueError(f"File is missing required columns: {', '.join(sorted(missing))}")
+        rows: list[dict[str, str]] = []
+        for raw_row in rows_iter:
+            row = {header[index]: _cell_text(raw_row[index]) for index in range(len(header)) if index < len(raw_row)}
+            if row.get("Question ID"):
+                rows.append(row)
+        return rows
+    finally:
+        workbook.close()
+
+
+def parse_uploaded_rows(filename: str, content: bytes) -> list[dict[str, str]]:
+    """Dispatch by extension - both formats produce the identical row shape
+    that validate_import_rows/build_payloads consume, so nothing downstream
+    needs to know which one was uploaded."""
+    suffix = (filename or "").rsplit(".", 1)[-1].casefold() if "." in (filename or "") else ""
+    if suffix in {"xlsx", "xlsm"}:
+        return parse_xlsx_rows(content)
+    if suffix == "xls":
+        raise ValueError("The legacy .xls format is not supported - save as .xlsx or .csv and re-upload.")
+    return parse_csv_rows(content)
 
 
 def _answers(value: str) -> list[str]:
@@ -129,9 +178,9 @@ def _merge_assessment(existing: list[dict[str, Any]], incoming: list[dict[str, A
     return kept + incoming
 
 
-def preview_vocabulary_import(db: Any, content: bytes) -> dict[str, Any]:
+def preview_vocabulary_import(db: Any, content: bytes, filename: str = "") -> dict[str, Any]:
     """Read-only: parse, validate, and report what an import would do."""
-    rows = parse_csv_rows(content)
+    rows = parse_uploaded_rows(filename, content)
     row_issues = validate_import_rows(rows)
     if row_issues:
         return {"rows": len(rows), "rowIssues": row_issues, "sections": []}
@@ -140,10 +189,10 @@ def preview_vocabulary_import(db: Any, content: bytes) -> dict[str, Any]:
     return {"rows": len(rows), "rowIssues": [], "sections": with_db}
 
 
-def apply_vocabulary_import(db: Any, content: bytes) -> dict[str, Any]:
+def apply_vocabulary_import(db: Any, content: bytes, filename: str = "") -> dict[str, Any]:
     """Write path. Re-validates from scratch - never trusts a client-held
     preview result as proof the file is still valid to write."""
-    rows = parse_csv_rows(content)
+    rows = parse_uploaded_rows(filename, content)
     row_issues = validate_import_rows(rows)
     if row_issues:
         raise ValueError("Row validation failed:\n" + "\n".join(row_issues[:30]))

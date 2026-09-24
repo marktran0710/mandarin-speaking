@@ -1,7 +1,8 @@
-"""Admin quiz-vocabulary CSV import: preview (read-only) and confirm (write)."""
+"""Admin quiz-vocabulary CSV/XLSX import: preview (read-only) and confirm (write)."""
 import csv
 import io
 
+import openpyxl
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,6 +14,8 @@ from services.vocabulary_import import (
     _merge_assessment,
     apply_vocabulary_import,
     parse_csv_rows,
+    parse_uploaded_rows,
+    parse_xlsx_rows,
     preview_vocabulary_import,
     validate_import_rows,
 )
@@ -57,6 +60,81 @@ def csv_bytes(rows: list[dict[str, str]]) -> bytes:
     for row in rows:
         writer.writerow(row)
     return buffer.getvalue().encode("utf-8")
+
+
+def xlsx_bytes(rows: list[dict[str, str]], *, sheet_name: str = "Questions") -> bytes:
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = sheet_name
+    sheet.append(COLUMNS)
+    for row in rows:
+        sheet.append([row.get(column, "") for column in COLUMNS])
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+def test_parse_xlsx_rows_matches_csv_rows():
+    rows = word_rows()
+    assert parse_xlsx_rows(xlsx_bytes(rows)) == rows
+
+
+def test_parse_xlsx_rows_finds_a_sheet_named_questions_even_if_not_first():
+    workbook = openpyxl.Workbook()
+    workbook.active.title = "Cover"
+    sheet = workbook.create_sheet("Questions")
+    sheet.append(COLUMNS)
+    for row in word_rows():
+        sheet.append([row.get(column, "") for column in COLUMNS])
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    assert parse_xlsx_rows(buffer.getvalue()) == word_rows()
+
+
+def test_parse_xlsx_rows_converts_integer_floats_to_plain_strings():
+    rows = word_rows()
+    rows[0]["PDF Page"] = "12"
+    content = xlsx_bytes(rows)
+    # openpyxl writes numeric-looking strings as real numbers; read back as "12" not "12.0".
+    assert parse_xlsx_rows(content)[0]["PDF Page"] == "12"
+
+
+def test_parse_xlsx_rows_reports_missing_columns():
+    workbook = openpyxl.Workbook()
+    workbook.active.append(["Question ID", "Word Key"])
+    workbook.active.append(["Q1", "W1"])
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    with pytest.raises(ValueError, match="missing required columns"):
+        parse_xlsx_rows(buffer.getvalue())
+
+
+def test_parse_uploaded_rows_dispatches_by_extension():
+    rows = word_rows()
+    assert parse_uploaded_rows("bank.csv", csv_bytes(rows)) == rows
+    assert parse_uploaded_rows("bank.xlsx", xlsx_bytes(rows)) == rows
+    assert parse_uploaded_rows("", csv_bytes(rows)) == rows  # no extension falls back to CSV
+
+
+def test_parse_uploaded_rows_rejects_legacy_xls():
+    with pytest.raises(ValueError, match="legacy .xls format is not supported"):
+        parse_uploaded_rows("bank.xls", b"anything")
+
+
+def test_preview_and_confirm_from_an_xlsx_file(client):
+    story = {
+        "id": "vocab-import-xlsx-story-98-1", "title": "XLSX import test", "frames": [],
+        "published": True, "lessonNumber": 98, "lessonSubOrder": 1,
+    }
+    assert client.post("/api/custom-stories", json=story).status_code == 200
+    content = xlsx_bytes(word_rows(word_key="C98-1-I1-W001", section="98-1"))
+    with connect_db() as db:
+        preview = preview_vocabulary_import(db, content, filename="bank.xlsx")
+    assert preview["rowIssues"] == []
+    assert preview["sections"][0]["newWords"] == 1
+    with connect_db() as db:
+        result = apply_vocabulary_import(db, content, filename="bank.xlsx")
+    assert result["published"][0]["storyId"] == "vocab-import-xlsx-story-98-1"
 
 
 def test_parse_csv_rows_reports_missing_columns():
@@ -167,7 +245,7 @@ def import_endpoint_api(monkeypatch):
 
 def test_import_endpoints_are_admin_only(import_endpoint_api, monkeypatch):
     test_client = import_endpoint_api
-    monkeypatch.setattr(admin, "preview_vocabulary_import", lambda db, content: {"rows": 0, "rowIssues": [], "sections": []})
+    monkeypatch.setattr(admin, "preview_vocabulary_import", lambda db, content, filename="": {"rows": 0, "rowIssues": [], "sections": []})
     files = {"file": ("bank.csv", b"Question ID\n", "text/csv")}
 
     response = test_client.post("/api/admin/vocabulary-import/preview", files=files)

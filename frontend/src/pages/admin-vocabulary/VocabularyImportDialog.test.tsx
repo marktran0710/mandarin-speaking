@@ -26,7 +26,7 @@ beforeEach(() => {
 describe("VocabularyImportDialog", () => {
   it("previews on file select and shows the matched section", async () => {
     render(<VocabularyImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
-    await pickFile(screen.getByLabelText("Question bank CSV file"));
+    await pickFile(screen.getByLabelText("Question bank CSV or XLSX file"));
     await screen.findByText("我的房間");
     expect(screen.getByText(/1 new/)).toBeInTheDocument();
     expect(previewVocabularyImport).toHaveBeenCalledTimes(1);
@@ -35,7 +35,7 @@ describe("VocabularyImportDialog", () => {
   it("disables Confirm import while there are row-level validation issues", async () => {
     vi.mocked(previewVocabularyImport).mockResolvedValue({ rows: 3, rowIssues: ["Q1: bad round"], sections: [] });
     render(<VocabularyImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
-    await pickFile(screen.getByLabelText("Question bank CSV file"));
+    await pickFile(screen.getByLabelText("Question bank CSV or XLSX file"));
     await screen.findByText("Q1: bad round");
     expect(screen.getByRole("button", { name: /Confirm import/ })).toBeDisabled();
   });
@@ -46,7 +46,7 @@ describe("VocabularyImportDialog", () => {
       sections: [{ section: "97-9", storyId: null, storyTitle: null, found: false, error: "No existing story is assigned to lesson part 97-9.", newWords: 0, updatedWords: 0, questionCount: 3, issues: [] }],
     });
     render(<VocabularyImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
-    await pickFile(screen.getByLabelText("Question bank CSV file"));
+    await pickFile(screen.getByLabelText("Question bank CSV or XLSX file"));
     await screen.findByText(/No existing story is assigned/);
     expect(screen.getByRole("button", { name: /Confirm import/ })).toBeDisabled();
   });
@@ -57,7 +57,7 @@ describe("VocabularyImportDialog", () => {
     const onImported = vi.fn();
     const user = userEvent.setup();
     render(<VocabularyImportDialog onClose={vi.fn()} onImported={onImported} />);
-    await pickFile(screen.getByLabelText("Question bank CSV file"));
+    await pickFile(screen.getByLabelText("Question bank CSV or XLSX file"));
     await screen.findByText("我的房間");
     await user.click(screen.getByRole("button", { name: /Confirm import/ }));
     await waitFor(() => expect(screen.getByText("Imported.")).toBeInTheDocument());
@@ -69,7 +69,7 @@ describe("VocabularyImportDialog", () => {
     vi.mocked(confirmVocabularyImport).mockRejectedValue(new Error("5-1 would fail validation after merge"));
     const user = userEvent.setup();
     render(<VocabularyImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
-    await pickFile(screen.getByLabelText("Question bank CSV file"));
+    await pickFile(screen.getByLabelText("Question bank CSV or XLSX file"));
     await screen.findByText("我的房間");
     await user.click(screen.getByRole("button", { name: /Confirm import/ }));
     await screen.findByRole("alert");
