@@ -1,0 +1,26 @@
+.sa-vocab-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--sa-space-md);
+}
+
+.sa-vocab-preview__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sa-space-sm);
+  padding: var(--sa-space-lg) var(--sa-space-md);
+  text-align: center;
+}
+
+.sa-vocab-preview__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sa-space-xl);
+}
+
+@media (max-width: 640px) {
+  .sa-vocab-preview__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sa-vocab-preview__footer { justify-content: stretch; }
+  .sa-vocab-preview__footer .sa-button { width: 100%; }
+}

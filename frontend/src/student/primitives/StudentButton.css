@@ -1,0 +1,71 @@
+.sa-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sa-space-sm);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-label-md);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--sa-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--sa-motion-fast), border-color var(--sa-motion-fast), color var(--sa-motion-fast);
+  white-space: nowrap;
+}
+
+.sa-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Sizes — default is a real 44px touch target; sm is for dense inline row
+   actions (e.g. a lesson-row "Review" link) that sit beside plenty of other
+   spacing, never a page's one primary action. */
+.sa-button--sm { height: 34px; padding: 0 var(--sa-space-md); font-size: var(--sa-text-label-sm); }
+.sa-button--default { height: 44px; padding: 0 var(--sa-space-lg); }
+.sa-button--lg { height: 50px; padding: 0 var(--sa-space-xl); font-size: var(--sa-text-body-md); }
+
+/* Primary */
+.sa-button--primary {
+  background: var(--sa-primary-container);
+  color: var(--sa-on-primary-container);
+  border-color: var(--sa-primary-container);
+}
+.sa-button--primary:hover:not(:disabled) { background: var(--sa-primary-fixed-dim); }
+.sa-button--primary:active:not(:disabled) { background: var(--sa-inverse-primary); }
+
+/* Secondary */
+.sa-button--secondary {
+  background: var(--sa-surface-container-lowest);
+  color: var(--sa-on-surface);
+  border-color: var(--sa-outline-variant);
+}
+.sa-button--secondary:hover:not(:disabled) {
+  background: var(--sa-surface-container-low);
+  border-color: var(--sa-outline);
+}
+
+/* Subtle */
+.sa-button--subtle {
+  background: transparent;
+  color: var(--sa-on-surface-variant);
+  border-color: transparent;
+}
+.sa-button--subtle:hover:not(:disabled) {
+  background: var(--sa-surface-container-low);
+  color: var(--sa-on-surface);
+}
+
+/* Danger */
+.sa-button--danger {
+  background: var(--sa-surface-container-lowest);
+  color: var(--sa-outline);
+  border-color: var(--sa-error-container);
+}
+.sa-button--danger:hover:not(:disabled) {
+  background: var(--sa-error-container);
+  color: var(--sa-on-error-container);
+}
+
+.sa-button__label { line-height: 1; }

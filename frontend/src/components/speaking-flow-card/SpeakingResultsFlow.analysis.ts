@@ -11,7 +11,7 @@ import {
 } from "../../utils/scriptAlignment";
 import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";
 import type { PraatMetrics } from "../story-recorder/StoryRecorder";
-import { buildPracticeTargets, type PracticeTarget, type ResultsStep } from "./SpeakingResultsFlow.helpers";
+import { buildPracticeTargets, type PracticeTarget, type ResultsStep } from "./SpeakingResultsFlow.practiceTargets";
 
 export interface SpeakingResultAnalysisInput {
   modelSentence?: string;

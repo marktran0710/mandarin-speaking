@@ -1,0 +1,16 @@
+.sa-section {
+  border-radius: var(--sa-radius-md);
+}
+
+.sa-section--flat {
+  background: transparent;
+}
+
+.sa-section--panel {
+  background: var(--sa-surface-container-lowest);
+  border: 1px solid var(--sa-surface-container-highest);
+}
+
+.sa-section--tinted {
+  background: var(--sa-surface-container-low);
+}

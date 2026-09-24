@@ -1,0 +1,165 @@
+/* Academic Mandarin Research Studio — design tokens.
+   Source of truth: DESIGN.md supplied by the user. Scoped under .student-app
+   so this never leaks into teacher.html/admin.html (which keep "Tone Colors"). */
+
+.student-app {
+  /* ---- Surfaces & neutrals ---- */
+  --sa-surface: #f7f9ff;
+  --sa-surface-dim: #d7dadf;
+  --sa-surface-bright: #f7f9ff;
+  --sa-surface-container-lowest: #ffffff;
+  --sa-surface-container-low: #f1f4f9;
+  --sa-surface-container: #ebeef3;
+  --sa-surface-container-high: #e5e8ed;
+  --sa-surface-container-highest: #e0e3e8;
+  --sa-on-surface: #181c20;
+  --sa-on-surface-variant: #42474b;
+  --sa-inverse-surface: #2d3135;
+  --sa-inverse-on-surface: #eef1f6;
+  --sa-outline: #73787c;
+  --sa-outline-variant: #c2c7cb;
+  --sa-background: #f7f9ff;
+  --sa-on-background: #181c20;
+  --sa-surface-variant: #e0e3e8;
+
+  /* ---- Primary (teal-slate) ---- */
+  --sa-primary: #49626f;
+  --sa-on-primary: #ffffff;
+  --sa-primary-container: #bdd7e7;
+  --sa-on-primary-container: #465e6c;
+  --sa-inverse-primary: #b0cada;
+  --sa-primary-fixed: #cce6f7;
+  --sa-primary-fixed-dim: #b0cada;
+  --sa-on-primary-fixed: #031e2a;
+  --sa-on-primary-fixed-variant: #314a57;
+
+  /* ---- Secondary (sage) ---- */
+  --sa-secondary: #4d6452;
+  --sa-on-secondary: #ffffff;
+  --sa-secondary-container: #d0e9d2;
+  --sa-on-secondary-container: #536a58;
+  --sa-secondary-fixed: #d0e9d2;
+  --sa-secondary-fixed-dim: #b4cdb7;
+  --sa-on-secondary-fixed: #0b2012;
+  --sa-on-secondary-fixed-variant: #364c3b;
+
+  /* ---- Tertiary (lavender) ---- */
+  --sa-tertiary: #665a71;
+  --sa-on-tertiary: #ffffff;
+  --sa-tertiary-container: #ddcde9;
+  --sa-on-tertiary-container: #62566e;
+  --sa-tertiary-fixed: #eddcf9;
+  --sa-tertiary-fixed-dim: #d0c1dc;
+  --sa-on-tertiary-fixed: #21172c;
+  --sa-on-tertiary-fixed-variant: #4e4259;
+
+  /* ---- Error (rose) ---- */
+  --sa-error: #ba1a1a;
+  --sa-on-error: #ffffff;
+  --sa-error-container: #ffdad6;
+  --sa-on-error-container: #93000a;
+
+  /* ---- Radius ---- */
+  --sa-radius-sm: 0.25rem;   /* 4px  — annotation pills, radical badges */
+  --sa-radius: 0.5rem;       /* 8px  — inputs, buttons, badges, morpheme tiles */
+  --sa-radius-md: 0.75rem;   /* 12px — panels, lexicon cards, modal sheets */
+  --sa-radius-lg: 1rem;      /* 16px */
+  --sa-radius-xl: 1.5rem;
+  --sa-radius-full: 9999px;
+
+  /* ---- Spacing ---- */
+  --sa-gutter: 1rem;
+  --sa-gutter-desktop: 1.5rem;
+  --sa-margin: 1rem;
+  --sa-margin-tablet: 2rem;
+  --sa-margin-desktop: 3rem;
+  --sa-space-xs: 0.25rem;
+  --sa-space-sm: 0.375rem;
+  --sa-space-md: 0.75rem;
+  --sa-space-lg: 1.25rem;
+  --sa-space-xl: 2rem;
+
+  /* ---- Typography ---- */
+  --sa-font-headline: "Newsreader", Georgia, serif;
+  --sa-font-body: "Noto Serif TC", "Noto Serif", "Songti TC", Georgia, serif;
+  --sa-font-label: "Source Sans 3", "PingFang TC", "Segoe UI", sans-serif;
+
+  --sa-text-headline-lg: 30px;   --sa-leading-headline-lg: 38px;
+  --sa-text-headline-md: 24px;   --sa-leading-headline-md: 32px;
+  --sa-text-headline-sm: 19px;   --sa-leading-headline-sm: 26px;
+  --sa-text-body-lg: 17px;       --sa-leading-body-lg: 28px;
+  --sa-text-body-md: 15px;       --sa-leading-body-md: 24px;
+  --sa-text-body-sm: 13px;       --sa-leading-body-sm: 20px;
+  --sa-text-character-hero: 48px;    --sa-leading-character-hero: 56px;
+  --sa-text-character-display: 28px; --sa-leading-character-display: 36px;
+  --sa-text-character-inline: 18px;  --sa-leading-character-inline: 26px;
+  --sa-text-pinyin-sm: 11px;     --sa-leading-pinyin-sm: 14px;
+  --sa-text-label-md: 13px;      --sa-leading-label-md: 16px;
+  --sa-text-label-sm: 11px;      --sa-leading-label-sm: 14px;
+  --sa-text-caption: 12px;       --sa-leading-caption: 16px;
+
+  /* ---- Shadows (flat system; use only for elevated overlays) ---- */
+  --sa-shadow-sm: 0 1px 2px rgba(24, 28, 32, 0.06), 0 1px 1px rgba(24, 28, 32, 0.04);
+  --sa-shadow-md: 0 4px 12px rgba(24, 28, 32, 0.10);
+
+  /* ---- Layout ---- */
+  --sa-sidebar-width: 16rem; /* 256px */
+  --sa-content-max: 1320px;
+
+  font-family: var(--sa-font-body);
+  background: var(--sa-background);
+  color: var(--sa-on-background);
+}
+
+.student-app *,
+.student-app *::before,
+.student-app *::after {
+  box-sizing: border-box;
+}
+
+.student-app :focus-visible {
+  outline: 2px solid var(--sa-primary);
+  outline-offset: 2px;
+}
+
+.student-app {
+  --sa-motion-fast: 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-app * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Ruby (pinyin-over-Hanzi) baseline rules, per DESIGN.md */
+.student-app ruby.sa-ruby {
+  ruby-position: over;
+}
+.student-app ruby.sa-ruby rt {
+  font-family: var(--sa-font-label);
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--sa-on-surface-variant);
+  letter-spacing: 0.04em;
+}
+
+/* Material Symbols baseline (icons are meaningful or decorative per aria rules
+   applied at the call site, never emoji per project convention). */
+.student-app .sa-icon {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  vertical-align: middle;
+}
