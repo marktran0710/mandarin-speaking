@@ -6,6 +6,7 @@ import { buildVocabularyInventory, matchesVocabularySearch, vocabularyEntriesToC
 import { vocabularyBookSource } from "./admin-vocabulary/book-sources";
 import VocabularyEditor from "./admin-vocabulary/VocabularyEditor";
 import QuestionPreview from "./admin-vocabulary/QuestionPreview";
+import VocabularyImportDialog from "./admin-vocabulary/VocabularyImportDialog";
 import "./admin-vocabulary/styles.css";
 
 const PAGE_SIZE = 30;
@@ -24,6 +25,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
   const [previewing, setPreviewing] = useState<VocabularyEntry | null>(null);
   const [message, setMessage] = useState("");
   const [actionError, setActionError] = useState("");
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -103,8 +105,15 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
         {onOpenMaterials && <button type="button" className="av-button" onClick={onOpenMaterials}><Icon name="library" size={18} />Materials</button>}
         {newQuizEntry && <button type="button" className="av-button" onClick={() => { setActionError(""); setMessage(""); setEditing(newQuizEntry); }}><Icon name="plus" size={18} />Add quiz word</button>}
         <button type="button" className="av-button" onClick={download} disabled={loading || Boolean(error) || !filtered.length}><Icon name="download" size={18} />Export CSV</button>
+        <button type="button" className="av-button" onClick={() => { setActionError(""); setMessage(""); setImporting(true); }}><Icon name="upload" size={18} />Import CSV</button>
       </div>
     </div>
+    {importing && (
+      <VocabularyImportDialog
+        onClose={() => setImporting(false)}
+        onImported={() => { setMessage("Import complete."); setReload(n => n + 1); }}
+      />
+    )}
     {message && <p className="av-success" role="status">{message}</p>}
     {actionError && <p className="av-error" role="alert">{actionError}</p>}
     {error ? <div className="av-empty" role="alert"><p>{error}</p><button type="button" className="av-button" onClick={() => setReload(n => n + 1)}><Icon name="retry" size={18} />Try again</button></div>

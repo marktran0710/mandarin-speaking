@@ -8,7 +8,7 @@ account (no admin roster/table), so the JWT subject is a fixed constant.
 import os
 import hmac
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel
 
 import security.auth as auth
@@ -20,6 +20,7 @@ from db import (
     row_to_vocab_quiz_attempt,
 )
 from services.content_inventory import build_content_inventory_from_database
+from services.vocabulary_import import apply_vocabulary_import, preview_vocabulary_import
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -95,3 +96,34 @@ def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
 def get_content_inventory(_identity: auth.Identity = Depends(auth.require_admin)):
     """Run the read-only Content Doctor against current content and uploads."""
     return build_content_inventory_from_database(upload_dir=media_service.UPLOAD_DIR)
+
+
+@router.post("/vocabulary-import/preview")
+async def preview_vocabulary_import_upload(
+    file: UploadFile = File(...),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Read-only: parse and validate an uploaded question-bank CSV, report
+    what an import would change. Writes nothing."""
+    content = await file.read()
+    try:
+        with connect_db() as db:
+            return preview_vocabulary_import(db, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/vocabulary-import/confirm")
+async def confirm_vocabulary_import_upload(
+    file: UploadFile = File(...),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Re-validates the file from scratch and, only if it still passes,
+    upserts each section's words into its matched story's vocab_assessment
+    by wordId. Never trusts a client-held preview result."""
+    content = await file.read()
+    try:
+        with connect_db() as db:
+            return apply_vocabulary_import(db, content)
+    except (ValueError, LookupError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -106,3 +106,45 @@ export function deleteQuizVocabularyWord(storyId: string, wordId: string, expect
   const path = `/${encodeURIComponent(wordId)}${expectedRevision ? `?expectedRevision=${encodeURIComponent(expectedRevision)}` : ""}`;
   return mutateQuizVocabulary(storyId, path, "DELETE");
 }
+
+export interface VocabularyImportSection {
+  section: string;
+  storyId: string | null;
+  storyTitle: string | null;
+  found: boolean;
+  error?: string;
+  newWords: number;
+  updatedWords: number;
+  questionCount: number;
+  issues: string[];
+}
+export interface VocabularyImportPreview {
+  rows: number;
+  rowIssues: string[];
+  sections: VocabularyImportSection[];
+}
+export interface VocabularyImportResult {
+  published: Array<{ section: string; storyId: string; storyTitle: string; questionCount: number }>;
+}
+
+async function postVocabularyImport<T>(path: string, file: File): Promise<T> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/vocabulary-import/${path}`, { method: "POST", body }, 1);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+    throw new Error(typeof payload?.detail === "string" ? payload.detail : "Could not process the import file.");
+  }
+  return response.json() as Promise<T>;
+}
+
+/** Read-only: parse and validate, report what would change. Writes nothing. */
+export function previewVocabularyImport(file: File): Promise<VocabularyImportPreview> {
+  return postVocabularyImport<VocabularyImportPreview>("preview", file);
+}
+
+/** Re-validates the file from scratch server-side and, only if it still
+ * passes, upserts by wordId into each matched story's quiz bank. */
+export function confirmVocabularyImport(file: File): Promise<VocabularyImportResult> {
+  return postVocabularyImport<VocabularyImportResult>("confirm", file);
+}

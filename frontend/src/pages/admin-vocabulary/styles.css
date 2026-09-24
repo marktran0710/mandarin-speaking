@@ -81,6 +81,13 @@
 .av-qcard-tick { color: var(--jade-deep); }
 .av-qcard-typed { margin: 0; font-size: var(--text-sm); color: var(--clay-body); }
 .av-qcard-typed strong { color: var(--jade-deep); }
+.av-import { display: grid; gap: var(--space-sm); }
+.av-import input[type="file"] { border: 1px dashed var(--clay-hairline); border-radius: var(--clay-radius-sm); padding: var(--space-sm); width: 100%; }
+.av-import-preview, .av-import-result { display: grid; gap: var(--space-2xs); }
+.av-import-sections { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
+.av-import-sections > li { display: grid; gap: 2px; padding: var(--space-xs) var(--space-sm); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); font-size: var(--text-sm); }
+.av-import-sections > li.is-error { border-color: var(--clay-error-deep); background: var(--clay-error-soft); }
+.av-import-sections ul { margin: var(--space-2xs) 0 0; padding-left: 1.2em; }
 @media (max-width: 1200px) { .av-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } .av-search { grid-column: span 2; } }
 @media (max-width: 600px) {
   .management-main:has(> .admin-vocabulary-main) { padding-inline: var(--space-md); }

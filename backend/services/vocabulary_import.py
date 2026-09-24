@@ -1,0 +1,168 @@
+"""Admin-facing quiz vocabulary import: CSV -> validate -> preview -> confirm.
+
+Reuses the exact row shape and per-row/per-word validation
+``scripts/import_question_bank_workbook.py`` already established for the
+canonical Chapters 5-8 workbook, minus that script's one-time assumptions
+(a fixed 648-row count, chapters 5-8 only, a single hardcoded file path).
+``build_payloads`` and ``find_story_for_part`` are reused as-is - neither
+one carried those assumptions to begin with.
+
+Import never overwrites a story's whole ``vocab_assessment`` bank. It
+upserts by ``wordId`` within each section's matched story: words present in
+the file replace any existing entry with the same id (or are added), and
+existing words the file doesn't mention are left untouched. Nothing is
+written until ``apply_vocabulary_import`` is called explicitly - preview is
+read-only.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+from collections import defaultdict
+from typing import Any
+
+from psycopg.types.json import Jsonb
+
+from domain.vocabulary.assessment import validate_assessment_payload
+from scripts.import_question_bank_workbook import REQUIRED_COLUMNS, ROUNDS, build_payloads
+from scripts.seed_quiz_assessments import find_story_for_part
+
+
+def parse_csv_rows(content: bytes) -> list[dict[str, str]]:
+    text = content.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+    missing = REQUIRED_COLUMNS.difference(reader.fieldnames or ())
+    if missing:
+        raise ValueError(f"File is missing required columns: {', '.join(sorted(missing))}")
+    return [dict(row) for row in reader if row.get("Question ID")]
+
+
+def _answers(value: str) -> list[str]:
+    return [part.strip() for part in (value or "").split("|") if part.strip()]
+
+
+def validate_import_rows(rows: list[dict[str, str]]) -> list[str]:
+    """Same per-row/per-word checks as the workbook importer, generalized to
+    any section/row count (no fixed 648-row or chapter-5-8 assumption)."""
+    issues: list[str] = []
+    if not rows:
+        issues.append("File has no data rows.")
+        return issues
+    seen_question_ids: set[str] = set()
+    by_word: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in rows:
+        qid = row.get("Question ID", "")
+        if qid in seen_question_ids:
+            issues.append(f"duplicate Question ID: {qid}")
+        seen_question_ids.add(qid)
+        by_word[row.get("Word Key", "")].append(row)
+        section = row.get("Section", "")
+        if "-" not in section or not all(part.strip().isdigit() for part in section.split("-", 1)):
+            issues.append(f"{qid}: Section must look like '5-1' (chapter-part), found {section!r}")
+        round_info = ROUNDS.get(row.get("Round", ""))
+        if round_info is None:
+            issues.append(f"{qid}: unsupported round {row.get('Round')!r}")
+            continue
+        level, _, answer_format = round_info
+        expected_type = {"easy": "basic_meaning_mcq", "medium": "character_to_pinyin_typing", "hard": "context_cloze_mcq"}[level]
+        if row.get("Question Type") != expected_type:
+            issues.append(f"{qid}: {row.get('Round')} uses {row.get('Question Type')}, expected {expected_type}")
+        if row.get("Input Mode") == "click" and answer_format != "single_choice":
+            issues.append(f"{qid}: click input is not a single-choice question")
+        if row.get("Input Mode") == "free_text" and answer_format != "free_text":
+            issues.append(f"{qid}: free-text input has the wrong answer format")
+        if level in {"easy", "hard"}:
+            options = [row.get(f"Option {letter}", "") for letter in "ABCD"]
+            if len(set(options)) != 4 or any(not option for option in options):
+                issues.append(f"{qid}: options must contain four distinct values")
+            correct_option = row.get("Correct Option", "")
+            if correct_option not in "ABCD":
+                issues.append(f"{qid}: invalid correct option {correct_option!r}")
+            elif options["ABCD".index(correct_option)] != row.get("Correct Answer"):
+                issues.append(f"{qid}: correct option does not match correct answer")
+        else:
+            accepted = _answers(row.get("Accepted Answers", ""))
+            if row.get("Correct Answer") not in accepted:
+                issues.append(f"{qid}: pinyin correct answer is not accepted")
+        for required in ("Word Key", "Traditional Chinese", "Pinyin", "POS", "English Meaning", "Prompt", "Correct Answer"):
+            if not (row.get(required) or "").strip():
+                issues.append(f"{qid}: empty {required}")
+    for word_id, word_rows in by_word.items():
+        if len(word_rows) != 3 or {row.get("Round") for row in word_rows} != set(ROUNDS):
+            issues.append(f"{word_id}: expected exactly one row for each round (Round 1/2/3)")
+        for field in ("Chapter", "Section", "Traditional Chinese", "Pinyin", "POS", "English Meaning"):
+            if len({row.get(field) for row in word_rows}) != 1:
+                issues.append(f"{word_id}: inconsistent {field} metadata across its three rows")
+    return issues
+
+
+def _section_preview(db: Any, section: str, payload: list[dict[str, Any]]) -> dict[str, Any]:
+    try:
+        story = find_story_for_part(db, section)
+    except LookupError as exc:
+        return {
+            "section": section, "storyId": None, "storyTitle": None, "found": False,
+            "error": str(exc), "newWords": 0, "updatedWords": 0, "questionCount": len(payload), "issues": [],
+        }
+    row = db.execute("SELECT vocab_assessment FROM custom_stories WHERE id = %s", (story["id"],)).fetchone()
+    existing = row["vocab_assessment"] if row and isinstance(row.get("vocab_assessment"), list) else []
+    existing_word_ids = {question.get("wordId") for question in existing}
+    incoming_word_ids = {question["wordId"] for question in payload}
+    merged = _merge_assessment(existing, payload)
+    issues = validate_assessment_payload(merged)
+    return {
+        "section": section,
+        "storyId": story["id"],
+        "storyTitle": story["title"],
+        "found": True,
+        "newWords": len(incoming_word_ids - existing_word_ids),
+        "updatedWords": len(incoming_word_ids & existing_word_ids),
+        "questionCount": len(payload),
+        "issues": [f"{issue.code}: {issue.message}" for issue in issues],
+    }
+
+
+def _merge_assessment(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    incoming_word_ids = {question["wordId"] for question in incoming}
+    kept = [question for question in existing if question.get("wordId") not in incoming_word_ids]
+    return kept + incoming
+
+
+def preview_vocabulary_import(db: Any, content: bytes) -> dict[str, Any]:
+    """Read-only: parse, validate, and report what an import would do."""
+    rows = parse_csv_rows(content)
+    row_issues = validate_import_rows(rows)
+    if row_issues:
+        return {"rows": len(rows), "rowIssues": row_issues, "sections": []}
+    payloads = build_payloads(rows)
+    with_db = [_section_preview(db, section, payload) for section, payload in sorted(payloads.items())]
+    return {"rows": len(rows), "rowIssues": [], "sections": with_db}
+
+
+def apply_vocabulary_import(db: Any, content: bytes) -> dict[str, Any]:
+    """Write path. Re-validates from scratch - never trusts a client-held
+    preview result as proof the file is still valid to write."""
+    rows = parse_csv_rows(content)
+    row_issues = validate_import_rows(rows)
+    if row_issues:
+        raise ValueError("Row validation failed:\n" + "\n".join(row_issues[:30]))
+    payloads = build_payloads(rows)
+    published: list[dict[str, Any]] = []
+    for section, payload in sorted(payloads.items()):
+        story = find_story_for_part(db, section)
+        row = db.execute(
+            "SELECT vocab_assessment FROM custom_stories WHERE id = %s FOR UPDATE", (story["id"],),
+        ).fetchone()
+        existing = row["vocab_assessment"] if row and isinstance(row.get("vocab_assessment"), list) else []
+        merged = _merge_assessment(existing, payload)
+        issues = validate_assessment_payload(merged)
+        if issues:
+            rendered = "; ".join(f"{issue.code}: {issue.message}" for issue in issues[:8])
+            raise ValueError(f"{section} would fail validation after merge ({len(issues)} issues): {rendered}")
+        db.execute(
+            "UPDATE custom_stories SET vocab_assessment = %s::jsonb WHERE id = %s",
+            (Jsonb(merged), story["id"]),
+        )
+        published.append({"section": section, "storyId": story["id"], "storyTitle": story["title"], "questionCount": len(payload)})
+    return {"published": published}
