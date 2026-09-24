@@ -13,7 +13,7 @@ vi.mock("./researchContext", () => ({ getCachedResearchContext }));
 
 import { attemptEarnsStar, recordLocalStars } from "./quizTiers";
 import { isStoryFinished, isLessonGroupUnlocked, lessonCompletion } from "./lessonGroups";
-import type { Topic } from "../components/content/TopicSelector";
+import type { Topic } from "../components/content/topic-selector/types";
 
 function topic(id: string, lessonNumber: number): Topic {
   return {

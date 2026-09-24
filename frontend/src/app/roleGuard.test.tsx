@@ -5,9 +5,10 @@ import TeacherApp from "./TeacherApp";
 import { readSession, signIn } from "../utils/session";
 
 // The student app pulls in the whole practice stack; none of it matters to
-// the guard, which decides before any of it renders.
-vi.mock("../pages/CreateStoryPage", () => ({ default: () => <div /> }));
-vi.mock("../pages/MyStoriesPage", () => ({ default: () => <div /> }));
+// the guard, which decides before any of it renders. (CreateStoryPage and
+// MyStoriesPage were replaced by src/student/ — StudentApp is the single
+// entry that now needs stubbing.)
+vi.mock("../student/StudentApp", () => ({ default: () => <div /> }));
 vi.mock("../pages/TeacherDashboardPage", () => ({
   default: () => <div>Teacher dashboard</div>,
 }));

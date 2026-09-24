@@ -1,31 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import HomePage from "../pages/HomePage";
-import VoiceTestPage from "../pages/VoiceTestPage";
-import ListenRetellPage from "../pages/ListenRetellPage";
-import PlacementTestPage from "../pages/PlacementTestPage";
-import StudentWorkspacePage, {
-  type StudentWorkspaceView,
-} from "../pages/StudentWorkspacePage";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
 
 import StudentLoginPage from "../pages/StudentLoginPage";
-import { BiLabel } from "../components/ui/BiLabel";
 import Navigation from "../components/navigation/Navigation";
-import AppJourneyBubble from "../components/journey/AppJourneyBubble";
 import {
   getStudentName,
   getStudentId,
   saveLastVisitedPage,
   clearLastVisitedPage,
-  saveLastPracticeTarget,
-  clearLastPracticeTarget,
 } from "../utils/studentSession";
 import { signOut } from "../utils/session";
 import {
   canUseDatabase,
   createAudioRecord,
-  createHelpRequest,
-  HelpRequest,
   listCustomStories,
   logoutStudent,
 } from "../services/database";
@@ -37,30 +25,29 @@ import {
   writeAudioRecordsCache,
 } from "../helpers/audioRecords";
 import {
-  loadLocalHelpRequests,
-  saveHelpRequestsLocally,
-  upsertHelpRequest,
-} from "../helpers/helpRequests";
-import {
   loadPublishedTeacherTopics,
   saveCustomStories,
 } from "../utils/teacherStories";
-import type { Topic } from "../components/content/TopicSelector";
-import { topicHasQuiz } from "../utils/topicQuiz";
+import type { Topic } from "../components/content/topic-selector/types";
 import { primePinyin } from "../utils/pinyin";
 import type { Page } from "../types/page";
-import { getJourneyBubbleTargetIds } from "../helpers/journeyBubble";
-import StudentModeFrame from "../components/student-workspace/StudentModeFrame";
-import { loadLocalStars } from "../utils/quizTiers";
-import { pushHistorySnapshot, replaceHistorySnapshot } from "../utils/studentHistory";
+import StudentApp from "../student/StudentApp";
+import { replaceHistorySnapshot } from "../utils/studentHistory";
 
 const STUDENT_APP_HISTORY_KEY = "mandarinApp";
 
 type StudentAppHistoryState = {
   currentPage: Page;
-  studentWorkspaceView: StudentWorkspaceView;
-  practiceTarget: PracticeTarget | null;
 };
+
+const STUDENT_MODE_PAGES: readonly Page[] = [
+  "student-workspace",
+  "student-practice",
+  "student-stories",
+  "voice-test",
+  "listen-retell",
+  "placement-test",
+];
 
 export type { Page };
 
@@ -71,22 +58,16 @@ export default function App() {
   const [bootstrapState] = useState(getStudentAppBootstrapState);
   const [currentPage, setCurrentPage] = useState<Page>(bootstrapState.currentPage);
   const [activeRole, setActiveRole] = useState<"student" | null>(bootstrapState.activeRole);
-  const [studentWorkspaceView, setStudentWorkspaceView] =
-    useState<StudentWorkspaceView>(bootstrapState.studentWorkspaceView);
-  const [isInPracticeSession, setIsInPracticeSession] = useState(false);
-  // Full audio history is owned by MyStoriesPage and fetched when the learner
-  // opens Progress. Nothing from the historical recording table blocks the
-  // student shell bootstrap.
-  const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
-  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
+  // Full audio history is owned by the Progress page and fetched when the
+  // learner opens it. Nothing from the historical recording table blocks
+  // the student shell bootstrap.
+  // Only the setter is read now — the list itself is written straight to the
+  // local cache/backend and re-read by the Progress page, not rendered here.
+  const [, setAudioRecords] = useState<AudioRecord[]>([]);
   // The student shell is gated only on data required to choose and launch a
-  // lesson. Recording history is intentionally deferred to My Stories.
+  // lesson. Recording history is intentionally deferred to Progress.
   const [publishedTopicsReady, setPublishedTopicsReady] = useState(false);
-  const [helpRequestsReady, setHelpRequestsReady] = useState(false);
-  const studentDataReady = publishedTopicsReady && helpRequestsReady;
-  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
-    bootstrapState.practiceTarget,
-  );
+  const studentDataReady = publishedTopicsReady;
   const [publishedTopics, setPublishedTopics] = useState<Topic[]>(
     () => loadPublishedTeacherTopics(),
   );
@@ -103,8 +84,6 @@ export default function App() {
     if (!window.history.state?.[STUDENT_APP_HISTORY_KEY]) {
       const initialHistory: StudentAppHistoryState = {
         currentPage: bootstrapState.currentPage,
-        studentWorkspaceView: bootstrapState.studentWorkspaceView,
-        practiceTarget: bootstrapState.practiceTarget,
       };
       replaceHistorySnapshot(STUDENT_APP_HISTORY_KEY, initialHistory);
     }
@@ -115,8 +94,6 @@ export default function App() {
         | undefined;
       if (!next) return;
       setCurrentPage(next.currentPage);
-      setStudentWorkspaceView(next.studentWorkspaceView);
-      setPracticeTarget(next.practiceTarget ?? null);
     };
 
     window.addEventListener("popstate", restoreStudentHistory);
@@ -146,31 +123,15 @@ export default function App() {
     };
   }, [publishedTopics]);
 
-  // Remembers the section a student is on so a reload (or reopening the
+  // Remembers the page a student is on so a reload (or reopening the
   // browser later — this is signed in via localStorage, not a per-tab
-  // session) lands them back there instead of always bouncing to practice.
+  // session) lands them back there. StudentApp owns its own Study/Progress
+  // + lesson-phase state internally now, so this only needs the top-level
+  // page, not a workspace view or in-progress practice target.
   useEffect(() => {
     if (activeRole !== "student") return;
-    const pageToSave: Page =
-      currentPage !== "student-workspace"
-        ? currentPage
-        : studentWorkspaceView === "progress"
-          ? "student-stories"
-          : "student-practice";
-    saveLastVisitedPage(pageToSave);
-  }, [activeRole, currentPage, studentWorkspaceView]);
-
-  // Remembers which story (and scene) was open on the practice page, so
-  // that restore above lands on the actual session instead of the browse
-  // view. `null` is saved deliberately too, once the student backs out.
-  useEffect(() => {
-    if (activeRole !== "student") return;
-    saveLastPracticeTarget(
-      practiceTarget
-        ? { topicId: practiceTarget.topicId, imageIndex: practiceTarget.imageIndex }
-        : null,
-    );
-  }, [activeRole, practiceTarget]);
+    saveLastVisitedPage(currentPage);
+  }, [activeRole, currentPage]);
 
   const refreshPublishedTopics = useCallback(async () => {
     if (!canUseDatabase()) {
@@ -213,19 +174,6 @@ export default function App() {
     };
   }, [activeRole, refreshPublishedTopics]);
 
-  useEffect(() => {
-    // Students can create a help request, but listing the full queue is a
-    // teacher/admin operation. Calling the teacher-only GET here caused a
-    // repeating 403 every five seconds in student mode.
-    if (activeRole !== "student") {
-      setHelpRequestsReady(true);
-      return;
-    }
-
-    setHelpRequests(loadLocalHelpRequests());
-    setHelpRequestsReady(true);
-  }, [activeRole]);
-
   const addAudioRecord = async (record: AudioRecord): Promise<string | undefined> => {
     const linkedRecord = { ...record, studentId: getStudentId() };
     setAudioRecords((prev) => [linkedRecord, ...prev]);
@@ -265,7 +213,6 @@ export default function App() {
     // StudentLoginPage has already written the session (it owns the name and
     // roster id); this only reacts to it.
     setActiveRole("student");
-    setStudentWorkspaceView("practice");
     setCurrentPage("student-workspace");
     // The history entry current at login time still carries the pre-login
     // "home" snapshot written on mount (nothing else replaces it). Left
@@ -275,8 +222,6 @@ export default function App() {
     if (typeof window !== "undefined") {
       replaceHistorySnapshot(STUDENT_APP_HISTORY_KEY, {
         currentPage: "student-workspace",
-        studentWorkspaceView: "practice",
-        practiceTarget: null,
       });
     }
   };
@@ -284,11 +229,9 @@ export default function App() {
   const handleLogout = () => {
     setActiveRole(null);
     setAudioRecords([]);
-    setPracticeTarget(null);
     // Must run before signOut() clears the session — the scope key they
     // read to find this student's stored state comes from that session.
     clearLastVisitedPage();
-    clearLastPracticeTarget();
     // Clears the whole session, not just the role — the old code removed
     // `activeRole` and left `studentSession` behind forever, which meant a
     // "logged out" browser still carried a student identity.
@@ -300,134 +243,11 @@ export default function App() {
     setCurrentPage("home");
   };
 
-  const pushStudentHistory = (destination: StudentAppHistoryState) => {
-    if (typeof window === "undefined") return;
-    const current: StudentAppHistoryState = {
-      currentPage,
-      studentWorkspaceView,
-      practiceTarget,
-    };
-    replaceHistorySnapshot(STUDENT_APP_HISTORY_KEY, current);
-    pushHistorySnapshot(STUDENT_APP_HISTORY_KEY, destination);
-  };
-
-  const handlePracticeImage = (topicId: string, imageIndex: number) => {
-    const target = { topicId, imageIndex, seq: Date.now() };
-    pushStudentHistory({
-      currentPage: "student-workspace",
-      studentWorkspaceView: "practice",
-      practiceTarget: target,
-    });
-    setPracticeTarget(target);
-    setStudentWorkspaceView("practice");
-    setCurrentPage("student-workspace");
-  };
-
-  const handleStartActivity = (topicId: string, startAtQuiz: boolean) => {
-    const target = {
-      topicId,
-      imageIndex: 0,
-      startAtQuiz,
-      seq: Date.now(),
-    };
-    pushStudentHistory({
-      currentPage: "student-workspace",
-      studentWorkspaceView: "practice",
-      practiceTarget: target,
-    });
-    setPracticeTarget(target);
-    setStudentWorkspaceView("practice");
-    setCurrentPage("student-workspace");
-  };
-
-  // The floating star bubble's jump target — a quiz story id may be a
-  // suffixed variant of the base topic id.
-  const handleJumpToStory = (storyId: string) => {
-    const topic = storyTopics.find(
-      (t) => t.id === storyId || storyId.startsWith(`${t.id}-`),
-    );
-    if (topic) handlePracticeImage(topic.id, 0);
-  };
-
-  // Stars only come from vocab quizzes, so only quiz-capable stories join
-  // the bubble's tally and target list — a story with no quiz content gets
-  // no quiz phase (see StoryRecorder's hasVocabQuiz) and would otherwise
-  // pulse forever as a dead-end target. Same test the lesson gate uses
-  // (utils/topicQuiz), not a proxy, so both agree on which stories count.
-  const quizStoryTopics = useMemo(
-    () => storyTopics.filter((t) => topicHasQuiz(t)),
-    [storyTopics],
-  );
-  const storyTitles = useMemo(
-    () => Object.fromEntries(quizStoryTopics.map((t) => [t.id, t.name])),
-    [quizStoryTopics],
-  );
-  const totalQuizStars = quizStoryTopics.reduce(
-    (sum, topic) => sum + loadLocalStars(topic.id),
-    0,
-  );
-  const maxQuizStars = quizStoryTopics.length * 3;
-
-  const bubbleTargetIds = getJourneyBubbleTargetIds(storyTopics, quizStoryTopics);
-
-  // One bubble across every logged-in student page (it mounts here, not
-  // per-page) — hidden only while a practice session is active, where its
-  // "jump into your current story" call-to-action would point at the
-  // place the student already is. This used to also require
-  // currentPage === "student-practice", which was the only route that ever
-  // set isInPracticeSession back when this was written. The default
-  // student workspace shell now runs practice sessions from inside
-  // currentPage === "student-workspace" instead, so that extra check never
-  // matched there — the bubble (position: fixed, bottom-right) stayed
-  // visible through an entire recording, including the results/self-eval
-  // screen, where it could sit on top of the "Record again"/"Next scene"
-  // buttons in that same corner. isInPracticeSession alone is what the
-  // comment above already describes; check only that.
-  const showJourneyBubble =
-    activeRole === "student" &&
-    studentDataReady &&
-    currentPage !== "home" &&
-    currentPage !== "student-login" &&
-    !isInPracticeSession &&
-    // The workspace rail now carries the star tally in its own progress
-    // card, and every lesson card already has its own "開始生詞測驗 Start
-    // vocabulary quiz" button — the floating bubble was a third copy of
-    // both, parked over the bottom-right corner where it overlapped page
-    // content. It stays only on routes that render no rail.
-    currentPage !== "student-workspace" &&
-    currentPage !== "voice-test" &&
-    currentPage !== "listen-retell" &&
-    currentPage !== "placement-test";
-
-  const handleRaiseHand = (message: string) => {
-    const studentName = getStudentName();
-    const existingOpenRequest = helpRequests.find(
-      (request) =>
-        request.studentName === studentName && request.status === "open",
-    );
-    const request: HelpRequest = {
-      id: existingOpenRequest?.id || `help-${Date.now()}`,
-      studentName,
-      message: message.trim() || "I need teacher help.",
-      status: "open",
-      createdAt: existingOpenRequest?.createdAt || new Date().toISOString(),
-      resolvedAt: null,
-    };
-
-    setHelpRequests((requests) => saveHelpRequestsLocally(upsertHelpRequest(requests, request)));
-
-    if (canUseDatabase()) {
-      createHelpRequest(request)
-        .then((savedRequest) => {
-          setHelpRequests((requests) =>
-            saveHelpRequestsLocally(upsertHelpRequest(requests, savedRequest)),
-          );
-        })
-        .catch((error) => {
-          console.error("Failed to send help request to database:", error);
-        });
-    }
-  };
+  // NOTE: the student-side "raise hand" affordance was removed with the old
+  // Student Mode UI (StudentHelpPanel/StudentHelpCard). The teacher help
+  // queue still reads requests from the backend; nothing in the new student
+  // IA creates one. Restore a button + this handler if that feature is
+  // wanted back.
 
   return (
     <ErrorBoundary>
@@ -445,18 +265,12 @@ export default function App() {
           session too (the running story's own navigation lives in a header
           strip above its content, not here and not in the rail), so this
           top bar is simply never shown on this route, session or not. */}
-      {!(activeRole === "student" && (currentPage === "student-workspace" || currentPage === "voice-test" || currentPage === "listen-retell" || currentPage === "placement-test")) && (
+      {!(activeRole === "student" && STUDENT_MODE_PAGES.includes(currentPage)) && (
         <Navigation
           currentPage={currentPage}
           activeRole={activeRole}
-          onNavigate={(page) => {
-            if (page === "student-workspace") {
-              setStudentWorkspaceView("practice");
-            }
-            setCurrentPage(page);
-          }}
+          onNavigate={setCurrentPage}
           onLogout={handleLogout}
-          compact={activeRole === "student" && isInPracticeSession}
         />
       )}
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
@@ -465,139 +279,28 @@ export default function App() {
           onLogin={handleLogin}
         />
       )}
-      {activeRole === "student" &&
-        !studentDataReady &&
-        (currentPage === "student-workspace" ||
-          currentPage === "student-practice" ||
-          currentPage === "student-stories" ||
-          currentPage === "voice-test" ||
-          currentPage === "listen-retell" ||
-          currentPage === "placement-test") && (
-          <div className="app-loading">
-            <div className="app-loading-card">
-              <div className="app-loading-icon" aria-hidden="true" />
-              <h2><BiLabel k="loading_your_progress" /></h2>
-            </div>
+      {activeRole === "student" && !studentDataReady && STUDENT_MODE_PAGES.includes(currentPage) && (
+        <div className="app-loading">
+          <div className="app-loading-card">
+            <div className="app-loading-icon" aria-hidden="true" />
+            <h2>Loading your progress…</h2>
           </div>
-        )}
-      {currentPage === "student-workspace" && activeRole === "student" && studentDataReady && (
-        <StudentWorkspacePage
-          view={studentWorkspaceView}
-          onViewChange={(nextView) => {
-            pushStudentHistory({
-              currentPage: "student-workspace",
-              studentWorkspaceView: nextView,
-              practiceTarget: null,
-            });
-            setStudentWorkspaceView(nextView);
-            if (nextView !== "practice") setPracticeTarget(null);
-          }}
+        </div>
+      )}
+      {/* Every legacy student route (the old practice/progress workspace,
+          voice-test, listen-retell, placement-test) now mounts the same
+          new Student Mode UI — those distinct standalone tools don't exist
+          in the new IA (Study + Progress only), so a student who had one
+          of those pages saved as their last-visited page still lands
+          somewhere real instead of a dead route. */}
+      {STUDENT_MODE_PAGES.includes(currentPage) && activeRole === "student" && studentDataReady && (
+        <StudentApp
+          studentName={getStudentName()}
+          topics={storyTopics}
           onAddRecord={addAudioRecord}
-          initialTopicId={practiceTarget?.topicId}
-          initialImageIndex={practiceTarget?.imageIndex}
-          initialStartAtQuiz={practiceTarget?.startAtQuiz}
-          initialTargetKey={practiceTarget?.seq}
-          helpRequests={helpRequests}
-          onRaiseHand={handleRaiseHand}
-          storyTopics={storyTopics}
-          audioRecords={audioRecords}
-          onSessionActiveChange={setIsInPracticeSession}
-          isInPracticeSession={isInPracticeSession}
-          onStartActivity={handleStartActivity}
           onLogout={handleLogout}
-          onOpenPlacementTest={() => setCurrentPage("placement-test")}
         />
       )}
-      {/* currentPage is never actually set to "student-practice" or
-          "student-stories" during a live session — every navigation
-          handler (handleStartActivity, handleJumpToStory) routes through
-          "student-workspace" plus a
-          studentWorkspaceView, and the boot-time restore in
-          appNavigation.ts translates a saved "student-stories"/
-          "student-practice" value into "student-workspace" too. These two
-          Page values now exist only as the on-disk encoding
-          saveLastVisitedPage uses to remember which workspace view (see
-          below) — the standalone CreateStoryPage/MyStoriesPage renders
-          that used to live here, from before StudentWorkspaceShell
-          existed, could never be reached and were removed. */}
-      {currentPage === "voice-test" && activeRole === "student" && studentDataReady && (
-        <StudentModeFrame
-          className="student-standalone-shell"
-          activeView={null}
-          onChange={(nextView) => {
-            pushStudentHistory({
-              currentPage: "student-workspace",
-              studentWorkspaceView: nextView,
-              practiceTarget: null,
-            });
-            setStudentWorkspaceView(nextView);
-            setCurrentPage("student-workspace");
-            if (nextView !== "practice") setPracticeTarget(null);
-          }}
-          studentName={getStudentName()}
-          onLogout={handleLogout}
-          totalStars={totalQuizStars}
-          maxStars={maxQuizStars}
-          ariaLabel="Voice practice"
-          onOpenPlacementTest={() => setCurrentPage("placement-test")}
-        >
-          <VoiceTestPage />
-        </StudentModeFrame>
-      )}
-      {currentPage === "listen-retell" && activeRole === "student" && studentDataReady && (
-        <StudentModeFrame
-          className="student-standalone-shell"
-          activeView={null}
-          onChange={(nextView) => {
-            pushStudentHistory({
-              currentPage: "student-workspace",
-              studentWorkspaceView: nextView,
-              practiceTarget: null,
-            });
-            setStudentWorkspaceView(nextView);
-            setCurrentPage("student-workspace");
-            if (nextView !== "practice") setPracticeTarget(null);
-          }}
-          studentName={getStudentName()}
-          onLogout={handleLogout}
-          totalStars={totalQuizStars}
-          maxStars={maxQuizStars}
-          ariaLabel="Listen and retell"
-          onOpenPlacementTest={() => setCurrentPage("placement-test")}
-        >
-          <ListenRetellPage publishedTopics={storyTopics} />
-        </StudentModeFrame>
-      )}
-      {currentPage === "placement-test" && activeRole === "student" && studentDataReady && (
-        <StudentModeFrame
-          className="student-standalone-shell student-placement-test-shell"
-          activeView="practice"
-          onChange={(nextView) => {
-            setStudentWorkspaceView(nextView);
-            setCurrentPage("student-workspace");
-            if (nextView !== "practice") setPracticeTarget(null);
-          }}
-          studentName={getStudentName()}
-          onLogout={handleLogout}
-          totalStars={totalQuizStars}
-          maxStars={maxQuizStars}
-          ariaLabel="Placement test"
-          onOpenPlacementTest={() => setCurrentPage("placement-test")}
-          placementTestActive
-        >
-          <PlacementTestPage />
-        </StudentModeFrame>
-      )}
-      <AppJourneyBubble
-        visible={showJourneyBubble}
-        studentName={getStudentName()}
-        studentId={getStudentId()}
-        storyCount={quizStoryTopics.length}
-        storyTitles={storyTitles}
-        targetIds={bubbleTargetIds}
-        refreshToken={`${currentPage}:${studentWorkspaceView}:${isInPracticeSession}`}
-        onJumpToStory={handleJumpToStory}
-      />
     </div>
     </ErrorBoundary>
   );

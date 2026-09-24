@@ -5,7 +5,7 @@ import StudentWorkspaceShell from "../components/student-workspace/StudentWorksp
 import StudentLoginPage from "../pages/StudentLoginPage";
 import App from "../app/App";
 import { currentRole, signIn, signOut } from "../utils/session";
-import type { Topic } from "../components/content/TopicSelector";
+import type { Topic } from "../components/content/topic-selector/types";
 
 const topic: Topic = {
   id: "integration-story",

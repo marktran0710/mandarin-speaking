@@ -1,4 +1,4 @@
-import type { Topic } from "../../components/content/TopicSelector";
+import type { Topic } from "../../components/content/topic-selector/types";
 import { numericToToneMarked } from "../pinyin";
 import { resolveImageUrl, splitCsvField, tierText, TIER_SUFFIX } from "./helpers";
 import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel } from "./types";
@@ -14,7 +14,7 @@ export function storyToTopic(
   difficultyLevel: StoryDifficultyLevel = "easy",
 ): Topic {
   const vocabulary: Record<number, string[]> = {};
-  const vocabularyGroups: Record<number, import("../../components/content/TopicSelector").VocabGroup[]> = {};
+  const vocabularyGroups: Record<number, import("../../components/content/topic-selector/types").VocabGroup[]> = {};
   const phrases: Record<number, string[]> = {};
   const phrasesTranslation: Record<number, string[]> = {};
   const vocabularyPinyin: Record<number, string[]> = {};

@@ -1,4 +1,4 @@
-import type { Topic } from "../components/content/TopicSelector";
+import type { Topic } from "../components/content/topic-selector/types";
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,

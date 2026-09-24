@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import type { AudioRecord } from "../MyStoriesPage";
+import type { AudioRecord } from "../../types/audioRecord";
 import type { SpeechModel } from "../../components/story-recorder/StoryRecorder";
 import { redactDebugValue, type DebugAttemptSource } from "../../utils/practiceDebug";
 

@@ -1,0 +1,116 @@
+.story-feedback-panel {
+  max-width: var(--content-max);
+  margin: 16px auto 0;
+  padding: 20px 24px;
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.story-feedback-heading {
+  margin: 0;
+}
+
+.story-feedback-audio {
+  width: 100%;
+}
+
+.story-feedback-radar {
+  max-width: 340px;
+  height: 260px;
+  margin: 0 auto;
+}
+
+.story-feedback-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.story-feedback-card {
+  padding: 16px;
+  border-radius: var(--clay-radius-lg);
+  border: 1px solid var(--clay-hairline);
+}
+
+.story-feedback-card.good {
+  background: var(--jade-soft);
+  /* clay-muted (BiLabel's default .bi-en color) lands at ~4.2:1 on this
+     pastel tint — just under 4.5:1. */
+  --bi-en-color: var(--clay-body);
+}
+
+.story-feedback-card.fix {
+  background: var(--gold-soft);
+  --bi-en-color: var(--clay-body);
+}
+
+.story-feedback-card.next {
+  /* --seal is the brand accent (cinnabar), not a "needs work" color — use the real
+     error-red ramp so this band reads as the weakest one at a glance,
+     matching the radar chart's point coloring below. */
+  background: var(--clay-error-soft);
+  --bi-en-color: var(--clay-body);
+}
+
+.story-feedback-card.not-judged {
+  /* Convey "not yet judged" via the muted surface tone alone — opacity here
+     used to blend ALL descendant text (labels, pinyin, feedback copy) toward
+     white, breaking their contrast unpredictably (the same anti-pattern
+     fixed on BiLabel's .bi-en/.bi-pinyin elsewhere). */
+  background: var(--clay-surface-strong);
+}
+
+.story-feedback-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Icon + text tier badge so good/fix/next reads without relying on the
+   card's background color alone (jade/gold/red is hard to tell apart for
+   red-green colorblind users). */
+.story-feedback-tier-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--clay-surface-card);
+}
+
+.story-feedback-card.good .story-feedback-tier-badge {
+  border: 1.5px solid var(--jade-deep);
+  color: var(--jade-deep);
+}
+
+.story-feedback-card.fix .story-feedback-tier-badge {
+  border: 1.5px dashed var(--gold-deep);
+  color: var(--gold-deep);
+}
+
+.story-feedback-card.next .story-feedback-tier-badge {
+  border: 1.5px dotted var(--clay-error-deep);
+  color: var(--clay-error-deep);
+}
+
+.story-feedback-text {
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .story-feedback-cards {
+    grid-template-columns: 1fr;
+  }
+}

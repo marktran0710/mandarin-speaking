@@ -22,7 +22,7 @@ import AdminIrtStudentPanel from "../components/analytics/AdminIrtStudentPanel";
 import MeasurementAnalyticsPanel from "../components/analytics/MeasurementAnalyticsPanel";
 import type { MeasurementEvent } from "../utils/measurement";
 import KnowledgeModelPilotPanel from "../components/analytics/KnowledgeModelPilotPanel";
-import type { AudioRecord } from "../pages/MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 import TeacherPracticeDebugPage from "../pages/TeacherPracticeDebugPage";
 import AdminAsrComparePage from "../pages/AdminAsrComparePage";
 import AdminBktDebugPage from "../pages/AdminBktDebugPage";

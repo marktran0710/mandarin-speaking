@@ -1,6 +1,6 @@
 import DashboardStat from "../analytics/DashboardStat";
 import { AccuracyTimeChart, FluencyToneTimeChart } from "../analytics/MyStoriesCharts";
-import type { AudioRecord } from "../../pages/MyStoriesPage";
+import type { AudioRecord } from "../../types/audioRecord";
 import type { VocabQuizAttempt } from "../../services/database";
 import { getTopicLabel, quizAttemptAccuracy } from "../../utils/myStoriesUtils";
 import type { StudentAssessment } from "../../utils/studentAssessment";

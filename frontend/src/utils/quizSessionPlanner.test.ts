@@ -10,7 +10,7 @@ import {
   buildQuizQuestion,
   type VocabQuizEntry,
   type VocabQuizQuestion,
-} from "../components/story-vocab-quiz/StoryVocabQuiz";
+} from "../components/story-vocab-quiz/model";
 
 afterEach(() => {
   vi.restoreAllMocks();

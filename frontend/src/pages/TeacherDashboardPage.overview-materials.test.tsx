@@ -1,9 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TopicSelector from "../components/content/TopicSelector";
 import TeacherDashboardPage from "./TeacherDashboardPage";
 import AdminMaterialsPage from "./AdminMaterialsPage";
-import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
@@ -277,9 +276,14 @@ describe("TeacherDashboardPage", () => {
     expect(JSON.parse(stored)).toHaveLength(1);
   }, 10000);
 
-  it("publishes a teacher story into the student topic selector", async () => {
+  it("publishes a teacher story to local storage for the student app to pick up", async () => {
+    // Was "...into the student topic selector" and rendered the (now
+    // deleted, replaced by src/student/) TopicSelector to verify it — the
+    // publish side (teacher writes localStorage) is still real production
+    // behavior and worth covering; the removed half belongs in a new test
+    // for src/student/study/StudyPage.tsx instead.
     const user = userEvent.setup();
-    const { unmount } = renderAdminMaterials();
+    renderAdminMaterials();
 
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -300,13 +304,6 @@ describe("TeacherDashboardPage", () => {
     expect(localStorage.getItem("teacherCustomStories")).toContain(
       '"published":true',
     );
-
-    unmount();
-    render(<TopicSelector />);
-
-    expect(
-      screen.getByRole("button", { name: /Published MRT Help/ }),
-    ).toBeInTheDocument();
   }, 10000);
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {

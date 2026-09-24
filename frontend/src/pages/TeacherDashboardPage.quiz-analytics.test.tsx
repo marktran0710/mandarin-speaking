@@ -1,8 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TopicSelector from "../components/content/TopicSelector";
 import TeacherDashboardPage from "./TeacherDashboardPage";
-import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";

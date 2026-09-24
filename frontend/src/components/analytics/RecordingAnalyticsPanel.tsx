@@ -1,4 +1,4 @@
-import type { AudioRecord } from "../../pages/MyStoriesPage";
+import type { AudioRecord } from "../../types/audioRecord";
 import DashboardStat from "./DashboardStat";
 import { FluencyToneTimeChart } from "./MyStoriesCharts";
 

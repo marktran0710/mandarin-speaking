@@ -1,4 +1,4 @@
-import type { AudioRecord } from "../MyStoriesPage";
+import type { AudioRecord } from "../../types/audioRecord";
 import {
   type AnalysisPhase, type DebugProcessingState, type JsonObject, type ProcessingTraceStage, type StageDefinition,
   metric, RUBRICS, stageDlContent, StageCard, traceDurationLabel, traceStatusLabel,

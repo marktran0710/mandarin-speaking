@@ -9,7 +9,7 @@ import {
   lessonTitle,
   topicStoryId,
 } from "./lessonGroups";
-import type { Topic } from "../components/content/TopicSelector";
+import type { Topic } from "../components/content/topic-selector/types";
 
 // No images/vocabulary, so topicHasQuiz is false and these stories are
 // finished on submission alone — the tests that care about the ⭐⭐⭐ half of

@@ -1,6 +1,10 @@
-import type { StudentWorkspaceView } from "../pages/StudentWorkspacePage";
 import type { SpeechModel } from "../components/story-recorder/StoryRecorder";
 import type { Page } from "../types/page";
+
+/** Was exported by the deleted pages/StudentWorkspacePage. StudentApp owns
+ * its own Study/Progress state now; this survives only as the on-disk
+ * encoding appNavigation.ts still reads when restoring a saved page. */
+export type StudentWorkspaceView = "practice" | "progress";
 
 export interface AudioRecord {
   id: string;

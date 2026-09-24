@@ -9,7 +9,7 @@ import {
   type StorySubmission,
   type VocabQuizAttempt,
 } from "../services/database";
-import type { AudioRecord } from "./MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 import ManagementShell from "../components/management/ManagementShell";
 import Icon from "../shared/ui/Icon";
 import TeacherHelpQueue from "../components/teacher/TeacherHelpQueue";

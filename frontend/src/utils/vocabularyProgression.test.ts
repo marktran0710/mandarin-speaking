@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Topic } from "../components/content/TopicSelector";
+import type { Topic } from "../components/content/topic-selector/types";
 import { isStoryFinished } from "./lessonGroups";
 import { practiceUnlocked } from "./quizTiers";
 import { vocabularyGateStateFor, getVocabularyGateState } from "./vocabularyProgression";

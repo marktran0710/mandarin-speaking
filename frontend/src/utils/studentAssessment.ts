@@ -1,4 +1,4 @@
-import type { AudioRecord } from "../pages/MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 import type { StorySubmission, Student, VocabQuizAttempt } from "../services/database";
 import { computeWordMissStats, getTopicLabel, type WordMissStats } from "./myStoriesUtils";
 import { attemptEarnsStar, starsByStory, type QuizTier } from "./quizTiers";

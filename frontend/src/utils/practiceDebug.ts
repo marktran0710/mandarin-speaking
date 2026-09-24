@@ -1,4 +1,4 @@
-import type { AudioRecord } from "../pages/MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 
 export type DebugAttemptSource = "runtime" | "recorded" | "sample";
 

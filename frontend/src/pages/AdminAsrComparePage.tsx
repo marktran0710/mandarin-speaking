@@ -1,5 +1,5 @@
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
-import type { AudioRecord } from "./MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 import { buildSceneReferenceCurves, type SpeechModel } from "../components/story-recorder/StoryRecorder";
 import { convertBlobToWav } from "../utils/audio";
 import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";

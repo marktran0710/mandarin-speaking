@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
-import type { Topic, NewAudioRecord } from "../../components/story-recorder/StoryRecorder";
+import { useState } from "react";
+import type { NewAudioRecord } from "../../components/story-recorder/StoryRecorder";
+import type { Topic } from "../../components/content/topic-selector/types";
 import { buildSceneReferenceCurves } from "../../components/story-recorder/StoryRecorder";
 import { saveSpeakingProgress, type SceneSubmission } from "../../services/database";
-import { analyzeSpeakingResult } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
-import { getStudentId, getStudentName } from "../../utils/studentSession";
+import {
+  analyzeSpeakingResult,
+  type SpeakingResultAnalysis,
+} from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
+import { getStudentId } from "../../utils/studentSession";
 import { useSpeakingRecorder } from "./useSpeakingRecorder";
 import StudentPageHeader from "../primitives/StudentPageHeader";
 import StudentSection from "../primitives/StudentSection";
@@ -37,6 +41,8 @@ export default function StorySpeakingPage({
   const [selfEvalMeaning, setSelfEvalMeaning] = useState<SelfEvalLevel | null>(null);
   const [selfEvalPronunciation, setSelfEvalPronunciation] = useState<SelfEvalLevel | null>(null);
   const [lastSubmission, setLastSubmission] = useState<SceneSubmission | null>(null);
+  const [lastAnalysis, setLastAnalysis] = useState<SpeakingResultAnalysis | null>(null);
+  const [lastGates, setLastGates] = useState<{ masteryPassed: boolean; contentPassed: boolean } | null>(null);
   const [attempts, setAttempts] = useState(0);
 
   const targetText = topic.suggestedAnswers?.[selectedImageIndex]?.trim()
@@ -44,7 +50,6 @@ export default function StorySpeakingPage({
     || "";
   const selectedImage = topic.images[selectedImageIndex];
   const studentId = getStudentId();
-  const studentName = getStudentName();
 
   const recorder = useSpeakingRecorder((attemptNumber) => ({
     sceneVocabulary: (topic.vocabulary[selectedImageIndex] || []).join(", "),
@@ -56,11 +61,6 @@ export default function StorySpeakingPage({
     sceneReferenceCurves: buildSceneReferenceCurves(topic, selectedImageIndex),
     attemptNumber,
   }));
-
-  const analysis = useMemo(() => {
-    if (!recorder.error && lastSubmission === null) return null;
-    return null;
-  }, [recorder.error, lastSubmission]);
 
   const handleRecord = async () => {
     const result = await recorder.startRecording();
@@ -90,6 +90,15 @@ export default function StorySpeakingPage({
       promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${selectedImageIndex}`,
     };
     setLastSubmission(submission);
+    setLastGates({ masteryPassed: result.masteryPassed, contentPassed: result.contentPassed });
+    setLastAnalysis(
+      analyzeSpeakingResult({
+        modelSentence: targetText,
+        praatMetrics: result.metrics,
+        ready: result.masteryPassed && result.contentPassed,
+        selectedImageIndex,
+      }),
+    );
 
     await onAddRecord({
       id: `audio-${Date.now()}`,
@@ -128,8 +137,8 @@ export default function StorySpeakingPage({
           attempts,
           bestTone: finalSubmission.toneAccuracy,
           bestFluency: finalSubmission.fluencyScore ?? 0,
-          masteryPassed: (finalSubmission.toneAccuracy ?? 0) >= 70,
-          contentPassed: (finalSubmission.vocabScore ?? 0) >= 70,
+          masteryPassed: lastGates?.masteryPassed ?? false,
+          contentPassed: lastGates?.contentPassed ?? false,
           clearedWords: finalSubmission.vocabUsed,
           baseStoryId: finalSubmission.baseStoryId,
           difficultyLevel: finalSubmission.difficultyLevel,
@@ -154,6 +163,8 @@ export default function StorySpeakingPage({
     setSelfEvalMeaning(null);
     setSelfEvalPronunciation(null);
     setLastSubmission(null);
+    setLastAnalysis(null);
+    setLastGates(null);
     setStage("recording");
     if (selectedImageIndex + 1 < topic.images.length) {
       onImageIndexChange(selectedImageIndex + 1);
@@ -162,8 +173,17 @@ export default function StorySpeakingPage({
     }
   };
 
-  const wordChips: WordChip[] | undefined = lastSubmission
-    ? [...lastSubmission.vocabUsed.map((w) => ({ hanzi: w, ok: true })), ...lastSubmission.vocabMissing.map((w) => ({ hanzi: w, ok: false }))]
+  // Word-level chips: every scored syllable, marked attention when it's
+  // one of the real weak/failed words analyzeSpeakingResult already found —
+  // never a re-derived threshold of our own.
+  const weakTokens = lastAnalysis
+    ? new Set([...lastAnalysis.weakItems.map((w) => w.token), ...lastAnalysis.failedWords.map((w) => w.token)])
+    : new Set<string>();
+  const wordChips: WordChip[] | undefined = lastSubmission?.transcription
+    ? Array.from(new Set(lastSubmission.transcription.split(/\s+/).filter(Boolean))).map((token) => ({
+        hanzi: token,
+        ok: !weakTokens.has(token),
+      }))
     : undefined;
 
   return (
@@ -227,14 +247,14 @@ export default function StorySpeakingPage({
             </StudentSection>
           )}
 
-          {stage === "feedback" && lastSubmission && (
+          {stage === "feedback" && lastAnalysis && (
             <StudentInlineFeedback
-              meaningOk={(lastSubmission.vocabScore ?? 0) >= 70}
-              pronunciationOk={(lastSubmission.toneAccuracy ?? 0) >= 70}
-              pronunciationNote={lastSubmission.vocabMissing[0]}
+              meaningOk={lastAnalysis.accepted}
+              pronunciationOk={weakTokens.size === 0}
+              pronunciationNote={lastAnalysis.weakItems[0]?.token ?? lastAnalysis.failedWords[0]?.token}
               coachText={
-                (lastSubmission.toneAccuracy ?? 0) < 70
-                  ? "Listen to the model audio again and focus on the tone contour of the underlined syllable."
+                lastAnalysis.showCorrective
+                  ? lastAnalysis.corrective?.hint || lastAnalysis.corrective?.correct_version
                   : undefined
               }
               wordChips={wordChips}

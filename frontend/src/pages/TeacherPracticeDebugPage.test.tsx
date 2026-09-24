@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import TeacherPracticeDebugPage from "./TeacherPracticeDebugPage";
 import TeacherDashboardPage from "./TeacherDashboardPage";
 import { redactDebugValue } from "../utils/practiceDebug";
-import type { AudioRecord } from "./MyStoriesPage";
+import type { AudioRecord } from "../types/audioRecord";
 
 vi.mock("../utils/audio", () => ({
   convertBlobToWav: vi.fn(async () => new Blob(["wav-audio"], { type: "audio/wav" })),

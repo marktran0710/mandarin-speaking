@@ -15,7 +15,7 @@
  * Epic 3's job) - calling it throws rather than silently returning
  * plausible-looking but wrong data.
  */
-import type { Topic } from "../components/content/TopicSelector";
+import type { Topic } from "../components/content/topic-selector/types";
 import { isStoryFinished, type StarsForTopic } from "./lessonGroups";
 import { PRACTICE_UNLOCK_STARS, loadLocalStars, practiceUnlocked } from "./quizTiers";
 import { loadSubmittedStoryIds } from "./storyLevelProgress";

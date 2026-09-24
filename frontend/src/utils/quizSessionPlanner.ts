@@ -3,7 +3,7 @@ import type {
   VocabQuizEntry,
   VocabQuizQuestion,
   VocabQuizMode,
-} from "../components/story-vocab-quiz/StoryVocabQuiz";
+} from "../components/story-vocab-quiz/model";
 
 export type QuizQuestionKind = VocabQuizQuestion["kind"];
 
