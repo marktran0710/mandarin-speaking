@@ -129,7 +129,15 @@ export default function MyStoriesPage({
   const [profileTab, setProfileTab] = useState<ProfileTab>("lesson");
 
   useEffect(() => {
-    if (!canUseDatabase()) return;
+    if (!canUseDatabase()) {
+      try {
+        const cached = JSON.parse(localStorage.getItem("audioRecords") || "[]");
+        if (Array.isArray(cached)) setPersistedRecords(cached as AudioRecord[]);
+      } catch {
+        // Offline/local-only mode should still render the cached progress.
+      }
+      return;
+    }
     let cancelled = false;
     const studentId = getStudentId();
     const studentName = getStudentName();

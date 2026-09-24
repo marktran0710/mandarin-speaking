@@ -26,15 +26,12 @@ import {
   createAudioRecord,
   createHelpRequest,
   HelpRequest,
-  listAudioRecords,
   listCustomStories,
   logoutStudent,
-  StoredAudioRecord,
 } from "../services/database";
 import { getStudentAppBootstrapState, collectPinyinTexts } from "../config/appNavigation";
 import type { AudioRecord, PracticeTarget } from "./appTypes";
 import {
-  recordsFromStored,
   serializeAudioRecord,
   updateStoredAudioRecord,
   writeAudioRecordsCache,
@@ -77,17 +74,16 @@ export default function App() {
   const [studentWorkspaceView, setStudentWorkspaceView] =
     useState<StudentWorkspaceView>(bootstrapState.studentWorkspaceView);
   const [isInPracticeSession, setIsInPracticeSession] = useState(false);
+  // Full audio history is owned by MyStoriesPage and fetched when the learner
+  // opens Progress. Nothing from the historical recording table blocks the
+  // student shell bootstrap.
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
-  // Each of the student workspace's three initial fetches (audio records,
-  // published topics, help requests) used to paint its own screen the
-  // instant it resolved, so the workspace could visibly assemble itself
-  // piece by piece on a slow connection. Gate the student routes behind all
-  // three settling once, so they mount already fully populated.
-  const [audioRecordsReady, setAudioRecordsReady] = useState(false);
+  // The student shell is gated only on data required to choose and launch a
+  // lesson. Recording history is intentionally deferred to My Stories.
   const [publishedTopicsReady, setPublishedTopicsReady] = useState(false);
   const [helpRequestsReady, setHelpRequestsReady] = useState(false);
-  const studentDataReady = audioRecordsReady && publishedTopicsReady && helpRequestsReady;
+  const studentDataReady = publishedTopicsReady && helpRequestsReady;
   const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
     bootstrapState.practiceTarget,
   );
@@ -149,55 +145,6 @@ export default function App() {
       active = false;
     };
   }, [publishedTopics]);
-
-  const loadSavedAudioRecords = useCallback(async () => {
-    if (canUseDatabase()) {
-      try {
-        const serverRecords = await listAudioRecords({
-          limit: 1000,
-          studentId: getStudentId(),
-        });
-        let localRecords: StoredAudioRecord[] = [];
-        try {
-          const parsed = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-          if (Array.isArray(parsed)) {
-            const studentId = getStudentId();
-            localRecords = parsed.filter(
-              (record: StoredAudioRecord) => !studentId || record.studentId === studentId,
-            );
-          }
-        } catch {
-          localRecords = [];
-        }
-        const byId = new Map<string, StoredAudioRecord>();
-        for (const record of [...localRecords, ...serverRecords]) byId.set(record.id, record);
-        const recordsData = Array.from(byId.values());
-        setAudioRecords(recordsFromStored(recordsData));
-        writeAudioRecordsCache(recordsData);
-        return;
-      } catch (error) {
-        console.error("Failed to load audio records from database:", error);
-      }
-    }
-    const stored = localStorage.getItem("audioRecords");
-    if (!stored) return;
-    try {
-      const recordsData = JSON.parse(stored);
-      if (Array.isArray(recordsData)) setAudioRecords(recordsFromStored(recordsData));
-    } catch (error) {
-      console.error("Failed to load audio records:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeRole !== "student") {
-      setAudioRecordsReady(true);
-      return;
-    }
-
-    setAudioRecordsReady(false);
-    loadSavedAudioRecords().finally(() => setAudioRecordsReady(true));
-  }, [activeRole, loadSavedAudioRecords]);
 
   // Remembers the section a student is on so a reload (or reopening the
   // browser later — this is signed in via localStorage, not a per-tab
@@ -336,6 +283,7 @@ export default function App() {
 
   const handleLogout = () => {
     setActiveRole(null);
+    setAudioRecords([]);
     setPracticeTarget(null);
     // Must run before signOut() clears the session — the scope key they
     // read to find this student's stored state comes from that session.

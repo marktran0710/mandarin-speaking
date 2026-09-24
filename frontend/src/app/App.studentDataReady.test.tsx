@@ -2,12 +2,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 
-// The three initial student-data fetches (audio records, published topics,
-// help requests) used to each paint their own screen the instant they
-// resolved, so a returning student's workspace visibly assembled itself
-// piece by piece on a slow connection. App.tsx now gates every student
-// route behind all three settling once — this file proves that gate
-// actually blocks, and actually releases, instead of trusting the wiring.
+// Student bootstrap waits only for the lesson catalog and local help state.
+// Audio history is deliberately deferred to MyStoriesPage; these tests prove
+// the shell no longer blocks on that unbounded historical dataset.
 vi.mock("../services/database", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../services/database")>();
   return {
@@ -45,13 +42,13 @@ describe("App — student data must be ready before a student route renders", ()
     expect(api.listCustomStories).not.toHaveBeenCalled();
   });
 
-  it("shows the loading gate, not the workspace, while a fetch is still pending, then releases it once all three settle", async () => {
+  it("does not wait for audio history before releasing the student workspace", async () => {
     const api = await import("../services/database");
-    let resolveAudio!: (value: never[]) => void;
-    const audioPromise = new Promise<never[]>((resolve) => {
-      resolveAudio = resolve;
+    let resolveTopics!: (value: never[]) => void;
+    const topicsPromise = new Promise<never[]>((resolve) => {
+      resolveTopics = resolve;
     });
-    vi.spyOn(api, "listAudioRecords").mockReturnValue(audioPromise);
+    vi.spyOn(api, "listCustomStories").mockReturnValue(topicsPromise);
 
     signInAsStudent();
     render(<App />);
@@ -65,7 +62,7 @@ describe("App — student data must be ready before a student route renders", ()
       screen.queryByRole("navigation", { name: "Learning areas" }),
     ).not.toBeInTheDocument();
 
-    resolveAudio([]);
+    resolveTopics([]);
 
     await waitFor(() =>
       expect(
@@ -79,12 +76,13 @@ describe("App — student data must be ready before a student route renders", ()
       screen.getByRole("navigation", { name: "Learning areas" }),
     ).toBeInTheDocument();
     expect(api.listCustomStories).toHaveBeenCalledTimes(1);
+    expect(api.listAudioRecords).not.toHaveBeenCalled();
     expect(api.listHelpRequests).not.toHaveBeenCalled();
   });
 
-  it("releases the gate even when a fetch fails, instead of loading forever", async () => {
+  it("releases the gate when the catalog fetch fails, instead of loading forever", async () => {
     const api = await import("../services/database");
-    vi.spyOn(api, "listAudioRecords").mockRejectedValue(new Error("network down"));
+    vi.spyOn(api, "listCustomStories").mockRejectedValue(new Error("network down"));
 
     signInAsStudent();
     render(<App />);
