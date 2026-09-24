@@ -226,7 +226,6 @@ export const emptyCustomStoryDraft = {
   vocabularyPinyin: blankTiers(6),
   vocabularyPos: blankTiers(6),
   vocabularyTranslation: blankTiers(6),
-  vocabularyDistractors: ["", "", "", "", "", ""],
   vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
   phrases: blankTiers(6),
   phrasesTranslation: blankTiers(6),

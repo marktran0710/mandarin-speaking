@@ -26,9 +26,8 @@ DEFAULT_SQLITE_PATH = os.path.join(
 # table -> (columns, json columns, boolean columns)
 TABLES = {
     "custom_stories": (
-        ["id", "title", "frames", "published", "created_at", "lesson_number",
-         "quiz_exclusions"],
-        {"frames", "quiz_exclusions"},
+        ["id", "title", "frames", "published", "created_at", "lesson_number"],
+        {"frames"},
         {"published"},
     ),
     "audio_records": (

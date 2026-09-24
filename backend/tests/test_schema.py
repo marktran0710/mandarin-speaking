@@ -21,8 +21,6 @@ EXPECTED_TABLES = {
 
 JSONB_COLUMNS = [
     ("custom_stories", "frames"),
-    ("custom_stories", "quiz_exclusions"),
-    ("custom_stories", "quiz_material_snapshot"),
     ("custom_stories", "vocab_assessment"),
     ("story_submissions", "scenes"),
     ("story_submissions", "story_feedback"),
@@ -57,6 +55,10 @@ REMOVED_CUSTOM_STORY_COLUMNS = (
     "narrative_mode",
     "linear",
     "first_frame_is_example",
+    "quiz_exclusions",
+    "quiz_material_snapshot",
+    "quiz_approved_snapshot",
+    "quiz_pending_approvals",
 )
 
 

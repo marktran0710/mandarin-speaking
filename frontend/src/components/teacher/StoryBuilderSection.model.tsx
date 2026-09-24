@@ -108,9 +108,6 @@ export function createCustomStory(
       if (draft.vocabularyGroups[index]) {
         frame.vocabularyGroups = draft.vocabularyGroups[index]!;
       }
-      if (draft.vocabularyDistractors[index]?.trim()) {
-        frame.vocabularyDistractors = draft.vocabularyDistractors[index].trim();
-      }
       // Optional fields (beyond prompt/vocabulary, always present)
       if (draft.phrases.easy[index]?.trim()) frame.phrases = draft.phrases.easy[index].trim();
       if (draft.phrasesTranslation.easy[index]?.trim())
@@ -251,7 +248,6 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
     vocabularyPinyin: tiersFor("vocabularyPinyin"),
     vocabularyPos: tiersFor("vocabularyPos"),
     vocabularyTranslation: tiersFor("vocabularyTranslation"),
-    vocabularyDistractors: frames.map((frame) => frame?.vocabularyDistractors || ""),
     suggestedAnswers: tiersFor("suggestedAnswers"),
     listenAudioUrls: tiersFor("listenAudioUrls"),
     listenAudioSources: tiersFor("listenAudioSources"),

@@ -1,9 +1,8 @@
 // One-Time Vocabulary Preview plan, Epic B: the Story Practice speaking
 // preview must show the exact same vocabulary the quiz already tested -
 // never a second, independently-aggregated word list that could
-// eventually disagree with it. topicQuizEntries already owns the
-// vocabAssessment -> quizVocabulary -> topic.vocabulary fallback chain
-// (question-bank material, exclusions, dedup); this module only reshapes
+// eventually disagree with it. topicQuizEntries owns the canonical
+// vocabAssessment bank and deduplication; this module only reshapes
 // its output for a read-only preview screen, plus a best-effort per-word
 // audio lookup topicQuizEntries itself doesn't carry.
 
@@ -18,7 +17,7 @@ export interface SpeakingVocabularyPreviewItem {
   audioUrl?: string;
 }
 
-type AudioLookupTopic = Pick<QuizSourceTopic, "vocabulary"> & {
+type AudioLookupTopic = { vocabulary: Record<number, string[]> } & {
   vocabularyAudioUrls?: Record<number, (string | null)[]>;
 };
 

@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
 import { toPinyin } from "../../utils/pinyin";
+import type { VocabAssessmentQuestion } from "../story-vocab-quiz/model";
 
 // Unlocking practice now means walking a 67-question star ladder (see
 // completeVocabQuiz below) — integration tests in this file legitimately
@@ -9,10 +10,6 @@ import { toPinyin } from "../../utils/pinyin";
 vi.setConfig({ testTimeout: 20_000 });
 import StoryRecorder, {
   vocabTooltip,
-  planDistractorGrowth,
-  buildDistractorPatchUpdates,
-  planClozeGrowth,
-  buildClozePatchUpdates,
   practiceSceneIndicesFor,
   attemptHistoryFromAudioRecords,
   sceneSubmissionFromAudioRecord,
@@ -23,12 +20,16 @@ import StoryRecorder, {
 // gates practice on actually passing tier 1 (14/20 right), so the helper
 // below must genuinely know the answers rather than losing on purpose.
 const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string; pos?: string }> = {
-  market: { translation: "marketplace", pinyin: "shìchǎng", pos: "N" },
-  help: { translation: "to help", pos: "V" },
-  friend: { translation: "friend" },
+  market: { translation: "marketplace", pinyin: "shichang", pos: "N" },
+  help: { translation: "to help", pinyin: "bangmang", pos: "V" },
+  friend: { translation: "friend", pinyin: "pengyou", pos: "N" },
   餐廳: { translation: "restaurant" },
   吃: { translation: "to eat" },
 };
+
+function wordFromPrompt(prompt: string): string {
+  return prompt.match(/What does (.+?) mean\?|(?:for|with) (.+?)(?:\.)?$/)?.slice(1).find(Boolean) ?? "";
+}
 
 /** Answers every question of the current tier run correctly via
  * QUIZ_ANSWERS — tiers 1-2 only ever ask translation / reverse / pinyin
@@ -36,11 +37,32 @@ const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string; pos?:
  * synthesis), each identified here by its options group's aria-label. */
 async function passTierRun(user: UserEvent, questionCount: number) {
   for (let i = 0; i < questionCount; i += 1) {
+    const typedAnswer = screen.queryByRole("textbox", { name: "Your answer" });
+    if (typedAnswer) {
+      const prompt = screen.getByRole("heading", { level: 1 }).textContent ?? "";
+      const word = wordFromPrompt(prompt);
+      await user.type(typedAnswer, QUIZ_ANSWERS[word]?.pinyin || toPinyin(word) || "sh穫ch?ng");
+      await user.click(screen.getByRole("button", { name: /Check answer/ }));
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+      continue;
+    }
     const optionsGroup = screen.queryByRole("group", {
-      name: /What does|What part of speech|How do you read|Which word means/,
+      name: /Answer choices|What does|What part of speech|How do you read|Which word means/,
     });
     if (!optionsGroup) break;
     const label = optionsGroup.getAttribute("aria-label")!;
+    if (label === "Answer choices") {
+      const prompt = screen.getByRole("heading", { level: 1 }).textContent ?? "";
+      const word = wordFromPrompt(prompt);
+      const correct = prompt.includes("sentence") ? word : QUIZ_ANSWERS[word]?.translation;
+      await user.click(
+        within(optionsGroup)
+          .getAllByRole("button")
+          .find((button) => button.textContent === correct)!,
+      );
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+      continue;
+    }
     let correct: string;
     let match = label.match(/^What does (.+) mean\?$/);
     if (match) {
@@ -140,6 +162,33 @@ const topicWithQuizVocab = {
   vocabularyTranslation: {
     0: ["marketplace", "to help", "friend"],
   },
+  vocabAssessment: [
+    ["market", "marketplace", "shichang", "N"],
+    ["help", "to help", "bangmang", "V"],
+    ["friend", "friend", "pengyou", "N"],
+  ].flatMap(([word, translation, pinyin, pos], index) => ([
+    {
+      questionId: `story-test-${index}-easy`, wordId: `story-test-${index}`, targetWord: word,
+      pinyin, pos, simpleEnglishMeaning: translation, level: "easy" as const, difficultyWeight: 1 as const,
+      questionType: "basic_meaning_mcq" as const, answerFormat: "single_choice" as const,
+      prompt: `What does ${word} mean?`, options: [translation, "restaurant", "umbrella", "room"],
+      correctAnswer: translation, acceptedAnswers: [translation], explanation: `${word} means ${translation}.`,
+    },
+    {
+      questionId: `story-test-${index}-medium`, wordId: `story-test-${index}`, targetWord: word,
+      pinyin, pos, simpleEnglishMeaning: translation, level: "medium" as const, difficultyWeight: 2 as const,
+      questionType: "character_to_pinyin_typing" as const, answerFormat: "free_text" as const,
+      prompt: `Type the pinyin for ${word}.`, options: [], correctAnswer: pinyin,
+      acceptedAnswers: [pinyin], explanation: `The pinyin for ${word} is ${pinyin}.`,
+    },
+    {
+      questionId: `story-test-${index}-hard`, wordId: `story-test-${index}`, targetWord: word,
+      pinyin, pos, simpleEnglishMeaning: translation, level: "hard" as const, difficultyWeight: 3 as const,
+      questionType: "context_cloze_mcq" as const, answerFormat: "single_choice" as const,
+      prompt: `Complete the sentence with ${word}.`, options: [word, "雨", "書", "房間"],
+      correctAnswer: word, acceptedAnswers: [word], explanation: `Use ${word} in the context.`,
+    },
+  ] as VocabAssessmentQuestion[])),
 };
 
 const TEST_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";

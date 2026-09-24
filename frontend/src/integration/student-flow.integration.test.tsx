@@ -16,6 +16,12 @@ const topic: Topic = {
   vocabulary: { 0: ["好"] },
   vocabularyPinyin: { 0: ["hǎo"] },
   vocabularyTranslation: { 0: ["good"] },
+  vocabAssessment: [{
+    questionId: "integration-good-easy", wordId: "integration-good", targetWord: "憟?", pinyin: "hǎo",
+    pos: "ADJ", simpleEnglishMeaning: "good", level: "easy", difficultyWeight: 1,
+    questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "What does this mean?",
+    options: ["good", "bad", "book", "room"], correctAnswer: "good", acceptedAnswers: ["good"], explanation: "good",
+  }],
   suggestedAnswers: { 0: "好。" },
 };
 
@@ -109,7 +115,7 @@ describe("student integration flows", () => {
     await user.type(screen.getByPlaceholderText(/Enter your password/), "123456");
     await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
 
-    expect(await screen.findByRole("heading", { name: /選一個生活情境/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /App Flow Student/ })).toBeInTheDocument();
     expect(screen.getByText("App Flow Student")).toBeInTheDocument();
   });
 

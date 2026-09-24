@@ -42,6 +42,12 @@ function topic(id: string, lessonNumber: number, hasQuiz = true): Topic {
     images: ["/x.png"],
     vocabulary: hasQuiz ? { 0: ["市場"] } : {},
     vocabularyTranslation: hasQuiz ? { 0: ["market"] } : undefined,
+    vocabAssessment: hasQuiz ? [{
+      questionId: `${id}-easy`, wordId: `${id}-word`, targetWord: "撣", pinyin: "shìchǎng",
+      pos: "N", simpleEnglishMeaning: "market", level: "easy", difficultyWeight: 1,
+      questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "What does this mean?",
+      options: ["market", "book", "door", "room"], correctAnswer: "market", acceptedAnswers: ["market"], explanation: "market",
+    }] : undefined,
     lessonNumber,
   } as unknown as Topic;
 }

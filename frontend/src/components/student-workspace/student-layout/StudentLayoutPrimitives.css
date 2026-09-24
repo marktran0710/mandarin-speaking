@@ -19,13 +19,16 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 .student-page-body--flow { gap: var(--space-lg); }
 .student-page-body--task { gap: var(--space-md); }
 .student-page-body--stage {
   min-height: 0;
-  height: 100%;
+  height: auto;
   gap: var(--space-md);
 }
 

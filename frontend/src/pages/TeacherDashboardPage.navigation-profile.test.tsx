@@ -93,17 +93,6 @@ describe("TeacherDashboardPage", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("keeps the quiz review tool available in Admin Materials", async () => {
-    const user = userEvent.setup();
-    render(<AdminMaterialsPage />);
-
-    await user.click(screen.getByRole("button", { name: /Quiz Review/ }));
-
-    expect(
-      await screen.findByRole("heading", { name: /Quiz Review/ }),
-    ).toBeInTheDocument();
-  });
-
   it("lists a published teacher story in the My Profile by-story overview", async () => {
     const user = userEvent.setup();
     // First, create and publish a teacher story

@@ -106,7 +106,7 @@ export default function QuestionPreview({ entry, story, onClose }: {
     if (!story) return null;
     // storyToTopic reads only fields StoredCustomStory also carries; the two
     // story types are declared separately, so bridge them structurally.
-    const topic = storyToTopic(story as unknown as CustomTeacherStory, "easy", "live");
+    const topic = storyToTopic(story as unknown as CustomTeacherStory, "easy");
     const entries = topicQuizEntries(topic);
     const wordEntry = entry.assessmentWordId
       ? entries.find((candidate) => candidate.wordId === entry.assessmentWordId)

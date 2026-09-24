@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import {
   canUseDatabase,
@@ -13,8 +13,6 @@ import {
   loadCustomStories,
   saveCustomStories,
 } from "../../utils/teacherStories";
-import { storyQuizExclusions } from "../../utils/quizExclusions";
-import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
 import { exportStoryFile, readStoryImportFile } from "../../utils/storyPortability";
 import {
   clearFrameError,
@@ -37,26 +35,12 @@ import StoryBuilderForm from "./StoryBuilderSection.Form";
 import StoryBuilderLibrary from "./StoryBuilderSection.Library";
 import { useStoryBuilderFrameActions } from "./StoryBuilderSection.frameActions";
 export type { CustomStoryValidationErrors } from "./StoryBuilderSection.helpers";
-export default function StoryBuilderSection({
-  onStorySaved,
-  onGoToQuizReview,
-}: {
-  onStorySaved?: () => void;
-  /** Jumps the management shell to Materials → Quiz Review, pre-selecting
-   * the lesson the just-saved story belongs to. */
-  onGoToQuizReview?: (lessonNumber: number | null) => void;
-}) {
+export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: () => void }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),
   );
   const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
-  // Shown after updating an existing story — quiz material may now be
-  // stale against what's approved, and there was previously no prompt at
-  // all telling a teacher to go check.
-  const [savedReviewBanner, setSavedReviewBanner] = useState<{ lessonNumber: number | null } | null>(
-    null,
-  );
   // Bumped on save/edit/cancel so a remounted table (keyed on this) can't
   // retain stale row state from the previous draft.
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
@@ -114,7 +98,6 @@ export default function StoryBuilderSection({
       vocabularyPinyin: resizeTiers(draft.vocabularyPinyin, clamped),
       vocabularyPos: resizeTiers(draft.vocabularyPos, clamped),
       vocabularyTranslation: resizeTiers(draft.vocabularyTranslation, clamped),
-      vocabularyDistractors: resizeToCount(draft.vocabularyDistractors, clamped, ""),
       vocabularyGroups: resizeToCount(draft.vocabularyGroups, clamped, null),
       phrases: resizeTiers(draft.phrases, clamped),
       phrasesTranslation: resizeTiers(draft.phrasesTranslation, clamped),
@@ -134,7 +117,7 @@ export default function StoryBuilderSection({
   };
 
   // Every tiered field, including images, is edited one tier at a time via
-  // the level dropdown — a blank tier falls back to Easy for students (see
+  // the level dropdown ??a blank tier falls back to Easy for students (see
   // tierText in utils/teacherStories.ts).
   const updateDraftFrame = (
     field: TieredDraftField,
@@ -263,9 +246,6 @@ export default function StoryBuilderSection({
     setCustomStoryNotice(
       editingStoryId ? "Custom story updated." : "Custom story saved.",
     );
-    if (editingStoryId) {
-      setSavedReviewBanner({ lessonNumber: storyToStore.lessonNumber ?? null });
-    }
     setEditingStoryId(null);
     setCustomDraft(emptyCustomStoryDraft);
     setVocabDraftGeneration((generation) => generation + 1);
@@ -410,15 +390,12 @@ export default function StoryBuilderSection({
           validationErrors={validationErrors}
           validationAttemptGeneration={validationAttemptGeneration}
           customStoryNotice={customStoryNotice}
-          savedReviewBanner={savedReviewBanner}
           preparedFrameCount={preparedFrameCount}
           editingStoryId={editingStoryId}
           onSave={handleSaveCustomStory}
           onUpdateField={updateDraftField}
           onUpdateFrameCount={updateFrameCount}
           onSetDraft={setCustomDraft}
-          onGoToQuizReview={onGoToQuizReview}
-          onDismissReview={() => setSavedReviewBanner(null)}
           onCancel={handleCancelCustomStoryEdit}
           updateDraftFrame={updateDraftFrame}
           updateDraftGroups={updateDraftGroups}
@@ -449,3 +426,4 @@ export default function StoryBuilderSection({
     </section>
   );
 }
+

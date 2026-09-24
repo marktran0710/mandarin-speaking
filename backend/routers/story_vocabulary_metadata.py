@@ -152,8 +152,7 @@ async def update_vocabulary_metadata(story_id: str, edit: VocabularyMetadataEdit
             if edit.frameIndex >= len(frames):
                 raise HTTPException(409, "The selected scene changed. Reload the story before saving again.")
             changes = metadata_changes(frames[edit.frameIndex], edit)
-            # The lock and field-level writes preserve unrelated content and
-            # published quiz snapshots, which still require explicit Quiz Review.
+            # The lock and field-level writes preserve unrelated story content.
             for field, value in changes.items():
                 db.execute(
                     "UPDATE custom_stories SET frames = jsonb_set(frames, ARRAY[%s, %s], "

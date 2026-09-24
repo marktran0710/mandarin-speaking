@@ -4,8 +4,6 @@ import security.auth as auth
 from main import app
 from routers import stories, vocabulary
 from routers.story_crud import router as story_crud_router
-from routers.story_quiz_materials import router as story_quiz_materials_router
-from routers.story_quiz_pools import router as story_quiz_pools_router
 from routers.story_quiz_vocabulary import router as story_quiz_vocabulary_router
 from routers.story_vocabulary_metadata import router as story_vocabulary_metadata_router
 
@@ -18,12 +16,6 @@ EXPECTED_STORY_OPERATIONS = {
     ("POST", "/api/custom-stories/{story_id}/quiz-vocabulary"),
     ("PUT", "/api/custom-stories/{story_id}/quiz-vocabulary/{word_id}"),
     ("DELETE", "/api/custom-stories/{story_id}/quiz-vocabulary/{word_id}"),
-    ("PUT", "/api/custom-stories/{story_id}/quiz-exclusions"),
-    ("PUT", "/api/custom-stories/{story_id}/quiz-pending-approvals"),
-    ("PUT", "/api/custom-stories/{story_id}/quiz-question"),
-    ("PATCH", "/api/custom-stories/{story_id}/vocabulary-distractors"),
-    ("PATCH", "/api/custom-stories/{story_id}/vocabulary-cloze"),
-    ("PATCH", "/api/custom-stories/{story_id}/vocabulary-synonym"),
 }
 
 EXPECTED_VOCABULARY_OPERATIONS = {
@@ -75,11 +67,7 @@ def test_story_routes_are_registered_without_duplicates():
 
 
 def test_story_routers_keep_story_access_auth_dependency():
-    for router in (
-        story_crud_router,
-        story_quiz_materials_router,
-        story_quiz_pools_router,
-    ):
+    for router in (story_crud_router,):
         assert any(
             dependency.dependency.__name__ == "require_story_access"
             for dependency in router.dependencies

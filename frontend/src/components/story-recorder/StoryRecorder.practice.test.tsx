@@ -321,17 +321,11 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    // Finish the mandatory vocab quiz gate (this topic has 1 translated
-    // word, enough to trigger it) to reach the practice-phase vocab table.
-    await completeVocabQuiz(user);
-
-    // Dismiss the one-time vocabulary preview overlay (it shows its own
-    // "Listen" button per word too) to get back to the scene's own row.
+    // Frame vocabulary is speaking context only; the preview and quiz now
+    // require the canonical assessment bank.
     await waitFor(() =>
-      expect(screen.getByRole("region", { name: "Vocabulary preview" })).toBeInTheDocument(),
+      expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument(),
     );
-    await user.click(screen.getByRole("button", { name: /Start Speaking/i }));
-
     const listenButton = screen.getByRole("button", {
       name: "Listen to the model pronunciation of market",
     });

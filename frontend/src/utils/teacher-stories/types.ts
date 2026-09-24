@@ -6,10 +6,7 @@ export interface VocabGroup {
 import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
 import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder/conversation";
 
-// Stories run a single text level. The old multi-level story-text system was
-// retired when the quiz moved to one vocabulary set + three rounds; this stays
-// a named type (rather than a bare "easy") so the level-keyed snapshot/diff
-// machinery keeps compiling on one canonical key.
+// Stories run one vocabulary set plus three canonical assessment rounds.
 export type StoryDifficultyLevel = "easy";
 
 /** Learning content shared by every scene in a story tier. */
@@ -41,25 +38,12 @@ export interface CustomStoryFrame {
   vocabularyPinyin?: string;
   vocabularyPos?: string;
   vocabularyTranslation?: string;
-  // JSON-encoded array of arrays (one entry per word, aligned with the
-  // comma-split `vocabulary` above) — distractors are inherently multi-valued
-  // per word, unlike the other comma-joined single-value fields.
-  vocabularyDistractors?: string;
-  // JSON-encoded array of arrays (one entry per word, aligned with the
-  // comma-split `vocabulary` above) — each word's entry is a list of
-  // AI-generated {sentence, distractors} cloze candidates, grown the same
-  // way vocabularyDistractors is.
-  vocabularyCloze?: string;
-  // JSON-encoded array of arrays (one entry per word) — each word's entry
-  // is a list of AI-generated {synonym, distractors} candidates, grown the
-  // same way vocabularyCloze is.
-  vocabularySynonym?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenAudioSource?: "teacher" | "tts";
   listenScript?: string;
   // Model-voice reference audio, one per word in this tier's own vocabulary
-  // list (unlike vocabularyDistractors/Cloze/Synonym above, these
+  // list, these
   // ARE tiered — see storyToTopic). JSON-encoded array of URLs (a null entry
   // means that word's clip couldn't be sliced) and, in parallel, an array of
   // 100-point [0,1] pitch-shape curves the scoring engine sends back to the
@@ -87,16 +71,5 @@ export interface CustomTeacherStory {
    * (see groupTopicsByLesson). */
   lessonSubOrder?: number | null;
   rubricScores?: Record<string, unknown> | null;
-  /** Teacher quiz review's diff baseline, keyed by tier — see
-   * utils/quizMaterialDiff.ts. Opaque here to avoid a dependency cycle
-   * (quizMaterialDiff already imports StoryDifficultyLevel from this file). */
-  quizMaterialSnapshot?: Record<string, unknown>;
-  /** Teacher-approved AI quiz material, keyed by tier — see
-   * utils/quizApprovedMaterial.ts. What storyToTopic(story, level,
-   * "approved") actually serves students. */
-  quizApprovedSnapshot?: Record<string, unknown>;
-  /** Quiz Review's in-progress checkbox selections, keyed by tier — see
-   * utils/quizPendingApprovals.ts. Not yet published; survives a reload. */
-  quizPendingApprovals?: Record<string, unknown>;
   vocabAssessment?: VocabAssessmentQuestion[];
 }

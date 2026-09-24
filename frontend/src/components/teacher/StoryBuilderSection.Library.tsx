@@ -1,8 +1,6 @@
 // @ts-nocheck
 import React from "react";
-import { resolveImageUrl, storyToTopic } from "../../utils/teacherStories";
-import { storyQuizExclusions } from "../../utils/quizExclusions";
-import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
+import { resolveImageUrl } from "../../utils/teacherStories";
 
 function StoryItemActionGroup({ story, onTogglePublish, onEdit, onExport, onDelete }) {
   const closeMenu = (event, action) => { action(); event.currentTarget.closest("details")?.removeAttribute("open"); };
@@ -30,10 +28,9 @@ function StoryRubric({ rubricScores }) {
 }
 
 function StoryLibraryItem({ story, ...actions }) {
-  const quizNeedsReview = storyQuizNeedsReview(story, buildApprovedMaterial(storyToTopic(story, "easy"), storyQuizExclusions(story)), "easy");
   return <article className="custom-story-item"><div className="custom-story-item-header"><div><strong>
     {story.lessonNumber != null && <span className="topic-lesson-badge">Lesson {story.lessonNumber}{story.lessonSubOrder != null && `-${story.lessonSubOrder}`}</span>}{story.title}
-  </strong>{quizNeedsReview && <span className="quiz-needs-review-badge" title="Quiz material has changed since it was last approved — check Quiz Review before students see it.">⚙️ Quiz needs review</span>}
+  </strong>
   <span>{story.published ? "Published" : "Draft"}</span></div>
   <StoryItemActionGroup story={story} {...actions} /></div>
   {story.rubricScores && <StoryRubric rubricScores={story.rubricScores} />}

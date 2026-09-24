@@ -109,7 +109,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
           saveCustomStories(merged);
           const published = merged
             .filter((s) => s.published)
-            .map((s) => storyToTopic(s as any, "easy", "approved"))
+            .map((s) => storyToTopic(s as any, "easy"))
             .filter(isStoryModeTopic);
           const serverSubmissions = await submissions;
           if (!cancelled && serverSubmissions && mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
@@ -124,7 +124,7 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
         }
         const published = (dbStories.length > 0 ? dbStories : localStories)
           .filter((s) => s.published)
-          .map((s) => storyToTopic(s as any, "easy", "approved"))
+          .map((s) => storyToTopic(s as any, "easy"))
           .filter(isStoryModeTopic);
         const serverSubmissions = await submissions;
         if (!cancelled && serverSubmissions && mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {

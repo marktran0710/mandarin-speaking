@@ -1,6 +1,6 @@
-"""Pydantic request/response models shared across routers.
+﻿"""Pydantic request/response models shared across routers.
 
-Pure data shapes, no business logic — kept separate from services/ (which
+Pure data shapes, no business logic ??kept separate from services/ (which
 does have logic) and from routers/ (which own the endpoints that validate
 against these models).
 """
@@ -75,17 +75,7 @@ class CustomStoryFrameRequest(BaseModel):
     vocabularyAudioUrls: Optional[str] = None
     vocabularyReferenceCurves: Optional[str] = None
     sentenceReferenceCurves: Optional[str] = None
-    vocabularyDistractors: Optional[str] = None
-    # JSON-encoded array of arrays (one entry per word, aligned with the
-    # comma-split `vocabulary` above) — each word's entry is a list of
-    # AI-generated {sentence, distractors} cloze candidates, grown over time
-    # the same way vocabularyDistractors is (see vocab_quiz_cloze / the
-    # vocabulary-cloze PATCH endpoint).
-    vocabularyCloze: Optional[str] = None
-    # JSON-encoded array of arrays (one entry per word) — each word's entry
-    # is a list of AI-generated {synonym, distractors} candidates, grown the
-    # same way vocabularyCloze is.
-    vocabularySynonym: Optional[str] = None
+
     vocabularyAudioUrlsMedium: Optional[str] = None
     vocabularyAudioUrlsHard: Optional[str] = None
     vocabularyReferenceCurvesMedium: Optional[str] = None
@@ -138,14 +128,14 @@ class SceneSubmission(BaseModel):
     pronScore: float = 0
     fluencyScore: float = 0
     audioUrl: Optional[str] = None
-    # Praat pause-analysis data for this scene's recording — see
+    # Praat pause-analysis data for this scene's recording ??see
     # services.ai_feedback.generate_story_feedback for why this now feeds story-level
     # feedback directly (delivery matters more once scenes can hand the
     # student a suggestedAnswer to read, since vocab/grammar aren't a choice).
     pauseCount: float = 0
     longestPause: float = 0
     utteranceCount: float = 0
-    # Judged pause placement + articulation rate — see caf_metrics.classify_pauses
+    # Judged pause placement + articulation rate ??see caf_metrics.classify_pauses
     # and caf_metrics.speech_rate_verdict for how these are derived.
     choppyPauseCount: float = 0
     articulationRate: float = 0
@@ -242,96 +232,8 @@ class StudentUpdateRequest(BaseModel):
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
 
 
-class QuizExclusion(BaseModel):
-    """One piece of quiz material the teacher marked bad (see the teacher
-    quiz-review page): a whole word ("word") or one candidate of a per-word
-    AI pool ("cloze"/"synonym" with its pool index, or the whole
-    "distractors" pool), or one deterministic question type ("pinyin" /
-    "reverse")."""
-    word: str = Field(..., min_length=1, max_length=50)
-    kind: str = Field(..., pattern="^(word|cloze|synonym|distractors|pinyin|reverse)$")
-    index: Optional[int] = Field(default=None, ge=0)
-
-
-class QuizExclusionsUpdateRequest(BaseModel):
-    exclusions: List[QuizExclusion]
-    # The full per-word quiz material tree at save time, keyed by level, so
-    # the Quiz Review page can diff live material against it next time
-    # (new/changed/kept). Opaque here — the frontend owns the per-tier shape
-    # and sends the whole map each time (merging in whichever tier changed),
-    # so a save under one tier never clobbers another tier's baseline.
-    materialSnapshot: Optional[Dict[str, List[dict]]] = None
-
-
-class QuizClozeCandidateIn(BaseModel):
-    sentence: str
-    distractors: List[str] = []
-
-
-class QuizSynonymCandidateIn(BaseModel):
-    synonym: str
-    distractors: List[str] = []
-
-
-class QuizWordMaterialIn(BaseModel):
-    """One word's current (teacher-authored) quiz material, as the Quiz
-    Review page already displays it (see storyToTopic/quizMaterialDiff) —
-    the shape /quiz/approve takes, so the same JSON the frontend already
-    builds for the diff snapshot can be sent as-is."""
-    word: str
-    translation: Optional[str] = None
-    distractors: List[str] = []
-    cloze: List[QuizClozeCandidateIn] = []
-    synonym: List[QuizSynonymCandidateIn] = []
-
-
-class QuizApproveRequest(BaseModel):
-    level: str = Field(..., pattern="^(easy|medium|hard)$")
-    # Selection-based, not exclusion-based: the caller builds this from only
-    # the candidates a teacher explicitly checked in the opt-in review UI —
-    # this becomes exactly what topicQuizEntries/storyToTopic serve students
-    # for this tier once approved.
-    material: List[QuizWordMaterialIn]
-
-
-class QuizPendingApprovalsUpdateRequest(BaseModel):
-    """The Quiz Review page's opt-in checkbox selections for one tier — not
-    yet published (that's /quiz/approve), just surviving a page reload."""
-    level: str = Field(..., pattern="^(easy|medium|hard)$")
-    approvals: List[QuizExclusion]  # same {word, kind, index} shape, reused as-is
-
-
-class QuizQuestionReplaceRequest(BaseModel):
-    """Replaces one candidate's content in place — the existing vocabulary-*
-    PATCH endpoints only merge new items into a pool, which can't fix an
-    existing bad candidate's text. distractors has no poolIndex (editing it
-    replaces the word's whole distractor list, matching how Quiz Review
-    shows it as one row)."""
-    frameIndex: int = Field(..., ge=0)
-    wordIndex: int = Field(..., ge=0)
-    kind: str = Field(..., pattern="^(translation|distractors|cloze|synonym|pinyin)$")
-    poolIndex: Optional[int] = Field(default=None, ge=0)
-    # Translation edits change the teacher-authored correct answer. The field
-    # is explicit; omitting it targets the base translation list.
-    translationField: Optional[str] = Field(
-        default=None,
-        pattern="^(vocabularyTranslation|vocabularyTranslationMedium|vocabularyTranslationHard)$",
-    )
-    # Pinyin edits follow the selected difficulty tier when that tier has
-    # its own authored reading; otherwise the base vocabularyPinyin field is
-    # used by the stories router.
-    pinyinField: Optional[str] = Field(
-        default=None,
-        pattern="^(vocabularyPinyin|vocabularyPinyinMedium|vocabularyPinyinHard)$",
-    )
-    # distractors: List[str]; cloze: {sentence, distractors}; synonym: {synonym, distractors}
-    # — a plain Any because the shape depends on `kind`; the handler validates it.
-    value: Any
-
-
 class StudentLoginRequest(BaseModel):
-    # Either the roster id (preferred, stable) or the display name —
-    # whichever the login form has in hand.
+    # Either the roster id (preferred, stable) or the display name ??    # whichever the login form has in hand.
     studentId: Optional[str] = None
     name: Optional[str] = None
     password: str = Field(..., min_length=1, max_length=100)
@@ -357,58 +259,6 @@ class TeacherUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=100)
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
-
-
-MAX_VOCAB_DISTRACTORS_PER_WORD = 8
-
-
-class VocabularyDistractorUpdate(BaseModel):
-    frameIndex: int
-    wordIndex: int
-    distractors: List[str]
-
-
-class VocabularyDistractorsUpdateRequest(BaseModel):
-    updates: List[VocabularyDistractorUpdate]
-
-
-# Lower than MAX_VOCAB_DISTRACTORS_PER_WORD: each cloze candidate bundles a
-# whole sentence plus its own distractors, so a handful of varied sentences
-# is plenty to avoid staleness without growing the pool unbounded.
-MAX_VOCAB_CLOZE_PER_WORD = 4
-
-
-class VocabularyClozeCandidate(BaseModel):
-    sentence: str
-    distractors: List[str]
-
-
-class VocabularyClozeUpdate(BaseModel):
-    frameIndex: int
-    wordIndex: int
-    candidates: List[VocabularyClozeCandidate]
-
-
-class VocabularyClozeUpdateRequest(BaseModel):
-    updates: List[VocabularyClozeUpdate]
-
-
-MAX_VOCAB_SYNONYM_PER_WORD = 4
-
-
-class VocabularySynonymCandidate(BaseModel):
-    synonym: str
-    distractors: List[str]
-
-
-class VocabularySynonymUpdate(BaseModel):
-    frameIndex: int
-    wordIndex: int
-    candidates: List[VocabularySynonymCandidate]
-
-
-class VocabularySynonymUpdateRequest(BaseModel):
-    updates: List[VocabularySynonymUpdate]
 
 
 class GenerateModelVoiceRequest(BaseModel):
@@ -464,7 +314,7 @@ class ProcessingTraceStage(BaseModel):
     reason_codes: List[str] = Field(default_factory=list)
     # What this stage actually received/produced, for the teacher debugger's
     # per-step input/output cards. Deliberately compact (not the full
-    # response) — just this stage's own contract.
+    # response) ??just this stage's own contract.
     input: Optional[Dict[str, Any]] = None
     output: Optional[Dict[str, Any]] = None
 
@@ -497,7 +347,7 @@ class AnalysisResponse(BaseModel):
     pause_analysis: dict = {}
     feedback: str
     ai_feedback: dict
-    # Set only when the caller passed `verify_word` — an independent real ASR
+    # Set only when the caller passed `verify_word` ??an independent real ASR
     # pass confirming whether the recording actually contains that word,
     # since `transcription` may have been supplied by the caller (not
     # detected) to score tone against a known target. None means no check
@@ -536,3 +386,5 @@ class ReferenceToneResponse(BaseModel):
     pitch_pattern: List[float]
     frequency_range: Tuple[int, int]
     expected_mean: int
+
+

@@ -35,9 +35,7 @@ def api():
     state = {
         "id": "book-story", "title": "Room", "frames": [], "published": True,
         "lesson_number": 5, "lesson_sub_order": 3, "story_vocabulary": None,
-        "story_phrases": None, "vocab_assessment": [], "quiz_exclusions": [],
-        "quiz_material_snapshot": None, "quiz_approved_snapshot": None,
-        "quiz_pending_approvals": None, "rubric_scores": None,
+        "story_phrases": None, "vocab_assessment": [], "rubric_scores": None,
     }
     statements = []
 

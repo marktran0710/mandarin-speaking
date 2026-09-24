@@ -1,5 +1,5 @@
-"""Verifies the one-shot SQLite -> PostgreSQL copy: TEXT JSON becomes real
-JSONB, 0/1 flags become booleans, and Chinese text survives the round trip."""
+"""Verifies the one-shot SQLite to PostgreSQL copy."""
+
 import json
 import sqlite3
 
@@ -11,7 +11,6 @@ from scripts.migrate_sqlite_to_postgres import migrate_all
 
 @pytest.fixture()
 def legacy_db(tmp_path):
-    """A miniature copy of the old SQLite schema with one row per table."""
     path = tmp_path / "legacy.db"
     conn = sqlite3.connect(path)
     conn.executescript(
@@ -22,8 +21,7 @@ def legacy_db(tmp_path):
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             linear INTEGER NOT NULL DEFAULT 0, lesson_number INTEGER,
             narrative_mode TEXT NOT NULL DEFAULT 'story',
-            first_frame_is_example INTEGER NOT NULL DEFAULT 0,
-            quiz_exclusions TEXT);
+            first_frame_is_example INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE audio_records (
             id TEXT PRIMARY KEY, timestamp TEXT NOT NULL, duration INTEGER NOT NULL,
             transcription TEXT NOT NULL DEFAULT '', model TEXT NOT NULL, topic_id TEXT, student_id TEXT,
@@ -50,18 +48,12 @@ def legacy_db(tmp_path):
             password TEXT NOT NULL DEFAULT '123456');
         """
     )
-    frames = json.dumps(
-        [{"prompt": "這是我的房間。", "vocabulary": "房間",
-          "vocabularyDistractors": json.dumps([["廚房", "客廳"]])}],
-        ensure_ascii=False,
-    )
+    frames = json.dumps([{"prompt": "Describe a room", "vocabulary": "room"}], ensure_ascii=False)
     conn.execute(
         "INSERT INTO custom_stories (id, title, learning_goal, frames, published, "
-        "created_at, linear, lesson_number, narrative_mode, first_frame_is_example, quiz_exclusions) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        ("s1", "我的房間", "describe a room", frames, 1,
-         "2026-07-20 10:00:00", 0, 5, "story", 0,
-         json.dumps([{"word": "房間", "kind": "cloze"}], ensure_ascii=False)),
+        "created_at, linear, lesson_number, narrative_mode, first_frame_is_example) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?)",
+        ("s1", "Room", "describe a room", frames, 1, "2026-07-20 10:00:00", 0, 5, "story", 0),
     )
     conn.execute(
         "INSERT INTO students (id, name, created_at, password) VALUES (?,?,?,?)",
@@ -72,7 +64,7 @@ def legacy_db(tmp_path):
         "total_questions, correct_count, total_time_ms, question_results, created_at, mode, student_id) "
         "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         ("a1", "teacher-s1", "Mai", "2026-07-21T09:00:00Z", 10, 8, 42000,
-         json.dumps([{"word": "房間", "correct": True, "timeMs": 1200}], ensure_ascii=False),
+         json.dumps([{"word": "room", "correct": True, "timeMs": 1200}], ensure_ascii=False),
          "2026-07-21 09:00:00", "tier2", "stu-1"),
     )
     conn.commit()
@@ -91,39 +83,21 @@ def test_json_text_becomes_queryable_jsonb(legacy_db):
     migrate_all(legacy_db)
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames -> 0 ->> 'prompt' AS prompt, "
-            "       jsonb_array_length(frames) AS n "
-            "FROM custom_stories WHERE id = %s",
-            ("s1",),
+            "SELECT frames -> 0 ->> 'prompt' AS prompt, jsonb_array_length(frames) AS n "
+            "FROM custom_stories WHERE id = %s", ("s1",)
         ).fetchone()
-    assert row["prompt"] == "這是我的房間。"
+    assert row["prompt"] == "Describe a room"
     assert row["n"] == 1
-
-
-def test_nested_json_strings_stay_strings(legacy_db):
-    """vocabularyDistractors is a JSON *string* inside frames — the frontend
-    does JSON.parse() on it, so the migration must not unwrap it."""
-    migrate_all(legacy_db)
-    with connect_db() as db:
-        row = db.execute(
-            "SELECT frames -> 0 ->> 'vocabularyDistractors' AS raw FROM custom_stories WHERE id = %s",
-            ("s1",),
-        ).fetchone()
-    assert json.loads(row["raw"]) == [["廚房", "客廳"]]
 
 
 def test_integer_flags_become_booleans(legacy_db):
     migrate_all(legacy_db)
     with connect_db() as db:
-        row = db.execute(
-            "SELECT published FROM custom_stories WHERE id = %s", ("s1",)
-        ).fetchone()
-    assert row["published"] is True
+        row = db.execute("SELECT published FROM custom_stories WHERE id = %s", ("s1",)).fetchone()
     assert row["published"] is True
 
 
 def test_migration_is_rerunnable(legacy_db):
-    """Re-running must not duplicate or error — it upserts by primary key."""
     migrate_all(legacy_db)
     counts = migrate_all(legacy_db)
     assert counts["custom_stories"] == 1

@@ -23,13 +23,11 @@ FIXTURE = Path(__file__).resolve().parent / "data" / "custom_stories.json"
 ASSET_ROOT = Path(__file__).resolve().parent / "data" / "assets"
 JSON_COLUMNS = {
     "frames",
-    "quiz_exclusions",
-    "quiz_material_snapshot",
-    "quiz_approved_snapshot",
-    "quiz_pending_approvals",
     "rubric_scores",
     "story_vocabulary",
     "story_phrases",
+    "vocab_assessment",
+    "conversation_turns",
 }
 COLUMNS = (
     "id",
@@ -38,19 +36,18 @@ COLUMNS = (
     "published",
     "created_at",
     "lesson_number",
-    "quiz_exclusions",
-    "quiz_material_snapshot",
-    "quiz_approved_snapshot",
-    "quiz_pending_approvals",
     "lesson_sub_order",
     "rubric_scores",
     "story_vocabulary",
     "story_phrases",
+    "vocab_assessment",
+    "conversation_turns",
 )
 
 def _values(material: dict) -> tuple[object, ...]:
     return tuple(
-        Jsonb(material[column]) if column in JSON_COLUMNS and material.get(column) is not None else material.get(column)
+        Jsonb(material[column]) if column in JSON_COLUMNS and material.get(column) is not None
+        else material.get(column)
         for column in COLUMNS
     )
 

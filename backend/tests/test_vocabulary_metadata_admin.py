@@ -16,8 +16,7 @@ def story():
             "lesson_number": 5, "lesson_sub_order": 3,
             "frames": [{"vocabulary": "book, , table", "vocabularyPinyin": "shu, , zhuo zi",
                         "vocabularyTranslation": "book, , table", "vocabularyPos": "N, , N",
-                        "prompt": "unchanged", "vocabularySynonym": "[[], [], []]"}],
-            "quiz_approved_snapshot": {"easy": [{"word": "table", "translation": "old"}]},
+                        "prompt": "unchanged"}],
             "vocab_assessment": [
                 {"wordId": "w1", "targetWord": "table", "pinyin": "zhuo zi", "pos": "N", "simpleEnglishMeaning": "table", "questionType": "basic_meaning_mcq", "correctAnswer": "table", "acceptedAnswers": ["table"], "options": ["table", "book"]},
                 {"wordId": "w1", "targetWord": "table", "pinyin": "zhuo zi", "pos": "N", "simpleEnglishMeaning": "table", "questionType": "character_to_pinyin_typing", "correctAnswer": "zhuo zi", "acceptedAnswers": ["zhuo zi"], "options": []},
@@ -77,7 +76,7 @@ def test_edits_only_metadata_and_preserves_publication(api, story):
     expected["frames"][0]["vocabularyTranslation"] = "book, , desk"
     assert state == expected
     assert "FOR UPDATE" in statements[0]
-    assert result.json()["quizApprovedSnapshot"] == story["quiz_approved_snapshot"]
+    assert result.json()["vocabAssessment"] == story["vocab_assessment"]
 
 
 def test_stale_metadata_is_conflict_with_no_writes(api, story):

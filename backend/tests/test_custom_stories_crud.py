@@ -1,29 +1,23 @@
-"""Materials CRUD against PostgreSQL.
-
-The upsert test is the important one: SQLite's INSERT OR REPLACE is a
-DELETE+INSERT, so re-saving a story used to wipe quiz_exclusions (never
-listed in the INSERT) and reset created_at, silently reshuffling the
-teacher's story list. ON CONFLICT DO UPDATE only touches listed columns.
-"""
+﻿"""Materials CRUD against PostgreSQL."""
 
 STORY = {
     "id": "crud-story-1",
-    "title": "我的房間",
+    "title": "???輸?",
     "frames": [
-        {"imageUrl": "", "prompt": "這是我的房間。", "vocabulary": "房間, 桌子"},
-        {"imageUrl": "", "prompt": "房間裡有一張床。", "vocabulary": "床"},
+        {"imageUrl": "", "prompt": "????輸???", "vocabulary": "?輸?, 獢?"},
+        {"imageUrl": "", "prompt": "?輸?鋆⊥?銝撘萄???", "vocabulary": "摨?"},
     ],
     "storyVocabulary": {
         "easy": {
-            "vocabulary": "房間, 桌子, 床",
-            "vocabularyPinyin": "fángjiān, zhuōzi, chuáng",
+            "vocabulary": "?輸?, 獢?, 摨?",
+            "vocabularyPinyin": "f獺ngji?n, zhu?zi, chu獺ng",
             "vocabularyPos": "N, N, N",
             "vocabularyTranslation": "room, table, bed",
         }
     },
     "storyPhrases": {
         "easy": {
-            "phrases": "在房間裡",
+            "phrases": "?冽?ㄐ",
             "phrasesTranslation": "in the room",
         }
     },
@@ -37,14 +31,13 @@ def test_create_then_list_round_trips(client):
 
     stories = client.get("/api/custom-stories").json()
     saved = next(s for s in stories if s["id"] == "crud-story-1")
-    assert saved["title"] == "我的房間"
+    assert saved["title"] == "???輸?"
     assert saved["published"] is True
     assert saved["lessonNumber"] == 5
     assert len(saved["frames"]) == 2
-    assert saved["frames"][1]["prompt"] == "房間裡有一張床。"
+    assert saved["frames"][1]["prompt"] == "?輸?鋆⊥?銝撘萄???"
     assert saved["storyVocabulary"] == STORY["storyVocabulary"]
     assert saved["storyPhrases"] == STORY["storyPhrases"]
-    assert saved["quizExclusions"] == []
 
 
 def test_create_without_story_learning_content_keeps_legacy_shape(client):
@@ -62,23 +55,6 @@ def test_create_without_story_learning_content_keeps_legacy_shape(client):
     )
     assert saved["storyVocabulary"] is None
     assert saved["storyPhrases"] is None
-
-
-def test_resave_preserves_quiz_exclusions(client):
-    client.post("/api/custom-stories", json=STORY)
-    client.put(
-        "/api/custom-stories/crud-story-1/quiz-exclusions",
-        json={"exclusions": [{"word": "房間", "kind": "cloze"}]},
-    )
-
-    # Teacher edits the title and saves again.
-    client.post("/api/custom-stories", json={**STORY, "title": "我的新房間"})
-
-    saved = next(
-        s for s in client.get("/api/custom-stories").json() if s["id"] == "crud-story-1"
-    )
-    assert saved["title"] == "我的新房間"
-    assert saved["quizExclusions"] == [{"word": "房間", "kind": "cloze"}]
 
 
 def test_resave_preserves_created_at(client):
@@ -118,3 +94,4 @@ def test_list_pagination(client):
         client.post("/api/custom-stories", json={**STORY, "id": f"page-{index}"})
     page = client.get("/api/custom-stories", params={"limit": 2, "skip": 0}).json()
     assert len(page) == 2
+

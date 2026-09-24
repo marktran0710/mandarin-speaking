@@ -149,11 +149,10 @@ def _question_type(question: Any) -> str:
 
 def _status(question: Any) -> str:
     explicit = _text(_field(question, "validation_status", "validationStatus", default=""))
-    # The exporter labels rows from quiz_approved_snapshot as source=approved.
-    # That is a genuine teacher approval boundary even though the historical
-    # CSV status column used "ok" for content validity.
-    if normalize_value(_field(question, "source", default="")) == "approved":
-        return "APPROVED"
+    # Publication and the canonical assessment validator are the approval
+    # boundary for the current question bank.
+    if normalize_value(_field(question, "source", default="")) == "vocab_assessment":
+        return explicit or "APPROVED"
     return explicit
 
 

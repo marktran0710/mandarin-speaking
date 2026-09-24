@@ -104,53 +104,8 @@
    two-column moment: listen on the left, answer two small questions on the
    right, then continue with one clear action.
    ──────────────────────────────────────────────────────────────────────── */
-.sfc-results:has(.self-eval-step) {
-  padding: 0;
-  overflow: hidden;
-  border-radius: var(--clay-radius-xl);
-  background: var(--clay-surface-card);
-  box-shadow: 0 18px 45px color-mix(in srgb, var(--clay-ink) 9%, transparent);
-}
-
-.sfc-results:has(.self-eval-step) > .practice-workspace {
-  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
-  gap: var(--space-md);
-  /* A CSS grid row is always as tall as its tallest cell — no align-items
-     value changes that. The scene image + audio-compare + feedback button
-     on the left commonly run taller than the two emoji questions on the
-     right, so top-aligning the right column (the old "start") dumped all
-     of that leftover height as one dead gap right above the footer.
-     Centering it instead spreads the same leftover space above and below,
-     which reads as an intentional, balanced layout rather than a bug. */
-  align-items: start;
-  padding: 0;
-}
-
 .sfc-results:has(.self-eval-step) .practice-scene-col {
   min-width: 0;
-  padding: 22px;
-  border: 0;
-  border-radius: 0;
-  background: var(--clay-surface-soft);
-}
-
-.sfc-results:has(.self-eval-step) .practice-scene-image {
-  aspect-ratio: 16 / 10;
-  min-height: 0;
-  /* Verified live with the actual DOM (headless render + getBoundingClientRect):
-     the shared max-height: 390px rule in 08-insights-responsive.css already
-     wins here (5-class selector beats this 3-class one) and caps this image
-     regardless of aspect-ratio — a normal landscape scene photo then makes
-     this column shorter than the two emoji questions beside it, so
-     align-items: center above has little to balance. A worst-case portrait
-     image is still bounded by that 390px cap, not left free to balloon. */
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 9%, transparent);
-}
-
-.sfc-results:has(.self-eval-step) .practice-scene-image img {
-  object-fit: cover;
 }
 
 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-main {
@@ -160,10 +115,7 @@
      intentionally shorter, and that floor was leaving a dead gap between
      "跳過 Skip" and the footer below it. One extra class over the shared
      rule so this wins on specificity, not import order. */
-  min-height: 0;
-  height: auto;
-  padding: var(--space-sm) var(--space-md);
-  gap: var(--space-sm);
+  /* Content spacing comes from the shared results pane. */
 }
 
 .sfc-results:has(.self-eval-step) .sfc-stepper {
@@ -382,20 +334,12 @@
 }
 
 @media (max-width: 768px) {
-  .sfc-results:has(.self-eval-step) > .practice-workspace {
-    grid-template-columns: 1fr;
-  }
-
   .sfc-results:has(.self-eval-step) .practice-scene-col {
-    padding: 16px 16px 0;
-  }
-
-  .sfc-results:has(.self-eval-step) .practice-scene-image {
-    aspect-ratio: 16 / 10;
+    min-width: 0;
   }
 
   .sfc-results:has(.self-eval-step) .sfc-results-main {
-    padding: var(--space-sm) var(--space-md);
+    min-width: 0;
   }
 
   .sfc-results:has(.self-eval-step) > .sfc-footer {

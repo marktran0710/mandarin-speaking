@@ -2,47 +2,48 @@ import { describe, expect, it } from "vitest";
 import { storyToTopic } from "./mappers";
 import type { CustomTeacherStory } from "./types";
 
-const entry = (word: string, distractor: string) => ({
-  word,
-  translation: "to learn",
-  distractors: [distractor],
-  cloze: [],
-  synonym: [],
-});
+const story: CustomTeacherStory = {
+  id: "verified-story",
+  title: "Verified story",
+  frames: [{
+    imageUrl: "scene.png",
+    prompt: "Describe the scene.",
+    vocabulary: "學習",
+    vocabularyTranslation: "to learn",
+  }],
+  vocabAssessment: [{
+    questionId: "learn-easy",
+    wordId: "learn-1",
+    targetWord: "學習",
+    pinyin: "xuéxí",
+    pos: "V",
+    simpleEnglishMeaning: "to learn",
+    level: "easy",
+    difficultyWeight: 1,
+    questionType: "basic_meaning_mcq",
+    answerFormat: "single_choice",
+    prompt: "What does 學習 mean?",
+    options: ["to learn", "to eat"],
+    correctAnswer: "to learn",
+    acceptedAnswers: ["to learn"],
+    explanation: "",
+  }],
+};
 
-function story(snapshot: Record<string, unknown>): CustomTeacherStory {
-  return {
-    id: "verified-story",
-    title: "Verified story",
-    frames: [{
-      imageUrl: "scene.png",
-      prompt: "Describe the scene.",
-      vocabulary: "學",
-      vocabularyTranslation: "to learn",
-      suggestedAnswer: "我學中文。",
-    }],
-    quizApprovedSnapshot: snapshot,
-  };
-}
-
-describe("storyToTopic approved question pools", () => {
-  it("serves the approved snapshot for the story's single level", () => {
-    const topic = storyToTopic(
-      story({ easy: [entry("學", "easy")] }),
-      "easy",
-      "approved",
-    );
-
-    expect(topic.quizVocabularyDistractors?.[0]?.[0]).toEqual(["easy"]);
+describe("storyToTopic canonical mapping", () => {
+  it("passes vocab_assessment through without frame-pool compatibility fields", () => {
+    const topic = storyToTopic(story);
+    expect(topic.vocabAssessment).toEqual(story.vocabAssessment);
+    expect(topic.vocabularyTranslation?.[0]).toEqual(["to learn"]);
+    expect(topic).not.toHaveProperty("quizVocabulary");
+    expect(topic).not.toHaveProperty("vocabularyDistractors");
   });
 
-  it("preserves an optional conversation contract for student runtime selection", () => {
+  it("preserves the conversation contract for student runtime selection", () => {
     const conversation = [
-      { id: "system-1", speaker: "system" as const, text: "你好吗？" },
-      { id: "student-1", speaker: "student" as const, text: "我很好。" },
+      { id: "system-1", speaker: "system" as const, text: "Listen." },
+      { id: "student-1", speaker: "student" as const, text: "學習" },
     ];
-    const topic = storyToTopic({ ...story({}), conversationTurns: conversation });
-
-    expect(topic.conversationTurns).toEqual(conversation);
+    expect(storyToTopic({ ...story, conversationTurns: conversation }).conversationTurns).toEqual(conversation);
   });
 });

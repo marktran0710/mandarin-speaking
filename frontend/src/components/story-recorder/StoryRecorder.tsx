@@ -232,13 +232,7 @@ export {
 } from "./StoryRecorderRuntime";
 
 export {
-  buildClozePatchUpdates,
-  buildDistractorPatchUpdates,
   buildSceneReferenceCurves,
-  buildSynonymPatchUpdates,
-  planClozeGrowth,
-  planDistractorGrowth,
-  planSynonymGrowth,
   vocabTooltip,
 } from "./StoryRecorder/storyContent";
 
@@ -266,10 +260,7 @@ export type {
 
 export type {
   AiProviderOption,
-  ClozeGrowthCandidate,
-  DistractorGrowthCandidate,
   SpeechModel,
-  SynonymGrowthCandidate,
   Topic,
 } from "./StoryRecorder/storyContent";
 

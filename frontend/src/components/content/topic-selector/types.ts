@@ -22,17 +22,6 @@ export interface Topic {
   vocabularyPinyin?: Record<number, string[]>;
   vocabularyPos?: Record<number, string[]>;
   vocabularyTranslation?: Record<number, string[]>;
-  vocabularyDistractors?: Record<number, string[][]>;
-  vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
-  vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  quizVocabulary?: Record<number, string[]>;
-  quizVocabularyPinyin?: Record<number, string[]>;
-  quizVocabularyPos?: Record<number, string[]>;
-  quizVocabularyTranslation?: Record<number, string[]>;
-  quizVocabularyDistractors?: Record<number, string[][]>;
-  quizVocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
-  quizVocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  quizSuggestedAnswers?: Record<number, string>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenAudioSources?: Record<number, "teacher" | "tts">;
@@ -43,8 +32,6 @@ export interface Topic {
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
   difficultyLevel?: StoryDifficultyLevel;
-  quizMaterialSource?: "live" | "approved";
-  quizMaterialApproved?: boolean;
   sourceStory?: CustomTeacherStory;
   vocabAssessment?: VocabAssessmentQuestion[];
 }

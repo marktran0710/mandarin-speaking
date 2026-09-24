@@ -172,17 +172,12 @@ describe("Admin vocabulary page", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("without commas");
     expect(updateVocabularyMetadata).not.toHaveBeenCalled();
   });
-  it("shows every question form of a word — the three rounds plus available practice types", async () => {
+  it("shows that frame vocabulary has no generated quiz material", async () => {
     const user = userEvent.setup();
     render(<AdminVocabularyPage />);
     await user.click(await screen.findByRole("button", { name: "View quiz questions for 桌子" }));
     const dialog = screen.getByRole("dialog", { name: "Quiz questions: 桌子" });
-    // The three graded rounds are always enumerated for a glossed word.
-    expect(within(dialog).getByText("Round 1")).toBeInTheDocument();
-    expect(within(dialog).getByText("Round 2")).toBeInTheDocument();
-    expect(within(dialog).getByText("Round 3")).toBeInTheDocument();
-    // Extra practice types the word's data supports (meaning MCQ + part of speech).
-    expect(within(dialog).getByText("Part of speech")).toBeInTheDocument();
+    expect(within(dialog).getByText(/No generated questions yet/)).toBeInTheDocument();
   });
 
   it("no longer offers a practice-level filter", async () => {

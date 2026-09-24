@@ -18,7 +18,6 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
         "conversation_turns": [{"id": "system-1", "speaker": "system", "text": "Hello"}],
         "published": True,
         "lesson_number": 5,
-        "quiz_exclusions": [{"word": "房間", "kind": "cloze"}],
     }
     result = db.row_to_custom_story(row)
     assert result["frames"] == [{"prompt": "這是我的房間。", "vocabulary": "房間"}]
@@ -29,7 +28,7 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
     assert len(result["vocabAssessmentRevision"]) == 64
     assert result["published"] is True
     assert result["lessonNumber"] == 5
-    assert result["quizExclusions"] == [{"word": "房間", "kind": "cloze"}]
+    assert "quizExclusions" not in result
 
 
 def test_row_to_custom_story_handles_null_jsonb():
@@ -42,14 +41,13 @@ def test_row_to_custom_story_handles_null_jsonb():
         "vocab_assessment": None,
         "published": False,
         "lesson_number": None,
-        "quiz_exclusions": None,
     }
     result = db.row_to_custom_story(row)
     assert result["frames"] == []
     assert result["storyVocabulary"] is None
     assert result["storyPhrases"] is None
     assert result["vocabAssessment"] is None
-    assert result["quizExclusions"] == []
+    assert "quizExclusions" not in result
 
 
 def test_row_to_story_submission_shape():

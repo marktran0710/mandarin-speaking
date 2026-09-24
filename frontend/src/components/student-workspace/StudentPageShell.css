@@ -1,7 +1,8 @@
 /*
  * StudentPageShell is the one page grammar within StudentModeFrame.
  * StudentModeFrame owns navigation, the outer surface, and desktop scrolling.
- * This component owns only the page rail, inset, and layout mode.
+ * This component owns only the page rail, inset, and template mode. A template
+ * never creates a viewport or a second scroll owner.
  */
 .student-page-shell {
   box-sizing: border-box;
@@ -11,9 +12,11 @@
   max-width: none;
   min-width: 0;
   min-height: 0;
+  height: auto;
   margin-inline: auto;
   padding: var(--space-lg) 0 var(--space-2xl);
   color: var(--clay-ink);
+  overflow: visible;
 }
 
 .student-page-shell__rail {
@@ -25,8 +28,10 @@
   max-width: var(--content-max);
   min-width: 0;
   min-height: 0;
+  height: auto;
   margin-inline: auto;
   padding-inline: var(--content-gutter);
+  overflow: visible;
 }
 
 .student-page-shell__rail > * {
@@ -43,12 +48,6 @@
   width: min(100%, var(--student-task-width));
   max-width: var(--student-task-width);
   margin-inline: auto;
-}
-
-.student-page-shell--activity > .student-page-shell__rail > *,
-.student-page-shell--stage > .student-page-shell__rail > * {
-  height: 100%;
-  min-height: 0;
 }
 
 /* The page header owns copy hierarchy; the shell keeps it on the shared rail. */
@@ -76,9 +75,8 @@
 
 .student-page-shell--activity,
 .student-page-shell--stage {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-  min-height: 100%;
+  min-height: 0;
+  height: auto;
 }
 
 @media (max-width: 900px) {
@@ -91,13 +89,4 @@
     padding-inline: var(--content-gutter);
   }
 
-  .student-page-shell--activity,
-  .student-page-shell--stage {
-    min-height: 0;
-  }
-
-  .student-page-shell--activity > .student-page-shell__rail > *,
-  .student-page-shell--stage > .student-page-shell__rail > * {
-    height: auto;
-  }
 }

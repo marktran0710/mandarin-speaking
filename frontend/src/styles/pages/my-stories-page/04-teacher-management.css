@@ -1,4 +1,4 @@
-
+﻿
 .teacher-view-tabs button:hover {
   background: var(--clay-surface-card);
   color: var(--clay-ink);
@@ -22,7 +22,7 @@
 
 .teacher-view-tabs button.active strong {
   /* White-tint overlay on this tab's own accent fill (not a surface color),
-     so it can't be a --clay-* token — translucent white reads as a
+     so it can't be a --clay-* token ??translucent white reads as a
      highlight on top of whatever accent color the active tab uses. */
   background: rgba(255, 255, 255, 0.22);
   color: var(--clay-on-accent);
@@ -35,7 +35,7 @@
 .teacher-stat-grid {
   margin-bottom: 22px;
   display: grid;
-  /* auto-fit, not a fixed 4 — the analytics views show 3 stats and a fixed
+  /* auto-fit, not a fixed 4 ??the analytics views show 3 stats and a fixed
      4-column template leaves a dangling empty cell (the row stopped ~290px
      short of the panels below it). Four stats still lay out as 4 columns. */
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -162,7 +162,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  /* "start" keeps every label/input at its own natural height — with the
+  /* "start" keeps every label/input at its own natural height ??with the
      grid default (stretch), a short field sharing a row with a taller one
      (e.g. one carrying a hint paragraph) got stretched tall too, and since
      an input is one of that label's own auto rows, the input itself ended
@@ -338,43 +338,6 @@
   background: var(--jade-soft);
   color: var(--jade-deep);
 }
-
-.quiz-review-nudge-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 12px 14px;
-  margin-top: 8px;
-  border: 1px solid var(--seal);
-  border-radius: var(--clay-radius-md);
-  background: var(--seal-soft);
-  color: var(--clay-on-seal);
-  font-size: 13px;
-  font-weight: 700;
-}
-.quiz-review-nudge-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.quiz-review-nudge-go {
-  border: none;
-  border-radius: var(--clay-radius-pill);
-  background: var(--seal);
-  color: var(--clay-on-seal);
-  font-weight: 700;
-  font-size: 13px;
-  padding: 6px 14px;
-  cursor: pointer;
-}
-.quiz-review-nudge-dismiss {
-  border: none;
-  background: transparent;
-  color: var(--clay-on-seal);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 4px 6px;
-  opacity: 0.7;
-}
-.quiz-review-nudge-dismiss:hover { opacity: 1; }
 
 .teacher-file-upload {
   padding: 11px 12px;
@@ -865,7 +828,7 @@
   font-weight: 800;
 }
 
-/* Same dashed note box as .teacher-tier-hint above — one visual language for
+/* Same dashed note box as .teacher-tier-hint above ??one visual language for
    every inline guidance note in this form, instead of some being plain text
    and others boxed. Spans the full field grid so it reads as its own row
    rather than lopsiding whichever column it was nested in. */
@@ -1002,3 +965,4 @@
 .teacher-builder-actions { padding: var(--space-sm) 0 0; border-top: 1px solid var(--clay-hairline); }
 .btn-save-custom-story { min-height: 44px; border-color: var(--jade-deep); border-radius: var(--clay-radius-pill); background: var(--jade); }
 .custom-story-library { padding: var(--space-md); background: var(--clay-surface-soft); }
+

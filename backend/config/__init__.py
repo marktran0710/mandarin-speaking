@@ -64,7 +64,10 @@ class Settings:
     def from_environment(cls) -> "Settings":
         load_dotenv()
         load_dotenv(Path(__file__).resolve().parent.parent / ".env.local")
-        backend_dir = Path(__file__).resolve().parent
+        # ``__file__`` is ``backend/config/__init__.py``; the persistent
+        # runtime uploads and the frontend build live beside ``config`` under
+        # the backend/repository roots, not inside the config package.
+        backend_dir = Path(__file__).resolve().parent.parent
         upload_dir = os.getenv("UPLOAD_DIR", str(backend_dir / "uploads"))
         model_cache = os.getenv(
             "CT_WHISPER_CACHE_DIR",

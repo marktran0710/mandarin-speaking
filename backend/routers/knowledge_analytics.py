@@ -246,25 +246,12 @@ def _compute_knowledge_state(
 
 def _compute_bkt_question_audit(all_tiers: bool = False) -> dict[str, Any]:
     """Read-only admin audit of the material and response-quality evidence."""
-    query = "SELECT id, title, published, lesson_number, frames, quiz_approved_snapshot FROM custom_stories WHERE published = TRUE ORDER BY lesson_number NULLS LAST, created_at, id"
+    query = "SELECT id, title, published, lesson_number, lesson_sub_order, vocab_assessment FROM custom_stories WHERE published = TRUE ORDER BY lesson_number NULLS LAST, created_at, id"
     with connect_db() as db:
         stories = [dict(row) for row in db.execute(query).fetchall()]
         attempts = [dict(row) for row in db.execute("SELECT id, student_id, student_name, mode, completed_at, question_results FROM vocab_quiz_attempts").fetchall()]
     rows = build_question_rows(stories, tiers=("easy", "medium", "hard") if all_tiers else ("easy",))
-    # When a teacher-approved snapshot exists for a story/level it is the
-    # student-serving source of truth. Otherwise retain live rows as DRAFT so
-    # the report clearly shows why they cannot enter research BKT.
-    approved_keys = {(row.get("story_id"), row.get("tier")) for row in rows if row.get("source") == "approved"}
-    questions = [
-        row
-        for row in rows
-        if (
-            row.get("source") == "approved"
-            if (row.get("story_id"), row.get("tier")) in approved_keys
-            else True
-        )
-    ]
-    report = validate_bkt_diagnostic_design(questions)
+    report = validate_bkt_diagnostic_design(rows)
     report["responseQuality"] = analyze_response_quality(attempts)
     return report
 

@@ -26,7 +26,7 @@ export function saveCustomStories(stories: CustomTeacherStory[]) {
 export function loadPublishedTeacherTopics(): Topic[] {
   return loadCustomStories()
     .filter((story) => story.published)
-    .map((story) => storyToTopic(story, "easy", "approved"));
+    .map((story) => storyToTopic(story, "easy"));
 }
 
 /** A story is authored once per scene, at a single text level, then mapped to

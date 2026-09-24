@@ -118,7 +118,6 @@ export function quizQuestionFingerprint(question: VocabQuizQuestion): string {
 
 function entryIdentityAliases(entry: VocabQuizEntry): Set<string> {
   const aliases = [entry.word, entry.translation, entry.pinyin || toPinyin(entry.word)];
-  for (const candidate of entry.aiSynonym ?? []) aliases.push(candidate.synonym);
   return new Set(aliases.map(normalizeQuizExposure).filter(Boolean));
 }
 

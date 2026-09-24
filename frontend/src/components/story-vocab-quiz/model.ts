@@ -26,11 +26,8 @@ export interface VocabQuizEntry {
   /** Stable identity and teacher-authored observations imported from a CSV bank. */
   wordId?: string;
   assessmentQuestions?: VocabAssessmentQuestion[];
-  /** The student-serving snapshot is explicitly approved; live material is
-   * draft and must not become research evidence. */
+  /** Canonical assessment material is eligible for the research path. */
   bktValidationStatus?: "APPROVED" | "DRAFT";
-  /** Question types a teacher has removed for this word in Quiz Review. */
-  disabledQuestionKinds?: ReadonlyArray<"pinyin" | "reverse">;
   /** Question kinds already used for this learner; weak-word review prefers
    * another validated form when one is available. */
   bktSeenQuestionKinds?: ReadonlyArray<QuizQuestionKind | VocabAssessmentQuestion["questionType"]>;
@@ -40,9 +37,11 @@ export interface VocabQuizEntry {
   bktLastResponseAt?: string | null;
   pinyin?: string;
   pos?: string;
+  /** Ephemeral in-memory candidates used by non-assessment practice modes. */
   aiDistractors?: string[];
   aiCloze?: VocabQuizClozeCandidate[];
   aiSynonym?: VocabQuizSynonymCandidate[];
+  disabledQuestionKinds?: ReadonlyArray<"pinyin" | "reverse">;
 }
 
 // The published quiz bank's own difficulty label for an assessment question.

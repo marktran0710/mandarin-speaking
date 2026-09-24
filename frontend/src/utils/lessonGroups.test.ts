@@ -37,6 +37,12 @@ const quizTopic = (id: string, lessonNumber: number | null, sourceId?: string): 
     images: ["scene.png"],
     vocabulary: { 0: ["書"] },
     vocabularyTranslation: { 0: ["book"] },
+    vocabAssessment: [{
+      questionId: `${id}-easy`, wordId: `${id}-word`, targetWord: "書", pinyin: "shu",
+      pos: "N", simpleEnglishMeaning: "book", level: "easy", difficultyWeight: 1,
+      questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "What does this mean?",
+      options: ["book", "door", "chair", "room"], correctAnswer: "book", acceptedAnswers: ["book"], explanation: "book",
+    }],
   }) as unknown as Topic;
 
 

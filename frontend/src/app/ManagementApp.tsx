@@ -9,7 +9,7 @@ import "../styles/management-login.css";
 type ManagementRole = "teacher" | "admin";
 const ADMIN_KEY = "adminConsoleSession";
 
-export type ManagementSection = "vocabulary" | "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug" | "bkt-debug";
+export type ManagementSection = "vocabulary" | "stories" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug" | "bkt-debug";
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
@@ -18,7 +18,6 @@ const SECTION_CONFIG: Record<ManagementSection, {
 }> = {
   vocabulary: { requiredRole: "admin", adminNav: "Vocabulary" },
   stories: { requiredRole: "admin", adminNav: "Materials" },
-  "quiz-review": { requiredRole: "admin", adminNav: "Materials" },
   submissions: { requiredRole: "teacher", teacherView: "submissions" },
   // Help requests live on Today now, so /manage/support lands there.
   support: { requiredRole: "teacher", teacherView: "today" },

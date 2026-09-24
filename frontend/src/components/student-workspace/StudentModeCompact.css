@@ -63,7 +63,7 @@
 
   .student-workspace.student-workspace-v2 {
     height: auto;
-    min-height: 0;
+    min-height: 100dvh;
     overflow: visible;
   }
 
@@ -269,13 +269,6 @@
   gap: var(--space-xs);
 }
 
-.student-workspace-v2 .practice-stage {
-  background: var(--clay-surface-card);
-  border-color: var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  box-shadow: none;
-}
-
 /* Study is a reference desk rather than a modal-like card. The step tabs stay
    visible here (matching the design) so the learner sees Study / Speaking as
    one connected flow. */
@@ -290,14 +283,7 @@
   padding: 0;
 }
 
-.student-workspace-v2 .practice-stage > .practice-workspace {
-  gap: var(--space-md);
-  padding: var(--space-md);
-}
-
-.student-workspace-v2 .practice-workspace-study,
-.student-workspace-v2 .sfc-record .practice-workspace,
-.student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
+.student-workspace-v2 .practice-workspace-study {
   grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
   align-items: start;
   gap: var(--space-md);
@@ -310,9 +296,7 @@
   grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
 }
 
-.student-workspace-v2 .practice-workspace-study .practice-scene-col,
-.student-workspace-v2 .sfc-record .practice-scene-col,
-.student-workspace-v2 .sfc-results .practice-scene-col {
+.student-workspace-v2 .practice-workspace-study .practice-scene-col {
   min-width: 0;
   align-self: start;
   padding: 0;
@@ -329,8 +313,7 @@
   top: auto;
 }
 
-.student-workspace-v2 .practice-workspace-study .practice-scene-image,
-.student-workspace-v2 .sfc-record .practice-scene-image {
+.student-workspace-v2 .practice-workspace-study .practice-scene-image {
   aspect-ratio: 4 / 3;
 }
 
@@ -340,13 +323,7 @@
   aspect-ratio: 4 / 3;
 }
 
-.student-workspace-v2 .sfc-results .practice-scene-image {
-  aspect-ratio: 4 / 3;
-}
-
-.student-workspace-v2 .practice-workspace-study .practice-scene-image,
-.student-workspace-v2 .sfc-record .practice-scene-image,
-.student-workspace-v2 .sfc-results .practice-scene-image {
+.student-workspace-v2 .practice-workspace-study .practice-scene-image {
   width: 100%;
   min-height: 0;
   max-height: none;
@@ -354,9 +331,7 @@
   background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
 }
 
-.student-workspace-v2 .practice-workspace-study .practice-scene-image img,
-.student-workspace-v2 .sfc-record .practice-scene-image img,
-.student-workspace-v2 .sfc-results .practice-scene-image img {
+.student-workspace-v2 .practice-workspace-study .practice-scene-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -377,9 +352,7 @@
   visibility: hidden;
 }
 
-.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image:has(img[src*="dummyimage.com"]),
-.student-workspace-v2 .sfc-record .practice-scene-image:has(img[src*="dummyimage.com"]),
-.student-workspace-v2 .sfc-results .practice-scene-image:has(img[src*="dummyimage.com"]) {
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image:has(img[src*="dummyimage.com"]) {
   background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
 }
 
@@ -653,28 +626,6 @@
 
 .student-workspace-v2 .practice-footer-actions {
   gap: var(--space-xs);
-}
-
-/* Speaking is a two-column desk on desktop: the scene stage and recording
-   desk share the same frame height, so a short image never leaves a blank
-   column beneath it. The controls remain one ordered workflow rather than
-   separate competing cards. */
-.student-workspace-v2 .sfc-record .practice-workspace {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: stretch;
-}
-
-.student-workspace-v2 .sfc-record .practice-scene-col {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  align-self: stretch;
-  width: 100%;
-  gap: var(--space-xs);
-}
-
-.student-workspace-v2 .sfc-record .practice-scene-image {
-  height: 100%;
-  aspect-ratio: auto;
 }
 
 /* The scene marker is the only supporting label under the image. It is kept
@@ -1262,24 +1213,6 @@
   gap: var(--space-md);
 }
 
-.student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  align-items: start;
-  gap: var(--space-md);
-}
-
-.student-workspace-v2 .sfc-results .practice-scene-col {
-  display: grid;
-  align-content: start;
-  gap: var(--space-sm);
-  min-width: 0;
-}
-
-.student-workspace-v2 .sfc-results .practice-scene-image {
-  border: 1px solid var(--clay-hairline);
-  box-shadow: none;
-}
-
 .student-workspace-v2 .sfc-results .sfc-audio-compare {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-sm);
@@ -1614,24 +1547,25 @@
   }
 }
 
-/* Desktop self-evaluation uses the available stage track instead of growing
-   the whole page past the viewport. The content panel stays the only shell
-   track; mobile returns to natural page flow below. */
+/* Self-evaluation is a normal results flow. The shared panel remains the only
+   desktop scroll owner, so the question fields and final action can grow with
+   the content instead of being squeezed into a viewport-sized stage. */
 @media (min-width: 901px) {
   .student-workspace-v2 > .student-workspace-content-v2:has(.sfc-results.sfc-screen .self-eval-step) {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
+    display: block;
   }
 
   .student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step),
   .student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .csp-recorder-body,
   .student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > .student-page-shell__rail > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .story-recorder {
     min-height: 0;
-    height: 100%;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .student-workspace-v2 .story-recorder:has(.sfc-results.sfc-screen .self-eval-step) {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
     padding-bottom: 0;
   }
 
@@ -1653,10 +1587,9 @@
   }
 
   .student-workspace-v2 .practice-stage:has(.sfc-results.sfc-screen .self-eval-step) {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    display: block;
     min-height: 0;
-    height: 100%;
+    height: auto;
     overflow: visible;
   }
 
@@ -1675,7 +1608,7 @@
     align-items: start;
     gap: var(--space-md);
     min-height: 0;
-    height: 100%;
+    height: auto;
   }
 
   .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .practice-scene-col {
@@ -1771,160 +1704,6 @@
 @media (max-width: 900px) {
   .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* Stable speaking activity frame (desktop only)
-   The practice stage owns the frame. Speaking states inside it are content
-   views, not competing cards, so switching record/results/self-evaluation
-   never changes the surrounding geometry. The two activity rails may scroll
-   only when their real content exceeds the available track. */
-@media (min-width: 901px) {
-  .student-workspace.student-workspace-v2 .story-recorder {
-    padding-bottom: 0;
-  }
-
-  .student-workspace.student-workspace-v2 .story-session-main:has(> .practice-stage) {
-    min-height: 0;
-    grid-template-rows: minmax(0, 1fr);
-    height: auto;
-    overflow: hidden;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    /* Intentional zero gap: the scene tabs and activity body are one
-       continuous stage surface, separated by the tabs' own divider. */
-    row-gap: 0;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-    border: 1px solid var(--clay-hairline);
-    border-radius: var(--clay-radius-lg);
-    background: var(--clay-surface-card);
-    box-shadow: none;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card {
-    height: 100%;
-    min-height: 0;
-    min-width: 0;
-    padding: var(--space-sm) var(--space-md);
-    overflow: hidden;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card > .practice-workspace {
-    height: 100%;
-    min-height: 0;
-    align-items: stretch;
-    gap: var(--space-md);
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
-    min-height: 0;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col {
-    overflow: auto;
-    scrollbar-gutter: stable;
-  }
-
-  /* The record scene rail contains only the fixed image and attempt label.
-     Hide the sub-pixel rounding edge so a one-pixel scrollbar is not shown. */
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record .practice-scene-col {
-    overflow: hidden;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
-    height: 100%;
-    overflow: auto;
-    scrollbar-gutter: stable;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-analyzing {
-    display: grid;
-    place-items: center;
-  }
-
-  /* Keep the scene rail identical while record/results content changes.
-     The image owns the full media track; the attempt marker is an intentional
-     overlay, so it does not steal height from the image in record mode. */
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen > .practice-workspace,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen > .practice-workspace {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .practice-scene-col,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen .practice-scene-col {
-    position: relative;
-    display: block;
-    align-self: stretch;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    scrollbar-gutter: auto;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .practice-scene-image,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen .practice-scene-image {
-    width: 100%;
-    height: 100%;
-    aspect-ratio: auto;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .sfc-attempt-only {
-    position: absolute;
-    left: var(--space-sm);
-    bottom: var(--space-sm);
-    z-index: 1;
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--clay-radius-pill);
-    background: var(--clay-surface-card);
-    color: var(--clay-ink);
-    box-shadow: var(--shadow-sm);
-  }
-}
-
-/* Mobile keeps the same outer ownership, but returns to natural document flow
-   so the activity remains reachable without a nested desktop viewport. */
-@media (max-width: 900px) {
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
-    display: block;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-    padding: var(--space-sm);
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card > .practice-workspace {
-    height: auto;
-    min-height: 0;
-  }
-
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
-  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
-    height: auto;
-    overflow: visible;
   }
 }
 

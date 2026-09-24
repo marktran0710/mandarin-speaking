@@ -12,12 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 import security.auth as auth
+import services.media as media_service
 from db import (
     connect_db,
     row_to_student,
     row_to_teacher,
     row_to_vocab_quiz_attempt,
 )
+from services.content_inventory import build_content_inventory_from_database
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -87,3 +89,9 @@ def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
         "teachers": [row_to_teacher(row) for row in teachers],
         "quizAttempts": [row_to_vocab_quiz_attempt(row) for row in attempts],
     }
+
+
+@router.get("/content-inventory")
+def get_content_inventory(_identity: auth.Identity = Depends(auth.require_admin)):
+    """Run the read-only Content Doctor against current content and uploads."""
+    return build_content_inventory_from_database(upload_dir=media_service.UPLOAD_DIR)

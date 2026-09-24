@@ -165,10 +165,6 @@ def row_to_custom_story(row: dict) -> dict:
         "published": bool(row["published"]),
         "lessonNumber": row["lesson_number"],
         "lessonSubOrder": row.get("lesson_sub_order"),
-        "quizExclusions": row.get("quiz_exclusions") or [],
-        "quizMaterialSnapshot": row.get("quiz_material_snapshot"),
-        "quizApprovedSnapshot": row.get("quiz_approved_snapshot"),
-        "quizPendingApprovals": row.get("quiz_pending_approvals"),
         "rubricScores": row.get("rubric_scores"),
     }
 

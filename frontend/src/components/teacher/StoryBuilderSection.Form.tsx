@@ -4,7 +4,6 @@ import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
 import StoryBuilderConversationEditor from "./StoryBuilderSection.ConversationEditor";
 import VocabularyTable from "./VocabularyTable";
 import PhraseTable from "./PhraseTable";
-import StudentIcon from "../navigation/StudentIcon";
 
 function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
   return <>
@@ -30,14 +29,10 @@ function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, 
   </>;
 }
 
-function StoryStatusMessages({ errors, notice, savedReviewBanner, onGoToQuizReview, onDismissReview }) {
+function StoryStatusMessages({ errors, notice }) {
   return <>
     {errors.form && <div className="teacher-form-alert" role="alert">{errors.form}</div>}
     {notice && <div className="teacher-form-success" role="status">{notice}</div>}
-    {savedReviewBanner && <div className="quiz-review-nudge-banner" role="status"><span><StudentIcon name="settings" size={16} aria-hidden="true" /> Quiz material may need review before students see it.</span><div className="quiz-review-nudge-actions">
-      <button type="button" className="quiz-review-nudge-go" onClick={() => { onGoToQuizReview?.(savedReviewBanner.lessonNumber); onDismissReview(); }}>Go to Quiz Review <StudentIcon name="arrow-right" size={15} aria-hidden="true" /></button>
-      <button type="button" className="quiz-review-nudge-dismiss" aria-label="Dismiss" onClick={onDismissReview}><StudentIcon name="close" size={15} aria-hidden="true" /></button>
-    </div></div>}
   </>;
 }
 
@@ -92,8 +87,8 @@ function StoryFormActionGroup({ preparedFrameCount, frameCount, editingStoryId, 
 }
 
 export default function StoryBuilderForm(props) {
-  const { draft, validationErrors, customStoryNotice, savedReviewBanner, preparedFrameCount, editingStoryId,
-    onSave, onUpdateField, onUpdateFrameCount, onSetDraft, onGoToQuizReview, onDismissReview, onCancel } = props;
+  const { draft, validationErrors, customStoryNotice, preparedFrameCount, editingStoryId,
+    onSave, onUpdateField, onUpdateFrameCount, onSetDraft, onCancel } = props;
   const [learningContentOpen, setLearningContentOpen] = useState(false);
   const [basicsOpen, setBasicsOpen] = useState(() => !editingStoryId);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -164,7 +159,7 @@ export default function StoryBuilderForm(props) {
         <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} onOpenLearningContent={() => setLearningContentOpen(true)} learningContentTriggerRef={learningContentTriggerRef} />
       </div>
     </section>
-    <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} savedReviewBanner={savedReviewBanner} onGoToQuizReview={onGoToQuizReview} onDismissReview={onDismissReview} />
+    <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} />
     <StoryBuilderFrameEditor {...props} />
     <StoryBuilderConversationEditor {...props} />
     <StoryFormActionGroup preparedFrameCount={preparedFrameCount} frameCount={draft.imageUrls.easy.length} editingStoryId={editingStoryId} onCancel={onCancel} />

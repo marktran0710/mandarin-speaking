@@ -69,10 +69,9 @@ async def create_custom_story(story: CustomStoryRequest):
     )
     with connect_db() as db:
         # ON CONFLICT DO UPDATE, not the old INSERT OR REPLACE: SQLite's
-        # replace was a DELETE+INSERT, so every re-save wiped the two columns
-        # missing from this list (quiz_exclusions, created_at). Updating only
-        # the listed columns keeps a teacher's quiz-review work and the
-        # story's original position in the list.
+        # replace was a DELETE+INSERT, so every re-save wiped created_at.
+        # Updating only the listed columns keeps the story's original
+        # position in the list.
         db.execute(
             f"""
             INSERT INTO custom_stories (
