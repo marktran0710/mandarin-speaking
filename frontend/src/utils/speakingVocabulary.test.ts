@@ -38,6 +38,14 @@ describe("speakingVocabularyItems", () => {
     expect(speakingVocabularyItems(topic)[0]).toMatchObject({ word: "知道", pinyin: "zhidao", pos: "V", meaning: "to know", audioUrl: "/uploads/audio/zhidao.mp3" });
   });
 
+  it("prefers canonical imported word audio over the scene fallback", () => {
+    const topic = makeTopic({
+      vocabAssessment: [{ ...makeTopic().vocabAssessment![0], audioUrl: "/uploads/audio/imported.mp3" }],
+      vocabularyAudioUrls: { 0: ["/uploads/audio/scene-slice.mp3"] },
+    });
+    expect(speakingVocabularyItems(topic)[0].audioUrl).toBe("/uploads/audio/imported.mp3");
+  });
+
   it("returns an empty list without vocab_assessment", () => {
     expect(speakingVocabularyItems(makeTopic({ vocabAssessment: undefined }))).toEqual([]);
   });

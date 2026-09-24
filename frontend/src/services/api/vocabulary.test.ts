@@ -7,7 +7,7 @@ vi.mock("./client", () => ({
   fetchWithRetry,
 }));
 
-import { createQuizVocabularyWord, type QuizVocabularyWordDraft } from "./vocabulary";
+import { createQuizVocabularyWord, listVocabularyStories, type QuizVocabularyWordDraft } from "./vocabulary";
 
 const draft: QuizVocabularyWordDraft = {
   targetWord: "bed",
@@ -31,5 +31,18 @@ describe("quiz vocabulary API errors", () => {
     await expect(createQuizVocabularyWord("story-1", draft)).rejects.toThrow(
       "Quiz bank failed validation. W1_EASY: [CORRECT_NOT_IN_OPTIONS] The correct answer must be one of the options.",
     );
+  });
+
+  it("reloads the content bank through the admin-scoped endpoint", async () => {
+    fetchWithRetry.mockResolvedValue(new Response(JSON.stringify([{ id: "story-1" }]), { status: 200 }));
+
+    await expect(listVocabularyStories()).resolves.toEqual([{ id: "story-1" }]);
+    expect(fetchWithRetry).toHaveBeenCalledWith("http://backend.test/api/admin/content-bank?limit=500&skip=0");
+  });
+
+  it("surfaces the backend status when the content bank reload fails", async () => {
+    fetchWithRetry.mockResolvedValue(new Response(JSON.stringify({ detail: "Administrator account required." }), { status: 403 }));
+
+    await expect(listVocabularyStories()).rejects.toThrow("Could not load Speaking vocabulary (403). Administrator account required.");
   });
 });

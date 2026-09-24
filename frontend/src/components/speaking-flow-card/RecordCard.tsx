@@ -14,7 +14,7 @@ export default function RecordCard({
   compact = false,
 }: {
   record: AudioRecord;
-  onDeleteRecord: (id: string) => void;
+  onDeleteRecord?: (id: string) => void;
   compact?: boolean;
 }) {
   const savedAudioLabelId = useId();
@@ -35,7 +35,7 @@ export default function RecordCard({
     if (!window.confirm(`Delete the ${topicLabel} recording from ${record.timestamp}? This cannot be undone.`)) {
       return;
     }
-    onDeleteRecord(record.id);
+    onDeleteRecord?.(record.id);
   };
 
   return (
@@ -46,10 +46,12 @@ export default function RecordCard({
           <div>
             <div className="story-timestamp">{record.timestamp}</div>
             <div className="story-duration">{record.duration}s</div>
+            {record.studentId && <small className="record-owner">Student {record.studentId}</small>}
           </div>
         </div>
         <button
           className="btn-delete"
+          hidden={!onDeleteRecord}
           onClick={handleDelete}
           title="刪除這則故事 Delete this story"
         >

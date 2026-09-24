@@ -3,10 +3,10 @@ import Icon from "../shared/ui/Icon";
 import { deleteQuizVocabularyWord, listVocabularyStories } from "../services/api/vocabulary";
 import type { StoredCustomStory } from "../services/api/stories-submissions";
 import { buildVocabularyInventory, matchesVocabularySearch, vocabularyEntriesToCsv, type VocabularyEntry } from "./admin-vocabulary/model";
-import { vocabularyBookSource } from "./admin-vocabulary/book-sources";
 import VocabularyEditor from "./admin-vocabulary/VocabularyEditor";
 import QuestionPreview from "./admin-vocabulary/QuestionPreview";
 import VocabularyImportDialog from "./admin-vocabulary/VocabularyImportDialog";
+import VocabularyAudioImportDialog from "./admin-vocabulary/VocabularyAudioImportDialog";
 import "./admin-vocabulary/styles.css";
 
 const PAGE_SIZE = 30;
@@ -26,6 +26,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
   const [message, setMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [importing, setImporting] = useState(false);
+  const [importingAudio, setImportingAudio] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -46,7 +47,6 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
   const filtered = inventory.filter(entry => inLesson(entry.lessonNumber)
     && (!storyId || entry.storyId === storyId)
     && matchesVocabularySearch(entry, query)
-    && (review !== "unverified" || !vocabularyBookSource(entry))
     && (review !== "missing" || !entry.pinyin || !entry.translation || !entry.pos));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount - 1);
@@ -84,7 +84,19 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
     }
   };
 
-  return <section className="av-page" aria-label="Speaking vocabulary">
+  return <section className="av-page" aria-label="Content bank">
+    <section className="av-import-guide" aria-labelledby="av-import-guide-title">
+      <div>
+        <span className="av-guide-kicker">Canonical content workflow</span>
+        <h2 id="av-import-guide-title">Vocabulary and questions use one source</h2>
+        <p>Import one CSV or XLSX. Each <strong>Word Key</strong> groups the word metadata and its three graded rounds, then the server previews and validates everything before publishing.</p>
+      </div>
+      <dl className="av-import-guide-rules">
+        <div><dt>File</dt><dd>CSV or XLSX</dd></div>
+        <div><dt>One word</dt><dd>3 round rows</dd></div>
+        <div><dt>Write step</dt><dd>Preview, then confirm</dd></div>
+      </dl>
+    </section>
     <div className="av-filters">
       <label className="av-search">Search<div><Icon name="search" size={18} /><input type="search" value={query} onChange={e => changeFilter(setQuery, e.target.value)} placeholder="Chinese, pinyin or meaning" /></div></label>
       <label>Lesson<select value={lesson} onChange={e => { changeFilter(setLesson, e.target.value); setStoryId(""); }}>
@@ -96,7 +108,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
         <option value="">All stories</option>{availableStories.map(story => <option key={story.id} value={story.id}>{story.lessonNumber ? `${story.lessonNumber}-${story.lessonSubOrder ?? 1} ` : ""}{story.title}</option>)}
       </select></label>
       <label>Review<select value={review} onChange={e => changeFilter(setReview, e.target.value)}>
-        <option value="">All entries</option><option value="unverified">Book source unverified</option><option value="missing">Missing metadata</option>
+        <option value="">All entries</option><option value="missing">Missing metadata</option>
       </select></label>
     </div>
     <div className="av-toolbar">
@@ -105,13 +117,20 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
         {onOpenMaterials && <button type="button" className="av-button" onClick={onOpenMaterials}><Icon name="library" size={18} />Materials</button>}
         {newQuizEntry && <button type="button" className="av-button" onClick={() => { setActionError(""); setMessage(""); setEditing(newQuizEntry); }}><Icon name="plus" size={18} />Add quiz word</button>}
         <button type="button" className="av-button" onClick={download} disabled={loading || Boolean(error) || !filtered.length}><Icon name="download" size={18} />Export CSV</button>
-        <button type="button" className="av-button" onClick={() => { setActionError(""); setMessage(""); setImporting(true); }}><Icon name="upload" size={18} />Import CSV</button>
+        <button type="button" className="av-button av-primary" onClick={() => { setActionError(""); setMessage(""); setImporting(true); }}><Icon name="upload" size={18} />Import vocabulary + questions</button>
+        <button type="button" className="av-button av-primary" onClick={() => { setActionError(""); setMessage(""); setImportingAudio(true); }}><Icon name="volume" size={18} />Import vocabulary audio</button>
       </div>
     </div>
     {importing && (
       <VocabularyImportDialog
         onClose={() => setImporting(false)}
         onImported={() => { setMessage("Import complete."); setReload(n => n + 1); }}
+      />
+    )}
+    {importingAudio && (
+      <VocabularyAudioImportDialog
+        onClose={() => setImportingAudio(false)}
+        onImported={() => { setMessage("Vocabulary audio import complete."); setReload(n => n + 1); }}
       />
     )}
     {message && <p className="av-success" role="status">{message}</p>}
@@ -122,15 +141,28 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
         <button type="button" className="av-button" onClick={() => { setQuery(""); setLesson(""); setStoryId(""); setReview(""); setPage(0); }}>Clear filters</button></div>
       : <>
         <div className="av-table-wrap" tabIndex={0} role="region" aria-label="Vocabulary table">
-          <table className="av-table"><thead><tr><th>Word / pinyin</th><th>Meaning</th><th>Speaking</th><th>Book source</th><th><span className="av-sr-only">Actions</span></th></tr></thead>
-            <tbody>{visible.map(entry => {
-              const source = vocabularyBookSource(entry);
+          <table className="av-table">
+            <caption className="av-sr-only">Canonical vocabulary entries and their speaking lesson placement.</caption>
+            <colgroup><col className="av-col-word" /><col className="av-col-meaning" /><col className="av-col-speaking" /><col className="av-col-actions" /></colgroup>
+            <thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Lesson placement</th><th scope="col"><span className="av-sr-only">Actions</span></th></tr></thead>
+            <tbody>{visible.map((entry, index) => {
+              const displayNumber = String(currentPage * PAGE_SIZE + index + 1).padStart(2, "0");
+              const placement = entry.source === "quiz-assessment" ? "Quiz bank" : entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`;
+              const lessonCode = entry.lessonNumber ? `${entry.lessonNumber}-${entry.lessonSubOrder ?? 1}` : "Unassigned";
               return <tr key={entry.id}>
-                <td><strong lang="zh-Hant">{entry.word}</strong><span>{entry.pinyin || "Missing pinyin"}</span></td>
-                <td><span>{entry.translation || "Missing meaning"}</span><small>{entry.pos || "Missing part of speech"}</small></td>
-                <td><span lang="zh-Hant">{entry.storyTitle}</span><small>{entry.lessonNumber ? `${entry.lessonNumber}-${entry.lessonSubOrder ?? 1} / ` : ""}{entry.source === "quiz-assessment" ? "Quiz bank" : entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`}</small></td>
-                <td>{source ? <><span className="av-source">{source.kind}</span><small>{source.book}, p. {source.page}</small></> : <span className="av-unverified">Not verified</span>}</td>
-                <td className="av-row-actions">
+                <td data-label="Word" className="av-table-word">
+                  <div className="av-word-heading"><span className="av-row-number" aria-hidden="true">{displayNumber}</span><strong lang="zh-Hant">{entry.word}</strong></div>
+                  <span className={`av-table-secondary${entry.pinyin ? "" : " is-missing"}`}>{entry.pinyin || "Missing pinyin"}</span>
+                </td>
+                <td data-label="Meaning" className="av-table-meaning">
+                  <span className={`av-table-primary${entry.translation ? "" : " is-missing"}`}>{entry.translation || "Missing meaning"}</span>
+                  <span className="av-table-secondary"><span className="av-pos-chip">{entry.pos || "Missing part of speech"}</span></span>
+                </td>
+                <td data-label="Lesson placement" className="av-table-speaking">
+                  <span className="av-table-primary" lang="zh-Hant">{entry.storyTitle}</span>
+                  <small className="av-speaking-meta"><span>{lessonCode}</span><span aria-hidden="true"> / </span><span className="av-placement-chip">{placement}</span></small>
+                </td>
+                <td data-label="Actions" className="av-row-actions">
                   <button type="button" className="av-icon-button" title={`View quiz questions for ${entry.word}`} aria-label={`View quiz questions for ${entry.word}`} onClick={() => { setPreviewing(entry); setMessage(""); }}><Icon name="eye" size={19} /></button>
                   <button type="button" className="av-icon-button" title={`Edit ${entry.word}`} aria-label={`Edit ${entry.word}, ${entry.source === "quiz-assessment" ? "quiz vocabulary" : entry.storyWide ? "story-wide vocabulary" : `scene ${entry.frameIndex + 1}`}`} onClick={() => { setActionError(""); setEditing(entry); setMessage(""); }}><Icon name="edit" size={19} /></button>
                   {entry.source === "quiz-assessment" && <button type="button" className="av-icon-button av-danger-button" title={`Delete ${entry.word}`} aria-label={`Delete ${entry.word}, quiz vocabulary`} onClick={() => void deleteQuizWord(entry)}><Icon name="trash" size={19} /></button>}

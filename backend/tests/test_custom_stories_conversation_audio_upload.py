@@ -54,10 +54,10 @@ def _make_story(story_id: str, *, system_audio: str, student_model_audio: str = 
     }
 
 
-def test_uploaded_conversation_audio_persists_to_its_own_file(client, isolated_uploads):
+def test_uploaded_conversation_audio_persists_to_its_own_file(admin_client, isolated_uploads):
     story_id = "test-conv-audio-upload-basic"
     try:
-        response = client.post(
+        response = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, system_audio=_wav_data_url()),
         )
         assert response.status_code == 200
@@ -67,13 +67,13 @@ def test_uploaded_conversation_audio_persists_to_its_own_file(client, isolated_u
         assert (isolated_uploads / system_turn["audioUrl"].removeprefix("/uploads/")).exists()
         assert "targetAudioUrl" not in student_turn or not student_turn["targetAudioUrl"]
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_system_audio_and_student_model_audio_persist_independently(client, isolated_uploads):
+def test_system_audio_and_student_model_audio_persist_independently(admin_client, isolated_uploads):
     story_id = "test-conv-audio-both-fields"
     try:
-        response = client.post(
+        response = admin_client.post(
             "/api/custom-stories",
             json=_make_story(story_id, system_audio=_wav_data_url(), student_model_audio=_wav_data_url()),
         )
@@ -83,50 +83,50 @@ def test_system_audio_and_student_model_audio_persist_independently(client, isol
         assert student_turn["targetAudioUrl"].startswith("/uploads/audio/")
         assert system_turn["audioUrl"] != student_turn["targetAudioUrl"]
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_reuploading_turn_audio_replaces_the_file_not_orphans_it(client, isolated_uploads):
+def test_reuploading_turn_audio_replaces_the_file_not_orphans_it(admin_client, isolated_uploads):
     story_id = "test-conv-audio-reupload"
     try:
-        first = client.post(
+        first = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, system_audio=_wav_data_url()),
         ).json()["conversationTurns"][0]
         old_path = isolated_uploads / first["audioUrl"].removeprefix("/uploads/")
         assert old_path.exists()
 
-        second = client.post(
+        second = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, system_audio=_wav_data_url()),
         ).json()["conversationTurns"][0]
 
         assert second["audioUrl"] != first["audioUrl"]
         assert not old_path.exists()
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_clearing_turn_audio_removes_the_file(client, isolated_uploads):
+def test_clearing_turn_audio_removes_the_file(admin_client, isolated_uploads):
     story_id = "test-conv-audio-clear"
     try:
-        first = client.post(
+        first = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, system_audio=_wav_data_url()),
         ).json()["conversationTurns"][0]
         old_path = isolated_uploads / first["audioUrl"].removeprefix("/uploads/")
         assert old_path.exists()
 
-        cleared = client.post(
+        cleared = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, system_audio=""),
         ).json()["conversationTurns"][0]
 
         assert cleared["audioUrl"] == ""
         assert not old_path.exists()
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_deleting_the_story_cleans_up_conversation_audio_files(client, isolated_uploads):
+def test_deleting_the_story_cleans_up_conversation_audio_files(admin_client, isolated_uploads):
     story_id = "test-conv-audio-delete-cleanup"
-    saved = client.post(
+    saved = admin_client.post(
         "/api/custom-stories",
         json=_make_story(story_id, system_audio=_wav_data_url(), student_model_audio=_wav_data_url()),
     ).json()
@@ -136,7 +136,7 @@ def test_deleting_the_story_cleans_up_conversation_audio_files(client, isolated_
     assert system_path.exists()
     assert model_path.exists()
 
-    assert client.delete(f"/api/custom-stories/{story_id}").status_code == 200
+    assert admin_client.delete(f"/api/custom-stories/{story_id}").status_code == 200
 
     assert not system_path.exists()
     assert not model_path.exists()

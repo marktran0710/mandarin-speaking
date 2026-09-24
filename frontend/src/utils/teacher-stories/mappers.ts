@@ -99,11 +99,18 @@ export function storyToTopic(
     if (storyPhraseTranslations.length) phrasesTranslation[0] = storyPhraseTranslations;
   }
 
+  const vocabAssessment = Array.isArray(story.vocabAssessment)
+    ? story.vocabAssessment.map((question) => ({
+      ...question,
+      ...(question.audioUrl ? { audioUrl: resolveImageUrl(question.audioUrl) } : {}),
+    }))
+    : undefined;
+
   return {
     id: `teacher-${story.id}`,
     name: story.title,
     ...(story.conversationTurns ? { conversationTurns: story.conversationTurns } : {}),
-    ...(Array.isArray(story.vocabAssessment) ? { vocabAssessment: story.vocabAssessment } : {}),
+    ...(vocabAssessment ? { vocabAssessment } : {}),
     description: "Teacher published activity",
     skillFocus: "Teacher published activity",
     images: story.frames.map((frame) => resolveImageUrl(tierText(frame, "imageUrl", difficultyLevel) || "")),

@@ -15,7 +15,7 @@
   min-width: 0;
   overflow-x: visible;
   color: var(--management-ink);
-  background: radial-gradient(circle at 86% 0%, color-mix(in srgb, var(--management-green) 12%, transparent) 0, transparent 34%), var(--management-paper);
+  background: var(--management-paper);
 }
 
 .management-shell,
@@ -52,7 +52,7 @@
 .management-menu-toggle { display: none; width: 44px; padding: 0; font-size: 18px; }
 
 .management-body { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: max(0px, calc(100dvh - var(--management-topbar-height))); min-width: 0; }
-.management-sidebar { position: sticky; top: var(--management-topbar-height); display: grid; align-content: start; gap: 6px; min-height: max(0px, calc(100dvh - var(--management-topbar-height))); padding: 22px 14px; border-right: 1px solid var(--management-line); background: color-mix(in srgb, var(--clay-surface-card) 82%, var(--management-soft)); }
+.management-sidebar { position: sticky; top: var(--management-topbar-height); display: grid; align-content: start; gap: 6px; min-height: max(0px, calc(100dvh - var(--management-topbar-height))); max-height: calc(100dvh - var(--management-topbar-height)); overflow-y: auto; padding: 22px 14px; border-right: 1px solid var(--management-line); background: color-mix(in srgb, var(--clay-surface-card) 82%, var(--management-soft)); scrollbar-gutter: stable; }
 .management-nav-block { display: grid; gap: 4px; }
 .management-nav-label { margin: 14px 10px 3px; color: var(--management-muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .management-nav-item { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 0 11px; border: 1px solid transparent; border-radius: var(--clay-radius-md); color: var(--management-body); background: transparent; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
@@ -62,7 +62,7 @@
 .management-nav-text { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .management-badge { min-width: 22px; padding: 3px 6px; border-radius: 999px; color: var(--management-green-deep); background: var(--management-soft); font-size: 11px; text-align: center; }
 .management-badge.hot { color: var(--clay-on-seal); background: var(--seal); font-weight: 700; }
-.management-main { min-width: 0; overflow: visible; padding: clamp(24px, 4vw, 54px) clamp(18px, 5vw, 70px) 72px; }
+.management-main { min-width: 0; overflow: visible; padding: var(--space-xl) clamp(18px, 4vw, 54px) var(--space-3xl); }
 .management-main > * { width: min(100%, 1280px); min-width: 0; margin-inline: auto; }
 
 @media (max-width: 900px) {

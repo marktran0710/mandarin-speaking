@@ -25,7 +25,7 @@ import {
   writeAudioRecordsCache,
 } from "../helpers/audioRecords";
 import {
-  loadPublishedTeacherTopics,
+  publishedTopicsFromStories,
   saveCustomStories,
 } from "../utils/teacherStories";
 import type { Topic } from "../components/content/topic-selector/types";
@@ -68,9 +68,7 @@ export default function App() {
   // lesson. Recording history is intentionally deferred to Progress.
   const [publishedTopicsReady, setPublishedTopicsReady] = useState(false);
   const studentDataReady = publishedTopicsReady;
-  const [publishedTopics, setPublishedTopics] = useState<Topic[]>(
-    () => loadPublishedTeacherTopics(),
-  );
+  const [publishedTopics, setPublishedTopics] = useState<Topic[]>([]);
   const [, setPinyinRevision] = useState(0);
   const storyTopics = publishedTopics;
 
@@ -135,19 +133,19 @@ export default function App() {
 
   const refreshPublishedTopics = useCallback(async () => {
     if (!canUseDatabase()) {
-      setPublishedTopics(loadPublishedTeacherTopics());
+      setPublishedTopics([]);
       return;
     }
     try {
       const stories = await listCustomStories();
-      saveCustomStories(stories as any);
-      setPublishedTopics(loadPublishedTeacherTopics());
+      saveCustomStories(stories);
+      setPublishedTopics(publishedTopicsFromStories(stories));
     } catch {/* keep current */}
   }, []);
 
   useEffect(() => {
     if (activeRole !== "student") {
-      setPublishedTopics(loadPublishedTeacherTopics());
+      setPublishedTopics([]);
       setPublishedTopicsReady(true);
       return;
     }

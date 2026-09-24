@@ -24,6 +24,16 @@ beforeEach(() => {
 });
 
 describe("VocabularyImportDialog", () => {
+  it("shows the core import template without retired metadata columns", async () => {
+    const user = userEvent.setup();
+    render(<VocabularyImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
+    await user.click(screen.getByText("View and download the standard template"));
+    expect(screen.getByRole("columnheader", { name: "Question ID" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Round" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Skill Label" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Download sample CSV/ })).toBeInTheDocument();
+  });
+
   it("previews on file select and shows the matched section", async () => {
     render(<VocabularyImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
     await pickFile(screen.getByLabelText("Question bank CSV or XLSX file"));

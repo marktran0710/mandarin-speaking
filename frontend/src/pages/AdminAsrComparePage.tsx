@@ -1,10 +1,12 @@
-import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import type { AudioRecord } from "../types/audioRecord";
 import { buildSceneReferenceCurves, type SpeechModel } from "../components/story-recorder/StoryRecorder";
 import { convertBlobToWav } from "../utils/audio";
 import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";
 import { formatBackendError, getBackendUrl, readErrorResponse } from "../utils/storyRecorderFeedback";
-import { loadPublishedTeacherTopics } from "../utils/teacherStories";
+import { canUseDatabase, listCustomStories } from "../services/database";
+import { publishedTopicsFromStories } from "../utils/teacherStories";
+import type { Topic } from "../components/content/topic-selector/types";
 import DebugPipelineDetails from "./teacher-practice-debug/DebugPipelineDetails";
 import {
   AUDIO_PREPARATION_TIMEOUT_MS, BACKEND_ANALYSIS_TIMEOUT_MS, consumeAnalysisStream, derivePipelineView, metric, withTimeout,
@@ -33,7 +35,7 @@ const IDLE_COLUMN: ColumnState = { processingState: "idle", processingTrace: [],
  * every downstream score (Praat, feedback, gates) — not just raw text — the
  * same way the student-facing flow would score each one. */
 export default function AdminAsrComparePage() {
-  const publishedTopics = useMemo(() => loadPublishedTeacherTopics(), []);
+  const [publishedTopics, setPublishedTopics] = useState<Topic[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState(publishedTopics[0]?.id ?? "");
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
   const [uploadedAudioName, setUploadedAudioName] = useState("");
@@ -45,6 +47,21 @@ export default function AdminAsrComparePage() {
   } as Record<SpeechModel, ColumnState>);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const runIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!canUseDatabase()) return;
+    let active = true;
+    void listCustomStories()
+      .then((stories) => {
+        if (active) setPublishedTopics(publishedTopicsFromStories(stories));
+      })
+      .catch(() => {
+        if (active) setPublishedTopics([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selectedTopic = publishedTopics.find((topic) => topic.id === selectedTopicId) ?? publishedTopics[0];
   const sceneCount = selectedTopic?.images.length ?? 0;

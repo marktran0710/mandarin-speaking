@@ -30,18 +30,40 @@ from scripts.import_question_bank_workbook import REQUIRED_COLUMNS, ROUNDS, buil
 from scripts.seed_quiz_assessments import find_story_for_part
 
 
+ROUND_ALIASES = {"1": "Round 1", "2": "Round 2", "3": "Round 3"}
+INPUT_MODE_ALIASES = {"mcq": "click"}
+
+
+def _normalize_import_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Accept the compact workbook vocabulary used by the admin template.
+
+    The canonical payload still uses the internal ``Round 1``/``click`` values,
+    but exported workbooks commonly use numeric rounds and ``mcq``. Normalize
+    those aliases once at the upload boundary so validation and publishing see
+    one consistent shape.
+    """
+    normalized: list[dict[str, str]] = []
+    for raw_row in rows:
+        row = dict(raw_row)
+        round_value = (row.get("Round") or "").strip()
+        input_mode = (row.get("Input Mode") or "").strip()
+        row["Round"] = ROUND_ALIASES.get(round_value.casefold(), round_value)
+        row["Input Mode"] = INPUT_MODE_ALIASES.get(input_mode.casefold(), input_mode)
+        normalized.append(row)
+    return normalized
+
+
 def parse_csv_rows(content: bytes) -> list[dict[str, str]]:
     text = content.decode("utf-8-sig")
     reader = csv.DictReader(io.StringIO(text))
     missing = REQUIRED_COLUMNS.difference(reader.fieldnames or ())
     if missing:
         raise ValueError(f"File is missing required columns: {', '.join(sorted(missing))}")
-    return [dict(row) for row in reader if row.get("Question ID")]
+    return _normalize_import_rows([dict(row) for row in reader if row.get("Question ID")])
 
 
 def _cell_text(value: object) -> str:
-    """Excel stores numbers as float/int, not text - PDF Page 12 would
-    otherwise become "12.0". Everything else stringifies as typed."""
+    """Excel stores numbers as float/int; normalize integral values before validation."""
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
@@ -53,7 +75,7 @@ def parse_xlsx_rows(content: bytes) -> list[dict[str, str]]:
     workbook = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
     try:
         sheet = next(
-            (workbook[name] for name in workbook.sheetnames if name.strip().casefold() == "questions"),
+            (workbook[name] for name in workbook.sheetnames if name.strip().casefold() in {"questions", "quiz questions"}),
             workbook[workbook.sheetnames[0]],
         )
         rows_iter = sheet.iter_rows(values_only=True)
@@ -70,7 +92,7 @@ def parse_xlsx_rows(content: bytes) -> list[dict[str, str]]:
             row = {header[index]: _cell_text(raw_row[index]) for index in range(len(header)) if index < len(raw_row)}
             if row.get("Question ID"):
                 rows.append(row)
-        return rows
+        return _normalize_import_rows(rows)
     finally:
         workbook.close()
 

@@ -25,15 +25,9 @@ this document. Verified by reading the actual code (not assumed):
   `answerFormat` from `CURRENT_QUESTION_TYPE_BY_LEVEL`/`CURRENT_ANSWER_FORMAT_BY_LEVEL`
   (`backend/domain/vocabulary/assessment.py`), matching what the live student quiz
   (`DIAGNOSTIC_ROUNDS`) and `import_question_bank_workbook.py` already assumed.
-- **A read-only Content Doctor already exists end-to-end**: `backend/services/content_inventory.py`
-  (`build_content_inventory_from_database`) already checks most of what Section 44 of the
-  consolidation plan asks for — duplicate word IDs, missing/duplicate R1/R2/R3, conflicting
-  vocabulary metadata between quiz bank and speaking references, story/conversation
-  references to a missing canonical word, missing vocabulary/scene/conversation audio,
-  broken or orphaned media files. It's exposed at `GET /api/admin/content-inventory`
-  (`backend/routers/admin.py`) and as a CLI (`backend/scripts/content_doctor.py`). **What's
-  missing is only the Admin-facing UI** — nothing in `frontend/src` calls
-  `/api/admin/content-inventory` yet.
+- **The former read-only content inventory diagnostic has been removed**. Content ownership
+  and import validation now live in the Admin Content Bank and its canonical vocabulary,
+  question, and audio workflows; no separate diagnostic route or CLI is maintained.
 - **`backend/services/ai_feedback.py` is already a compatibility alias**, not a second
   implementation — it replaces its own module object in `sys.modules` with
   `services.speech.feedback.pipeline` at import time, so the two names are the same module.
@@ -60,9 +54,9 @@ this document. Verified by reading the actual code (not assumed):
 | Data | Canonical owner (table/module) | Status vs. target architecture |
 |---|---|---|
 | Vocabulary + quiz questions | `custom_stories.vocab_assessment` | Canonical in practice; not yet a normalized `vocabulary_items`/`quiz_questions` table (target's Phase B, not started) |
-| Story/scene authored content | `custom_stories.frames`, `.story_vocabulary`, `.story_phrases` | Still the compatibility aggregate; frame-level vocabulary is a **reference-quality duplicate** of canonical words, flagged (not blocked) by Content Doctor's `conflicting_vocabulary_metadata` finding |
+| Story/scene authored content | `custom_stories.frames`, `.story_vocabulary`, `.story_phrases` | Still the compatibility aggregate; canonical vocabulary/question imports are managed in Admin Content Bank |
 | Conversation | `custom_stories.conversation_turns` | Alternating-turn JSON; already the sole source (no second conversation DB) |
-| Instructional media (images, scene/vocab/conversation audio) | URLs embedded in the `custom_stories` JSON | Ownership is implicit (inferred by `content_inventory.py`'s `add_media`), not an explicit `MediaAsset` table yet |
+| Instructional media (images, scene/vocab/conversation audio) | URLs embedded in the `custom_stories` JSON | Ownership is implicit in the story/media persistence paths, not an explicit `MediaAsset` table yet |
 | Student evidence (recordings) | `audio_records` | Stable; already excluded from the content/curriculum domain |
 | Story submissions | `story_submissions` | Stable |
 | Quiz attempts/responses | `vocab_quiz_attempts`, `vocab_quiz_responses` | Stable; `vocab_quiz_responses` is the actual source of truth BKT replays from |
@@ -81,7 +75,7 @@ this document. Verified by reading the actual code (not assumed):
 - **Readers**: `frontend/src/utils/topicQuiz.ts:topicQuizEntries()` (the single frontend
   entry point — used by the student quiz, the Speaking vocabulary preview, and Admin
   Vocabulary's `QuestionPreview.tsx`), `backend/analytics/bkt_mastery.py` (word metadata
-  lookups for diagnostics), `backend/services/content_inventory.py` (Content Doctor checks).
+  lookups for diagnostics).
 - **Frontend pages**: `AdminVocabularyPage.tsx` (metadata + quiz CRUD),
   `StoryVocabQuiz.tsx`/`QuizQuestion.tsx` (student quiz), `SpeakingVocabularyPreview.tsx`.
 - **Tests**: `backend/tests/test_quiz_vocab_crud.py`, `test_vocab_assessment.py`,
@@ -96,10 +90,7 @@ this document. Verified by reading the actual code (not assumed):
 
 - **Writers**: `StoryBuilderSection` (frontend, teacher authoring) → `story_crud.py`.
 - **Readers**: legacy display paths for stories that predate `vocab_assessment` (a story
-  with no canonical bank still needs *something* to show); `content_inventory.py` cross-
-  checks these against `vocab_assessment` and flags mismatches
-  (`speaking_word_missing_canonical_bank`, `quiz_word_missing_speaking`,
-  `conflicting_vocabulary_metadata`) but does not block on them.
+  with no canonical bank still needs *something* to show).
 - **Live readers still exist** — do not delete these fields yet. The correct next step
   (target Section 30/36: "canonical vocabulary metadata is read-only here... provide
   `Manage vocabulary` navigation instead") is to stop *editing* metadata here, not to remove
@@ -112,9 +103,7 @@ this document. Verified by reading the actual code (not assumed):
   audio-persistence implementation — do not build a second one, per the plan's own Section 5
   of the earlier Admin Content Management spec, already honored).
 - **Readers**: `StoryRecorderRuntime.js` (scene playback — see 2.7 below on why this file is
-  hands-off), `content_inventory.py` (media presence/orphan checks).
-- Already inventoried by Content Doctor under `role: scene_model_audio` /
-  `vocabulary_reference_audio` / `frame_image`.
+  hands-off).
 
 ### 2.4 Conversation (`conversation_turns[].audioUrl`, `.targetAudioUrl`)
 
@@ -125,8 +114,7 @@ this document. Verified by reading the actual code (not assumed):
 - **Readers**: `SpeakingConversationFlow.tsx` (frontend playback),
   `verified_speaking.py:resolve_verified_speaking_target()` (resolves a conversation turn's
   target text server-side — never trusts client-submitted text, per Section 20's requirement,
-  already implemented this session in `3eacb9f`), `content_inventory.py` (media checks +
-  `conversation_missing_character_audio` finding).
+  already implemented this session in `3eacb9f`).
 - **Tests**: `backend/tests/test_custom_stories_conversation_audio_upload.py`,
   `test_verified_speaking_conversation.py`.
 
@@ -180,15 +168,8 @@ Time-boxed for this pass. Not yet audited in the same writer/reader depth:
 
 ## 4. Recommended next step
 
-Given how much of migration-order steps 1, 3, and parts of 9/12/13 (audit, Content Doctor,
-legacy retirement, AI feedback alias, media-reference inventory) are **already done**, the
-highest-value next increment is narrow and low-risk:
-
-**Build the Admin-facing Content Doctor UI** (a read-only view over the already-complete
-`GET /api/admin/content-inventory`) — this closes Section 44 entirely, requires zero schema
-or data changes, and gives Admin visibility into every gap this audit found (frame/canonical
-metadata conflicts, missing round questions, orphaned media) before any further consolidation
-work touches those areas.
+Continue consolidating authoring and imports through the Admin Content Bank. There is no
+separate content-diagnostic route or CLI in the current architecture.
 
 Everything past that (Section 5's repository abstraction, Section 7's XLSX import redesign,
 Section 32-39's full Admin Content Hub shell) is a larger, separately-scoped effort — each

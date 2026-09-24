@@ -66,10 +66,10 @@ def _make_story(story_id: str, audio_url: str) -> dict:
     }
 
 
-def test_uploaded_audio_persists_and_derives_reference_curves(client, isolated_uploads):
+def test_uploaded_audio_persists_and_derives_reference_curves(admin_client, isolated_uploads):
     story_id = "test-frame-audio-upload-basic"
     try:
-        response = client.post(
+        response = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, _wav_data_url())
         )
         assert response.status_code == 200
@@ -94,19 +94,19 @@ def test_uploaded_audio_persists_and_derives_reference_curves(client, isolated_u
             assert url.startswith("/uploads/story_audio/")
             assert (isolated_uploads / url.removeprefix("/uploads/")).exists()
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_reuploading_audio_replaces_files_and_curves(client, isolated_uploads):
+def test_reuploading_audio_replaces_files_and_curves(admin_client, isolated_uploads):
     story_id = "test-frame-audio-reupload"
     try:
-        first = client.post(
+        first = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, _wav_data_url())
         ).json()["frames"][0]
         old_audio_path = isolated_uploads / first["listenAudioUrl"].removeprefix("/uploads/")
         old_word_urls = json.loads(first["vocabularyAudioUrls"])
 
-        second = client.post(
+        second = admin_client.post(
             "/api/custom-stories",
             json={
                 **_make_story(story_id, _wav_data_url()),
@@ -123,10 +123,10 @@ def test_reuploading_audio_replaces_files_and_curves(client, isolated_uploads):
         new_curves = json.loads(second["vocabularyReferenceCurves"])
         assert len(new_curves) == 2
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_clearing_audio_removes_the_file_and_resets_curves(client, isolated_uploads):
+def test_clearing_audio_removes_the_file_and_resets_curves(admin_client, isolated_uploads):
     """A teacher clicking "Remove" on model audio (not replacing it with a
     new recording) must not leave an orphaned file or stale reference
     curves behind — otherwise the UI shows "no model audio" while scoring
@@ -134,7 +134,7 @@ def test_clearing_audio_removes_the_file_and_resets_curves(client, isolated_uplo
     exists anywhere in the story."""
     story_id = "test-frame-audio-clear"
     try:
-        first = client.post(
+        first = admin_client.post(
             "/api/custom-stories", json=_make_story(story_id, _wav_data_url())
         ).json()["frames"][0]
         old_audio_path = isolated_uploads / first["listenAudioUrl"].removeprefix("/uploads/")
@@ -143,7 +143,7 @@ def test_clearing_audio_removes_the_file_and_resets_curves(client, isolated_uplo
         assert old_word_urls
 
         cleared_story = _make_story(story_id, "")
-        cleared = client.post("/api/custom-stories", json=cleared_story).json()["frames"][0]
+        cleared = admin_client.post("/api/custom-stories", json=cleared_story).json()["frames"][0]
 
         assert cleared["listenAudioUrl"] == ""
         assert not old_audio_path.exists()
@@ -154,10 +154,10 @@ def test_clearing_audio_removes_the_file_and_resets_curves(client, isolated_uplo
         assert json.loads(cleared["vocabularyReferenceCurves"]) == []
         assert json.loads(cleared["sentenceReferenceCurves"]) == {}
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")
 
 
-def test_no_curves_without_sentence_text(client, isolated_uploads):
+def test_no_curves_without_sentence_text(admin_client, isolated_uploads):
     """A frame with model audio but no suggested-answer/listen-script text
     has nothing to align words against — extraction is skipped rather than
     raising, so the story save still succeeds."""
@@ -167,10 +167,10 @@ def test_no_curves_without_sentence_text(client, isolated_uploads):
         story["frames"][0]["suggestedAnswer"] = ""
         story["frames"][0]["listenScript"] = ""
 
-        response = client.post("/api/custom-stories", json=story)
+        response = admin_client.post("/api/custom-stories", json=story)
         assert response.status_code == 200
         frame = response.json()["frames"][0]
         assert frame["listenAudioUrl"].startswith("/uploads/audio/")
         assert not frame.get("vocabularyReferenceCurves")
     finally:
-        client.delete(f"/api/custom-stories/{story_id}")
+        admin_client.delete(f"/api/custom-stories/{story_id}")

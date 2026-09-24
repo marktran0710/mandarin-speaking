@@ -17,9 +17,13 @@ interface StudentInlineFeedbackProps {
   coachText?: string;
   wordChips?: WordChip[];
   detailsContent?: React.ReactNode;
-  onRecordAgain: () => void;
-  onContinue: () => void;
-  continueLabel: string;
+  onRecordAgain?: () => void;
+  onContinue?: () => void;
+  continueLabel?: string;
+  /** Overrides the built-in Record again/Continue row — used when a caller
+   * has intermediate steps (e.g. Story Speaking's Fix/Practice) between
+   * this verdict and the final action. */
+  footer?: React.ReactNode;
 }
 
 /**
@@ -40,6 +44,7 @@ export default function StudentInlineFeedback({
   onRecordAgain,
   onContinue,
   continueLabel,
+  footer,
 }: StudentInlineFeedbackProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();
@@ -95,14 +100,16 @@ export default function StudentInlineFeedback({
         </div>
       )}
 
-      <div className="sa-inline-feedback__actions">
-        <StudentButton variant="secondary" icon="replay" onClick={onRecordAgain}>
-          Record again
-        </StudentButton>
-        <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onContinue}>
-          {continueLabel}
-        </StudentButton>
-      </div>
+      {footer !== undefined ? footer : onRecordAgain && onContinue && (
+        <div className="sa-inline-feedback__actions">
+          <StudentButton variant="secondary" icon="replay" onClick={onRecordAgain}>
+            Record again
+          </StudentButton>
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onContinue}>
+            {continueLabel}
+          </StudentButton>
+        </div>
+      )}
     </div>
   );
 }

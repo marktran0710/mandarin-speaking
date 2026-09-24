@@ -26,10 +26,10 @@ STORY = {
 }
 
 
-def test_create_then_list_round_trips(client):
-    assert client.post("/api/custom-stories", json=STORY).status_code == 200
+def test_create_then_list_round_trips(admin_client):
+    assert admin_client.post("/api/custom-stories", json=STORY).status_code == 200
 
-    stories = client.get("/api/custom-stories").json()
+    stories = admin_client.get("/api/custom-stories").json()
     saved = next(s for s in stories if s["id"] == "crud-story-1")
     assert saved["title"] == "???輸?"
     assert saved["published"] is True
@@ -40,7 +40,7 @@ def test_create_then_list_round_trips(client):
     assert saved["storyPhrases"] == STORY["storyPhrases"]
 
 
-def test_create_without_story_learning_content_keeps_legacy_shape(client):
+def test_create_without_story_learning_content_keeps_legacy_shape(admin_client):
     legacy_story = {
         key: value
         for key, value in STORY.items()
@@ -48,28 +48,28 @@ def test_create_without_story_learning_content_keeps_legacy_shape(client):
     }
     legacy_story["id"] = "legacy-story"
 
-    assert client.post("/api/custom-stories", json=legacy_story).status_code == 200
+    assert admin_client.post("/api/custom-stories", json=legacy_story).status_code == 200
     saved = next(
-        story for story in client.get("/api/custom-stories").json()
+        story for story in admin_client.get("/api/custom-stories").json()
         if story["id"] == "legacy-story"
     )
     assert saved["storyVocabulary"] is None
     assert saved["storyPhrases"] is None
 
 
-def test_resave_preserves_created_at(client):
+def test_resave_preserves_created_at(admin_client):
     """Under INSERT OR REPLACE a re-save reset created_at, so an edited
     story jumped to the top of the teacher's list. created_at isn't in the
     API payload, so assert it directly against the database."""
     from db import connect_db
 
-    client.post("/api/custom-stories", json=STORY)
+    admin_client.post("/api/custom-stories", json=STORY)
     with connect_db() as db:
         before = db.execute(
             "SELECT created_at FROM custom_stories WHERE id = %s", ("crud-story-1",)
         ).fetchone()["created_at"]
 
-    client.post("/api/custom-stories", json={**STORY, "title": "changed"})
+    admin_client.post("/api/custom-stories", json={**STORY, "title": "changed"})
     with connect_db() as db:
         after = db.execute(
             "SELECT created_at FROM custom_stories WHERE id = %s", ("crud-story-1",)
@@ -78,20 +78,20 @@ def test_resave_preserves_created_at(client):
     assert after == before
 
 
-def test_delete_removes_the_story(client):
-    client.post("/api/custom-stories", json=STORY)
-    assert client.delete("/api/custom-stories/crud-story-1").json() == {"ok": True}
-    ids = [s["id"] for s in client.get("/api/custom-stories").json()]
+def test_delete_removes_the_story(admin_client):
+    admin_client.post("/api/custom-stories", json=STORY)
+    assert admin_client.delete("/api/custom-stories/crud-story-1").json() == {"ok": True}
+    ids = [s["id"] for s in admin_client.get("/api/custom-stories").json()]
     assert "crud-story-1" not in ids
 
 
-def test_delete_is_idempotent_for_a_missing_story(client):
-    assert client.delete("/api/custom-stories/never-existed").json() == {"ok": True}
+def test_delete_is_idempotent_for_a_missing_story(admin_client):
+    assert admin_client.delete("/api/custom-stories/never-existed").json() == {"ok": True}
 
 
-def test_list_pagination(client):
+def test_list_pagination(admin_client):
     for index in range(3):
-        client.post("/api/custom-stories", json={**STORY, "id": f"page-{index}"})
-    page = client.get("/api/custom-stories", params={"limit": 2, "skip": 0}).json()
+        admin_client.post("/api/custom-stories", json={**STORY, "id": f"page-{index}"})
+    page = admin_client.get("/api/custom-stories", params={"limit": 2, "skip": 0}).json()
     assert len(page) == 2
 

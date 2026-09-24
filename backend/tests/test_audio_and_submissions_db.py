@@ -37,12 +37,12 @@ def test_audio_record_resave_updates_in_place(logged_in_student):
     assert matching[0]["transcription"] == "改過了"
 
 
-def test_delete_audio_record(logged_in_student, logged_in_teacher):
+def test_teacher_cannot_delete_audio_record(logged_in_student, logged_in_teacher):
     student_client, _ = logged_in_student
     teacher_client, _ = logged_in_teacher
     student_client.post("/api/audio-records", json=AUDIO_RECORD)
-    assert teacher_client.delete("/api/audio-records/rec-1").json() == {"ok": True}
-    assert [r for r in student_client.get("/api/audio-records").json() if r["id"] == "rec-1"] == []
+    assert teacher_client.delete("/api/audio-records/rec-1").status_code == 403
+    assert [r for r in student_client.get("/api/audio-records").json() if r["id"] == "rec-1"]
 
 
 def test_audio_records_can_be_filtered_by_student_and_topic():

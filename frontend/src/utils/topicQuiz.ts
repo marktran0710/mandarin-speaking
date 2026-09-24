@@ -58,6 +58,7 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
       wordId,
       pinyin: first.pinyin,
       pos: first.pos,
+      ...(first.audioUrl ? { audioUrl: first.audioUrl } : {}),
       ...(lessonSentences.length ? { lessonSentences } : {}),
       assessmentQuestions,
       bktValidationStatus: "APPROVED",

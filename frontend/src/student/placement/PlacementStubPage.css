@@ -1,0 +1,1 @@
+.sa-placement__empty { display: flex; align-items: center; gap: var(--sa-space-md); padding: var(--sa-space-lg); color: var(--sa-outline); }

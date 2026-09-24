@@ -1,0 +1,97 @@
+.admin-audio-library {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.admin-audio-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 0.8fr);
+  gap: var(--space-lg);
+  align-items: center;
+  padding: var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+}
+
+.admin-audio-summary h2 {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+}
+
+.admin-audio-summary p:not(.admin-eyebrow) {
+  max-width: 680px;
+  margin: var(--space-xs) 0 0;
+  color: var(--clay-muted);
+  line-height: 1.5;
+}
+
+.admin-audio-summary dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.admin-audio-summary dl > div {
+  display: grid;
+  gap: var(--space-2xs);
+  min-width: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.admin-audio-summary dt {
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+}
+
+.admin-audio-summary dd {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+  font-weight: 750;
+}
+
+.admin-audio-filter {
+  display: grid;
+  gap: var(--space-2xs);
+  color: var(--clay-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.admin-audio-filter input {
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-ink);
+  background: var(--clay-surface-card);
+  font: inherit;
+}
+
+.admin-audio-filter input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tone1) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.admin-audio-library .record-owner {
+  display: block;
+  margin-top: var(--space-2xs);
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 760px) {
+  .admin-audio-summary { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .admin-audio-summary { padding: var(--space-md); }
+  .admin-audio-summary dl { grid-template-columns: 1fr; }
+}

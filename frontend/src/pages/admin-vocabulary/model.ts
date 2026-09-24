@@ -2,7 +2,6 @@ import type { StoredCustomStory } from "../../services/api/stories-submissions";
 import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
 import { buildVocabRows, type VocabRow } from "../../utils/myStoriesUtils";
 import { tierText } from "../../utils/teacher-stories/helpers";
-import { vocabularyBookSource } from "./book-sources";
 
 export type VocabularyTier = "easy";
 export type VocabularySource = "quiz-assessment" | "story-vocabulary" | "scene-vocabulary";
@@ -121,10 +120,9 @@ export function vocabularyEntriesToCsv(entries: VocabularyEntry[]): string {
     return `"${safe.replace(/"/g, '""')}"`;
   };
   const rows = entries.map(e => {
-    const source = vocabularyBookSource(e);
     return [e.lessonNumber, e.lessonSubOrder, e.storyTitle, e.source === "quiz-assessment" ? "Quiz bank" : e.storyWide ? "Story-wide" : e.frameIndex + 1,
-      e.word, e.pinyin, e.pos, e.translation, e.context, source?.book ?? "Not verified", source?.page ?? null, source?.kind ?? ""];
+      e.word, e.pinyin, e.pos, e.translation, e.context];
   });
-  return "\uFEFF" + [["Lesson", "Part", "Speaking story", "Scene", "Word", "Pinyin", "Part of speech", "Meaning", "Speaking context", "Book source", "Printed page", "Source section"], ...rows]
+  return "\uFEFF" + [["Lesson", "Part", "Speaking story", "Scene", "Word", "Pinyin", "Part of speech", "Meaning", "Speaking context"], ...rows]
     .map(row => row.map(cell).join(",")).join("\r\n");
 }

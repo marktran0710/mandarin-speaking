@@ -5,13 +5,15 @@ import { convertBlobToWav } from "../utils/audio";
 import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";
 import { SAMPLE_DEBUG_RECORD, type DebugAttemptSource } from "../utils/practiceDebug";
 import { formatBackendError, getBackendUrl, readErrorResponse } from "../utils/storyRecorderFeedback";
-import { loadPublishedTeacherTopics } from "../utils/teacherStories";
+import { canUseDatabase, listCustomStories } from "../services/database";
+import { publishedTopicsFromStories } from "../utils/teacherStories";
+import type { Topic } from "../components/content/topic-selector/types";
 import DebugPipelineDetails from "./teacher-practice-debug/DebugPipelineDetails";
 import { AUDIO_PREPARATION_TIMEOUT_MS, BACKEND_ANALYSIS_TIMEOUT_MS, consumeAnalysisStream, derivePipelineView, sourceLabel, withTimeout, type AnalysisPhase, type DebugProcessingState, type JsonObject, type ProcessingTraceStage, type RecordedRequestContext } from "./teacher-practice-debug/utils";
 import "./TeacherPracticeDebugPage.css";
 export default function TeacherPracticeDebugPage({ records }: { records: AudioRecord[] }) {
   const runtimeRecords = useMemo(() => records.filter((record) => record.praatMetrics), [records]);
-  const publishedTopics = useMemo(() => loadPublishedTeacherTopics(), []);
+  const [publishedTopics, setPublishedTopics] = useState<Topic[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState(publishedTopics[0]?.id ?? "");
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
   const [asrModel, setAsrModel] = useState<SpeechModel>("ctwhisper");
@@ -43,6 +45,21 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const selectedTopic = publishedTopics.find((topic) => topic.id === selectedTopicId)
     ?? publishedTopics[0];
   const sceneCount = selectedTopic?.images.length ?? 0;
+
+  useEffect(() => {
+    if (!canUseDatabase()) return;
+    let active = true;
+    void listCustomStories()
+      .then((stories) => {
+        if (active) setPublishedTopics(publishedTopicsFromStories(stories));
+      })
+      .catch(() => {
+        if (active) setPublishedTopics([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     return () => {
       analysisRunIdRef.current += 1;

@@ -7,7 +7,6 @@ import ErrorBoundary from "../components/ui/ErrorBoundary";
 import { currentRole, signOut } from "../utils/session";
 import {
   canUseDatabase,
-  deleteAudioRecordFromDatabase,
   getAudioRecordCount,
   HelpRequest,
   listAudioRecords,
@@ -63,17 +62,6 @@ export default function TeacherApp({ embedded = false, onExit, initialView }: { 
     const intervalId = window.setInterval(loadSavedHelpRequests, 5000);
     return () => window.clearInterval(intervalId);
   }, []);
-
-  const deleteAudioRecord = (id: string) => {
-    setAudioRecords((prev) => prev.filter((record) => record.id !== id));
-    setAudioRecordCount((count) => Math.max(0, count - 1));
-    if (canUseDatabase()) {
-      deleteAudioRecordFromDatabase(id).catch((error) => {
-        console.error("Failed to delete audio record from database:", error);
-        loadSavedAudioRecords();
-      });
-    }
-  };
 
   const loadMoreAudioRecords = useCallback(async () => {
     if (!canUseDatabase() || audioRecords.length >= audioRecordCount) return;
@@ -133,7 +121,6 @@ export default function TeacherApp({ embedded = false, onExit, initialView }: { 
         <TeacherDashboardPage
           records={audioRecords}
           hasMoreAudioRecords={audioRecords.length < audioRecordCount}
-          onDeleteRecord={deleteAudioRecord}
           onLoadMoreAudioRecords={loadMoreAudioRecords}
           helpRequests={helpRequests}
           onResolveHelpRequest={handleResolveHelpRequest}

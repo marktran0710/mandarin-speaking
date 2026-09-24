@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { buildVocabularyInventory, matchesVocabularySearch, vocabularyEntriesToCsv } from "./model";
-import { vocabularyBookSource } from "./book-sources";
 import type { StoredCustomStory } from "../../services/api/stories-submissions";
 
 const story: StoredCustomStory = { id: "s1", title: "Room", lessonNumber: 5, frames: [{
@@ -104,11 +103,6 @@ describe("Speaking vocabulary inventory", () => {
     for (const query of ["桌子", "zhuo zi", "TABLE", "room"]) expect(matchesVocabularySearch(entry, query)).toBe(true);
     expect(matchesVocabularySearch(entry, "swimming")).toBe(false);
   });
-  it("does not carry book proof to a different word or lesson", () => {
-    expect(vocabularyBookSource({ lessonNumber: 5, word: "桌子" })?.page).toBe(122);
-    expect(vocabularyBookSource({ lessonNumber: 6, word: "桌子" })).toBeNull();
-    expect(vocabularyBookSource({ lessonNumber: 5, word: "unknown" })).toBeNull();
-  });
   it("exports every supplied entry with BOM, escaping and formula protection", () => {
     const entries = buildVocabularyInventory([story]);
     const csv = vocabularyEntriesToCsv([{ ...entries[0], storyTitle: '=HYPERLINK("x")', translation: 'book, "text"', context: 'first\nsecond' }]);
@@ -117,9 +111,11 @@ describe("Speaking vocabulary inventory", () => {
     expect(csv).toContain('"book, ""text"""');
     expect(csv).toContain('"first\nsecond"');
   });
-  it("exports book provenance only for the checked lesson and word", () => {
+  it("does not export redundant book provenance columns", () => {
     const entry = buildVocabularyInventory([story]).find(e => e.word === "桌子")!;
-    expect(vocabularyEntriesToCsv([entry])).toContain('"Modern Chinese 1","122","Vocabulary list"');
-    expect(vocabularyEntriesToCsv([{ ...entry, lessonNumber: 6 }])).toContain('"Not verified","",""');
+    const csv = vocabularyEntriesToCsv([entry]);
+    expect(csv).not.toContain("Book source");
+    expect(csv).not.toContain("Printed page");
+    expect(csv).not.toContain("Source section");
   });
 });

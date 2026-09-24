@@ -345,8 +345,8 @@ def require_story_access(
     request: Request,
     identity: Identity = Depends(get_current_identity),
 ) -> Identity:
-    """Allow logged-in students to read lessons, but reserve story writes
-    and teacher-generated content for staff accounts."""
-    if request.method != "GET" and identity.role not in ("teacher", "admin"):
-        raise HTTPException(status_code=403, detail="Teacher or admin account required.")
+    """Allow logged-in students to read lessons, but reserve all authoring
+    and publication writes for the admin content owner."""
+    if request.method != "GET" and identity.role != "admin":
+        raise HTTPException(status_code=403, detail="Administrator account required.")
     return identity

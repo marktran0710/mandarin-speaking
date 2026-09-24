@@ -1,7 +1,8 @@
 import StudentIcon from "../primitives/StudentIcon";
+import useColorMode from "../../hooks/useColorMode";
 import "./StudentSidebar.css";
 
-export type StudentTopSection = "study" | "progress";
+export type StudentTopSection = "study" | "progress" | "placement";
 export type StudentPhase = "vocab-preview" | "vocab-quiz" | "story-speaking" | "conversation" | "completion";
 
 const PHASE_NAV: Array<{ id: StudentPhase; label: string }> = [
@@ -15,6 +16,13 @@ interface StudentSidebarProps {
   studentName: string;
   activeSection: StudentTopSection;
   activePhase?: StudentPhase | null;
+  /** The active topic has no teacher-authored conversationTurns — hide the
+   * Conversation phase nav item rather than linking to a dead completion
+   * stub (StudentApp falls back to that stub when this phase has nothing
+   * to render). */
+  hasConversation?: boolean;
+  quizStars?: number;
+  maxQuizStars?: number;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -24,20 +32,25 @@ export default function StudentSidebar({
   studentName,
   activeSection,
   activePhase,
+  hasConversation = true,
+  quizStars = 0,
+  maxQuizStars = 0,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
 }: StudentSidebarProps) {
+  const [colorMode, toggleColorMode] = useColorMode();
+  const visiblePhaseNav = PHASE_NAV.filter((phase) => phase.id !== "conversation" || hasConversation);
+
   return (
     <aside className="sa-sidebar">
       <div className="sa-sidebar__top">
         <div className="sa-sidebar__brand">
+          <span className="sa-sidebar__brand-mark" lang="zh-Hant">慢</span>
           <span className="sa-sidebar__brand-name" lang="zh-Hant">慢慢中文</span>
-          <span className="sa-sidebar__research-badge">RESEARCH</span>
         </div>
 
-        <nav className="sa-sidebar__nav" aria-label="Sections">
-          <p className="sa-sidebar__nav-label">Curriculum Core</p>
+        <nav className="sa-sidebar__nav" aria-label="Learning areas">
           <button
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "study" ? "is-active" : ""}`}
@@ -46,9 +59,8 @@ export default function StudentSidebar({
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="menu_book" size={18} role="decorative" />
-              Study
+              <span>Lessons · 課程</span>
             </span>
-            <span lang="zh-Hant" className="sa-sidebar__nav-item-hanzi">研讀</span>
           </button>
           <button
             type="button"
@@ -57,17 +69,40 @@ export default function StudentSidebar({
             onClick={() => onNavigateSection("progress")}
           >
             <span className="sa-sidebar__nav-item-main">
-              <StudentIcon name="analytics" size={18} role="decorative" />
-              Progress
+              <StudentIcon name="trending_up" size={18} role="decorative" />
+              <span>Progress · 學習</span>
             </span>
-            <span lang="zh-Hant" className="sa-sidebar__nav-item-hanzi">進度</span>
+          </button>
+          <button
+            type="button"
+            className={`sa-sidebar__nav-item ${activeSection === "placement" ? "is-active" : ""}`}
+            aria-current={activeSection === "placement" ? "page" : undefined}
+            onClick={() => onNavigateSection("placement")}
+          >
+            <span className="sa-sidebar__nav-item-main">
+              <StudentIcon name="flag" size={18} role="decorative" />
+              <span>Placement · 測驗</span>
+            </span>
           </button>
         </nav>
 
+        <section className="sa-sidebar__stars" aria-label="Learning stars">
+          <div className="sa-sidebar__stars-head">
+            <span className="sa-sidebar__stars-label">
+              <StudentIcon name="star" size={18} role="decorative" filled />
+              Stars
+            </span>
+            <span><strong>{quizStars}</strong> / {maxQuizStars}</span>
+          </div>
+          <div className="sa-sidebar__stars-track" aria-hidden="true">
+            <span style={{ width: `${maxQuizStars > 0 ? (quizStars / maxQuizStars) * 100 : 0}%` }} />
+          </div>
+        </section>
+
         {activeSection === "study" && activePhase && onNavigatePhase && (
-          <nav className="sa-sidebar__nav" aria-label="Lesson phase">
+          <nav className="sa-sidebar__nav sa-sidebar__phase-nav" aria-label="Lesson phase">
             <p className="sa-sidebar__nav-label">Pedagogical Phase</p>
-            {PHASE_NAV.map((phase) => (
+            {visiblePhaseNav.map((phase) => (
               <button
                 key={phase.id}
                 type="button"
@@ -84,21 +119,25 @@ export default function StudentSidebar({
       </div>
 
       <div className="sa-sidebar__footer">
-        <div className="sa-sidebar__session">
-          <span className="sa-sidebar__session-dot" aria-hidden="true" />
-          <span>Session Active</span>
-        </div>
         <div className="sa-sidebar__identity">
-          <span className="sa-sidebar__identity-name">{studentName}</span>
-          <button
-            type="button"
-            className="sa-sidebar__logout"
-            onClick={onLogout}
-            title="End session"
-          >
-            <StudentIcon name="logout" size={18} role="meaningful" label="Log out" />
-          </button>
+          <span className="sa-sidebar__identity-avatar" aria-hidden="true">
+            <StudentIcon name="person" size={17} role="decorative" />
+          </span>
+          <span className="sa-sidebar__identity-name">{studentName || "Learner"}</span>
         </div>
+        <button type="button" className="sa-sidebar__footer-action" onClick={toggleColorMode} aria-pressed={colorMode === "dark"}>
+          <span className="sa-sidebar__footer-action-label">
+            <StudentIcon name={colorMode === "dark" ? "light_mode" : "dark_mode"} size={18} role="decorative" />
+            {colorMode === "dark" ? "Light" : "Dark"}
+          </span>
+        </button>
+        <button type="button" className="sa-sidebar__footer-action" onClick={onLogout}>
+          <span className="sa-sidebar__footer-action-label">
+            <StudentIcon name="logout" size={18} role="decorative" />
+            Log out
+          </span>
+        </button>
+        <p className="sa-sidebar__legal">NTNU 《時代華語一》 · Educational Use</p>
       </div>
     </aside>
   );

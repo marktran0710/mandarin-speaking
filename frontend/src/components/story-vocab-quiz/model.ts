@@ -21,6 +21,8 @@ export interface VocabQuizSynonymCandidate {
 export interface VocabQuizEntry {
   word: string;
   translation: string;
+  /** Canonical model audio imported for this vocabulary word. */
+  audioUrl?: string;
   /** Approved lesson/story sentences that use this exact vocabulary item. */
   lessonSentences?: readonly string[];
   /** Stable identity and teacher-authored observations imported from a CSV bank. */
@@ -67,6 +69,8 @@ export interface VocabAssessmentQuestion {
   correctAnswer: string;
   acceptedAnswers: string[];
   explanation: string;
+  /** Shared model audio for the word; present when Admin has imported it. */
+  audioUrl?: string;
 }
 
 // The blank marker inside a cloze question's sentence — split out at render
@@ -452,6 +456,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
         options: seededShuffle(options, `${wordId}:know_it:options`), correctAnswer,
         acceptedAnswers: source?.acceptedAnswers?.length ? source.acceptedAnswers : [correctAnswer],
         explanation: source?.explanation || `${entry.word} means ${entry.translation}.`,
+        ...(source?.audioUrl || entry.audioUrl ? { audioUrl: source?.audioUrl || entry.audioUrl } : {}),
       };
     }
     if (mode === "tier2") {
@@ -470,6 +475,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
         pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 2 as const,
         questionType: config.questionKind, answerFormat: "free_text" as const, prompt: `Type the pinyin for ${entry.word}.`, options: [],
         correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
+        ...(source?.audioUrl || entry.audioUrl ? { audioUrl: source?.audioUrl || entry.audioUrl } : {}),
       };
     }
     // Round 3 ("use it") is a multiple-choice context cloze, not free-text
@@ -502,6 +508,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       questionType: config.questionKind, answerFormat: "single_choice" as const, prompt: hardClozeSource?.prompt || sourceCloze?.prompt || source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`,
       options: seededShuffle(options, `${wordId}:use_it:options`), correctAnswer, acceptedAnswers,
       explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
+      ...(source?.audioUrl || entry.audioUrl ? { audioUrl: source?.audioUrl || entry.audioUrl } : {}),
     };
   });
   return seededShuffle(questions, `${config.roundType}:question-order`);

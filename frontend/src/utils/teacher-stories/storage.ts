@@ -2,6 +2,8 @@ import type { Topic } from "../../components/content/topic-selector/types";
 import type { CustomTeacherStory } from "./types";
 import { storyToTopic } from "./mappers";
 
+// This is a short-lived authoring cache only. The backend custom_stories table
+// remains the only canonical content source for the student app.
 export const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
 
 export function loadCustomStories(): CustomTeacherStory[] {
@@ -24,7 +26,11 @@ export function saveCustomStories(stories: CustomTeacherStory[]) {
 }
 
 export function loadPublishedTeacherTopics(): Topic[] {
-  return loadCustomStories()
+  return publishedTopicsFromStories(loadCustomStories());
+}
+
+export function publishedTopicsFromStories(stories: CustomTeacherStory[]): Topic[] {
+  return stories
     .filter((story) => story.published)
     .map((story) => storyToTopic(story, "easy"));
 }

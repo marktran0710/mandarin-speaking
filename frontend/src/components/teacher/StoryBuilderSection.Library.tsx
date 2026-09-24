@@ -42,7 +42,7 @@ function StoryLibraryItem({ story, ...actions }) {
 
 export default function StoryBuilderLibrary({ customStories, filteredCustomStories, lessonNumbersInUse, hasStoriesWithoutLesson,
   lessonFilter, onLessonFilterChange, importError, importNotice, onImport, onTogglePublish, onEdit, onExport, onDelete }) {
-  return <div className="custom-story-library" aria-label="Saved custom stories"><div className="custom-story-library-header"><h3>Teacher Story Library</h3>
+  return <div className="custom-story-library" aria-label="Saved custom stories"><div className="custom-story-library-header"><h3>Admin Story Library</h3>
     {(lessonNumbersInUse.length > 0 || hasStoriesWithoutLesson) && <select className="custom-story-lesson-filter" aria-label="Filter stories by lesson" value={lessonFilter} onChange={(event) => onLessonFilterChange(event.target.value)}>
       <option value="all">All lessons</option>{lessonNumbersInUse.map((lessonNumber) => <option key={lessonNumber} value={String(lessonNumber)}>Lesson {lessonNumber}</option>)}{hasStoriesWithoutLesson && <option value="others">Others</option>}
     </select>}

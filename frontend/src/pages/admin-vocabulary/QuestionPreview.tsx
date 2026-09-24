@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import Modal from "../../shared/ui/Modal";
+import StudentAudioControl from "../../student/primitives/StudentAudioControl";
 import type { StoredCustomStory } from "../../services/api/stories-submissions";
 import type { CustomTeacherStory } from "../../utils/teacher-stories/types";
+import { parseJsonArray, resolveImageUrl } from "../../utils/teacher-stories/helpers";
 import { storyToTopic } from "../../utils/teacher-stories/mappers";
 import { topicQuizEntries } from "../../utils/topicQuiz";
 import {
@@ -99,6 +101,16 @@ function renderPrompt(prompt: string) {
   return <>{before}<span className="av-qcard-blank">____</span>{after}</>;
 }
 
+function previewAudioUrl(entry: VocabularyEntry, story: StoredCustomStory | undefined): string | undefined {
+  const importedAudio = entry.assessmentQuestions
+    .map(question => question.audioUrl?.trim())
+    .find((url): url is string => Boolean(url));
+  if (importedAudio) return resolveImageUrl(importedAudio);
+
+  const frameAudio = parseJsonArray(story?.frames[entry.frameIndex]?.vocabularyAudioUrls)?.[entry.wordIndex];
+  return typeof frameAudio === "string" && frameAudio.trim() ? resolveImageUrl(frameAudio.trim()) : undefined;
+}
+
 export default function QuestionPreview({ entry, story, onClose }: {
   entry: VocabularyEntry; story: StoredCustomStory | undefined; onClose: () => void;
 }) {
@@ -114,10 +126,24 @@ export default function QuestionPreview({ entry, story, onClose }: {
     if (!wordEntry) return { rounds: [], practice: [], entries: entries.length };
     return { ...buildWordQuestionVariants(wordEntry, entries), entries: entries.length };
   }, [story, entry.word, entry.assessmentWordId]);
+  const audioUrl = previewAudioUrl(entry, story);
 
   return (
     <Modal open title={`Quiz questions: ${entry.word}`} onClose={onClose}>
       <div className="av-qpreview">
+        <div className="av-qpreview-audio">
+          <div className="av-qpreview-word">
+            <div className="av-qpreview-word-copy">
+              <span className="av-qpreview-kicker">Vocabulary audio</span>
+              <strong lang="zh-Hant">{entry.word}</strong>
+              <span>{entry.pinyin || "Pinyin unavailable"}</span>
+            </div>
+            <StudentAudioControl audioUrl={audioUrl} fallbackText={entry.word} label="Listen to word" />
+          </div>
+          <p className="av-qpreview-audio-status">
+            {audioUrl ? "Imported model audio" : "No imported clip yet; using your browser's Chinese voice."}
+          </p>
+        </div>
         <p className="av-qpreview-lead">
           Every question form <strong lang="zh-Hant">{entry.word}</strong> can appear as — the three graded rounds,
           plus the extra practice types its data supports. Options are shuffled each time; the ✓ marks the correct answer.

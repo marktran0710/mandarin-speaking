@@ -90,7 +90,7 @@ async def upload_audio_record(
 @router.delete("/api/audio-records/{record_id}")
 def delete_audio_record(
     record_id: str,
-    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+    identity: auth.Identity = Depends(auth.require_admin),
 ):
     with connect_db() as db:
         row = db.execute(

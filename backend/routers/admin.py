@@ -8,18 +8,21 @@ account (no admin roster/table), so the JWT subject is a fixed constant.
 import os
 import hmac
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel
 
 import security.auth as auth
-import services.media as media_service
 from db import (
     connect_db,
     row_to_student,
     row_to_teacher,
+    row_to_custom_story,
     row_to_vocab_quiz_attempt,
 )
-from services.content_inventory import build_content_inventory_from_database
+from services.vocabulary_audio_import import (
+    apply_vocabulary_audio_import,
+    preview_vocabulary_audio_import,
+)
 from services.vocabulary_import import apply_vocabulary_import, preview_vocabulary_import
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -92,10 +95,24 @@ def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
     }
 
 
-@router.get("/content-inventory")
-def get_content_inventory(_identity: auth.Identity = Depends(auth.require_admin)):
-    """Run the read-only Content Doctor against current content and uploads."""
-    return build_content_inventory_from_database(upload_dir=media_service.UPLOAD_DIR)
+@router.get("/content-bank")
+def get_content_bank(
+    limit: int = Query(default=500, ge=1, le=500),
+    skip: int = Query(default=0, ge=0),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Return the admin-owned story and vocabulary source for Content Bank.
+
+    Keep this separate from the student/teacher story reader so the admin
+    console does not depend on the generic story-access policy when it reloads
+    after an import.
+    """
+    with connect_db() as db:
+        rows = db.execute(
+            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT %s OFFSET %s",
+            (limit, skip),
+        ).fetchall()
+    return [row_to_custom_story(row) for row in rows]
 
 
 @router.post("/vocabulary-import/preview")
@@ -125,5 +142,33 @@ async def confirm_vocabulary_import_upload(
     try:
         with connect_db() as db:
             return apply_vocabulary_import(db, content, filename=file.filename or "")
+    except (ValueError, LookupError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/vocabulary-audio-import/preview")
+async def preview_vocabulary_audio_import_upload(
+    file: UploadFile = File(...),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Read-only match report for a Word Key -> audio ZIP."""
+    content = await file.read()
+    try:
+        with connect_db() as db:
+            return preview_vocabulary_audio_import(db, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/vocabulary-audio-import/confirm")
+async def confirm_vocabulary_audio_import_upload(
+    file: UploadFile = File(...),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Re-validate and attach each matched audio file to all three rounds."""
+    content = await file.read()
+    try:
+        with connect_db() as db:
+            return apply_vocabulary_audio_import(db, content)
     except (ValueError, LookupError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

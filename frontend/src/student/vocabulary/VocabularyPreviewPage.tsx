@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import type { Topic } from "../../components/content/topic-selector/types";
 import { speakingVocabularyItems } from "../../utils/speakingVocabulary";
+import { topicStoryId } from "../../utils/lessonGroups";
+import { markPhaseSeen } from "../studyProgressFlags";
 import StudentPageHeader from "../primitives/StudentPageHeader";
 import StudentSection from "../primitives/StudentSection";
 import StudentButton from "../primitives/StudentButton";
@@ -17,6 +19,11 @@ interface VocabularyPreviewPageProps {
 
 export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeaking }: VocabularyPreviewPageProps) {
   const items = useMemo(() => speakingVocabularyItems(topic), [topic]);
+
+  const handleStartSpeaking = () => {
+    markPhaseSeen(topicStoryId(topic), "vocab");
+    onStartSpeaking();
+  };
 
   return (
     <div className="sa-page-container">
@@ -41,7 +48,7 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
       </div>
 
       <div className="sa-vocab-preview__footer">
-        <StudentButton variant="primary" size="lg" iconTrailing="arrow_forward" onClick={onStartSpeaking}>
+        <StudentButton variant="primary" size="lg" iconTrailing="arrow_forward" onClick={handleStartSpeaking}>
           Start Speaking
         </StudentButton>
       </div>

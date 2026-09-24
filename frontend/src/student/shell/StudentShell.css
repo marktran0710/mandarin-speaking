@@ -14,6 +14,7 @@
 }
 
 .sa-shell__main {
+  display: flow-root;
   padding-left: var(--sa-sidebar-width);
   min-height: 100vh;
 }

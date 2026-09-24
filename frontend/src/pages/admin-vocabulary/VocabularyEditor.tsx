@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import Modal from "../../shared/ui/Modal";
 import Icon from "../../shared/ui/Icon";
 import type { VocabularyEntry } from "./model";
-import { vocabularyBookSource } from "./book-sources";
 import { updateVocabularyMetadata } from "../../services/api/vocabulary";
 import type { StoredCustomStory } from "../../services/api/stories-submissions";
 import QuizVocabularyEditor from "./QuizVocabularyEditor";
@@ -26,7 +25,6 @@ function MetadataVocabularyEditor({ entry, onClose, onSaved }: {
   const [pos, setPos] = useState(entry.pos);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const source = vocabularyBookSource(entry);
   const dirty = pinyin !== entry.pinyin || translation !== entry.translation || pos !== entry.pos;
   const close = () => {
     if (!saving && (!dirty || window.confirm("Discard unsaved vocabulary changes?"))) onClose();
@@ -58,7 +56,6 @@ function MetadataVocabularyEditor({ entry, onClose, onSaved }: {
       <dl className="av-context">
         <div><dt>Speaking</dt><dd>{entry.storyTitle}</dd></div>
         <div><dt>Vocabulary source</dt><dd>{entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`}</dd></div>
-        <div><dt>Book source</dt><dd>{source ? `${source.book}, p. ${source.page} (${source.kind})` : "Not verified"}</dd></div>
         <div><dt>Example</dt><dd lang="zh-Hant">{entry.context || "No example"}</dd></div>
       </dl>
       <fieldset disabled={saving}>

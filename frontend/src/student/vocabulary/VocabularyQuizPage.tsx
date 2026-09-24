@@ -4,6 +4,8 @@ import { topicQuizEntries } from "../../utils/topicQuiz";
 import { DIAGNOSTIC_ROUNDS, type TierMode } from "../../utils/quizTiers";
 import { useQuizSession } from "../../components/story-vocab-quiz/useQuizSession";
 import { getStudentId, getStudentName } from "../../utils/studentSession";
+import { topicStoryId } from "../../utils/lessonGroups";
+import { markPhaseSeen } from "../studyProgressFlags";
 import StudentPageHeader from "../primitives/StudentPageHeader";
 import StudentSection from "../primitives/StudentSection";
 import StudentButton from "../primitives/StudentButton";
@@ -51,6 +53,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
       setTierPos(nextPos);
       session.startTier(TIER_SEQUENCE[nextPos]);
     } else {
+      markPhaseSeen(topicStoryId(topic), "quiz");
       onFinished();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,7 +145,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
         )}
 
         <div className="sa-quiz__actions">
-          <StudentAudioControl fallbackText={question.word} label="Audio Model" />
+          <StudentAudioControl audioUrl={assessment?.audioUrl} fallbackText={question.word} label="Audio Model" />
           {showingFeedback ? (
             <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={session.next}>
               Next

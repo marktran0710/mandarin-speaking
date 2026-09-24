@@ -25,6 +25,15 @@ beforeEach(() => {
 });
 
 describe("Admin vocabulary page", () => {
+  it("makes the unified vocabulary and questions import visible", async () => {
+    const user = userEvent.setup();
+    render(<AdminVocabularyPage />);
+    expect(await screen.findByRole("heading", { name: "Vocabulary and questions use one source" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Import vocabulary + questions" }));
+    expect(screen.getByRole("dialog", { name: "Import vocabulary + questions" })).toBeInTheDocument();
+    expect(screen.getByText("View and download the standard template")).toBeInTheDocument();
+  });
+
   it("includes stories without lesson metadata in the unassigned filter", async () => {
     vi.mocked(listVocabularyStories).mockResolvedValue([{ ...stories[0], lessonNumber: undefined }]);
     const user = userEvent.setup();
@@ -40,7 +49,7 @@ describe("Admin vocabulary page", () => {
     await screen.findByText("2 entries / 2 unique words");
     await user.type(screen.getByRole("searchbox"), "zhuo");
     expect(screen.getByText("1 entries / 1 unique words")).toBeInTheDocument();
-    expect(screen.getByText("Modern Chinese 1, p. 122")).toBeInTheDocument();
+    expect(screen.queryByText("Book source")).not.toBeInTheDocument();
     await user.clear(screen.getByRole("searchbox"));
     await user.selectOptions(screen.getByRole("combobox", { name: "Lesson" }), "6");
     expect(screen.queryByRole("button", { name: /Edit 桌子/ })).not.toBeInTheDocument();
@@ -178,6 +187,20 @@ describe("Admin vocabulary page", () => {
     await user.click(await screen.findByRole("button", { name: "View quiz questions for 桌子" }));
     const dialog = screen.getByRole("dialog", { name: "Quiz questions: 桌子" });
     expect(within(dialog).getByText(/No generated questions yet/)).toBeInTheDocument();
+  });
+
+  it("includes imported word audio in the vocabulary preview", async () => {
+    const audioQuestions = quizAssessment("audio-word", "桌子", "table")
+      .map(question => ({ ...question, audioUrl: "/uploads/audio/word.mp3" }));
+    vi.mocked(listVocabularyStories).mockResolvedValue([{
+      ...stories[0], id: "audio-story", vocabAssessment: audioQuestions,
+    }]);
+    const user = userEvent.setup();
+    render(<AdminVocabularyPage />);
+    await user.click(await screen.findByRole("button", { name: "View quiz questions for 桌子" }));
+    const dialog = screen.getByRole("dialog", { name: "Quiz questions: 桌子" });
+    expect(within(dialog).getByRole("button", { name: "Listen to word" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Imported model audio")).toBeInTheDocument();
   });
 
   it("no longer offers a practice-level filter", async () => {

@@ -32,10 +32,10 @@ STORY = {
 }
 
 
-def test_conversation_turns_round_trip_including_target_audio_url(client):
-    assert client.post("/api/custom-stories", json=STORY).status_code == 200
+def test_conversation_turns_round_trip_including_target_audio_url(admin_client):
+    assert admin_client.post("/api/custom-stories", json=STORY).status_code == 200
 
-    stories = client.get("/api/custom-stories").json()
+    stories = admin_client.get("/api/custom-stories").json()
     saved = next(s for s in stories if s["id"] == "conv-story-1")
     turns = saved["conversationTurns"]
     assert len(turns) == 2
@@ -51,10 +51,10 @@ def test_conversation_turns_round_trip_including_target_audio_url(client):
     assert student_turn.get("audioUrl") != system_turn["audioUrl"]
 
 
-def test_conversation_turns_are_optional_and_default_to_none(client):
+def test_conversation_turns_are_optional_and_default_to_none(admin_client):
     story = {**STORY, "id": "conv-story-2", "conversationTurns": None}
-    assert client.post("/api/custom-stories", json=story).status_code == 200
+    assert admin_client.post("/api/custom-stories", json=story).status_code == 200
 
-    stories = client.get("/api/custom-stories").json()
+    stories = admin_client.get("/api/custom-stories").json()
     saved = next(s for s in stories if s["id"] == "conv-story-2")
     assert saved["conversationTurns"] is None

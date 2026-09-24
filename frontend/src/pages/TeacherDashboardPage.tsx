@@ -40,7 +40,7 @@ export default function TeacherDashboardPage({
 }: {
   records: AudioRecord[];
   hasMoreAudioRecords?: boolean;
-  onDeleteRecord: (id: string) => void;
+  onDeleteRecord?: (id: string) => void;
   onLoadMoreAudioRecords?: () => Promise<void>;
   helpRequests: HelpRequest[];
   onResolveHelpRequest?: (id: string) => void;

@@ -36,8 +36,12 @@ export interface VocabularyMetadataEdit {
 export async function listVocabularyStories(): Promise<StoredCustomStory[]> {
   const stories: StoredCustomStory[] = [];
   for (let skip = 0; ; skip += 500) {
-    const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories?limit=500&skip=${skip}`);
-    if (!response.ok) throw new Error("Could not load Speaking vocabulary. Check your admin session and try again.");
+    const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/content-bank?limit=500&skip=${skip}`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+      const detail = typeof payload?.detail === "string" ? ` ${payload.detail}` : "";
+      throw new Error(`Could not load Speaking vocabulary (${response.status}).${detail}`);
+    }
     const page: unknown = await response.json();
     if (!Array.isArray(page)) throw new Error("The server returned an invalid story list.");
     stories.push(...page as StoredCustomStory[]);
@@ -147,4 +151,47 @@ export function previewVocabularyImport(file: File): Promise<VocabularyImportPre
  * passes, upserts by wordId into each matched story's quiz bank. */
 export function confirmVocabularyImport(file: File): Promise<VocabularyImportResult> {
   return postVocabularyImport<VocabularyImportResult>("confirm", file);
+}
+
+export interface VocabularyAudioMatch {
+  filename: string;
+  wordKey: string;
+  storyId: string;
+  storyTitle: string;
+  bytes: number;
+}
+
+export interface VocabularyAudioImportPreview {
+  files: number;
+  matched: VocabularyAudioMatch[];
+  unmatched: string[];
+  issues: string[];
+}
+
+export interface VocabularyAudioImportResult {
+  files: number;
+  updated: number;
+  unmatched: string[];
+  stories: string[];
+}
+
+async function postVocabularyAudioImport<T>(path: string, file: File): Promise<T> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/vocabulary-audio-import/${path}`, { method: "POST", body }, 1);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+    throw new Error(typeof payload?.detail === "string" ? payload.detail : "Could not process the audio import.");
+  }
+  return response.json() as Promise<T>;
+}
+
+/** Read-only: match ZIP filenames to canonical vocabulary Word Keys. */
+export function previewVocabularyAudioImport(file: File): Promise<VocabularyAudioImportPreview> {
+  return postVocabularyAudioImport<VocabularyAudioImportPreview>("preview", file);
+}
+
+/** Re-validates the ZIP and persists matched audio on the canonical word bank. */
+export function confirmVocabularyAudioImport(file: File): Promise<VocabularyAudioImportResult> {
+  return postVocabularyAudioImport<VocabularyAudioImportResult>("confirm", file);
 }

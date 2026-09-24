@@ -29,8 +29,8 @@ const DEFAULT_TEACHER_ITEMS: ManagementNavItem[] = [
 const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Admin Home", label: "Admin Home", icon: "dashboard" },
   { id: "Materials", label: "Materials", icon: "library", group: "Content" },
-  { id: "Vocabulary", label: "Vocabulary", icon: "book", group: "Content" },
-  { id: "Content Doctor", label: "Content Doctor", icon: "debug", group: "Content" },
+  { id: "Audio Library", label: "Audio Library", icon: "microphone", group: "Content" },
+  { id: "Vocabulary", label: "Content Bank", icon: "book", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
@@ -38,6 +38,7 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Practice Debug", label: "Practice Debug", icon: "debug", group: "Insights" },
   { id: "ASR Compare", label: "ASR Compare", icon: "debug", group: "Insights" },
   { id: "BKT Debug", label: "BKT Debug", icon: "debug", group: "Insights" },
+  { id: "Research", label: "Research", icon: "analytics", group: "Insights" },
 ];
 
 const legacyIconMap: Record<string, UiIconName> = {

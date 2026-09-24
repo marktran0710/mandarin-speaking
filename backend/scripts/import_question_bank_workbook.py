@@ -33,12 +33,10 @@ ROUNDS = {
 }
 REQUIRED_COLUMNS = {
     "Question ID", "Word Key", "Source Type", "Chapter", "Section", "Item",
-    "Traditional Chinese", "Pinyin", "POS", "English Meaning", "Round", "Tier",
-    "Skill Label", "Question Type", "Input Mode", "Prompt", "Option A", "Option B",
+    "Traditional Chinese", "Pinyin", "POS", "English Meaning", "Round",
+    "Question Type", "Input Mode", "Prompt", "Option A", "Option B",
     "Option C", "Option D", "Correct Option", "Correct Answer", "Accepted Answers",
-    "Context Source", "Full Context Sentence", "PDF Page", "Book Page",
 }
-
 
 def read_rows(path: Path = BANK_PATH) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as source:
@@ -110,10 +108,7 @@ def _question(row: dict[str, str]) -> dict[str, Any]:
     question_type = row["Question Type"]
     options = [row[f"Option {letter}"] for letter in "ABCD"] if answer_format == "single_choice" else []
     accepted = _answers(row["Accepted Answers"]) if row["Accepted Answers"] else [row["Correct Answer"]]
-    context = row["Full Context Sentence"].strip()
     explanation = f"Correct answer: {row['Correct Answer']}."
-    if context:
-        explanation += f" Context: {context}"
     return {
         "questionId": f"{row['Word Key']}_{level.upper()}",
         "wordId": row["Word Key"],
@@ -133,12 +128,6 @@ def _question(row: dict[str, str]) -> dict[str, Any]:
         "sourceQuestionId": row["Question ID"],
         "sourceType": row["Source Type"],
         "round": row["Round"],
-        "tier": row["Tier"],
-        "skillLabel": row["Skill Label"],
-        "contextSource": row["Context Source"] or None,
-        "fullContextSentence": context or None,
-        "pdfPage": int(row["PDF Page"]) if row["PDF Page"] else None,
-        "bookPage": int(row["Book Page"]) if row["Book Page"] else None,
     }
 
 

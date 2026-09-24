@@ -1,6 +1,7 @@
 """Admin quiz-vocabulary CSV/XLSX import: preview (read-only) and confirm (write)."""
 import csv
 import io
+import zipfile
 
 import openpyxl
 import pytest
@@ -19,13 +20,18 @@ from services.vocabulary_import import (
     preview_vocabulary_import,
     validate_import_rows,
 )
+from services.vocabulary_audio_import import (
+    apply_vocabulary_audio_import,
+    preview_vocabulary_audio_import,
+)
+import services.media as media_service
+from scripts.import_question_bank_workbook import build_payloads
 
 COLUMNS = [
     "Question ID", "Word Key", "Source Type", "Chapter", "Section", "Item",
-    "Traditional Chinese", "Pinyin", "POS", "English Meaning", "Round", "Tier",
-    "Skill Label", "Question Type", "Input Mode", "Prompt", "Option A", "Option B",
+    "Traditional Chinese", "Pinyin", "POS", "English Meaning", "Round",
+    "Question Type", "Input Mode", "Prompt", "Option A", "Option B",
     "Option C", "Option D", "Correct Option", "Correct Answer", "Accepted Answers",
-    "Context Source", "Full Context Sentence", "PDF Page", "Book Page",
 ]
 
 
@@ -33,42 +39,41 @@ def word_rows(*, word_key="C99-1-I1-W001", chinese="錢包", pinyin="qiánbāo",
     common = {
         "Word Key": word_key, "Source Type": "Vocabulary", "Chapter": section.split("-")[0],
         "Section": section, "Item": "1", "Traditional Chinese": chinese, "Pinyin": pinyin,
-        "POS": "N", "English Meaning": meaning, "Context Source": "", "Full Context Sentence": "",
-        "PDF Page": "", "Book Page": "",
+        "POS": "N", "English Meaning": meaning,
     }
     return [
-        {**common, "Question ID": f"Q{word_key}1{suffix}", "Round": "Round 1", "Tier": "tier1",
-         "Skill Label": "know it", "Question Type": "basic_meaning_mcq", "Input Mode": "click",
+        {**common, "Question ID": f"Q{word_key}1{suffix}", "Round": "Round 1",
+         "Question Type": "basic_meaning_mcq", "Input Mode": "click",
          "Prompt": f"Choose the correct English meaning of {chinese}", "Option A": "kitchen",
          "Option B": "the front; the front side; ahead; in front", "Option C": meaning, "Option D": "chair",
          "Correct Option": "C", "Correct Answer": meaning, "Accepted Answers": meaning},
-        {**common, "Question ID": f"Q{word_key}2{suffix}", "Round": "Round 2", "Tier": "tier2",
-         "Skill Label": "say it", "Question Type": "character_to_pinyin_typing", "Input Mode": "free_text",
+        {**common, "Question ID": f"Q{word_key}2{suffix}", "Round": "Round 2",
+         "Question Type": "character_to_pinyin_typing", "Input Mode": "free_text",
          "Prompt": f"Type the pinyin for {chinese}.", "Option A": "", "Option B": "", "Option C": "", "Option D": "",
          "Correct Option": "", "Correct Answer": pinyin, "Accepted Answers": f"{pinyin} | {pinyin}1"},
-        {**common, "Question ID": f"Q{word_key}3{suffix}", "Round": "Round 3", "Tier": "tier3",
-         "Skill Label": "use it", "Question Type": "context_cloze_mcq", "Input Mode": "click",
+        {**common, "Question ID": f"Q{word_key}3{suffix}", "Round": "Round 3",
+         "Question Type": "context_cloze_mcq", "Input Mode": "click",
          "Prompt": f"我的___不見了。", "Option A": chinese, "Option B": "書", "Option C": "門", "Option D": "床",
          "Correct Option": "A", "Correct Answer": chinese, "Accepted Answers": chinese},
     ]
 
 
-def csv_bytes(rows: list[dict[str, str]]) -> bytes:
+def csv_bytes(rows: list[dict[str, str]], columns: list[str] = COLUMNS) -> bytes:
     buffer = io.StringIO()
-    writer = csv.DictWriter(buffer, fieldnames=COLUMNS)
+    writer = csv.DictWriter(buffer, fieldnames=columns, extrasaction="ignore")
     writer.writeheader()
     for row in rows:
         writer.writerow(row)
     return buffer.getvalue().encode("utf-8")
 
 
-def xlsx_bytes(rows: list[dict[str, str]], *, sheet_name: str = "Questions") -> bytes:
+def xlsx_bytes(rows: list[dict[str, str]], *, sheet_name: str = "Questions", columns: list[str] = COLUMNS) -> bytes:
     workbook = openpyxl.Workbook()
     sheet = workbook.active
     sheet.title = sheet_name
-    sheet.append(COLUMNS)
+    sheet.append(columns)
     for row in rows:
-        sheet.append([row.get(column, "") for column in COLUMNS])
+        sheet.append([row.get(column, "") for column in columns])
     buffer = io.BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
@@ -91,12 +96,27 @@ def test_parse_xlsx_rows_finds_a_sheet_named_questions_even_if_not_first():
     assert parse_xlsx_rows(buffer.getvalue()) == word_rows()
 
 
-def test_parse_xlsx_rows_converts_integer_floats_to_plain_strings():
+def test_parse_xlsx_rows_accepts_export_ready_numeric_rounds_and_mcq_mode():
     rows = word_rows()
-    rows[0]["PDF Page"] = "12"
-    content = xlsx_bytes(rows)
-    # openpyxl writes numeric-looking strings as real numbers; read back as "12" not "12.0".
-    assert parse_xlsx_rows(content)[0]["PDF Page"] == "12"
+    for row in rows:
+        row["Round"] = row["Round"].split()[-1]
+        if row["Input Mode"] == "click":
+            row["Input Mode"] = "mcq"
+    parsed = parse_xlsx_rows(xlsx_bytes(rows, sheet_name="Quiz Questions"))
+    assert parsed == word_rows()
+
+
+def test_import_payload_contains_only_canonical_question_data():
+    rows = word_rows()
+    for content, filename in ((csv_bytes(rows), "bank.csv"), (xlsx_bytes(rows), "bank.xlsx")):
+        parsed = parse_uploaded_rows(filename, content)
+        assert validate_import_rows(parsed) == []
+        payload = build_payloads(parsed)["99-1"]
+        assert all(set(question) == {
+            "questionId", "wordId", "targetWord", "pinyin", "pos", "simpleEnglishMeaning",
+            "level", "difficultyWeight", "questionType", "answerFormat", "prompt", "options",
+            "correctAnswer", "acceptedAnswers", "explanation", "sourceQuestionId", "sourceType", "round",
+        } for question in payload)
 
 
 def test_parse_xlsx_rows_reports_missing_columns():
@@ -121,12 +141,12 @@ def test_parse_uploaded_rows_rejects_legacy_xls():
         parse_uploaded_rows("bank.xls", b"anything")
 
 
-def test_preview_and_confirm_from_an_xlsx_file(client):
+def test_preview_and_confirm_from_an_xlsx_file(admin_client):
     story = {
         "id": "vocab-import-xlsx-story-98-1", "title": "XLSX import test", "frames": [],
         "published": True, "lessonNumber": 98, "lessonSubOrder": 1,
     }
-    assert client.post("/api/custom-stories", json=story).status_code == 200
+    assert admin_client.post("/api/custom-stories", json=story).status_code == 200
     content = xlsx_bytes(word_rows(word_key="C98-1-I1-W001", section="98-1"))
     with connect_db() as db:
         preview = preview_vocabulary_import(db, content, filename="bank.xlsx")
@@ -177,12 +197,12 @@ def test_preview_reports_row_issues_without_touching_the_database(client):
     assert any("expected character_to_pinyin_typing" in issue for issue in report["rowIssues"])
 
 
-def test_preview_and_confirm_against_a_real_story(client):
+def test_preview_and_confirm_against_a_real_story(admin_client):
     story = {
         "id": "vocab-import-story-99-1", "title": "Import test story", "frames": [],
         "published": True, "lessonNumber": 99, "lessonSubOrder": 1,
     }
-    assert client.post("/api/custom-stories", json=story).status_code == 200
+    assert admin_client.post("/api/custom-stories", json=story).status_code == 200
 
     rows = word_rows()
     content = csv_bytes(rows)
@@ -203,7 +223,7 @@ def test_preview_and_confirm_against_a_real_story(client):
         {"section": "99-1", "storyId": "vocab-import-story-99-1", "storyTitle": "Import test story", "questionCount": 3}
     ]
 
-    saved = next(s for s in client.get("/api/custom-stories").json() if s["id"] == "vocab-import-story-99-1")
+    saved = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == "vocab-import-story-99-1")
     assert len(saved["vocabAssessment"]) == 3
     assert {q["wordId"] for q in saved["vocabAssessment"]} == {"C99-1-I1-W001"}
 
@@ -216,7 +236,7 @@ def test_preview_and_confirm_against_a_real_story(client):
 
     with connect_db() as db:
         apply_vocabulary_import(db, csv_bytes(updated_rows))
-    saved_again = next(s for s in client.get("/api/custom-stories").json() if s["id"] == "vocab-import-story-99-1")
+    saved_again = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == "vocab-import-story-99-1")
     assert len(saved_again["vocabAssessment"]) == 3
     assert saved_again["vocabAssessment"][0]["simpleEnglishMeaning"] == "coin purse"
 
@@ -233,6 +253,44 @@ def test_confirm_raises_when_no_story_matches_the_section(client):
     rows = word_rows(section="97-9")
     with connect_db() as db, pytest.raises(LookupError):
         apply_vocabulary_import(db, csv_bytes(rows))
+
+
+def audio_zip(files: dict[str, bytes]) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for filename, content in files.items():
+            archive.writestr(filename, content)
+    return buffer.getvalue()
+
+
+def test_vocabulary_audio_import_matches_word_keys_and_updates_all_rounds(admin_client, tmp_path, monkeypatch):
+    story = {
+        "id": "vocab-audio-import-story-99-1", "title": "Audio import story", "frames": [],
+        "published": True, "lessonNumber": 99, "lessonSubOrder": 1,
+    }
+    assert admin_client.post("/api/custom-stories", json=story).status_code == 200
+    rows = word_rows(word_key="C99-1-I1-W001")
+    with connect_db() as db:
+        apply_vocabulary_import(db, csv_bytes(rows))
+
+    upload_root = tmp_path / "uploads"
+    monkeypatch.setattr(media_service, "UPLOAD_DIR", str(upload_root))
+    monkeypatch.setattr(media_service, "AUDIO_UPLOAD_DIR", str(upload_root / "audio"))
+    content = audio_zip({"C99-1-I1-W001.mp3": b"fake-mp3", "unknown.mp3": b"ignored"})
+    with connect_db() as db:
+        preview = preview_vocabulary_audio_import(db, content)
+    assert preview["files"] == 2
+    assert [item["wordKey"] for item in preview["matched"]] == ["C99-1-I1-W001"]
+    assert preview["unmatched"] == ["unknown.mp3"]
+
+    with connect_db() as db:
+        result = apply_vocabulary_audio_import(db, content)
+    assert result["updated"] == 1
+    saved = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == story["id"])
+    audio_urls = {question["audioUrl"] for question in saved["vocabAssessment"]}
+    assert len(audio_urls) == 1
+    assert next(iter(audio_urls)).startswith("/uploads/audio/vocab-C99-1-I1-W001-")
+    assert (upload_root / "audio").joinpath(next(iter(audio_urls)).rsplit("/", 1)[-1]).is_file()
 
 
 @pytest.fixture()

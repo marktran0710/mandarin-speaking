@@ -2,7 +2,16 @@ import { useState } from "react";
 import type { NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import type { Topic } from "../components/content/topic-selector/types";
 import { normalizeConversationTurns } from "../components/story-recorder/StoryRecorder";
-import { topicStoryId } from "../utils/lessonGroups";
+import {
+  groupTopicsByLesson,
+  isLessonGroupUnlocked,
+  isStoryFinished,
+  isStoryUnlockedInLesson,
+  topicStoryId,
+} from "../utils/lessonGroups";
+import { topicHasQuiz } from "../utils/topicQuiz";
+import { loadLocalStars } from "../utils/quizTiers";
+import { loadPhaseFlags } from "./studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
 import type { StudentPhase, StudentTopSection } from "./shell/StudentSidebar";
 import StudyPage, { type StudyTopicStatus } from "./study/StudyPage";
@@ -11,6 +20,7 @@ import VocabularyQuizPage from "./vocabulary/VocabularyQuizPage";
 import StorySpeakingPage from "./speaking/StorySpeakingPage";
 import ConversationPage from "./conversation/ConversationPage";
 import ProgressPage from "./progress/ProgressPage";
+import PlacementStubPage from "./placement/PlacementStubPage";
 import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 
 interface StudentAppProps {
@@ -48,16 +58,43 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
   if (section === "study" && !activeTopic) {
     const submitted = loadSubmittedStoryIds();
-    for (const topic of topics) {
-      const id = topicStoryId(topic);
-      statusByStoryId[id] = { status: submitted.has(id) ? "completed" : "not-started" };
-    }
+    const groups = groupTopicsByLesson(topics);
+    let currentTopicFound = false;
+    groups.forEach((group, groupIndex) => {
+      const groupUnlocked = isLessonGroupUnlocked(groups, groupIndex, submitted);
+      group.topics.forEach((topic, topicIndex) => {
+        const id = topicStoryId(topic);
+        const finished = isStoryFinished(topic, submitted);
+        const unlocked = groupUnlocked && isStoryUnlockedInLesson(group, topicIndex, submitted);
+        const status = finished
+          ? "completed"
+          : !unlocked
+            ? "locked"
+            : !currentTopicFound
+              ? "in-progress"
+              : "not-started";
+        if (status === "in-progress") currentTopicFound = true;
+        statusByStoryId[id] = {
+          status,
+          ...(status === "in-progress" ? { phases: loadPhaseFlags(id) } : {}),
+        };
+      });
+    });
   }
+
+  // Not memoized: stars change via localStorage writes (quiz completion)
+  // that don't change the `topics` prop, so a [topics]-keyed memo would
+  // go stale.
+  const quizStoryTopics = topics.filter((t) => topicHasQuiz(t));
+  const totalQuizStars = quizStoryTopics.reduce((sum, t) => sum + loadLocalStars(t.id), 0);
+  const maxQuizStars = quizStoryTopics.length * 3;
 
   let body: React.ReactNode;
 
   if (section === "progress") {
     body = <ProgressPage topics={topics} />;
+  } else if (section === "placement") {
+    body = <PlacementStubPage />;
   } else if (!activeTopic) {
     body = <StudyPage topics={topics} statusByStoryId={statusByStoryId} onOpenTopic={openTopic} />;
   } else if (phase === "vocab-preview") {
@@ -112,6 +149,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       studentName={studentName}
       activeSection={section}
       activePhase={activeTopic ? phase : null}
+      hasConversation={Boolean(conversationTurns)}
+      quizStars={totalQuizStars}
+      maxQuizStars={maxQuizStars}
       onNavigateSection={(next) => {
         setSection(next);
         if (next === "study") setActiveTopic(null);

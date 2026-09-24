@@ -7,6 +7,9 @@ interface StudentShellProps {
   studentName: string;
   activeSection: StudentTopSection;
   activePhase?: StudentPhase | null;
+  hasConversation?: boolean;
+  quizStars?: number;
+  maxQuizStars?: number;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -22,6 +25,9 @@ export default function StudentShell({
   studentName,
   activeSection,
   activePhase,
+  hasConversation,
+  quizStars,
+  maxQuizStars,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
@@ -38,6 +44,9 @@ export default function StudentShell({
           studentName={studentName}
           activeSection={activeSection}
           activePhase={activePhase}
+          hasConversation={hasConversation}
+          quizStars={quizStars}
+          maxQuizStars={maxQuizStars}
           onNavigateSection={(section) => {
             onNavigateSection(section);
             setMobileOpen(false);

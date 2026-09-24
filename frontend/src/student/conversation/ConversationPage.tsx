@@ -13,6 +13,8 @@ import {
   type SpeakingResultAnalysis,
 } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
 import { getStudentId } from "../../utils/studentSession";
+import { topicStoryId } from "../../utils/lessonGroups";
+import { markPhaseSeen } from "../studyProgressFlags";
 import { useSpeakingRecorder } from "../speaking/useSpeakingRecorder";
 import StudentButton from "../primitives/StudentButton";
 import StudentAudioControl from "../primitives/StudentAudioControl";
@@ -63,7 +65,10 @@ export default function ConversationPage({ topic, turns, onAddRecord, onDone, on
   }, [state.step]);
 
   useEffect(() => {
-    if (state.step === "summary") onDone();
+    if (state.step === "summary") {
+      markPhaseSeen(topicStoryId(topic), "conversation");
+      onDone();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.step]);
 
@@ -230,12 +235,12 @@ export default function ConversationPage({ topic, turns, onAddRecord, onDone, on
                 <>
                   {recorder.error && <p className="sa-conversation__error">{recorder.error}</p>}
                   <StudentButton
-                    variant="primary"
-                    icon="mic"
-                    disabled={recorder.isRecording || recorder.isAnalyzing}
-                    onClick={handleRecord}
+                    variant={recorder.isRecording ? "danger" : "primary"}
+                    icon={recorder.isRecording ? "stop" : "mic"}
+                    disabled={recorder.isAnalyzing}
+                    onClick={recorder.isRecording ? recorder.stopRecording : handleRecord}
                   >
-                    {recorder.isRecording ? `Recording… ${recorder.recordingDuration}s` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
+                    {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
                   </StudentButton>
                 </>
               )}

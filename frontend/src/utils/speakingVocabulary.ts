@@ -51,6 +51,6 @@ export function speakingVocabularyItems(topic: QuizSourceTopic & AudioLookupTopi
     pinyin: entry.pinyin,
     pos: entry.pos,
     meaning: entry.translation,
-    audioUrl: audioByWord.get(entry.word),
+    audioUrl: entry.audioUrl || audioByWord.get(entry.word),
   }));
 }

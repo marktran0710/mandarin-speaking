@@ -8,11 +8,26 @@ import { SESSION_EXPIRED_EVENT } from "../services/api/client";
 vi.mock("../pages/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,
 }));
+vi.mock("../pages/AdminAudioLibraryPage", () => ({
+  default: () => <p>Audio library content</p>,
+}));
 vi.mock("../pages/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
 
 describe("admin-only diagnostic navigation", () => {
   beforeEach(() => {
     localStorage.setItem("adminConsoleSession", "true");
+  });
+
+  it("shows the admin overview shortcuts and keeps them connected to navigation", async () => {
+    const user = userEvent.setup();
+    render(<AdminApp />);
+
+    expect(screen.getByRole("heading", { name: "Admin overview", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Materials.*Stories and lesson content/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Research" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Materials.*Stories and lesson content/ }));
+    expect(screen.getByRole("heading", { name: "Materials", level: 1 })).toBeInTheDocument();
   });
 
   it("opens Practice Debug from the admin navigation", async () => {
@@ -24,11 +39,19 @@ describe("admin-only diagnostic navigation", () => {
 
     expect(screen.queryByRole("button", { name: "Benchmark" })).not.toBeInTheDocument();
   });
+
+  it("opens the admin audio library from the admin navigation", async () => {
+    const user = userEvent.setup();
+    render(<AdminApp />);
+
+    await user.click(screen.getByRole("button", { name: "Audio Library" }));
+    expect(screen.getByText("Audio library content")).toBeInTheDocument();
+  });
   it("opens vocabulary from the admin navigation", async () => {
     const user = userEvent.setup();
     render(<AdminApp />);
-    await user.click(screen.getByRole("button", { name: "Vocabulary" }));
-    expect(screen.getByRole("heading", { name: "Vocabulary", level: 1 })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Content Bank" }));
+    expect(screen.getByRole("heading", { name: "Content Bank", level: 1 })).toBeInTheDocument();
     expect(screen.getByText("Speaking vocabulary content")).toBeInTheDocument();
   });
 

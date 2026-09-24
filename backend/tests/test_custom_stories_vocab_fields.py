@@ -2,7 +2,7 @@
 custom-stories API instead of being silently dropped by the Pydantic model."""
 
 
-def test_vocabulary_pos_and_translation_round_trip(client):
+def test_vocabulary_pos_and_translation_round_trip(admin_client):
     story = {
         "id": "test-vocab-fields-story",
         "title": "Vocab Fields Test",
@@ -19,16 +19,16 @@ def test_vocabulary_pos_and_translation_round_trip(client):
         ],
     }
 
-    post_response = client.post("/api/custom-stories", json=story)
+    post_response = admin_client.post("/api/custom-stories", json=story)
     assert post_response.status_code == 200
     saved_frame = post_response.json()["frames"][0]
     assert saved_frame["vocabularyPos"] == "N, V"
     assert saved_frame["vocabularyTranslation"] == "restaurant, to eat"
 
-    get_response = client.get("/api/custom-stories")
+    get_response = admin_client.get("/api/custom-stories")
     assert get_response.status_code == 200
     fetched = next(s for s in get_response.json() if s["id"] == "test-vocab-fields-story")
     assert fetched["frames"][0]["vocabularyPos"] == "N, V"
     assert fetched["frames"][0]["vocabularyTranslation"] == "restaurant, to eat"
 
-    client.delete("/api/custom-stories/test-vocab-fields-story")
+    admin_client.delete("/api/custom-stories/test-vocab-fields-story")

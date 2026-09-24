@@ -85,7 +85,7 @@ def serve_upload(
 @router.get("/api/inline-media")
 async def inline_media(
     url: str = Query(..., max_length=2000),
-    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+    identity: auth.Identity = Depends(auth.require_admin),
 ):
     """Resolve an image/audio reference (local /uploads/... path or a remote
     http(s) URL, e.g. a DALL-E/Pollinations.ai-hosted story image) to a
@@ -103,7 +103,7 @@ async def inline_media(
 async def generate_story_images(
     request: StoryImageGenerationRequest,
     req: Request,
-    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+    identity: auth.Identity = Depends(auth.require_admin),
 ):
     """
     Generate a six-image story sequence plan from a classroom situation.

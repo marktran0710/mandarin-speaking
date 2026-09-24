@@ -4,7 +4,6 @@ import { getBackendUrl as getRuntimeBackendUrl } from "../config/runtimeEnv";
 import "./TeacherImageBuilderPage.css";
 
 const BACKEND_URL = getRuntimeBackendUrl();
-const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
 
 interface GeneratedFrame {
   index: number;
@@ -134,20 +133,13 @@ export default function TeacherImageBuilderPage() {
         vocabulary: frame.vocabulary.join(", "),
       })),
     };
-    const stored = loadCustomStories();
-
     try {
-      window.localStorage.setItem(
-        CUSTOM_STORY_STORAGE_KEY,
-        JSON.stringify([savedStory, ...stored]),
-      );
-      if (canUseDatabase()) {
-        await createCustomStory(savedStory);
-      }
-      setNotice("Generated story saved to the teacher story library.");
+      if (!canUseDatabase()) throw new Error("The backend is required to save admin materials.");
+      await createCustomStory(savedStory);
+      setNotice("Generated story saved to the admin materials library.");
       setError("");
-    } catch {
-      setError("Could not save this story.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save this story.");
     }
   };
 
@@ -304,15 +296,6 @@ export default function TeacherImageBuilderPage() {
       )}
     </main>
   );
-}
-
-function loadCustomStories() {
-  try {
-    const stored = window.localStorage.getItem(CUSTOM_STORY_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
 }
 
 async function readErrorResponse(response: Response): Promise<{ detail?: string }> {
