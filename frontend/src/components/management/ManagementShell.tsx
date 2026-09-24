@@ -30,6 +30,7 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Admin Home", label: "Admin Home", icon: "dashboard" },
   { id: "Materials", label: "Materials", icon: "library", group: "Content" },
   { id: "Vocabulary", label: "Vocabulary", icon: "book", group: "Content" },
+  { id: "Content Doctor", label: "Content Doctor", icon: "debug", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
