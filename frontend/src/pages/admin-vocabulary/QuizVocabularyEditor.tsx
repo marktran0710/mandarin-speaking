@@ -11,6 +11,13 @@ import {
 import type { VocabularyEntry } from "./model";
 
 const LEVELS: QuizVocabularyLevel[] = ["Easy", "Medium", "Hard"];
+// Current production round contract (matches DIAGNOSTIC_ROUNDS on the
+// student quiz and import_question_bank_workbook.py - not the older
+// Easy/Medium/Hard-implies-shape assumption this editor used to make).
+// Only Say It (Medium) is typed free text; Know It and Use It are both
+// four-option MCQs.
+const ROUND_LABEL: Record<QuizVocabularyLevel, string> = { Easy: "Know It", Medium: "Say It", Hard: "Use It" };
+const isTypedLevel = (level: QuizVocabularyLevel) => level === "Medium";
 // Keep Unicode letters (including Chinese) while ignoring spacing and punctuation
 // for duplicate/accepted-answer checks.
 const normalizePrompt = (value: string) => value.normalize("NFKC").toLocaleLowerCase().replace(/[\s\p{P}\p{S}_]+/gu, "");
@@ -25,7 +32,7 @@ function emptyQuestion(level: QuizVocabularyLevel): QuestionDraft {
     level,
     prompt: "",
     options: [],
-    optionsText: level === "Hard" ? "" : "\n\n\n",
+    optionsText: isTypedLevel(level) ? "" : "\n\n\n",
     correctAnswer: "",
     acceptedAnswers: [],
     acceptedAnswersText: "",
@@ -93,7 +100,7 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
     const drafts: QuizVocabularyQuestionDraft[] = questions.map((question) => ({
       level: question.level,
       prompt: question.prompt.trim(),
-      options: question.level === "Hard" ? [] : lines(question.optionsText),
+      options: isTypedLevel(question.level) ? [] : lines(question.optionsText),
       correctAnswer: question.correctAnswer.trim(),
       acceptedAnswers: lines(question.acceptedAnswersText),
       explanation: question.explanation.trim(),
@@ -107,8 +114,8 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
       setError("The three question prompts must be unique.");
       return;
     }
-    if (drafts.some((question) => question.level !== "Hard" && (question.options.length !== 4 || new Set(question.options.map(normalizePrompt)).size !== 4))) {
-      setError("Easy and Medium questions need four unique options each.");
+    if (drafts.some((question) => !isTypedLevel(question.level) && (question.options.length !== 4 || new Set(question.options.map(normalizePrompt)).size !== 4))) {
+      setError("Know It and Use It questions need four unique options each.");
       return;
     }
     if (drafts.some((question) => !question.acceptedAnswers.some((answer) => normalizePrompt(answer) === normalizePrompt(question.correctAnswer)))) {
@@ -149,9 +156,9 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
       </fieldset>
       <div className="av-question-edit-list">
         {questions.map((question, index) => <fieldset className="av-question-edit" key={question.level} disabled={saving}>
-          <legend>{question.level} question</legend>
+          <legend>{ROUND_LABEL[question.level]} ({question.level})</legend>
           <label>{question.level} prompt<textarea aria-label={`${question.level} prompt`} value={question.prompt} onChange={(event) => updateQuestion(index, { prompt: event.target.value })} rows={2} required /></label>
-          {question.level !== "Hard" && <label>{question.level} options (one per line)<textarea aria-label={`${question.level} options`} value={question.optionsText} onChange={(event) => updateQuestion(index, { optionsText: event.target.value })} rows={4} required /></label>}
+          {!isTypedLevel(question.level) && <label>{question.level} options (one per line)<textarea aria-label={`${question.level} options`} value={question.optionsText} onChange={(event) => updateQuestion(index, { optionsText: event.target.value })} rows={4} required /></label>}
           <label>{question.level} correct answer<input aria-label={`${question.level} correct answer`} value={question.correctAnswer} onChange={(event) => updateQuestion(index, { correctAnswer: event.target.value })} required /></label>
           <label>{question.level} accepted answers (one per line)<textarea aria-label={`${question.level} accepted answers`} value={question.acceptedAnswersText} onChange={(event) => updateQuestion(index, { acceptedAnswersText: event.target.value })} rows={2} required /></label>
           <label>{question.level} explanation<textarea aria-label={`${question.level} explanation`} value={question.explanation} onChange={(event) => updateQuestion(index, { explanation: event.target.value })} rows={2} required /></label>

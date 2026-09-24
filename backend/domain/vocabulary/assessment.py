@@ -35,11 +35,27 @@ QUESTION_TYPE_BY_LEVEL = {
     "Medium": "context_cloze_mcq",
     "Hard": "productive_recall",
 }
-# ``QUESTION_TYPE_BY_LEVEL`` remains the legacy/default mapping used by API
-# fallback content. Imported banks may use either the original three rounds or
-# the workbook's current production sequence, however. Keep the allowed
-# question type and input mode together so a type cannot silently move to an
-# incompatible round or UI control.
+# ``QUESTION_TYPE_BY_LEVEL`` is the ORIGINAL/legacy round shape. It is kept
+# only for historical banks that still use it (see
+# ``_VALID_QUESTION_SHAPES_BY_LEVEL`` below) - nothing writes new content
+# with it anymore. New/edited content must use the current production
+# workbook's shape instead, which is what the live student quiz
+# (frontend DIAGNOSTIC_ROUNDS) and import_question_bank_workbook.py both
+# already assume: Know It (Easy) = meaning MCQ, Say It (Medium) = pinyin
+# typing (free text, no options), Use It (Hard) = context-cloze MCQ.
+ROUND_TYPE_BY_LEVEL = {"Easy": "know_it", "Medium": "say_it", "Hard": "use_it"}
+CURRENT_QUESTION_TYPE_BY_LEVEL = {
+    "Easy": "basic_meaning_mcq",
+    "Medium": "character_to_pinyin_typing",
+    "Hard": "context_cloze_mcq",
+}
+CURRENT_ANSWER_FORMAT_BY_LEVEL = {
+    "Easy": "single_choice",
+    "Medium": "free_text",
+    "Hard": "single_choice",
+}
+# Keep the allowed question type and input mode together so a type cannot
+# silently move to an incompatible round or UI control.
 _VALID_QUESTION_SHAPES_BY_LEVEL = {
     "Easy": frozenset({("basic_meaning_mcq", "single_choice")}),
     "Medium": frozenset({

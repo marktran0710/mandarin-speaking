@@ -13,8 +13,8 @@ const stories: StoredCustomStory[] = [
 ];
 const quizAssessment = (wordId: string, targetWord: string, meaning: string): VocabAssessmentQuestion[] => [
   { questionId: `${wordId}_EASY`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: `Easy prompt ${wordId}`, options: [meaning, "book", "door", "window"], correctAnswer: meaning, acceptedAnswers: [meaning], explanation: "Easy explanation" },
-  { questionId: `${wordId}_MEDIUM`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "medium", difficultyWeight: 2, questionType: "context_cloze_mcq", answerFormat: "single_choice", prompt: `Medium prompt ${wordId}`, options: [targetWord, "書", "門", "窗戶"], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Medium explanation" },
-  { questionId: `${wordId}_HARD`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "hard", difficultyWeight: 3, questionType: "productive_recall", answerFormat: "free_text", prompt: `Hard prompt ${wordId}`, options: [], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Hard explanation" },
+  { questionId: `${wordId}_MEDIUM`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "medium", difficultyWeight: 2, questionType: "character_to_pinyin_typing", answerFormat: "free_text", prompt: `Medium prompt ${wordId}`, options: [], correctAnswer: "pinyin", acceptedAnswers: ["pinyin"], explanation: "Medium explanation" },
+  { questionId: `${wordId}_HARD`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "hard", difficultyWeight: 3, questionType: "context_cloze_mcq", answerFormat: "single_choice", prompt: `Hard prompt ${wordId}`, options: [targetWord, "書", "門", "窗戶"], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Hard explanation" },
 ];
 beforeEach(() => {
   vi.mocked(listVocabularyStories).mockReset().mockResolvedValue(structuredClone(stories));
@@ -81,11 +81,11 @@ describe("Admin vocabulary page", () => {
     await user.type(within(dialog).getByRole("textbox", { name: "Part of speech" }), "N");
     for (const [level, prompt, options, answer] of [
       ["Easy", "What does 沙發 mean?", "sofa\nbook\ndoor\nwindow", "sofa"],
-      ["Medium", "Complete: ___", "沙發\n床\n門\n窗戶", "沙發"],
-      ["Hard", "Write the word", "", "沙發"],
+      ["Medium", "Type the pinyin", "", "shafa"],
+      ["Hard", "Complete: ___", "沙發\n床\n門\n窗戶", "沙發"],
     ] as const) {
       await user.type(within(dialog).getByRole("textbox", { name: `${level} prompt` }), prompt);
-      if (level !== "Hard") {
+      if (level !== "Medium") {
         const optionsInput = within(dialog).getByRole("textbox", { name: `${level} options` });
         await user.clear(optionsInput);
         await user.type(optionsInput, options);

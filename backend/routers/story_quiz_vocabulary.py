@@ -8,7 +8,13 @@ from psycopg.types.json import Jsonb
 
 import security.auth as auth
 from db import connect_db, row_to_custom_story, vocab_assessment_revision
-from domain.vocabulary.assessment import LEVELS, QUESTION_TYPE_BY_LEVEL, normalize_answer, validate_assessment_payload
+from domain.vocabulary.assessment import (
+    CURRENT_ANSWER_FORMAT_BY_LEVEL,
+    CURRENT_QUESTION_TYPE_BY_LEVEL,
+    LEVELS,
+    normalize_answer,
+    validate_assessment_payload,
+)
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])
 
@@ -80,7 +86,6 @@ def _question_rows(word_id: str, word: QuizVocabularyWordInput) -> list[dict]:
         raise HTTPException(422, "Each quiz word must include exactly one Easy, Medium, and Hard question.")
     rows = []
     for question in word.questions:
-        is_mcq = question.level in ("Easy", "Medium")
         rows.append({
             "questionId": f"{word_id}_{question.level.upper()}",
             "wordId": word_id,
@@ -90,8 +95,8 @@ def _question_rows(word_id: str, word: QuizVocabularyWordInput) -> list[dict]:
             "simpleEnglishMeaning": word.simpleEnglishMeaning,
             "level": question.level,
             "difficultyWeight": {"Easy": 1, "Medium": 2, "Hard": 3}[question.level],
-            "questionType": QUESTION_TYPE_BY_LEVEL[question.level],
-            "answerFormat": "single_choice" if is_mcq else "free_text",
+            "questionType": CURRENT_QUESTION_TYPE_BY_LEVEL[question.level],
+            "answerFormat": CURRENT_ANSWER_FORMAT_BY_LEVEL[question.level],
             "prompt": question.prompt,
             "options": question.options,
             "correctAnswer": question.correctAnswer,

@@ -19,9 +19,9 @@ def word_payload(*, target_word="桌子", word_id=None, suffix="one"):
         "questions": [
             {"level": "Easy", "prompt": f"Easy {suffix}", "options": ["desk", "book", "door", "bed"],
              "correctAnswer": "desk", "acceptedAnswers": ["desk"], "explanation": "Correct."},
-            {"level": "Medium", "prompt": f"Medium {suffix}: 這是___。", "options": ["桌子", "書", "門", "床"],
-             "correctAnswer": "桌子", "acceptedAnswers": ["桌子"], "explanation": "Correct."},
-            {"level": "Hard", "prompt": f"Hard {suffix}: write desk", "options": [],
+            {"level": "Medium", "prompt": f"Medium {suffix}: type the pinyin", "options": [],
+             "correctAnswer": "zhuozi", "acceptedAnswers": ["zhuozi"], "explanation": "Correct."},
+            {"level": "Hard", "prompt": f"Hard {suffix}: 這是___。", "options": ["桌子", "書", "門", "床"],
              "correctAnswer": "桌子", "acceptedAnswers": ["桌子"], "explanation": "Correct."},
         ],
     }
@@ -77,7 +77,10 @@ def test_create_generates_stable_ids_and_only_updates_quiz_bank(api):
         f"{word_id}_EASY", f"{word_id}_MEDIUM", f"{word_id}_HARD"
     }
     assert [question["questionType"] for question in questions] == [
-        "basic_meaning_mcq", "context_cloze_mcq", "productive_recall"
+        "basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq"
+    ]
+    assert [question["answerFormat"] for question in questions] == [
+        "single_choice", "free_text", "single_choice"
     ]
     assert all(question["targetWord"] == "桌子" for question in response.json()["vocabAssessment"])
     assert len([sql for sql in statements if sql.startswith("UPDATE")]) == 1
@@ -90,7 +93,7 @@ def test_update_replaces_one_word_and_delete_allows_empty_bank(api):
     updated["pinyin"] = "shū"
     updated["simpleEnglishMeaning"] = "book"
     updated["questions"][0].update({"options": ["book", "desk", "door", "bed"], "correctAnswer": "book", "acceptedAnswers": ["book"]})
-    updated["questions"][1].update({"options": ["書", "桌子", "門", "床"], "correctAnswer": "書", "acceptedAnswers": ["書"]})
+    updated["questions"][1].update({"correctAnswer": "shu", "acceptedAnswers": ["shu"]})
     updated["questions"][2].update({"correctAnswer": "書", "acceptedAnswers": ["書"]})
     assert client.put("/api/custom-stories/book-story/quiz-vocabulary/W1", json=updated).status_code == 200
     assert {question["targetWord"] for question in state["vocab_assessment"]} == {"書"}
