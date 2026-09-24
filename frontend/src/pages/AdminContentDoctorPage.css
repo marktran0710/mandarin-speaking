@@ -1,0 +1,33 @@
+.admin-content-doctor { display: grid; gap: 1.1rem; color: var(--clay-ink); }
+.admin-content-doctor-note { margin: 0; padding: .85rem 1rem; border: 1px solid color-mix(in srgb, var(--seal) 22%, transparent); border-radius: var(--clay-radius-md); background: var(--seal-soft); color: var(--seal-deep); font-size: .82rem; line-height: 1.5; }
+.admin-content-doctor-toolbar { display: flex; align-items: center; gap: .8rem; }
+.admin-content-doctor-toolbar button { border: 0; border-radius: var(--clay-radius-md); padding: .6rem 1.1rem; background: var(--jade); color: var(--clay-on-accent); font: 750 .84rem/1.2 inherit; cursor: pointer; }
+.admin-content-doctor-toolbar button:hover:not(:disabled) { background: var(--jade-deep); }
+.admin-content-doctor-toolbar button:disabled { cursor: not-allowed; opacity: .6; }
+.admin-content-doctor-generated { font-size: .78rem; color: var(--clay-muted); }
+.admin-content-doctor-error { color: var(--clay-error); font-weight: 700; }
+
+.admin-content-doctor-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .7rem; }
+.admin-content-doctor-summary > div { display: grid; gap: .2rem; padding: .8rem .9rem; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-card); }
+.admin-content-doctor-summary span { font-size: .72rem; font-weight: 800; color: var(--clay-muted); text-transform: uppercase; letter-spacing: .02em; }
+.admin-content-doctor-summary strong { font-size: 1.3rem; }
+.admin-content-doctor-summary small { font-size: .72rem; color: var(--clay-muted); }
+.admin-content-doctor-summary .is-error { border-color: color-mix(in srgb, var(--clay-error) 35%, transparent); }
+.admin-content-doctor-summary .is-error strong { color: var(--clay-error); }
+.admin-content-doctor-summary .is-warning strong { color: var(--seal-deep); }
+
+.admin-content-doctor-filter { display: flex; gap: .4rem; }
+.admin-content-doctor-filter button { border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-pill); padding: .38rem .9rem; background: var(--clay-surface-card); color: var(--clay-muted); font: 700 .78rem/1.2 inherit; cursor: pointer; }
+.admin-content-doctor-filter button.is-active { background: var(--clay-ink); color: var(--clay-canvas); border-color: var(--clay-ink); }
+
+.admin-content-doctor-empty { color: var(--clay-muted); font-size: .85rem; }
+
+.admin-content-doctor-findings { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.admin-content-doctor-findings li { padding: .75rem .9rem; border: 1px solid var(--clay-hairline); border-left-width: 4px; border-radius: var(--clay-radius-md); background: var(--clay-surface-card); }
+.admin-content-doctor-findings li.is-error { border-left-color: var(--clay-error); }
+.admin-content-doctor-findings li.is-warning { border-left-color: var(--seal); }
+.admin-content-doctor-finding-head { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+.admin-content-doctor-finding-code { font-weight: 800; text-transform: capitalize; }
+.admin-content-doctor-finding-story { font-size: .78rem; color: var(--clay-muted); }
+.admin-content-doctor-finding-location { margin: .2rem 0 0; font-family: monospace; font-size: .76rem; color: var(--clay-muted); }
+.admin-content-doctor-finding-detail { margin: .3rem 0 0; font-size: .82rem; word-break: break-word; }
