@@ -2,7 +2,7 @@ from psycopg.types.json import Jsonb
 
 import db
 from analytics.bkt_mastery import response_rows_for_attempt, upsert_raw_responses
-from routers.knowledge_analytics import _evaluation, _lower_loss_signal
+from services.knowledge_analytics_service import _evaluation, _lower_loss_signal
 
 
 def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_at: str, results: list[dict]) -> None:

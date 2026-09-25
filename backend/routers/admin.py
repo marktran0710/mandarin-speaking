@@ -12,13 +12,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Reques
 from pydantic import BaseModel
 
 import security.auth as auth
-from db import (
-    connect_db,
-    row_to_student,
-    row_to_teacher,
-    row_to_custom_story,
-    row_to_vocab_quiz_attempt,
-)
+import services.admin_service as admin_service
+from db import connect_db
 from services.vocabulary_audio_import import (
     apply_vocabulary_audio_import,
     build_vocabulary_audio_sample,
@@ -67,37 +62,9 @@ def logout_admin(response: Response):
 
 @router.get("/roster-overview")
 def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
-    """One request for the admin console's landing data.
-
-    The console previously fired three parallel calls (students, teachers,
-    vocab-quiz-attempts) on every load/refresh — each its own auth check and
-    pooled connection. Serving them from a single handler collapses that to
-    one round-trip over one connection. Shapes are identical to the standalone
-    ``/api/students``, ``/api/teachers`` and ``/api/vocab-quiz-attempts``
-    (admin scope) endpoints, so the client stays field-for-field compatible.
-    Quiz attempts keep their full ``questionResults`` payload — the IRT panel
-    and the response-count metric both read per-question data.
-
-    The three tables are independent (no join), so they are batched in a
-    psycopg pipeline: the statements are sent together and the results read
-    back after a single round-trip to Postgres, instead of three sequential
-    query round-trips on the connection.
-    """
+    """Return the admin landing data through the application service."""
     with connect_db() as db:
-        with db.pipeline():
-            students_cur = db.execute("SELECT * FROM students ORDER BY lower(name)")
-            teachers_cur = db.execute("SELECT * FROM teachers ORDER BY lower(name)")
-            attempts_cur = db.execute(
-                "SELECT * FROM vocab_quiz_attempts ORDER BY completed_at DESC"
-            )
-        students = students_cur.fetchall()
-        teachers = teachers_cur.fetchall()
-        attempts = attempts_cur.fetchall()
-    return {
-        "students": [row_to_student(row) for row in students],
-        "teachers": [row_to_teacher(row) for row in teachers],
-        "quizAttempts": [row_to_vocab_quiz_attempt(row) for row in attempts],
-    }
+        return admin_service.get_roster_overview(db)
 
 
 @router.get("/content-bank")
@@ -113,11 +80,7 @@ def get_content_bank(
     after an import.
     """
     with connect_db() as db:
-        rows = db.execute(
-            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT %s OFFSET %s",
-            (limit, skip),
-        ).fetchall()
-    return [row_to_custom_story(row) for row in rows]
+        return admin_service.list_content_bank(db, limit=limit, skip=skip)
 
 
 @router.post("/vocabulary-import/preview")

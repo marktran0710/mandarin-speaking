@@ -10,12 +10,15 @@ from routers.vocab_quiz_analytics import (
 from routers.vocab_quiz_attempts import (
     _dev_srs_today,
     _effective_srs_day_seconds,
-    _enroll_newly_strong_words,
-    _validated_question_results,
     create_vocab_quiz_attempt,
     list_vocab_quiz_attempts,
     record_vocab_quiz_response,
     router as vocab_quiz_attempts_router,
+)
+from services.vocab_quiz_attempt_service import (
+    _enroll_newly_strong_words,
+    _srs_event_results,
+    _validated_question_results,
 )
 from routers.vocab_quiz_mastery import (
     _assert_student_scope,
@@ -39,6 +42,7 @@ __all__ = [
     "_dev_srs_today",
     "_effective_srs_day_seconds",
     "_enroll_newly_strong_words",
+    "_srs_event_results",
     "_validated_question_results",
     "_assert_student_scope",
     "list_vocab_quiz_attempts",

@@ -3,9 +3,9 @@ from dataclasses import replace
 from datetime import datetime, timezone
 
 import main  # noqa: F401  # Loads the router facade before the test patches it.
-from application import vocabulary_research as research_app
 from routers import vocab_quiz_attempts as attempt_routes
 from routers import vocab_quiz_mastery as mastery_routes
+from services import vocab_quiz_attempt_service as attempt_service
 
 
 def _review_attempt(attempt_id: str) -> dict:
@@ -66,7 +66,7 @@ def test_development_today_override_reaches_completed_and_partial_review_updates
         captured.append(now)
         return 0
 
-    monkeypatch.setattr(research_app, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
 
     completed = client.post("/api/vocab-quiz-attempts?today=2026-09-17", json=_review_attempt("srs-completed"))
     partial = client.post("/api/vocab-quiz-responses?today=2026-09-23", json=_review_attempt("srs-partial"))
@@ -84,7 +84,7 @@ def test_production_today_override_does_not_change_review_update_date(logged_in_
         captured.append(now)
         return 0
 
-    monkeypatch.setattr(research_app, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
     monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, app_env="production"))
 
     completed = client.post("/api/vocab-quiz-attempts?today=2026-09-17", json=_review_attempt("srs-production-completed"))
@@ -104,7 +104,7 @@ def test_development_day_seconds_override_reaches_review_updates(logged_in_stude
         captured.append(day_seconds)
         return 0
 
-    monkeypatch.setattr(research_app, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
     monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, srs_day_seconds=60.0))
 
     response = client.post("/api/vocab-quiz-attempts", json=_review_attempt("srs-day-seconds"))
@@ -121,7 +121,7 @@ def test_production_ignores_day_seconds_override(logged_in_student, monkeypatch)
         captured.append(day_seconds)
         return 0
 
-    monkeypatch.setattr(research_app, "apply_srs_updates", fake_apply)
+    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
     monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, app_env="production", srs_day_seconds=60.0))
 
     response = client.post("/api/vocab-quiz-attempts", json=_review_attempt("srs-day-seconds-prod"))

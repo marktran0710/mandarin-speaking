@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 import security.auth as auth
-from db import connect_db, row_to_audio_record
+from db import connect_db
+from repositories import audio_record_repository as repo
 import services.media as media_service
 from services.media import AudioRecordRequest
 
@@ -25,22 +26,8 @@ def list_audio_records(
     if identity.role == "student":
         student_id = identity.id
 
-    query = "SELECT * FROM audio_records"
-    params: list[object] = []
-    filters: list[str] = []
-    if student_id:
-        filters.append("student_id = %s")
-        params.append(student_id)
-    if topic_id:
-        filters.append("topic_id = %s")
-        params.append(topic_id)
-    if filters:
-        query += " WHERE " + " AND ".join(filters)
-    query += " ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s"
-    params.extend([limit, skip])
     with connect_db() as db:
-        rows = db.execute(query, params).fetchall()
-    return [row_to_audio_record(row) for row in rows]
+        return repo.list_records(db, limit=limit, skip=skip, student_id=student_id, topic_id=topic_id)
 
 
 @router.get("/api/audio-records/count")
@@ -48,7 +35,7 @@ def get_audio_record_count(
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
     with connect_db() as db:
-        total = db.execute("SELECT COUNT(*) AS total FROM audio_records").fetchone()["total"]
+        total = repo.count_records(db)
     return {"total": total}
 
 
@@ -75,10 +62,7 @@ async def upload_audio_record(
 
     audio_record.studentId = identity.id
     with connect_db() as db:
-        existing = db.execute(
-            "SELECT student_id FROM audio_records WHERE id = %s",
-            (audio_record.id,),
-        ).fetchone()
+        existing = repo.find_owner(db, audio_record.id)
     if existing is not None and existing.get("student_id") != identity.id:
         raise HTTPException(status_code=409, detail="Audio record already belongs to another student.")
     audio_record.audioUrl = await media_service.save_uploaded_audio(file, audio_record.id, identity.id)
@@ -93,10 +77,7 @@ def delete_audio_record(
     identity: auth.Identity = Depends(auth.require_admin),
 ):
     with connect_db() as db:
-        row = db.execute(
-            "DELETE FROM audio_records WHERE id = %s RETURNING audio_url",
-            (record_id,),
-        ).fetchone()
+        row = repo.delete_record(db, record_id)
     if row and row["audio_url"]:
         media_service.remove_uploaded_file(row["audio_url"])
     return {"ok": True}

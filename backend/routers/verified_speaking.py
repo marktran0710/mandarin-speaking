@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 import security.auth as auth
 from db import connect_db
+from repositories import verified_speech_repository as repo
 
 router = APIRouter()
 
@@ -61,10 +62,7 @@ def _reference_curves(frame: dict[str, Any], vocabulary: str, difficulty_level: 
 
 def _load_published_scene(story_id: str, scene_index: int, difficulty_level: str) -> dict[str, Any]:
     with connect_db() as db:
-        row = db.execute(
-            "SELECT id, frames FROM custom_stories WHERE id = %s AND published = TRUE",
-            (story_id,),
-        ).fetchone()
+        row = repo.find_published_scene(db, story_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Published story not found.")
     frames = row.get("frames") or []
@@ -85,10 +83,7 @@ def _load_published_scene(story_id: str, scene_index: int, difficulty_level: str
 
 def _load_conversation_turns(story_id: str) -> list[dict[str, Any]] | None:
     with connect_db() as db:
-        row = db.execute(
-            "SELECT conversation_turns FROM custom_stories WHERE id = %s AND published = TRUE",
-            (story_id,),
-        ).fetchone()
+        row = repo.find_published_conversation_turns(db, story_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Published story not found.")
     turns = row.get("conversation_turns")
@@ -154,16 +149,7 @@ def resolve_verified_speaking_target(
 
 def _find_attempts(attempt_id: str) -> list[dict]:
     with connect_db() as db:
-        return list(db.execute(
-            """
-            SELECT id, student_id, audio_sha256, server_verified_at,
-                   audio_url, praat_metrics, topic_id, image_index
-            FROM audio_records
-            WHERE attempt_id = %s
-            ORDER BY server_verified_at DESC NULLS LAST, created_at DESC, id DESC
-            """,
-            (attempt_id,),
-        ).fetchall())
+        return repo.find_attempts_by_id(db, attempt_id)
 
 
 def _progress_verdicts(payload: dict[str, Any]) -> dict[str, bool]:
