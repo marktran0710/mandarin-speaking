@@ -117,8 +117,12 @@ export default function AdminPlacementDataPage() {
 
       <section className="placement-data-card" aria-labelledby="placement-data-students-title">
         <header className="placement-data-section-heading"><div><span className="admin-eyebrow">Student comparison</span><h2 id="placement-data-students-title">All imported students</h2></div><label className="placement-data-search"><span>Filter students</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SIM001 or name" /></label></header>
-        <div className="placement-data-table-wrap" tabIndex={0} role="region" aria-label="Imported student comparison">
-          <table className="placement-data-table"><thead><tr><th>Student</th><th>Score</th><th>Tier 1</th><th>Tier 3</th><th>Mastery</th><th>Session</th></tr></thead><tbody>
+        <div className="placement-data-student-browser-meta" aria-live="polite">
+          <span><strong>{filteredStudents.length}</strong> of {summary.studentCount} students visible</span>
+          <span>Scroll to browse · select a row to inspect 28 responses</span>
+        </div>
+        <div className="placement-data-table-wrap placement-data-student-table-wrap" tabIndex={0} role="region" aria-label="Imported student comparison">
+          <table className="placement-data-table"><caption className="placement-data-sr-only">Scrollable comparison of imported placement students</caption><thead><tr><th>Student</th><th>Score</th><th>Tier 1</th><th>Tier 3</th><th>Mastery</th><th>Session</th></tr></thead><tbody>
             {filteredStudents.map((student) => <tr key={student.studentId} className={selectedId === student.studentId ? "is-selected" : ""}><td><button type="button" className="placement-data-student-button" onClick={() => setSelectedId(student.studentId)}><strong>{student.studentId}</strong><span>{student.name}</span></button></td><td><strong>{student.correctCount}/{student.totalQuestions}</strong><span>{percent(student.accuracy)}</span></td><td>{student.tier1.correctCount}/{student.tier1.responseCount}<span>{percent(student.tier1.accuracy)}</span></td><td>{student.tier3.correctCount}/{student.tier3.responseCount}<span>{percent(student.tier3.accuracy)}</span></td><td>{student.mastery.rowCount} rows<span>{student.mastery.statuses.UNASSESSED ?? 0} unassessed</span></td><td><code>{student.sessionId}</code></td></tr>)}
           </tbody></table>
         </div>

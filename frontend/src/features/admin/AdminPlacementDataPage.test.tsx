@@ -49,6 +49,8 @@ describe("AdminPlacementDataPage", () => {
     await waitFor(() => expect(screen.getAllByText("1,120").length).toBeGreaterThan(0));
     expect(screen.getByRole("heading", { name: "40-student response view" })).toBeInTheDocument();
     expect(screen.getByText("636 correct · 484 incorrect")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === "1 of 40 students visible")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Imported student comparison" })).toHaveClass("placement-data-student-table-wrap");
     expect(screen.getByRole("button", { name: /SIM001.*Synthetic Student 001/ })).toBeInTheDocument();
   });
 });
