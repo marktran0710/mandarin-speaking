@@ -156,7 +156,14 @@ def _story_word_ids(story: Mapping[str, Any]) -> set[str]:
         for item in (story.get("vocab_assessment") or [])
         if isinstance(item, dict) and item.get("targetWord") and item.get("wordId")
     }
-    word_ids: set[str] = set(assessment_word_ids.values())
+    # Collect ids from the items themselves, not from the targetWord map: two
+    # distinct words can share a character in one story (7-1 has 到 "to" and
+    # 到 "to arrive"), and the map keeps only one of them.
+    word_ids: set[str] = {
+        str(item["wordId"])
+        for item in (story.get("vocab_assessment") or [])
+        if isinstance(item, dict) and item.get("wordId")
+    }
 
     def add_words(raw_words: Any) -> None:
         if not isinstance(raw_words, str):
