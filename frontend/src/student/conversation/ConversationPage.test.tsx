@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "../../components/content/topic-selector/types";
-import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder";
+import type { ConversationTurn, WordProsody, WordProsodySyllable } from "../../components/story-recorder/StoryRecorder";
 import type { SpeakingResultAnalysis } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
 import { analyzeSpeakingResult } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
 import { saveSpeakingProgress } from "../../services/database";
@@ -47,9 +47,36 @@ function recorderMock(overrides: Partial<ReturnType<typeof useSpeakingRecorder>>
   };
 }
 
+function makeWord(token: string, index: number, status: WordProsody["diagnostic_status"]): WordProsody {
+  return {
+    token,
+    index,
+    start_time: 0,
+    end_time: 0.5,
+    pitch_contour: [],
+    mean_pitch: 0,
+    pitch_range: 0,
+    start_pitch: 0,
+    end_pitch: 0,
+    contour_shape: "",
+    feedback: index === 0 ? "Keep this word clear." : "",
+    diagnostic_status: status,
+    syllables: [{
+      char: token,
+      tone: 3,
+      score: 80,
+      passed: status === "CORRECT",
+      diagnostic_status: status,
+      pinyin: index === 0 ? "w\u01d2" : "h\u011bn",
+    } as WordProsodySyllable],
+  };
+}
+
 function makeRecorderResult(overrides: Partial<SpeakingAnalysisResult> = {}): SpeakingAnalysisResult {
   return {
     metrics: {
+      transcription_model: "auto:ctwhisper",
+      word_prosody: [makeWord("\u6211", 0, "CORRECT"), makeWord("\u5f88", 1, "UNCERTAIN")],
       transcription: "我很好",
       pitch_contour: [],
       detected_tone: 0,
@@ -137,7 +164,12 @@ describe("ConversationPage", () => {
     // Student turn: selfEval is auto-skipped, Record triggers analysis.
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
     await screen.findByText("Meaning accurate");
+    expect(screen.getByText("w\u01d2")).toBeInTheDocument();
+    expect(screen.getByText("Keep this word clear.")).toBeInTheDocument();
+    expect(screen.getByText("Uncertain")).toBeInTheDocument();
+    expect(screen.getByText("Verified recording")).toBeInTheDocument();
     expect(onAddRecord).toHaveBeenCalledTimes(1);
+    expect(onAddRecord.mock.calls[0][0].model).toBe("ctwhisper");
     expect(saveSpeakingProgress).toHaveBeenCalledTimes(1);
 
     // Only one exchange in this fixture -> the feedback continue button reads "Finish".
@@ -178,5 +210,20 @@ describe("ConversationPage", () => {
 
     expect(screen.getByRole("button", { name: "Record" })).toBeInTheDocument();
     expect(screen.queryByText("Meaning needs another look")).not.toBeInTheDocument();
+  });
+
+  it("does not label an unverified recorder result as verified", async () => {
+    const startRecording = vi.fn().mockResolvedValueOnce(makeRecorderResult({ verified: false }));
+    vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ startRecording }));
+    vi.mocked(analyzeSpeakingResult).mockReturnValueOnce(makeAnalysis({ accepted: true }));
+
+    render(
+      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Record" }));
+    await screen.findByText("Meaning accurate");
+
+    expect(screen.queryByText("Verified recording")).not.toBeInTheDocument();
   });
 });
