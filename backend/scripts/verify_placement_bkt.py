@@ -45,6 +45,7 @@ from analytics.learner_model.bkt.placement_prior import (  # noqa: E402
     PLACEMENT_RESOLVER_VERSIONS,
     get_published_word_chapters,
 )
+import db as db_module  # noqa: E402
 from db import connect_db  # noqa: E402
 
 TOLERANCE = 1e-9
@@ -89,6 +90,8 @@ def _chapter_priors(rows: list[dict]) -> tuple[dict[int, float], dict[int, str],
         by_chapter[row["chapter"]].add(row["item_id"])
         correct[row["chapter"]] += bool(row["correct"])
     priors: dict[int, float] = {}
+    if not rows:
+        return priors, {0: "no completed placement answers for this student (was the import run with --apply?)"}, set()
     if len(origins) != 1:
         return priors, {0: f"mixed evidence origins {sorted(origins)}; all priors skipped"}, set()
     n = PLACEMENT_QUESTIONS_PER_CHAPTER
@@ -166,6 +169,10 @@ def main(argv: list[str] | None = None) -> int:
                 "WHERE r.diagnostic_exposure_id LIKE 'placement:%%' ORDER BY r.student_id"
             ).fetchall()
         ]
+        if not student_ids:
+            print(f"No completed placement evidence in {db_module.DATABASE_URL.rsplit('@', 1)[-1]}.")
+            print("Import with scripts.import_placement_bkt_workbook ... --apply against this database first.")
+            return 1
         total = sum(verify_student(db, student_id, args.verbose) for student_id in student_ids)
         db.rollback()
     print(f"\n{len(student_ids)} student(s) checked, {total} mismatch(es).")
