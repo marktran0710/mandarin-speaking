@@ -18,7 +18,7 @@ import ConversationPage from "../../features/conversation/ConversationPage";
 import SubmitStoryPage from "../../features/submit/SubmitStoryPage";
 import CompletionPage from "../../features/completion/CompletionPage";
 import ProgressPage from "../../features/progress/ProgressPage";
-import PlacementStubPage from "../../features/placement/PlacementStubPage";
+import PlacementPage from "../../features/placement/PlacementPage";
 import { loadSubmittedStoryIds, markStoryLevelSubmitted } from "../../utils/storyLevelProgress";
 
 interface StudentAppProps {
@@ -126,7 +126,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   if (section === "progress") {
     body = <ProgressPage topics={topics} />;
   } else if (section === "placement") {
-    body = <PlacementStubPage live />;
+    body = <PlacementPage live />;
   } else if (!activeTopic) {
     body = <StudyPage topics={topics} statusByStoryId={statusByStoryId} onOpenTopic={openTopic} />;
   } else if (phase === "vocab-preview") {

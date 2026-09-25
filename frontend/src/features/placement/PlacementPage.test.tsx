@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import PlacementStubPage from "./PlacementStubPage";
+import PlacementPage from "./PlacementPage";
 import { unavailablePlacementSession } from "./placementSession";
 
-describe("PlacementStubPage", () => {
+describe("PlacementPage", () => {
   it("renders the honest unavailable state without assessment data", () => {
-    render(<PlacementStubPage live={false} />);
+    render(<PlacementPage live={false} />);
 
     expect(screen.getByRole("heading", { name: "入門測驗" })).toBeInTheDocument();
     expect(screen.getByText("Placement Test")).toBeInTheDocument();

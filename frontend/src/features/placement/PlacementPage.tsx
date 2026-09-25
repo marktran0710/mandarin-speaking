@@ -11,7 +11,7 @@ import {
   type PlacementSessionAdapter,
   type PlacementSessionStatus,
 } from "./placementSession";
-import "./PlacementStubPage.css";
+import "./PlacementPage.css";
 import {
   completePlacementAttempt,
   getPlacementBlueprint,
@@ -22,7 +22,7 @@ import {
   type PlacementResult,
 } from "@shared/api/placement-test";
 
-export interface PlacementStubPageProps {
+export interface PlacementPageProps {
   adapter?: PlacementSessionAdapter;
 }
 
@@ -66,7 +66,7 @@ const STATUS_PRESENTATION: Record<PlacementSessionStatus, PlacementStatusPresent
   },
 };
 
-function UnavailablePlacementPage({ adapter = unavailablePlacementSession }: PlacementStubPageProps) {
+function UnavailablePlacementPage({ adapter = unavailablePlacementSession }: PlacementPageProps) {
   const session = usePlacementSession(adapter);
   const presentation = STATUS_PRESENTATION[session.status];
 
@@ -118,11 +118,12 @@ function labelFor(question: PlacementQuestion): string {
 }
 
 function shuffleQuestions(questions: PlacementQuestion[]): PlacementQuestion[] {
-  return [...questions].sort((left, right) => {
-    const leftKey = `${left.questionId}:placement`;
-    const rightKey = `${right.questionId}:placement`;
-    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
-  });
+  const shuffled = [...questions];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
 }
 
 function PlacementAssessmentPage() {
@@ -133,13 +134,14 @@ function PlacementAssessmentPage() {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
+  const [answeredAt, setAnsweredAt] = useState<Record<string, string>>({});
   const [questionStartedAt, setQuestionStartedAt] = useState(() => Date.now());
   const [result, setResult] = useState<PlacementResult | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "starting" | "answering" | "submitting" | "result" | "error">("loading");
   const [error, setError] = useState("");
   const [pinyinDraft, setPinyinDraft] = useState("");
-  const question = questions[index];
   const displayedQuestions = useMemo(() => randomize ? shuffleQuestions(questions) : questions, [questions, randomize]);
+  const question = displayedQuestions[index];
 
   useEffect(() => {
     let active = true;
@@ -171,6 +173,7 @@ function PlacementAssessmentPage() {
       setQuestions(attempt.questions);
       setAnswers({});
       setTimes({});
+      setAnsweredAt({});
       setIndex(0);
       setResult(null);
       setStatus("answering");
@@ -184,6 +187,7 @@ function PlacementAssessmentPage() {
     if (!question) return;
     setAnswers((current) => ({ ...current, [question.questionId]: value }));
     setTimes((current) => ({ ...current, [question.questionId]: Math.max(current[question.questionId] ?? 0, Date.now() - questionStartedAt) }));
+    setAnsweredAt((current) => ({ ...current, [question.questionId]: new Date().toISOString() }));
   };
 
   const next = () => {
@@ -204,11 +208,12 @@ function PlacementAssessmentPage() {
     if (!finalAnswer?.trim()) return;
     saveCurrentAnswer(finalAnswer.trim());
     const now = Date.now();
+    const finalAnsweredAt = new Date().toISOString();
     const responseAnswers: PlacementAnswer[] = displayedQuestions.map((item) => ({
       questionId: item.questionId,
       selectedAnswer: item.questionId === question.questionId ? finalAnswer.trim() : answers[item.questionId],
       timeMs: (times[item.questionId] ?? 0) + (item.questionId === question.questionId ? Math.max(0, now - questionStartedAt) : 0),
-      answeredAt: new Date().toISOString(),
+      answeredAt: item.questionId === question.questionId ? finalAnsweredAt : (answeredAt[item.questionId] ?? finalAnsweredAt),
     }));
     setStatus("submitting");
     setError("");
@@ -248,6 +253,6 @@ function PlacementLiveShell({ status, heading, body }: { status: string; heading
   return <div className="sa-page-container sa-placement"><StudentPageHeader eyebrowEn="Placement" eyebrowZh="Placement" titleZh="入門測驗" titleEn="Placement Test" aside={<StudentStatusPill tone={status === "Unavailable" || status === "Not available" ? "neutral" : "info"}>{status}</StudentStatusPill>} /><StudentSection variant="panel" className="sa-placement__card"><div className="sa-placement__accent" aria-hidden="true" /><div className="sa-placement__body"><div className="sa-placement__intro"><div className="sa-placement__icon" aria-hidden="true"><StudentIcon name="flag" size={20} role="decorative" /></div><div className="sa-placement__intro-copy"><p className="sa-placement__kicker">Assessment availability</p><h2>{heading}</h2><p className="sa-placement__description">{body}</p></div></div></div></StudentSection></div>;
 }
 
-export default function PlacementStubPage({ adapter, live = true }: PlacementStubPageProps & { live?: boolean }) {
+export default function PlacementPage({ adapter, live = true }: PlacementPageProps & { live?: boolean }) {
   return live ? <PlacementAssessmentPage /> : <UnavailablePlacementPage adapter={adapter ?? unavailablePlacementSession} />;
 }
