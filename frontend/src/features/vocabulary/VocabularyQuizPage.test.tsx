@@ -117,6 +117,11 @@ describe("VocabularyQuizPage", () => {
     // tier the fake hook was started with, so it doubles as proof of order.
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
+    expect(screen.getByRole("button", { name: /Submit answer/i })).toBeInTheDocument();
+    expect(screen.queryByText("Correct")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
+    expect(screen.getByText("Correct")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Submit answer/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
     expect(screen.getByText("Passed")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -125,6 +130,7 @@ describe("VocabularyQuizPage", () => {
     // Tier 2: only reached because tier1's round-result was passed + confirmed.
     expect(screen.getByText("word-tier2")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(onFinished).not.toHaveBeenCalled();
@@ -133,6 +139,7 @@ describe("VocabularyQuizPage", () => {
     // Tier 3: only its practice choice (after a passed round-result) finishes the quiz.
     expect(screen.getByText("word-tier3")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
     fireEvent.click(screen.getByRole("button", { name: "Story Speaking" }));
 
@@ -147,6 +154,7 @@ describe("VocabularyQuizPage", () => {
 
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /wrong/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
 
     expect(screen.getByText("Not quite")).toBeInTheDocument();

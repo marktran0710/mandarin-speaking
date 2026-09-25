@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import type { Topic } from "@entities/topic";
+import type { TierMode } from "@entities/vocabulary";
 import {
-  type VocabQuizEntry,
   type VocabQuizMode,
   type VocabQuizQuestion,
-  type VocabQuizQuestionResult,
 } from "@entities/vocabulary";
-import type { TierMode } from "@entities/vocabulary";
-import { toPinyin } from "@entities/vocabulary";
 import { useVocabQuizFlow } from "./hooks/useVocabQuizFlow";
 import { ROUND_LABEL, TIER_SEQUENCE } from "./model/tierRounds";
-import BilingualWord from "@shared/ui/student/BilingualWord";
-import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
+import QuizQuestionSurface from "./quiz/QuestionSurface";
+import QuizRail from "./quiz/Rail";
+import { resultForQuestion } from "./quiz/questionModel";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentPage from "@shared/ui/student/StudentPage";
@@ -28,25 +26,6 @@ interface VocabularyQuizPageProps {
   hasConversation?: boolean;
 }
 
-const QUESTION_TYPE_LABELS: Record<string, string> = {
-  basic_meaning_mcq: "Meaning check",
-  character_to_pinyin_typing: "Reading recall",
-  context_cloze_mcq: "Context clue",
-  productive_recall: "Active recall",
-  contextual_productive_recall: "Context recall",
-};
-
-const QUESTION_KIND_LABELS: Record<VocabQuizQuestion["kind"], string> = {
-  translation: "Meaning check",
-  cloze: "Context clue",
-  pinyin: "Reading recall",
-  pos: "Word class",
-  synonym: "Related meaning",
-  reverse: "Character recall",
-  listening: "Listening check",
-  assessment: "Assessment item",
-};
-
 const ROUND_DESCRIPTIONS: Record<TierMode, string> = {
   tier1: "Recognise the meaning of each lesson word.",
   tier2: "Recall the reading and form of each word.",
@@ -58,42 +37,11 @@ function roundName(mode: VocabQuizMode | null, tierPos: number): string {
   return ROUND_LABEL[TIER_SEQUENCE[tierPos]];
 }
 
-function questionTypeLabel(question: VocabQuizQuestion): string {
-  if (question.kind === "assessment") {
-    return QUESTION_TYPE_LABELS[question.assessment.questionType] ?? "Assessment item";
-  }
-  return QUESTION_KIND_LABELS[question.kind];
-}
-
-function promptFor(question: VocabQuizQuestion): string {
-  switch (question.kind) {
-    case "assessment": return question.prompt;
-    case "cloze": return question.sentenceWithBlank;
-    case "reverse": return `Choose the Chinese word for “${question.translation}”.`;
-    case "pinyin": return "Choose the correct pinyin reading.";
-    case "pos": return "Choose the word class that best describes this word.";
-    case "synonym": return "Choose the closest related meaning.";
-    case "listening": return "Listen to the model and choose the matching word.";
-    case "translation": return "Choose the English meaning of this word.";
-  }
-}
-
-function entryFor(entries: VocabQuizEntry[], question: VocabQuizQuestion | null): VocabQuizEntry | undefined {
-  if (!question) return undefined;
-  return entries.find((entry) => entry.word === question.word);
-}
-
-function resultAt(results: VocabQuizQuestionResult[], index: number): VocabQuizQuestionResult | undefined {
-  return results.find((result) => result.questionIndex === index) ?? results[index];
-}
-
 function formatTime(milliseconds: number): string {
   const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/** The meta chips + progress bar that sit below the shared page header —
- * the header itself (and its one H1) is StudentPageHeader, via StudentPage. */
 function QuizStatusBar({
   flow,
   question,
@@ -121,7 +69,6 @@ function QuizStatusBar({
           </span>
         )}
       </div>
-
       <div
         className="sa-quiz__progress"
         role="progressbar"
@@ -222,164 +169,58 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
   );
 }
 
-function QuizRail({
-  flow,
-  hint,
-  hintOpen,
-  onToggleHint,
-}: {
-  flow: ReturnType<typeof useVocabQuizFlow>;
-  hint?: string;
-  hintOpen: boolean;
-  onToggleHint: () => void;
-}) {
-  const total = flow.questionLimit ?? flow.entries.length;
-  const correct = flow.results.filter((result) => result.correct).length;
-  const accuracy = flow.results.length > 0 ? `${Math.round((correct / flow.results.length) * 100)}%` : "—";
-
-  return (
-    <aside className="sa-quiz__rail" aria-label="Quiz progress and support">
-      <StudentSection variant="panel" className="sa-quiz__rail-card">
-        <div className="sa-quiz__rail-heading"><span>Assessment</span><StudentStatusPill tone="success">In progress</StudentStatusPill></div>
-        <div className="sa-quiz__stats">
-          <div><span>Accuracy</span><strong>{accuracy}</strong></div>
-          <div><span>Done</span><strong>{flow.results.length}<small> / {total}</small></strong></div>
-          <div><span>Left</span><strong>{Math.max(0, total - flow.results.length)}</strong></div>
-        </div>
-      </StudentSection>
-
-      {hint && (
-        <StudentSection variant="panel" className={`sa-quiz__rail-card sa-quiz__hint ${hintOpen ? "is-open" : ""}`}>
-          <button type="button" className="sa-quiz__hint-toggle" onClick={onToggleHint} aria-expanded={hintOpen}>
-            <span><StudentIcon name="tips_and_updates" size={18} role="decorative" /> Context clue</span>
-            <StudentIcon name={hintOpen ? "expand_less" : "expand_more"} size={18} role="decorative" />
-          </button>
-          {hintOpen && <p>{hint}</p>}
-        </StudentSection>
-      )}
-
-      <StudentSection variant="panel" className="sa-quiz__rail-card sa-quiz__question-map">
-        <div className="sa-quiz__rail-heading"><span>Question map</span><span className="sa-quiz__map-legend"><i className="is-done" /> Done <i className="is-current" /> Current</span></div>
-        <ol>
-          {Array.from({ length: total }, (_, index) => {
-            const result = resultAt(flow.results, index);
-            const current = index === flow.index;
-            return (
-              <li key={index} className={`${current ? "is-current" : ""} ${result ? (result.correct ? "is-correct" : "is-incorrect") : "is-pending"}`}>
-                {result ? <StudentIcon name={result.correct ? "check" : "close"} size={16} role="decorative" /> : index + 1}
-              </li>
-            );
-          })}
-        </ol>
-      </StudentSection>
-    </aside>
-  );
-}
-
-function QuizQuestion({
-  flow,
-  question,
-  entry,
-  lessonLabel,
-  pinyinDraft,
-  setPinyinDraft,
-  showingFeedback,
-  lastResult,
-  hint,
-  onToggleHint,
-  hintOpen,
-}: {
-  flow: ReturnType<typeof useVocabQuizFlow>;
-  question: VocabQuizQuestion;
-  entry?: VocabQuizEntry;
-  lessonLabel: string;
-  pinyinDraft: string;
-  setPinyinDraft: (value: string) => void;
-  showingFeedback: boolean;
-  lastResult?: VocabQuizQuestionResult;
-  hint?: string;
-  onToggleHint: () => void;
-  hintOpen: boolean;
-}) {
-  const assessment = question.kind === "assessment" ? question.assessment : undefined;
-  const isFreeText = assessment?.answerFormat === "free_text";
-  const pinyin = assessment?.pinyin || entry?.pinyin || toPinyin(question.word);
-  const showReading = question.kind !== "pinyin" && assessment?.questionType !== "character_to_pinyin_typing";
-  const audioUrl = assessment?.audioUrl || entry?.audioUrl;
-
-  return (
-    <section className="sa-quiz__question-column" aria-labelledby="quiz-question-title">
-      <StudentSection variant="panel" className="sa-quiz__stimulus-card">
-        <div className="sa-quiz__card-heading">
-          <div><span className="sa-quiz__section-kicker"><i /> {questionTypeLabel(question)}</span><h2 id="quiz-question-title">{promptFor(question)}</h2></div>
-          <span className="sa-quiz__source-label">{lessonLabel}</span>
-        </div>
-        <div className="sa-quiz__word-stage"><BilingualWord hanzi={question.word} pinyin={showReading ? pinyin : undefined} size="hero" /></div>
-        <div className="sa-quiz__prompt-footer">
-          {audioUrl ? <StudentAudioControl audioUrl={audioUrl} label="Listen to model" showDuration /> : <span />}
-          {hint && <button type="button" className={`sa-quiz__hint-button ${hintOpen ? "is-open" : ""}`} onClick={onToggleHint} aria-expanded={hintOpen}><StudentIcon name="lightbulb" size={17} role="decorative" /> Context clue</button>}
-        </div>
-      </StudentSection>
-
-      <div className="sa-quiz__answer-section">
-        <div className="sa-quiz__answer-heading"><div><p className="sa-quiz__section-kicker">Select your answer</p><h3>{isFreeText ? "Type the reading" : "Choose one option"}</h3></div>{!showingFeedback && !isFreeText && <span className="sa-quiz__keyboard-hint">Keys 1–{question.options.length}</span>}</div>
-        {!showingFeedback && isFreeText && (
-          <div className="sa-quiz__input-block">
-            <label htmlFor="sa-pinyin-input">Pinyin with tones</label>
-            <input id="sa-pinyin-input" type="text" className="sa-quiz__input" value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="e.g. na3 li3" autoComplete="off" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) flow.choose(pinyinDraft.trim()); }} />
-          </div>
-        )}
-        {!showingFeedback && !isFreeText && (
-          <div className="sa-quiz__options" role="group" aria-label="Answer options">
-            {question.options.map((option, index) => (
-              <button key={option} type="button" className="sa-quiz__option" onClick={() => flow.choose(option)} aria-label={`Option ${index + 1}: ${option}`}>
-                <span className="sa-quiz__option-index">{index + 1}</span><span className="sa-quiz__option-label">{option}</span><StudentIcon name="radio_button_unchecked" size={20} role="decorative" />
-              </button>
-            ))}
-          </div>
-        )}
-        {showingFeedback && lastResult && (
-          <div className={`sa-quiz__feedback ${lastResult.correct ? "is-correct" : "is-incorrect"}`} role="status">
-            <StudentStatusPill tone={lastResult.correct ? "success" : "attention"} icon={lastResult.correct ? "check_circle" : "change_history"}>{lastResult.correct ? "Correct" : "Not quite"}</StudentStatusPill>
-            <strong>{lastResult.correct ? "Good recognition." : "Keep this word in your next review."}</strong>
-            {!lastResult.correct && lastResult.correctAnswer && <span>Answer: {lastResult.correctAnswer}</span>}
-            {assessment?.explanation && <p>{assessment.explanation}</p>}
-          </div>
-        )}
-        <div className="sa-quiz__actions">
-          <div className="sa-quiz__action-note">{!showingFeedback && !isFreeText && <span>Select an option to check your answer.</span>}{!showingFeedback && isFreeText && <span>Use tone marks or tone numbers.</span>}</div>
-          {showingFeedback ? <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.next}>Next question</StudentButton> : isFreeText ? <StudentButton variant="primary" disabled={!pinyinDraft.trim()} onClick={() => flow.choose(pinyinDraft.trim())}>Check answer</StudentButton> : null}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<typeof useVocabQuizFlow>; isLastTier: boolean; hasConversation: boolean }) {
   if (flow.view === "round-result" && flow.roundResult) {
-    return <div className="sa-quiz__result-layout"><StudentSection variant="panel" className="sa-quiz__result-card"><StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}>{flow.roundResult.passed ? "Passed" : "Not quite"}</StudentStatusPill><p className="sa-quiz__result-eyebrow">{ROUND_LABEL[flow.roundResult.tier]} complete</p><p className="sa-quiz__result-score">{flow.roundResult.correctCount} <span>/ {flow.roundResult.totalQuestions}</span></p><p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? "Your vocabulary gate is open. Choose one practice path to continue." : "The next round is now unlocked." : `${flow.roundResult.starGap ?? 1} more correct answer${flow.roundResult.starGap === 1 ? "" : "s"} needed to pass this round.`}</p>{flow.roundResult.passed ? isLastTier ? <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path"><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}>Story Speaking</StudentButton>{hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}>Conversation Practice</StudentButton>}</div> : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}>Continue</StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}>Try again</StudentButton>}</StudentSection></div>;
+    return (
+      <div className="sa-quiz__result-layout">
+        <StudentSection variant="panel" className="sa-quiz__result-card">
+          <StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}>{flow.roundResult.passed ? "Passed" : "Not quite"}</StudentStatusPill>
+          <p className="sa-quiz__result-eyebrow">{ROUND_LABEL[flow.roundResult.tier]} complete</p>
+          <p className="sa-quiz__result-score">{flow.roundResult.correctCount} <span>/ {flow.roundResult.totalQuestions}</span></p>
+          <p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? "Your vocabulary gate is open. Choose one practice path to continue." : "The next round is now unlocked." : `${flow.roundResult.starGap ?? 1} more correct answer${flow.roundResult.starGap === 1 ? "" : "s"} needed to pass this round.`}</p>
+          {flow.roundResult.passed ? isLastTier ? (
+            <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path">
+              <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}>Story Speaking</StudentButton>
+              {hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}>Conversation Practice</StudentButton>}
+            </div>
+          ) : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}>Continue</StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}>Try again</StudentButton>}
+        </StudentSection>
+      </div>
+    );
   }
   if (flow.view === "practice-result" && flow.practiceResult) {
-    return <div className="sa-quiz__result-layout"><StudentSection variant="panel" className="sa-quiz__result-card"><StudentStatusPill tone="success">Practice complete</StudentStatusPill><p className="sa-quiz__result-eyebrow">{flow.practiceResult.mode === "maintenance_review" ? "Review today" : "Weak words"}</p><p className="sa-quiz__result-score">{flow.practiceResult.correctCount} <span>/ {flow.practiceResult.totalQuestions}</span></p><p className="sa-quiz__result-copy">Your practice result has been saved to your learning record.</p><StudentButton variant="primary" iconTrailing="arrow_back" onClick={flow.returnToModes}>Back to practice options</StudentButton></StudentSection></div>;
+    return (
+      <div className="sa-quiz__result-layout">
+        <StudentSection variant="panel" className="sa-quiz__result-card">
+          <StudentStatusPill tone="success">Practice complete</StudentStatusPill>
+          <p className="sa-quiz__result-eyebrow">{flow.practiceResult.mode === "maintenance_review" ? "Review today" : "Weak words"}</p>
+          <p className="sa-quiz__result-score">{flow.practiceResult.correctCount} <span>/ {flow.practiceResult.totalQuestions}</span></p>
+          <p className="sa-quiz__result-copy">Your practice result has been saved to your learning record.</p>
+          <StudentButton variant="primary" iconTrailing="arrow_back" onClick={flow.returnToModes}>Back to practice options</StudentButton>
+        </StudentSection>
+      </div>
+    );
   }
   return null;
 }
 
 export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onStartPractice, hasConversation = false }: VocabularyQuizPageProps) {
   const flow = useVocabQuizFlow({ topic, onFinished, onStartPractice });
+  const [draftAnswer, setDraftAnswer] = useState<string | null>(null);
   const [pinyinDraft, setPinyinDraft] = useState("");
   const [hintOpen, setHintOpen] = useState(false);
 
   useEffect(() => {
+    setDraftAnswer(null);
     setPinyinDraft("");
     setHintOpen(false);
   }, [flow.index, flow.tierPos, flow.view, flow.question?.word]);
 
   const header = (
     <StudentPageHeader
-      eyebrowZh={`學習 · ${lessonLabel} · 詞彙練習`}
+      eyebrowZh={`學習 · ${lessonLabel} · 詞彙測驗`}
       eyebrowEn={`Study · ${lessonLabel} · Vocabulary Quiz`}
-      titleZh="詞彙練習"
+      titleZh="詞彙測驗"
       titleEn="Vocabulary Quiz"
       aside={flow.entries.length > 0 ? <span className="sa-quiz__round-tag">{roundName(flow.mode, flow.tierPos)}</span> : undefined}
     />
@@ -391,25 +232,26 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
         layout="task"
         header={header}
         state="empty"
-        emptyTitle={<><span lang="zh-Hant">本課沒有測驗</span> · No quiz for this lesson</>}
-        emptyAction={
-          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}>
-            <span lang="zh-Hant">前往口語練習</span> · Continue to Story Speaking
-          </StudentButton>
-        }
+        emptyTitle={<><span lang="zh-Hant">此課程沒有測驗</span> · No quiz for this lesson</>}
+        emptyAction={<StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}>Continue to Story Speaking</StudentButton>}
       />
     );
   }
 
-  if (flow.view === "loading") {
-    return <StudentPage layout="task" header={header} state="loading" />;
-  }
+  if (flow.view === "loading") return <StudentPage layout="task" header={header} state="loading" />;
 
   const question = flow.question;
-  const entry = entryFor(flow.entries, question);
+  const entry = question ? flow.entries.find((candidate) => candidate.word === question.word) : undefined;
   const assessment = question?.kind === "assessment" ? question.assessment : undefined;
-  const lastResult = flow.results[flow.results.length - 1];
-  const showingFeedback = Boolean(flow.selected !== null && question && lastResult?.word === question.word);
+  const lastResult = question ? resultForQuestion(flow.results, flow.index, question.word) : undefined;
+  const showingFeedback = Boolean(flow.selected !== null && lastResult);
+  const submitAnswer = () => {
+    if (!question || flow.selected !== null) return;
+    const answer = assessment?.answerFormat === "free_text" || question.kind === "pinyin"
+      ? pinyinDraft.trim()
+      : draftAnswer;
+    if (answer) flow.choose(answer);
+  };
   const isLastTier = flow.tierPos === TIER_SEQUENCE.length - 1;
 
   return (
@@ -417,8 +259,24 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
       <QuizStatusBar flow={flow} question={question} />
       {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} hasConversation={hasConversation} /> : question ? (
         <div className="sa-quiz__workspace">
-          <QuizQuestion flow={flow} question={question} entry={entry} lessonLabel={lessonLabel} pinyinDraft={pinyinDraft} setPinyinDraft={setPinyinDraft} showingFeedback={showingFeedback} lastResult={lastResult} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
-          <QuizRail flow={flow} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
+          <QuizQuestionSurface
+            question={question}
+            entry={entry}
+            entries={flow.entries}
+            lessonLabel={lessonLabel}
+            draftAnswer={draftAnswer}
+            onDraftAnswerChange={setDraftAnswer}
+            pinyinDraft={pinyinDraft}
+            onPinyinChange={setPinyinDraft}
+            showingFeedback={showingFeedback}
+            lastResult={lastResult}
+            hint={assessment?.explanation}
+            hintOpen={hintOpen}
+            onToggleHint={() => setHintOpen((open) => !open)}
+            onSubmit={submitAnswer}
+            onNext={flow.next}
+          />
+          <QuizRail flow={flow} question={question} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
         </div>
       ) : null}
     </StudentPage>
