@@ -174,23 +174,23 @@ describe("StudentApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     // Freshly opened: only Vocab Preview (the phase we're actually on) is reachable.
-    expect(screen.getByRole("button", { name: "Vocab Preview" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Vocab Quiz" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Story Speaking" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Vocab Preview/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Vocab Quiz/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
-    expect(screen.getByRole("button", { name: "Vocab Quiz" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Vocab Quiz/ })).not.toBeDisabled();
     // Watermark hasn't reached Story Speaking yet, regardless of stars already earned.
-    expect(screen.getByRole("button", { name: "Story Speaking" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
     // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
-    expect(screen.getByRole("button", { name: "Story Speaking" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     // Clicking a still-locked item is a no-op — the rendered body is unchanged.
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: /Submit/ }));
     expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
   });
 

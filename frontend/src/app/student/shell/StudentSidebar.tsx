@@ -4,12 +4,12 @@ import "./StudentSidebar.css";
 export type StudentTopSection = "study" | "progress" | "placement";
 export type StudentPhase = "vocab-preview" | "vocab-quiz" | "story-speaking" | "conversation" | "submit" | "completion";
 
-const PHASE_NAV: Array<{ id: StudentPhase; label: string }> = [
-  { id: "vocab-preview", label: "Vocab Preview" },
-  { id: "vocab-quiz", label: "Vocab Quiz" },
-  { id: "story-speaking", label: "Story Speaking" },
-  { id: "conversation", label: "Conversation" },
-  { id: "submit", label: "Submit" },
+const PHASE_NAV: Array<{ id: StudentPhase; labelZh: string; labelEn: string }> = [
+  { id: "vocab-preview", labelZh: "生詞預習", labelEn: "Vocab Preview" },
+  { id: "vocab-quiz", labelZh: "詞彙練習", labelEn: "Vocab Quiz" },
+  { id: "story-speaking", labelZh: "口語練習", labelEn: "Story Speaking" },
+  { id: "conversation", labelZh: "對話練習", labelEn: "Conversation" },
+  { id: "submit", labelZh: "提交", labelEn: "Submit" },
 ];
 
 /** "completion" has no nav button but is a real reachable StudentPhase —
@@ -75,7 +75,7 @@ export default function StudentSidebar({
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="menu_book" size={18} role="decorative" />
-              <span>Lessons · 課程</span>
+              <span><span lang="zh-Hant">課程</span> · Lessons</span>
             </span>
           </button>
           <button
@@ -86,7 +86,7 @@ export default function StudentSidebar({
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="trending_up" size={18} role="decorative" />
-              <span>Progress · 學習</span>
+              <span><span lang="zh-Hant">進度</span> · Progress</span>
             </span>
           </button>
           <button
@@ -97,7 +97,7 @@ export default function StudentSidebar({
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="flag" size={18} role="decorative" />
-              <span>Placement · 測驗</span>
+              <span><span lang="zh-Hant">入門測驗</span> · Placement</span>
             </span>
           </button>
         </nav>
@@ -107,7 +107,7 @@ export default function StudentSidebar({
             <div className="sa-sidebar__stars-head">
               <span className="sa-sidebar__stars-label">
                 <StudentIcon name="star" size={18} role="decorative" filled />
-                Stars
+                <span lang="zh-Hant">星星</span> · Stars
               </span>
               <span><strong>{quizStars}</strong> / {maxQuizStars}</span>
             </div>
@@ -119,7 +119,7 @@ export default function StudentSidebar({
 
         {activeSection === "study" && activePhase && onNavigatePhase && (
           <nav className="sa-sidebar__nav sa-sidebar__phase-nav" aria-label="Lesson phase">
-            <p className="sa-sidebar__nav-label">Pedagogical Phase</p>
+            <p className="sa-sidebar__nav-label"><span lang="zh-Hant">課程階段</span> · Pedagogical Phase</p>
             {visiblePhaseNav.map((phase) => {
               const starLocked = phase.id === "story-speaking" && !speakingUnlocked;
               const locked = PHASE_ORDER.indexOf(phase.id) > furthestIndex || starLocked;
@@ -138,7 +138,7 @@ export default function StudentSidebar({
                   ) : (
                     <span className="sa-sidebar__phase-dot" aria-hidden="true" />
                   )}
-                  {phase.label}
+                  <span><span lang="zh-Hant">{phase.labelZh}</span> · {phase.labelEn}</span>
                 </button>
               );
             })}
@@ -156,7 +156,7 @@ export default function StudentSidebar({
         <button type="button" className="sa-sidebar__footer-action" onClick={onLogout}>
           <span className="sa-sidebar__footer-action-label">
             <StudentIcon name="logout" size={18} role="decorative" />
-            Log out
+            <span lang="zh-Hant">登出</span> · Log out
           </span>
         </button>
         <p className="sa-sidebar__legal">NTNU 《時代華語一》 · Educational Use</p>

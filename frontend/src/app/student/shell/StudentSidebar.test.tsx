@@ -16,8 +16,8 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Story Speaking" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Conversation" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Conversation/ })).not.toBeInTheDocument();
   });
 
   it("shows the Conversation phase nav item when hasConversation is true", () => {
@@ -33,7 +33,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Conversation/ })).toBeInTheDocument();
   });
 
   it("makes Placement a real, non-disabled nav button that calls onNavigateSection", () => {
@@ -100,8 +100,8 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const vocabQuiz = screen.getByRole("button", { name: "Vocab Quiz" });
-    const speaking = screen.getByRole("button", { name: "Story Speaking" });
+    const vocabQuiz = screen.getByRole("button", { name: /Vocab Quiz/ });
+    const speaking = screen.getByRole("button", { name: /Story Speaking/ });
     expect(vocabQuiz).not.toBeDisabled();
     expect(speaking).toBeDisabled();
 
@@ -128,7 +128,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const speaking = screen.getByRole("button", { name: "Story Speaking" });
+    const speaking = screen.getByRole("button", { name: /Story Speaking/ });
     expect(speaking).toBeDisabled();
     fireEvent.click(speaking);
     expect(onNavigatePhase).not.toHaveBeenCalled();

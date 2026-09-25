@@ -26,14 +26,15 @@
 .sa-button--default { height: 44px; padding: 0 var(--sa-space-lg); }
 .sa-button--lg { height: 50px; padding: 0 var(--sa-space-xl); font-size: var(--sa-text-body-md); }
 
-/* Primary */
+/* Primary — solid fill (ACTION-2). The light --sa-primary-container fill is
+   reserved for a selected/active state, never the primary action itself. */
 .sa-button--primary {
-  background: var(--sa-primary-container);
-  color: var(--sa-on-primary-container);
-  border-color: var(--sa-primary-container);
+  background: var(--sa-primary);
+  color: var(--sa-on-primary);
+  border-color: var(--sa-primary);
 }
-.sa-button--primary:hover:not(:disabled) { background: var(--sa-primary-fixed-dim); }
-.sa-button--primary:active:not(:disabled) { background: var(--sa-inverse-primary); }
+.sa-button--primary:hover:not(:disabled) { background: var(--sa-primary-fixed-dim); color: var(--sa-on-primary-fixed); border-color: var(--sa-primary-fixed-dim); }
+.sa-button--primary:active:not(:disabled) { background: var(--sa-inverse-primary); color: var(--sa-inverse-surface); border-color: var(--sa-inverse-primary); }
 
 /* Secondary */
 .sa-button--secondary {
