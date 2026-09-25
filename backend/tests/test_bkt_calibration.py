@@ -1,5 +1,5 @@
-from analytics.bkt_calibration import calibrate_bkt
-from analytics.knowledge_tracing import BKTParameters, ResponseRecord
+from analytics.learner_model.bkt.calibration import calibrate_bkt
+from analytics.learner_model.knowledge_tracing import BKTParameters, ResponseRecord
 
 
 def make_records(students=25, per_student=20):
@@ -27,7 +27,7 @@ def test_candidate_constraints_reject_parameters_near_bounds(monkeypatch):
     def fit(*_args, **_kwargs):
         return near_bound, {"status": "success", "optimizer": "test", "message": "ok", "iterations": 1, "objective": 1.0, "finite": True}
 
-    monkeypatch.setattr("analytics.bkt_calibration.fit_bkt_parameters", fit)
+    monkeypatch.setattr("analytics.learner_model.bkt.calibration.fit_bkt_parameters", fit)
     result = calibrate_bkt(make_records())
     assert result["parameter_constraints"]["prior"] is False
     assert result["gates"]["parameter_constraints"] is False
@@ -47,7 +47,7 @@ def test_synthetic_run_is_never_promotable(monkeypatch):
     def fit(*_args, **_kwargs):
         return accepted, {"status": "success", "optimizer": "test", "message": "ok", "iterations": 1, "objective": 1.0, "finite": True}
 
-    monkeypatch.setattr("analytics.bkt_calibration.fit_bkt_parameters", fit)
+    monkeypatch.setattr("analytics.learner_model.bkt.calibration.fit_bkt_parameters", fit)
     result = calibrate_bkt(make_records(), synthetic=True)
     assert result["synthetic"] is True
     assert result["promotable"] is False
@@ -57,7 +57,7 @@ def test_optimizer_failure_blocks_promotion(monkeypatch):
     def fail(*_args, **_kwargs):
         return BKTParameters(), {"status": "failed", "optimizer": "test", "message": "failed", "iterations": 1, "objective": None, "finite": False}
 
-    monkeypatch.setattr("analytics.bkt_calibration.fit_bkt_parameters", fail)
+    monkeypatch.setattr("analytics.learner_model.bkt.calibration.fit_bkt_parameters", fail)
     result = calibrate_bkt(make_records())
     assert result["gates"]["all_optimizers_converged"] is False
     assert result["promotable"] is False

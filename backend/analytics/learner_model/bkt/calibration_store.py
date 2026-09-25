@@ -3,7 +3,7 @@
 This module is intentionally outside the learner-serving path.  It reads a
 high-water-marked snapshot of the normalized response ledger, runs the
 offline grouped evaluation, and records a candidate.  It never changes the
-active deployment pointer or the runtime defaults in :mod:`analytics.bkt`.
+active deployment pointer or the runtime defaults in :mod:`analytics.learner_model.bkt.core`.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ from uuid import uuid4
 
 from psycopg.types.json import Jsonb
 
-from analytics.bkt_calibration import calibrate_bkt
-from analytics.knowledge_tracing import BKTParameters, ResponseRecord
+from analytics.learner_model.bkt.calibration import calibrate_bkt
+from analytics.learner_model.knowledge_tracing import BKTParameters, ResponseRecord
 
 
 CalibrationOrigin = Literal["real", "synthetic"]

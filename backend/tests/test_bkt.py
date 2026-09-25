@@ -2,7 +2,7 @@ from dataclasses import replace
 
 import pytest
 
-from analytics.bkt import (
+from analytics.learner_model.bkt.core import (
     BKT_CONFIG,
     guess_slip_for,
     mastery_status,

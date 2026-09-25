@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 import db
-from analytics.bkt_calibration_store import (
+from analytics.learner_model.bkt.calibration_store import (
     load_calibration_snapshot,
     refit_decision,
     run_calibration_candidate,
@@ -115,7 +115,7 @@ def test_synthetic_candidate_is_stored_but_cannot_be_deployed(monkeypatch):
                     resolver_version="synthetic-fixture-v1",
                 )
         monkeypatch.setattr(
-            "analytics.bkt_calibration_store.calibrate_bkt",
+            "analytics.learner_model.bkt.calibration_store.calibrate_bkt",
             lambda records, **_kwargs: _successful_synthetic_report(records),
         )
         result = run_calibration_candidate(conn, "synthetic", force=True)

@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import openpyxl
 
-from analytics.bkt_mastery import rebuild_student_vocabulary_mastery, upsert_raw_responses
+from analytics.learner_model.bkt.mastery import rebuild_student_vocabulary_mastery, upsert_raw_responses
 from domain.vocabulary.assessment import (
     ANSWER_FORMAT_BY_ROUND,
     QUESTION_TYPE_BY_ROUND,

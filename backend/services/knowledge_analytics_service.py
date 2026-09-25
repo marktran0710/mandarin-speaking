@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Literal, Optional
 
-from analytics.knowledge_tracing import (
+from analytics.learner_model.knowledge_tracing import (
     BKT,
     BKTParameters,
     PFA,
@@ -22,9 +22,9 @@ from analytics.knowledge_tracing import (
     evaluate_prequential,
     ResponseRecord,
 )
-from analytics.bkt_calibration_store import CalibrationSnapshot, load_calibration_snapshot
+from analytics.learner_model.bkt.calibration_store import CalibrationSnapshot, load_calibration_snapshot
 from db import connect_db
-from analytics.bkt_question_validation import analyze_response_quality, validate_bkt_diagnostic_design
+from analytics.learner_model.bkt.question_validation import analyze_response_quality, validate_bkt_diagnostic_design
 from repositories import knowledge_analytics_repository as repo
 from scripts.export_quiz_questions import build_question_rows
 

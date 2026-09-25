@@ -13,7 +13,7 @@ from hashlib import sha256
 from math import log
 from typing import Any, Iterable, Sequence
 
-from .knowledge_tracing import BKT, BKTParameters, ResponseRecord, fit_bkt_parameters
+from ..knowledge_tracing import BKT, BKTParameters, ResponseRecord, fit_bkt_parameters
 
 
 FOLD_COUNT = 5
@@ -29,7 +29,7 @@ MIN_DISCRIMINATION = 0.10
 
 # This offline optimizer still fits the legacy single guess/slip pair from
 # ``knowledge_tracing.BKTParameters``. Serving uses the format-aware model in
-# ``analytics.bkt`` (MCQ and typed answers have different pairs), so a report
+# ``analytics.learner_model.bkt.core`` (MCQ and typed answers have different pairs), so a report
 # from this module is evidence for diagnosis only until a format-aware fitter
 # replaces it. Keeping the mismatch explicit prevents a global candidate from
 # being mistaken for a drop-in production model.

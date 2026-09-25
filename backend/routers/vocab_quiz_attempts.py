@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 import security.auth as auth
 import services.vocab_quiz_attempt_service as vocab_quiz_attempt_service
 from application.vocabulary_research import get_research_context
-from analytics.srs import DAY_SECONDS
+from analytics.learner_model.srs import DAY_SECONDS
 from config import settings
 from db import connect_db
 from api.schemas.models import VocabQuizAttemptRequest

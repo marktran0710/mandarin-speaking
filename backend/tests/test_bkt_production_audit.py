@@ -1,4 +1,4 @@
-from analytics.bkt_question_validation import (
+from analytics.learner_model.bkt.question_validation import (
     audit_production_bkt_assessments,
     validate_production_bkt_assessment,
 )

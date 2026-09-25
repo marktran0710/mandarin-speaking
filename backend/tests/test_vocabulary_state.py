@@ -1,4 +1,4 @@
-from analytics.vocabulary_state import build_vocabulary_state
+from analytics.learner_model.vocabulary_state import build_vocabulary_state
 
 
 def _row(*, correct: bool, dimension: str | None, activity: str = "diagnostic") -> dict:

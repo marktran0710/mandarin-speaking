@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 
-from analytics.srs import (
+from analytics.learner_model.srs import (
     DAY_SECONDS,
     FIRST_INTERVAL_DAYS,
     INITIAL_EASE,

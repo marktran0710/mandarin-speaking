@@ -9,9 +9,9 @@ import logging
 from typing import Optional
 from uuid import uuid4
 
-from analytics.bkt_assessment_resolver import resolve_assessment_response
-from analytics.bkt_mastery import get_vocabulary_mastery, record_attempt_and_rebuild
-from analytics.srs_store import apply_srs_updates, enroll_strong_words
+from analytics.learner_model.bkt.assessment_resolver import resolve_assessment_response
+from analytics.learner_model.bkt.mastery import get_vocabulary_mastery, record_attempt_and_rebuild
+from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words
 from application.vocabulary_research import (
     apply_response_routing,
     enroll_research_probes_for_attempt,

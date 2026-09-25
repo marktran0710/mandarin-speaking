@@ -3,9 +3,9 @@ from uuid import uuid4
 
 import pytest
 
-from analytics.bkt import BKT_CONFIG, bkt_parameter_fingerprint, replay_bkt
-from analytics.bkt_assessment_resolver import ASSESSMENT_RESOLVER_VERSION, resolve_assessment_response
-from analytics.bkt_mastery import (
+from analytics.learner_model.bkt.core import BKT_CONFIG, bkt_parameter_fingerprint, replay_bkt
+from analytics.learner_model.bkt.assessment_resolver import ASSESSMENT_RESOLVER_VERSION, resolve_assessment_response
+from analytics.learner_model.bkt.mastery import (
     _lock_student_bkt,
     _ordered_responses,
     _response_fingerprint,

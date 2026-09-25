@@ -8,7 +8,7 @@ from psycopg.types.json import Jsonb
 
 import db
 import security.auth as auth
-from analytics.bkt_calibration_store import load_calibration_snapshot
+from analytics.learner_model.bkt.calibration_store import load_calibration_snapshot
 from services.placement_test_service import replace_from_upload
 
 

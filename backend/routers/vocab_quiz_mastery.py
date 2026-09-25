@@ -3,13 +3,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 
 import security.auth as auth
-from analytics.bkt_mastery import (
+from analytics.learner_model.bkt.mastery import (
     diagnostic_status,
     get_priority_review_words,
     get_vocabulary_mastery,
     seen_item_ids,
 )
-from analytics.review_queue import build_review_queue
+from analytics.learner_model.review_queue import build_review_queue
 from db import connect_db
 from routers.vocab_quiz_attempts import _dev_srs_today
 

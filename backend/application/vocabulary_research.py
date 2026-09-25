@@ -11,9 +11,9 @@ retention schedule or production's SM-2 schedule.
 from datetime import datetime
 from typing import Any, Iterable, Optional
 
-from analytics.bkt_mastery import diagnostic_status
-from analytics.srs import DAY_SECONDS
-from analytics.srs_store import apply_srs_updates
+from analytics.learner_model.bkt.mastery import diagnostic_status
+from analytics.learner_model.srs import DAY_SECONDS
+from analytics.learner_model.srs_store import apply_srs_updates
 from application.research_logging import record_policy_event
 from application.research_probes import enroll_section_probes
 from application.research_retention import apply_retention_review, enroll_section_retention

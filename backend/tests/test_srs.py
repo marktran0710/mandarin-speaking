@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from analytics.srs import (
+from analytics.learner_model.srs import (
     DAY_SECONDS,
     INITIAL_EASE,
     MIN_EASE,

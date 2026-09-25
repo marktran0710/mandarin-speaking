@@ -10,7 +10,7 @@ from fastapi.concurrency import run_in_threadpool
 
 import security.auth as auth
 import services.knowledge_analytics_service as knowledge_analytics_service
-from analytics.ttl_cache import TTLCache
+from analytics.learner_model.ttl_cache import TTLCache
 
 
 router = APIRouter(

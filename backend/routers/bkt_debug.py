@@ -19,9 +19,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 import security.auth as auth
-from analytics.bkt import BKT_CONFIG
-from analytics.bkt_assessment_resolver import _item_round, _published_assessment
-from analytics.bkt_mastery import (
+from analytics.learner_model.bkt.core import BKT_CONFIG
+from analytics.learner_model.bkt.assessment_resolver import _item_round, _published_assessment
+from analytics.learner_model.bkt.mastery import (
     mastery_trace_for_word,
     response_rows_for_attempt,
     upsert_raw_responses,

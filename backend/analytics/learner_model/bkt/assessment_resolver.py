@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from analytics.bkt_mastery import canonical_story_id
+from analytics.learner_model.bkt.mastery import canonical_story_id
 from domain.vocabulary.assessment import normalize_answer, numeric_to_tone_marked
 
 

@@ -16,7 +16,7 @@ import unicodedata
 
 from scipy.optimize import minimize
 
-from .bkt_question_validation import classify_bkt_response
+from .bkt.question_validation import classify_bkt_response
 
 
 EPSILON = 1e-9

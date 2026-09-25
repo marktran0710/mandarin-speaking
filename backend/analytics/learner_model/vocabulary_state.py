@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
-from analytics.srs import SrsState, is_due
+from analytics.learner_model.srs import SrsState, is_due
 
 
 DIMENSION_KEYS = ("meaning", "pinyin", "context")

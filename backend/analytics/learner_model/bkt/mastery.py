@@ -11,7 +11,7 @@ import unicodedata
 
 from psycopg.types.json import Jsonb
 
-from analytics.bkt import (
+from analytics.learner_model.bkt.core import (
     BKT_CONFIG,
     BKT_MODEL_VERSION,
     BktConfig,
@@ -19,8 +19,8 @@ from analytics.bkt import (
     is_supported_bkt_question_shape,
     replay_bkt_typed,
 )
-from analytics.bkt_question_validation import classify_bkt_response
-from analytics.vocabulary_state import build_vocabulary_state
+from analytics.learner_model.bkt.question_validation import classify_bkt_response
+from analytics.learner_model.vocabulary_state import build_vocabulary_state
 
 
 DIAGNOSTIC_MODES = ("tier1", "tier2", "tier3")
@@ -689,7 +689,7 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
         if cached is not None and row.get("round_types"):
             cached["round_types"] = sorted({value for value in row["round_types"] if value})
 
-    from analytics.srs_store import load_srs_states
+    from analytics.learner_model.srs_store import load_srs_states
 
     srs_states = load_srs_states(db, student_id, list(known))
 

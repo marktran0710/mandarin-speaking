@@ -39,7 +39,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import security.auth as auth  # noqa: E402
-from analytics.bkt_mastery import response_rows_for_attempt, upsert_raw_responses  # noqa: E402
+from analytics.learner_model.bkt.mastery import response_rows_for_attempt, upsert_raw_responses  # noqa: E402
 from db import connect_db  # noqa: E402
 from scripts.purge_test_accounts import purge  # noqa: E402
 

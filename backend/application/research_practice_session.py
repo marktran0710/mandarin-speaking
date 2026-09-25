@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint
-from analytics.bkt_mastery import get_treatment_vocabulary_mastery
+from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint
+from analytics.learner_model.bkt.mastery import get_treatment_vocabulary_mastery
 from application.research_logging import record_policy_event
 from application.vocabulary_research import get_research_context
 from domain.vocabulary.research_assignment import BktPolicy, CONDITION_POLICIES, RetentionPolicy, condition_for_policies

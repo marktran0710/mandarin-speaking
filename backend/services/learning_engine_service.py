@@ -14,8 +14,8 @@ Provenance tags used throughout (see docs/learning-engine.md):
   PROJECT_HEURISTIC             - project-specific logic with no external validation
   ENGINEERING_DEFAULT           - a runtime constant chosen for launch, not calibrated
 """
-from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION
-from analytics.srs import (
+from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION
+from analytics.learner_model.srs import (
     DAY_SECONDS,
     FIRST_INTERVAL_DAYS,
     INITIAL_EASE,

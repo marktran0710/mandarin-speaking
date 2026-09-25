@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from analytics.bkt_mastery import rebuild_all_vocabulary_mastery, rebuild_student_vocabulary_mastery  # noqa: E402
+from analytics.learner_model.bkt.mastery import rebuild_all_vocabulary_mastery, rebuild_student_vocabulary_mastery  # noqa: E402
 from db import connect_db  # noqa: E402
 
 

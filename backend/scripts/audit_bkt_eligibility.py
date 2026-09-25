@@ -20,7 +20,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from analytics.bkt_question_validation import (  # noqa: E402
+from analytics.learner_model.bkt.question_validation import (  # noqa: E402
     analyze_response_quality,
     audit_production_bkt_assessments,
     validate_bkt_diagnostic_design,

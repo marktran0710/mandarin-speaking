@@ -1,7 +1,7 @@
 """Epic 5, Task 5.3/5.5/5.6: pure retention enrollment/yoke-mirroring rules."""
 from datetime import datetime, timedelta, timezone
 
-from analytics.srs import DAY_SECONDS, SrsState
+from analytics.learner_model.srs import DAY_SECONDS, SrsState
 from domain.vocabulary.research_retention import initial_enrollment_state, mirror_yoked_state
 
 

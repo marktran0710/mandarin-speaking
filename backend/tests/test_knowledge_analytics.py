@@ -1,7 +1,7 @@
 from psycopg.types.json import Jsonb
 
 import db
-from analytics.bkt_mastery import response_rows_for_attempt, upsert_raw_responses
+from analytics.learner_model.bkt.mastery import response_rows_for_attempt, upsert_raw_responses
 from services.knowledge_analytics_service import _evaluation, _lower_loss_signal
 
 

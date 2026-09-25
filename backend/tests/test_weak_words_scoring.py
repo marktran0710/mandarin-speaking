@@ -1,6 +1,6 @@
 """Unit tests for the ability+accuracy+time+history weak-word scorer."""
 
-from analytics.weak_words import WordOccurrence, score_weak_words
+from analytics.learner_model.weak_words import WordOccurrence, score_weak_words
 
 
 def _occ(correct: bool, time_ms: int = 2000) -> WordOccurrence:

@@ -23,7 +23,7 @@ from typing import Any
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import connect_db  # noqa: E402
-from analytics.bkt_mastery import rebuild_student_vocabulary_mastery  # noqa: E402
+from analytics.learner_model.bkt.mastery import rebuild_student_vocabulary_mastery  # noqa: E402
 from config import settings  # noqa: E402
 
 

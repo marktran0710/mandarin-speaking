@@ -15,8 +15,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from analytics.srs import SrsState, is_due
-from analytics.srs_store import load_srs_states
+from analytics.learner_model.srs import SrsState, is_due
+from analytics.learner_model.srs_store import load_srs_states
 
 
 def combine_review_queue(
@@ -65,7 +65,7 @@ def build_review_queue(
     SM-2 due words. Returns the priority-review payload plus a ``queue`` field
     (the tagged, ordered union). Never changes BKT state.
     """
-    from analytics.bkt_mastery import get_priority_review_words
+    from analytics.learner_model.bkt.mastery import get_priority_review_words
 
     review = get_priority_review_words(db, student_id, options)
     now = now or datetime.now(timezone.utc)
