@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 
 import openpyxl
+import pytest
 from psycopg.types.json import Jsonb
 
 import db
@@ -262,3 +263,111 @@ def test_placement_answers_produce_hand_computed_bkt_mastery(admin_client):
         assert abs(row["p_learned"] - p_learned) < 1e-6, word_id
         assert row["observation_count"] == 1
         assert (row["correct_count"], row["incorrect_count"]) == (correct_count, incorrect_count)
+
+
+def _publish_chapter(chapter: int) -> None:
+    # Seven placement-tested words plus one word placement never asks about.
+    words = [f"C{chapter}-W{index}" for index in range(1, 9)]
+    assessment = [
+        {
+            "questionId": f"Q-{word}",
+            "wordId": word,
+            "targetWord": word,
+            "round": 1,
+            "tier": "tier1",
+            "questionType": "basic_meaning_mcq",
+            "answerFormat": "single_choice",
+            "options": ["yes", "no", "maybe", "never"],
+            "correctAnswer": "yes",
+            "acceptedAnswers": ["yes"],
+            "prompt": "What does this word mean?",
+        }
+        for word in words
+    ]
+    with db.connect_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO custom_stories (id, title, frames, published, lesson_number, vocab_assessment)
+            VALUES (%s, %s, %s, TRUE, %s, %s)
+            """,
+            (f"placement-chapter-{chapter}", f"Chapter {chapter}", Jsonb([]), chapter, Jsonb(assessment)),
+        )
+
+
+def test_real_placement_attempt_sets_chapter_priors_for_untested_words(admin_client):
+    # Full production path: admin imports a 28-question blueprint (7 per
+    # chapter 5-8), the student completes it through the API, and words
+    # placement never asked about start from their chapter's prior
+    # 0.5 * (correct / 7) + 0.5 * 0.20 instead of the global 0.20.
+    for chapter in (5, 6, 7, 8):
+        _publish_chapter(chapter)
+    blueprint = "Word Key,Round\n" + "".join(
+        f"C{chapter}-W{index},1\n" for chapter in (5, 6, 7, 8) for index in range(1, 8)
+    )
+    assert admin_client.post(
+        "/api/admin/placement-test/import/confirm",
+        files={"file": ("placement.csv", blueprint.encode(), "text/csv")},
+    ).status_code == 200
+    student = _student_session(admin_client, "Placement Prior Student")
+
+    # Before placement, the student already answered untested chapter-5 word
+    # C5-W8 correctly in an ordinary tier1 quiz.
+    from analytics.learner_model.bkt.mastery import get_vocabulary_mastery, upsert_raw_responses
+
+    with db.connect_db() as conn:
+        upsert_raw_responses(conn, [{
+            "student_id": student["id"], "word_id": "C5-W8", "word": "C5-W8",
+            "lesson_id": "placement-chapter-5", "quiz_id": "earlier-quiz", "attempt_id": "earlier-quiz",
+            "item_id": "Q-C5-W8", "question_type": "basic_meaning_mcq", "selected_answer": "yes",
+            "correct_answer": "yes", "presented_options": ["yes", "no", "maybe", "never"],
+            "question_prompt": "What does this word mean?", "answered_at": "2026-01-01T00:00:00+00:00",
+            "bkt_eligible": True, "diagnostic_exposure_id": "earlier-quiz:Q-C5-W8",
+            "bkt_eligibility_errors": [], "correct": True, "response_time_ms": 1000,
+            "occurred_at": "2026-01-01T00:00:00+00:00",
+            "occurred_at_utc": datetime(2026, 1, 1, tzinfo=timezone.utc),
+            "evidence_origin": "real", "resolver_version": "test", "attempt_order": 0,
+            "quiz_level": "tier1", "quiz_mode": "tier1", "round_type": "1",
+            "knowledge_dimension": "meaning", "activity_type": "diagnostic", "research_study_id": None,
+        }])
+
+    attempt = admin_client.post("/api/placement-test/attempts").json()
+    correct_per_chapter = {5: 7, 6: 5, 7: 2, 8: 0}
+    responses = [
+        {
+            "questionId": question["questionId"],
+            "selectedAnswer": "yes"
+            if int(question["questionId"].split("-W")[1]) <= correct_per_chapter[int(question["questionId"][3])]
+            else "no",
+            "timeMs": 1000,
+        }
+        for question in attempt["questions"]
+    ]
+    completed = admin_client.post(
+        f"/api/placement-test/attempts/{attempt['attemptId']}/complete",
+        json={"responses": responses, "completedAt": datetime.now(timezone.utc).isoformat()},
+    )
+    assert completed.status_code == 200
+    assert completed.json()["correctCount"] == 14
+
+    with db.connect_db() as conn:
+        live = {row["wordId"]: row for row in get_vocabulary_mastery(conn, student["id"])}
+        cached = conn.execute(
+            "SELECT p_learned FROM student_vocab_mastery WHERE student_id = %s AND word_id = 'C5-W8'",
+            (student["id"],),
+        ).fetchone()
+
+    # Untested words: prior only, no evidence, still NOT_ASSESSED.
+    assert live["C6-W8"]["pLearned"] == pytest.approx(0.5 * 5 / 7 + 0.1)  # 0.457143
+    assert live["C7-W8"]["pLearned"] == pytest.approx(0.5 * 2 / 7 + 0.1)  # 0.242857
+    assert live["C8-W8"]["pLearned"] == pytest.approx(0.1)
+    for word_id in ("C6-W8", "C7-W8", "C8-W8"):
+        assert live[word_id]["observationCount"] == 0
+        assert live[word_id]["status"] == "NOT_ASSESSED"
+    # Directly tested words ignore the chapter prior: 0.20 -> one MCQ answer.
+    assert live["C5-W1"]["pLearned"] == pytest.approx(0.6)
+    assert live["C8-W1"]["pLearned"] == pytest.approx(0.175758, abs=1e-6)
+    # C5-W8 starts from the chapter-5 prior 0.6 and then gets one correct MCQ:
+    # 0.54 / 0.62 = 0.870968 -> + 0.129032 * 0.15 = 0.890323.
+    assert live["C5-W8"]["pLearned"] == pytest.approx(0.890323, abs=1e-6)
+    # The rebuilt cache must agree with the live projection.
+    assert cached["p_learned"] == pytest.approx(live["C5-W8"]["pLearned"])
