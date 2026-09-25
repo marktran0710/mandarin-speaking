@@ -238,9 +238,13 @@ async def analyze_verified_speech(
             async with app_main.acquire_analysis_slot():
                 return await app_main._do_analyze(
                     content, transcription, asr_model, scene["prompt"], scene["vocabulary"], ai_provider,
-                    scene["image_url"], scene["phrases"], scene["suggested_answer"], 1, "", "",
-                    scene["reference_word_curves"], scene["target_text"],
-                    scene_attempt_number=1, attempt_id=attempt_id,
+                    scene["image_url"], scene["phrases"], scene["suggested_answer"],
+                    scene_attempt_number=1,
+                    verify_word="",
+                    pinyin_hint="",
+                    reference_word_curves=scene["reference_word_curves"],
+                    scene_target_text=scene["target_text"],
+                    attempt_id=attempt_id,
                 )
 
         stable = await asyncio.wait_for(run_stable_analysis(), timeout=app_main.ANALYZE_TIMEOUT_SECONDS)

@@ -151,15 +151,20 @@ async def test_verified_analysis_uses_published_scene_context(monkeypatch):
     assert persisted["scene_index"] == 0
     assert persisted["student_id"] == "student-1"
     analysis_args, _ = calls[0]
-    assert analysis_args[3:10] == (
+    assert analysis_args[3:9] == (
         "Server prompt",
         "房間,桌子",
         "groq",
         "/scene.png",
         "",
         "這是房間。",
-        1,
     )
+    assert calls[0][1]["scene_attempt_number"] == 1
+    assert calls[0][1]["verify_word"] == ""
+    assert calls[0][1]["pinyin_hint"] == ""
+    assert calls[0][1]["reference_word_curves"] == {}
+    assert calls[0][1]["scene_target_text"] == story["frames"][0]["listenScript"]
+    assert calls[0][1]["attempt_id"] == "attempt-1"
     assert all("client" not in str(query) for query, _ in db.queries)
 
 
