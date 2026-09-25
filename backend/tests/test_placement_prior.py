@@ -312,3 +312,31 @@ def test_synthetic_placement_is_excluded_from_real_treatment_replay():
         )
 
     assert rows == []
+
+
+def test_word_chapter_mapping_keeps_distinct_words_sharing_a_character():
+    # Lesson 7-1 has two words written 到 ("to" and "to arrive"); both must map
+    # to chapter 7, not only whichever the targetWord lookup kept last.
+    story = {
+        "id": "lesson-7-1",
+        "lesson_number": 7,
+        "frames": [],
+        "story_vocabulary": {},
+        "vocab_assessment": [
+            {"wordId": "C7-7-1-I2-W107", "targetWord": "到"},
+            {"wordId": "C7-7-1-I6-W112", "targetWord": "到"},
+        ],
+    }
+
+    class _Rows:
+        def fetchall(self):
+            return [story]
+
+    class _Db:
+        def execute(self, *_args, **_kwargs):
+            return _Rows()
+
+    assert get_published_word_chapters(_Db(), ["C7-7-1-I2-W107", "C7-7-1-I6-W112"]) == {
+        "C7-7-1-I2-W107": 7,
+        "C7-7-1-I6-W112": 7,
+    }
