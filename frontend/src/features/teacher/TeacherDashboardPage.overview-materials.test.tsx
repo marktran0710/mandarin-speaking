@@ -394,6 +394,45 @@ describe("TeacherDashboardPage", () => {
     expect(stored).toContain('"listenAudioSource":"teacher"');
   });
 
+  it("maps a batch of model audio files to scenes by natural filename order", async () => {
+    const user = userEvent.setup();
+    renderAdminMaterials();
+
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
+    const audioFiles = [6, 5, 4, 3, 2, 1].map((number) => new File(
+      [`audio-${number}`],
+      `sentence-${String(number).padStart(2, "0")}.mp3`,
+      { type: "audio/mpeg" },
+    ));
+    await user.upload(screen.getByLabelText("Upload audio for all scenes"), audioFiles);
+
+    await waitFor(() => {
+      expect(screen.getByText("Your recording")).toBeInTheDocument();
+    });
+
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 0; index < sceneCount; index += 1) {
+      if (index > 0) {
+        await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 1}`) }));
+      }
+      await user.type(
+        screen.getByLabelText("Image URL or uploaded file"),
+        `https://example.com/batch-scene-${index + 1}.jpg`,
+      );
+    }
+
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    const stored = JSON.parse(localStorage.getItem("teacherCustomStories") || "[]");
+    expect(stored[0].frames.map((frame: { listenAudioUrl?: string }) => frame.listenAudioUrl)).toEqual([
+      "data:audio/mpeg;base64,YXVkaW8tMQ==",
+      "data:audio/mpeg;base64,YXVkaW8tMg==",
+      "data:audio/mpeg;base64,YXVkaW8tMw==",
+      "data:audio/mpeg;base64,YXVkaW8tNA==",
+      "data:audio/mpeg;base64,YXVkaW8tNQ==",
+      "data:audio/mpeg;base64,YXVkaW8tNg==",
+    ]);
+  });
+
   it("lets a teacher remove uploaded model audio", async () => {
     const user = userEvent.setup();
     renderAdminMaterials();

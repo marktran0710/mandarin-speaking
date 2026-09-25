@@ -384,6 +384,40 @@
   font-weight: 600;
 }
 
+.teacher-audio-batch-upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.teacher-audio-batch-upload strong,
+.teacher-audio-batch-upload p {
+  margin: 0;
+}
+
+.teacher-audio-batch-upload strong {
+  color: var(--clay-ink);
+  font-size: 13px;
+}
+
+.teacher-audio-batch-upload p {
+  max-width: 62ch;
+  margin-top: 4px;
+  color: var(--clay-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.teacher-file-upload-batch {
+  flex: 0 0 auto;
+  min-width: 168px;
+}
+
 .teacher-frame-editor-layout {
   display: grid;
   grid-template-columns: minmax(120px, 0.24fr) minmax(0, 1fr);

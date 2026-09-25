@@ -177,9 +177,11 @@ export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: (
     handlePasteFrameImage,
     handleUploadFrameImage,
     handleUploadFrameAudio,
+    handleUploadFrameAudioBatch,
     handleRemoveFrameAudio,
   } = useStoryBuilderFrameActions({
     customDraft,
+    onSetDraft: setCustomDraft,
     updateDraftFrame,
     setValidationErrors,
   });
@@ -402,6 +404,7 @@ export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: (
           onPasteImage={handlePasteFrameImage}
           onUploadImage={handleUploadFrameImage}
           onUploadAudio={handleUploadFrameAudio}
+          onUploadAudioBatch={handleUploadFrameAudioBatch}
           onRemoveAudio={handleRemoveFrameAudio}
           onUpdateStoryVocabulary={updateStoryVocabulary}
           onUpdateStoryPhrases={updateStoryPhrases}

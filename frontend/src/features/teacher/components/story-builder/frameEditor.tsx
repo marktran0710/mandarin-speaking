@@ -62,8 +62,30 @@ function StoryFrameFields(props) {
   </div>;
 }
 
+function StoryAudioBatchUpload({ frameCount, onUploadAudioBatch }) {
+  return <div className="teacher-audio-batch-upload">
+    <div>
+      <strong>Upload audio for all scenes</strong>
+      <p>Choose exactly {frameCount} files. They will be sorted by filename and matched in order: 01 → Scene 1, 02 → Scene 2, and so on.</p>
+    </div>
+    <label className="teacher-file-upload teacher-file-upload-batch">
+      Choose audio files
+      <input
+        type="file"
+        accept="audio/*"
+        multiple
+        aria-label="Upload audio for all scenes"
+        onChange={(event) => {
+          onUploadAudioBatch(event.target.files);
+          event.currentTarget.value = "";
+        }}
+      />
+    </label>
+  </div>;
+}
+
 export default function StoryBuilderFrameEditor(props) {
-  const { draft, editingStoryId, validationAttemptGeneration, validationErrors, onPasteImage } = props;
+  const { draft, editingStoryId, validationAttemptGeneration, validationErrors, onPasteImage, onUploadAudioBatch } = props;
   const level = draft.activeLevel;
   const frameCount = draft.imageUrls.easy.length;
   const [openFrameIndex, setOpenFrameIndex] = useState(0);
@@ -99,6 +121,7 @@ export default function StoryBuilderFrameEditor(props) {
       </div>
       <span>Scene {openFrameIndex + 1} of {frameCount}</span>
     </div>
+    <StoryAudioBatchUpload frameCount={frameCount} onUploadAudioBatch={onUploadAudioBatch} />
     <div className="teacher-frame-editor-layout">
       <div className="teacher-frame-rail" role="tablist" aria-label="Story scenes">
         {draft.imageUrls.easy.map((_, index) => {
