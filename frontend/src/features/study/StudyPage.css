@@ -37,7 +37,7 @@
 }
 
 .sa-study__row:last-child { border-bottom: 0; }
-.sa-study__row.is-current { border-left: 4px solid var(--sa-primary); padding-left: calc(var(--sa-space-lg) - 4px); background: var(--sa-surface-container-low); }
+.sa-study__row.is-current { border-left: 4px solid var(--sa-primary); padding-left: calc(var(--sa-space-lg) - 4px); background: color-mix(in srgb, var(--sa-primary) 14%, var(--sa-surface-container-lowest)); }
 .sa-study__row.is-locked { opacity: 0.62; }
 .sa-study__row-index { color: var(--sa-outline); font-family: var(--sa-font-label); font-size: var(--sa-text-label-sm); font-weight: 700; }
 .sa-study__row-copy { min-width: 0; }
