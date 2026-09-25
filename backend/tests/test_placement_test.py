@@ -211,3 +211,54 @@ def test_placement_rejects_duplicate_unknown_unpublished_and_ambiguous_ids(admin
         assert response.status_code == 200
         assert response.json()["valid"] is False
         assert expected.casefold() in response.json()["rowIssues"][0].casefold()
+
+
+def test_placement_answers_produce_hand_computed_bkt_mastery(admin_client):
+    # Expected values are worked out by hand from BKT_CONFIG (prior 0.20,
+    # learn 0.15, MCQ guess/slip 0.20/0.10, typed 0.05/0.15) rather than by
+    # calling the replay code, so this pins the placement -> ledger -> cache
+    # flow end to end, not just the row counts.
+    _publish("placement-story-bkt", "BKT")
+    content = "Word Key,Round\nBKT-W001,1\nBKT-W002,2\nBKT-W003,3\n".encode()
+    assert admin_client.post(
+        "/api/admin/placement-test/import/confirm",
+        files={"file": ("placement.csv", content, "text/csv")},
+    ).status_code == 200
+    student = _student_session(admin_client, "Placement BKT Student")
+    attempt = admin_client.post("/api/placement-test/attempts").json()
+    payload = {
+        "responses": [
+            {"questionId": "Q-BKT-001", "selectedAnswer": "chair", "timeMs": 10},
+            {"questionId": "Q-BKT-002", "selectedAnswer": "ni3 hao3", "timeMs": 20},
+            {"questionId": "Q-BKT-003", "selectedAnswer": "家", "timeMs": 30},
+        ],
+        "completedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    url = f"/api/placement-test/attempts/{attempt['attemptId']}/complete"
+    assert admin_client.post(url, json=payload).json()["correctCount"] == 2
+    # A resubmitted attempt must not add a second observation per word.
+    assert admin_client.post(url, json=payload).status_code == 200
+
+    with db.connect_db() as conn:
+        mastery = {
+            row["word_id"]: row
+            for row in conn.execute(
+                "SELECT word_id, p_learned, observation_count, correct_count, incorrect_count "
+                "FROM student_vocab_mastery WHERE student_id = %s",
+                (student["id"],),
+            ).fetchall()
+        }
+    expected = {
+        # MCQ wrong: 0.02 / 0.66 = 0.030303 -> + 0.969697 * 0.15
+        "BKT-W001": (0.175758, 0, 1),
+        # typed correct: 0.17 / 0.21 = 0.809524 -> + 0.190476 * 0.15
+        "BKT-W002": (0.838095, 1, 0),
+        # cloze MCQ correct: 0.18 / 0.34 = 0.529412 -> + 0.470588 * 0.15
+        "BKT-W003": (0.600000, 1, 0),
+    }
+    assert set(mastery) == set(expected)
+    for word_id, (p_learned, correct_count, incorrect_count) in expected.items():
+        row = mastery[word_id]
+        assert abs(row["p_learned"] - p_learned) < 1e-6, word_id
+        assert row["observation_count"] == 1
+        assert (row["correct_count"], row["incorrect_count"]) == (correct_count, incorrect_count)
