@@ -134,7 +134,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyPreviewPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        onStartSpeaking={() => advancePhase("vocab-quiz")}
+        onStartSpeaking={() => advancePhase(topicHasQuiz(activeTopic) ? "vocab-quiz" : "story-speaking")}
       />
     );
   } else if (phase === "vocab-quiz") {

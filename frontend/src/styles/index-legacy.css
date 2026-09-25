@@ -1,0 +1,6 @@
+/* Declares cascade-layer order once, first, so student component CSS
+   (left unlayered on purpose) always outranks this legacy stylesheet
+   regardless of import order — see frontend/ARCHITECTURE.md and
+   AGENT_RULES.md "Student Mode page rules" (CSS-1). */
+@layer legacy, student;
+@import "./index.css" layer(legacy);

@@ -38,6 +38,7 @@ export default function CompletionPage({
   return (
     <div className="sa-page-container sa-page-container--narrow">
       <StudentPageHeader
+        eyebrowZh="課程完成"
         eyebrowEn="Lesson Complete"
         titleZh="完成！"
         titleEn={topic.name}

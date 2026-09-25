@@ -126,14 +126,13 @@
 .sa-placement__input { display: grid; gap: var(--sa-space-sm); color: var(--sa-on-surface-variant); font: var(--sa-text-label-md)/1.4 var(--sa-font-label); }
 .sa-placement__input input { min-height: 52px; padding: 0 var(--sa-space-md); border: 1px solid var(--sa-outline-variant); border-radius: var(--sa-radius); background: var(--sa-surface-container-low); color: var(--sa-on-surface); font: var(--sa-text-body-lg)/1.4 var(--sa-font-body); }
 .sa-placement__input input:focus-visible, .sa-placement__option:focus-visible { outline: 2px solid var(--sa-primary); outline-offset: 2px; }
-.sa-placement__question-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--sa-space-md); }
-.sa-placement__question-actions > span { min-height: 1.4em; color: var(--sa-error, #a64137); }
+.sa-placement__error { margin: 0; color: var(--sa-error, #a64137); font: var(--sa-text-body-sm)/1.4 var(--sa-font-label); }
 .sa-placement__result { place-items: center; padding: clamp(var(--sa-space-xl), 8vw, 72px); text-align: center; }
 .sa-placement__result > .sa-icon { color: var(--sa-primary); }
 .sa-placement__result-kicker { color: var(--sa-primary) !important; font: var(--sa-text-label-md)/1.4 var(--sa-font-label) !important; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .sa-placement__result h2 { font-size: clamp(1.7rem, 4vw, 2.5rem); }
 .sa-placement__result-score { color: var(--sa-primary) !important; font: clamp(2.5rem, 8vw, 5rem)/1 var(--sa-font-headline) !important; }
-@media (max-width: 620px) { .sa-placement__body, .sa-placement__start, .sa-placement__question { padding: var(--sa-space-lg); } .sa-placement__options { grid-template-columns: 1fr; } .sa-placement__question-actions { align-items: stretch; flex-direction: column; } .sa-placement__question-actions .sa-button { width: 100%; } }
+@media (max-width: 620px) { .sa-placement__body, .sa-placement__start, .sa-placement__question { padding: var(--sa-space-lg); } .sa-placement__options { grid-template-columns: 1fr; } }
 
 @media (max-width: 560px) {
   .sa-placement__body {

@@ -11,7 +11,7 @@ export default function StudentTurn({ turn, session }: StudentTurnProps) {
   const { recorder } = session;
   return (
     <section className="sa-bubble-row is-student is-current" aria-label="Your response">
-      <span className="sa-bubble-row__who">Your response</span>
+      <span className="sa-bubble-row__who"><span lang="zh-Hant">你的回答</span> · Your response</span>
       <div className="sa-bubble sa-bubble--target">
         <span className="sa-conversation__target-label">Your turn</span>
         <BilingualWord

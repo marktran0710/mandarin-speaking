@@ -14,7 +14,7 @@ export default function ConversationHistoryTurn({ turn }: ConversationHistoryTur
     <article className={`sa-bubble-row sa-bubble-row--compact ${isStudent ? "is-student" : "is-character"}`}>
       <div className="sa-bubble-row__who">
         <span className="sa-bubble-row__dot" aria-hidden="true" />
-        <span>{isStudent ? "You" : "Conversation partner"}</span>
+        <span>{isStudent ? <><span lang="zh-Hant">你</span> · You</> : <><span lang="zh-Hant">對話角色</span> · Character</>}</span>
       </div>
       <div className="sa-bubble sa-bubble--history">
         <BilingualWord

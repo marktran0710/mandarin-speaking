@@ -12,6 +12,7 @@ import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import { useSpeakingRecorder } from "./hooks/useSpeakingRecorder";
 import PitchChart from "../../components/pitch/PitchChart";
+import StudentPage, { type StudentPageActions } from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentButton from "@shared/ui/student/StudentButton";
@@ -21,7 +22,6 @@ import StudentInlineFeedback from "@shared/ui/student/StudentInlineFeedback";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import { mapWordProsodyToAlignment } from "@entities/speech/wordAlignment";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
-import "@shared/ui/student/layout.css";
 import "./StorySpeakingPage.css";
 
 // Self-evaluation is shown merged into the Feedback card's Overview step
@@ -243,167 +243,191 @@ export default function StorySpeakingPage({
   // never a re-derived threshold of our own.
   const wordChips = mapWordProsodyToAlignment(lastWordProsody);
 
-  return (
-    <div className="sa-page-container">
-      <StudentPageHeader
-        eyebrowEn={`Story Speaking · Scene ${selectedImageIndex + 1} / ${topic.images.length}`}
-        titleZh={topic.name}
-        titleEn="Look, listen, and speak the target sentence"
-      />
+  const continueLabel = isLastFeedbackStep ? nextSceneLabel : `See ${FEEDBACK_STEP_LABEL[feedbackSteps[feedbackStepIndex + 1]]}`;
+  const recordAgainButton = (
+    <StudentButton variant="secondary" icon="replay" onClick={recordAgain}>
+      Record again
+    </StudentButton>
+  );
 
-      <div className="sa-speaking__split">
+  let actions: StudentPageActions | undefined;
+  if (stage === "feedback" && lastAnalysis) {
+    if (feedbackStep === "overview") {
+      actions = {
+        secondary: (
+          <>
+            {recordAgainButton}
+            <StudentButton variant="subtle" onClick={() => persistSelfEvalAndAdvance(false)}>
+              Skip
+            </StudentButton>
+          </>
+        ),
+        primary: (
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => persistSelfEvalAndAdvance(true)}>
+            {continueLabel}
+          </StudentButton>
+        ),
+      };
+    } else if (feedbackStep === "fix") {
+      actions = {
+        secondary: recordAgainButton,
+        primary: (
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
+            {continueLabel}
+          </StudentButton>
+        ),
+      };
+    } else if (feedbackStep === "practice") {
+      actions = {
+        secondary: recordAgainButton,
+        primary: (
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
+            {nextSceneLabel}
+          </StudentButton>
+        ),
+      };
+    }
+  }
+
+  return (
+    <StudentPage
+      layout="stage"
+      header={
+        <StudentPageHeader
+          eyebrowZh={`口語練習 · 場景 ${selectedImageIndex + 1} / ${topic.images.length}`}
+          eyebrowEn={`Story Speaking · Scene ${selectedImageIndex + 1} / ${topic.images.length}`}
+          titleZh={topic.name}
+          titleEn="Look, listen, and speak the target sentence"
+        />
+      }
+      media={
         <StudentSection variant="panel" className="sa-speaking__media">
-          {selectedImage && (
+          {selectedImage ? (
             <img src={selectedImage} alt="" className="sa-speaking__image" />
+          ) : (
+            <div className="sa-speaking__media-empty">
+              <StudentIcon name="image" size={28} role="decorative" />
+              <p><span lang="zh-Hant">本場景沒有圖片</span> · No image for this scene</p>
+            </div>
           )}
         </StudentSection>
+      }
+      actions={actions}
+    >
+      <div className="sa-speaking__workflow">
+        <div className="sa-speaking__stage-tracker">
+          {(["recording", "feedback"] as Stage[]).map((s) => (
+            <span key={s} className={`sa-speaking__stage ${stage === s ? "is-current" : stage === "feedback" && s === "recording" ? "is-done" : ""}`}>
+              {s === "recording" ? "Recording" : "Feedback"}
+            </span>
+          ))}
+        </div>
 
-        <div className="sa-speaking__workflow">
-          <div className="sa-speaking__stage-tracker">
-            {(["recording", "feedback"] as Stage[]).map((s) => (
-              <span key={s} className={`sa-speaking__stage ${stage === s ? "is-current" : stage === "feedback" && s === "recording" ? "is-done" : ""}`}>
-                {s === "recording" ? "Recording" : "Feedback"}
-              </span>
-            ))}
-          </div>
+        <StudentSection variant="tinted" className="sa-speaking__target">
+          <p className="sa-speaking__target-label">Target</p>
+          <BilingualWord hanzi={targetText} size="display" toneHighlight />
+          <StudentAudioControl audioUrl={topic.listenAudioUrls?.[selectedImageIndex]} label="Model" />
+        </StudentSection>
 
-          <StudentSection variant="tinted" className="sa-speaking__target">
-            <p className="sa-speaking__target-label">Target</p>
-            <BilingualWord hanzi={targetText} size="display" toneHighlight />
-            <StudentAudioControl audioUrl={topic.listenAudioUrls?.[selectedImageIndex]} label="Model" />
+        {stage === "recording" && (
+          <StudentSection variant="panel" className="sa-speaking__action">
+            {recorder.error && <p className="sa-speaking__error">{recorder.error}</p>}
+            <StudentButton
+              variant={recorder.isRecording ? "danger" : "primary"}
+              size="lg"
+              icon={recorder.isRecording ? "stop" : "mic"}
+              disabled={recorder.isAnalyzing}
+              onClick={recorder.isRecording ? recorder.stopRecording : handleRecord}
+            >
+              {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
+            </StudentButton>
           </StudentSection>
+        )}
 
-          {stage === "recording" && (
-            <StudentSection variant="panel" className="sa-speaking__action">
-              {recorder.error && <p className="sa-speaking__error">{recorder.error}</p>}
-              <StudentButton
-                variant={recorder.isRecording ? "danger" : "primary"}
-                size="lg"
-                icon={recorder.isRecording ? "stop" : "mic"}
-                disabled={recorder.isAnalyzing}
-                onClick={recorder.isRecording ? recorder.stopRecording : handleRecord}
-              >
-                {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
-              </StudentButton>
-            </StudentSection>
-          )}
+        {stage === "feedback" && lastAnalysis && (
+          <>
+            {feedbackSteps.length > 1 && (
+              <div className="sa-speaking__feedback-steps" role="tablist" aria-label="Feedback steps">
+                {feedbackSteps.map((step, i) => (
+                  <span
+                    key={step}
+                    className={`sa-speaking__feedback-step ${step === feedbackStep ? "is-current" : i < feedbackStepIndex ? "is-done" : ""}`}
+                  >
+                    {FEEDBACK_STEP_LABEL[step]}
+                  </span>
+                ))}
+              </div>
+            )}
 
-          {stage === "feedback" && lastAnalysis && (
-            <>
-              {feedbackSteps.length > 1 && (
-                <div className="sa-speaking__feedback-steps" role="tablist" aria-label="Feedback steps">
-                  {feedbackSteps.map((step, i) => (
-                    <span
-                      key={step}
-                      className={`sa-speaking__feedback-step ${step === feedbackStep ? "is-current" : i < feedbackStepIndex ? "is-done" : ""}`}
-                    >
-                      {FEEDBACK_STEP_LABEL[step]}
-                    </span>
+            {feedbackStep === "overview" && (
+              <StudentSection variant="panel" className="sa-speaking__overview">
+                <div className="sa-speaking__self-eval">
+                  <p className="sa-speaking__self-eval-title">How did you do?</p>
+                  <SelfEvalRow label="Meaning" value={selfEvalMeaning} onChange={setSelfEvalMeaning} />
+                  <SelfEvalRow label="Pronunciation" value={selfEvalPronunciation} onChange={setSelfEvalPronunciation} />
+                </div>
+
+                <StudentInlineFeedback
+                  meaningOk={lastAnalysis.accepted}
+                  pronunciationOk={lastGates?.masteryPassed ?? false}
+                  pronunciationNote={lastAnalysis.legacyPracticeWords[0]?.token ?? lastAnalysis.weakItems[0]?.token ?? lastAnalysis.failedWords[0]?.token}
+                  coachText={
+                    lastAnalysis.showCorrective
+                      ? lastAnalysis.corrective?.hint || undefined
+                      : undefined
+                  }
+                  wordChips={wordChips}
+                  detailsContent={
+                    lastPitch && lastPitch.contour.length > 0 ? (
+                      <PitchChart pitchContour={lastPitch.contour} detectedTone={lastPitch.detectedTone} />
+                    ) : (
+                      <p className="sa-speaking__no-pitch">No pitch data captured for this attempt.</p>
+                    )
+                  }
+                />
+              </StudentSection>
+            )}
+
+            {feedbackStep === "fix" && (
+              <StudentSection variant="panel" className="sa-speaking__fix">
+                <div className="sa-speaking__fix-head">
+                  <StudentIcon name="edit_note" size={18} role="decorative" />
+                  <h3>What to fix</h3>
+                </div>
+                {lastAnalysis.corrective?.errors.map((error, i) => (
+                  <p key={i} className="sa-speaking__fix-error">{error}</p>
+                ))}
+                {lastAnalysis.corrective?.correct_version && (
+                  <div className="sa-speaking__fix-correct">
+                    <span className="sa-speaking__fix-correct-label">Try saying</span>
+                    <BilingualWord hanzi={lastAnalysis.corrective.correct_version} size="inline" />
+                  </div>
+                )}
+              </StudentSection>
+            )}
+
+            {feedbackStep === "practice" && (
+              <StudentSection variant="panel" className="sa-speaking__practice">
+                <div className="sa-speaking__fix-head">
+                  <StudentIcon name="fitness_center" size={18} role="decorative" />
+                  <h3>Practice these words</h3>
+                </div>
+                <div className="sa-speaking__practice-list">
+                  {lastAnalysis.practiceTargets.map((target) => (
+                    <div key={target.key} className="sa-speaking__practice-item">
+                      <span lang="zh-Hant" className="sa-speaking__practice-word">{target.label}</span>
+                      {target.word?.feedback && (
+                        <span className="sa-speaking__practice-feedback">{target.word.feedback}</span>
+                      )}
+                    </div>
                   ))}
                 </div>
-              )}
-
-              {feedbackStep === "overview" && (
-                <StudentSection variant="panel" className="sa-speaking__overview">
-                  <div className="sa-speaking__self-eval">
-                    <p className="sa-speaking__self-eval-title">How did you do?</p>
-                    <SelfEvalRow label="Meaning" value={selfEvalMeaning} onChange={setSelfEvalMeaning} />
-                    <SelfEvalRow label="Pronunciation" value={selfEvalPronunciation} onChange={setSelfEvalPronunciation} />
-                  </div>
-
-                  <StudentInlineFeedback
-                    meaningOk={lastAnalysis.accepted}
-                    pronunciationOk={lastGates?.masteryPassed ?? false}
-                    pronunciationNote={lastAnalysis.legacyPracticeWords[0]?.token ?? lastAnalysis.weakItems[0]?.token ?? lastAnalysis.failedWords[0]?.token}
-                    coachText={
-                      lastAnalysis.showCorrective
-                        ? lastAnalysis.corrective?.hint || undefined
-                        : undefined
-                    }
-                    wordChips={wordChips}
-                    detailsContent={
-                      lastPitch && lastPitch.contour.length > 0 ? (
-                        <PitchChart pitchContour={lastPitch.contour} detectedTone={lastPitch.detectedTone} />
-                      ) : (
-                        <p className="sa-speaking__no-pitch">No pitch data captured for this attempt.</p>
-                      )
-                    }
-                    footer={
-                      <div className="sa-inline-feedback__actions">
-                        <StudentButton variant="secondary" icon="replay" onClick={recordAgain}>
-                          Record again
-                        </StudentButton>
-                        <div className="sa-speaking__overview-forward">
-                          <StudentButton variant="subtle" onClick={() => persistSelfEvalAndAdvance(false)}>
-                            Skip
-                          </StudentButton>
-                          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => persistSelfEvalAndAdvance(true)}>
-                            {isLastFeedbackStep ? nextSceneLabel : `See ${FEEDBACK_STEP_LABEL[feedbackSteps[feedbackStepIndex + 1]]}`}
-                          </StudentButton>
-                        </div>
-                      </div>
-                    }
-                  />
-                </StudentSection>
-              )}
-
-              {feedbackStep === "fix" && (
-                <StudentSection variant="panel" className="sa-speaking__fix">
-                  <div className="sa-speaking__fix-head">
-                    <StudentIcon name="edit_note" size={18} role="decorative" />
-                    <h3>What to fix</h3>
-                  </div>
-                  {lastAnalysis.corrective?.errors.map((error, i) => (
-                    <p key={i} className="sa-speaking__fix-error">{error}</p>
-                  ))}
-                  {lastAnalysis.corrective?.correct_version && (
-                    <div className="sa-speaking__fix-correct">
-                      <span className="sa-speaking__fix-correct-label">Try saying</span>
-                      <BilingualWord hanzi={lastAnalysis.corrective.correct_version} size="inline" />
-                    </div>
-                  )}
-                  <div className="sa-inline-feedback__actions">
-                    <StudentButton variant="secondary" icon="replay" onClick={recordAgain}>
-                      Record again
-                    </StudentButton>
-                    <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
-                      {isLastFeedbackStep ? nextSceneLabel : `See ${FEEDBACK_STEP_LABEL[feedbackSteps[feedbackStepIndex + 1]]}`}
-                    </StudentButton>
-                  </div>
-                </StudentSection>
-              )}
-
-              {feedbackStep === "practice" && (
-                <StudentSection variant="panel" className="sa-speaking__practice">
-                  <div className="sa-speaking__fix-head">
-                    <StudentIcon name="fitness_center" size={18} role="decorative" />
-                    <h3>Practice these words</h3>
-                  </div>
-                  <div className="sa-speaking__practice-list">
-                    {lastAnalysis.practiceTargets.map((target) => (
-                      <div key={target.key} className="sa-speaking__practice-item">
-                        <span lang="zh-Hant" className="sa-speaking__practice-word">{target.label}</span>
-                        {target.word?.feedback && (
-                          <span className="sa-speaking__practice-feedback">{target.word.feedback}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="sa-inline-feedback__actions">
-                    <StudentButton variant="secondary" icon="replay" onClick={recordAgain}>
-                      Record again
-                    </StudentButton>
-                    <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
-                      {nextSceneLabel}
-                    </StudentButton>
-                  </div>
-                </StudentSection>
-              )}
-            </>
-          )}
-        </div>
+              </StudentSection>
+            )}
+          </>
+        )}
       </div>
-    </div>
+    </StudentPage>
   );
 }
 

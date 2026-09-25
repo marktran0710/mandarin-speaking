@@ -127,7 +127,7 @@ describe("StudentApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
     expect(sessionStorage.getItem("studentPhaseFlags:student-1:s1")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Start Speaking" }));
+    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
     expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:s1") ?? "{}").vocab).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
@@ -148,11 +148,22 @@ describe("StudentApp", () => {
     render(<StudentApp studentName="Student One" topics={[withConversation]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
-    fireEvent.click(screen.getByRole("button", { name: "Start Speaking" }));
+    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
     fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
     fireEvent.click(screen.getByRole("button", { name: "Finish Speaking" }));
 
     expect(screen.getByTestId("conversation-mock")).toBeInTheDocument();
+  });
+
+  it("skips the quiz phase entirely for a topic with no quiz — CTA reads 'Start speaking' and jumps straight to Story Speaking", () => {
+    const noQuizTopic = makeTopic({ id: "s4", vocabAssessment: [] });
+    render(<StudentApp studentName="Student One" topics={[noQuizTopic]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
+    fireEvent.click(screen.getByRole("button", { name: /Start speaking/i }));
+
+    expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
+    expect(screen.queryByTestId("quiz-mock")).not.toBeInTheDocument();
   });
 
   it("gates the sidebar's phase-nav by furthest phase reached and the real quiz-stars gate", () => {
@@ -163,23 +174,23 @@ describe("StudentApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     // Freshly opened: only Vocab Preview (the phase we're actually on) is reachable.
-    expect(screen.getByRole("button", { name: "Vocab Preview" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Vocab Quiz" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Story Speaking" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Vocab Preview/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Vocab Quiz/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Start Speaking" }));
-    expect(screen.getByRole("button", { name: "Vocab Quiz" })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
+    expect(screen.getByRole("button", { name: /Vocab Quiz/ })).not.toBeDisabled();
     // Watermark hasn't reached Story Speaking yet, regardless of stars already earned.
-    expect(screen.getByRole("button", { name: "Story Speaking" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
     // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
-    expect(screen.getByRole("button", { name: "Story Speaking" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     // Clicking a still-locked item is a no-op — the rendered body is unchanged.
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: /Submit/ }));
     expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
   });
 

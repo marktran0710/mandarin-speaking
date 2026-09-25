@@ -7,6 +7,21 @@
   flex-wrap: wrap;
 }
 
+.sa-page-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sa-space-sm);
+  margin: 0 0 var(--sa-space-sm) calc(var(--sa-space-sm) * -1);
+  padding: var(--sa-space-xs) var(--sa-space-sm);
+  border: 0;
+  background: transparent;
+  color: var(--sa-outline);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-label-md);
+  cursor: pointer;
+}
+.sa-page-header__back:hover { color: var(--sa-on-surface); }
+
 .sa-page-header__eyebrow {
   margin: 0 0 4px;
   font-family: var(--sa-font-label);
@@ -18,6 +33,7 @@
 
 .sa-page-header__title {
   margin: 0;
+  text-align: start;
   font-family: var(--sa-font-headline);
   font-size: var(--sa-text-headline-lg);
   line-height: var(--sa-leading-headline-lg);

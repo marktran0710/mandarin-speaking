@@ -16,8 +16,8 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Story Speaking" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Conversation" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Conversation/ })).not.toBeInTheDocument();
   });
 
   it("shows the Conversation phase nav item when hasConversation is true", () => {
@@ -33,7 +33,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Conversation/ })).toBeInTheDocument();
   });
 
   it("makes Placement a real, non-disabled nav button that calls onNavigateSection", () => {
@@ -72,7 +72,7 @@ describe("StudentSidebar", () => {
     expect(fill.style.width).toBe("50%");
   });
 
-  it("defaults quizStars/maxQuizStars to a zero-width, 0/0 track when omitted", () => {
+  it("hides the Stars card entirely when maxQuizStars is 0 (omitted), rather than showing a fake 0/0", () => {
     render(
       <StudentSidebar
         studentName="Student One"
@@ -82,9 +82,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const starsSection = screen.getByLabelText("Learning stars");
-    const fill = starsSection.querySelector(".sa-sidebar__stars-track span") as HTMLElement;
-    expect(fill.style.width).toBe("0%");
+    expect(screen.queryByLabelText("Learning stars")).not.toBeInTheDocument();
   });
 
   it("locks phase-nav items beyond furthestPhase and never calls onNavigatePhase for them", () => {
@@ -102,8 +100,8 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const vocabQuiz = screen.getByRole("button", { name: "Vocab Quiz" });
-    const speaking = screen.getByRole("button", { name: "Story Speaking" });
+    const vocabQuiz = screen.getByRole("button", { name: /Vocab Quiz/ });
+    const speaking = screen.getByRole("button", { name: /Story Speaking/ });
     expect(vocabQuiz).not.toBeDisabled();
     expect(speaking).toBeDisabled();
 
@@ -130,7 +128,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const speaking = screen.getByRole("button", { name: "Story Speaking" });
+    const speaking = screen.getByRole("button", { name: /Story Speaking/ });
     expect(speaking).toBeDisabled();
     fireEvent.click(speaking);
     expect(onNavigatePhase).not.toHaveBeenCalled();

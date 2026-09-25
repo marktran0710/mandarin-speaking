@@ -87,3 +87,7 @@ backend/pronunciation/wav2vec_tone/data/self_pilot/audio/
 
 # Test coverage output
 frontend/coverage/
+
+# Playwright artifacts
+frontend/test-results/
+frontend/playwright-report/
