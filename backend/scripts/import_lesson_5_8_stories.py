@@ -86,6 +86,53 @@ TURN_RE = re.compile(
 VOCAB_LINE_RE = re.compile(r"^\d+\s+([^\s]+)\s+.+$")
 
 
+# The three book-mode stories that are written as monologues still need a
+# paired practice exchange. These prompts are authored from the same EASY
+# text, rather than being inferred in the frontend at runtime.
+NARRATIVE_CONVERSATIONS = {
+    "lesson-5-my-room": [
+        {
+            "system": ("你的房間裡有什麼？", "Nǐ de fángjiān lǐ yǒu shénme?", "What is in your room?"),
+            "student": ("我的房間裡有一張桌子、一張床跟一張沙發。", "Wǒ de fángjiān lǐ yǒu yì zhāng zhuōzi, yì zhāng chuáng gēn yì zhāng shāfā.", "There is a table, a bed, and a sofa in my room."),
+        },
+        {
+            "system": ("你最喜歡在哪裡看書？", "Nǐ zuì xǐhuān zài nǎlǐ kànshū?", "Where do you like to read the most?"),
+            "student": ("我最喜歡在沙發上看書。", "Wǒ zuì xǐhuān zài shāfā shàng kànshū.", "I like to read on the sofa the most."),
+        },
+    ],
+    "lesson-6-my-hobbies": [
+        {
+            "system": ("你和朋友喜歡做什麼？", "Nǐ hé péngyǒu xǐhuān zuò shénme?", "What do you and your friends like to do?"),
+            "student": ("我們都喜歡學中文、聽音樂、唱歌。", "Wǒmen dōu xǐhuān xué Zhōngwén, tīng yīnyuè, chànggē.", "We all like to learn Chinese, listen to music, and sing."),
+        },
+        {
+            "system": ("你週末常做什麼運動？", "Nǐ zhōumò cháng zuò shénme yùndòng?", "What sports do you often do on weekends?"),
+            "student": ("我喜歡打網球，有時候也去看運動比賽。", "Wǒ xǐhuān dǎ wǎngqiú, yǒushíhòu yě qù kàn yùndòng bǐsài.", "I like playing tennis, and sometimes I also go to watch sports games."),
+        },
+    ],
+    "lesson-7-mrt-from-my-house": [
+        {
+            "system": ("你家附近有幾條捷運線？", "Nǐ jiā fùjìn yǒu jǐ tiáo jiéyùn xiàn?", "How many MRT lines are near your home?"),
+            "student": ("我家附近有三條捷運線，一條紅的、一條綠的和一條藍的。", "Wǒ jiā fùjìn yǒu sān tiáo jiéyùn xiàn, yì tiáo hóng de, yì tiáo lǜ de hé yì tiáo lán de.", "There are three MRT lines near my home: a red one, a green one, and a blue one."),
+        },
+        {
+            "system": ("從你家到機場遠嗎？", "Cóng nǐ jiā dào jīchǎng yuǎn ma?", "Is the airport far from your home?"),
+            "student": ("從我家到機場也不遠，開車去、坐捷運去都可以。", "Cóng wǒ jiā dào jīchǎng yě bù yuǎn, kāichē qù, zuò jiéyùn qù dōu kěyǐ.", "The airport is not far from my home; I can go by car or MRT."),
+        },
+    ],
+    "lesson-8-young-people-like-new-things": [
+        {
+            "system": ("年輕女生為什麼喜歡去百貨公司？", "Niánqīng nǚshēng wèishéme xǐhuān qù bǎihuògōngsī?", "Why do young women like going to department stores?"),
+            "student": ("因為那裡有漂亮、流行的新衣服，她們都想穿穿看。", "Yīnwèi nàlǐ yǒu piàoliàng, liúxíng de xīn yīfu, tāmen dōu xiǎng chuānchuān kàn.", "Because there are beautiful, trendy new clothes there, and they want to try them on."),
+        },
+        {
+            "system": ("你常常買新東西嗎？", "Nǐ chángcháng mǎi xīn dōngxi ma?", "Do you often buy new things?"),
+            "student": ("我的錢不多，所以我不常買。", "Wǒ de qián bù duō, suǒyǐ wǒ bù cháng mǎi.", "I do not have much money, so I do not buy them often."),
+        },
+    ],
+}
+
+
 def parse_dialogue(text: str) -> dict:
     lines = text.splitlines()
     title_match = TITLE_RE.match(lines[0].strip())
@@ -144,6 +191,69 @@ def parse_dialogue(text: str) -> dict:
     }
 
 
+def _without_speaker_prefix(value: str) -> str:
+    """Remove the English/pinyin speaker label present on some source lines."""
+    return value.split(":", 1)[1].strip() if ":" in value else value
+
+
+def build_conversation_turns(story_id: str, dialogue: dict) -> list[dict]:
+    """Build the canonical alternating system/student practice turns.
+
+    Book dialogue occasionally ends with a final character acknowledgement,
+    leaving an odd number of lines. Conversation Practice must end on a
+    learner turn, so the unpaired final line is intentionally left in the
+    source dialogue but not promoted into the practice exchange.
+    """
+    narrative = NARRATIVE_CONVERSATIONS.get(story_id)
+    if narrative is not None:
+        turns = []
+        for index, exchange in enumerate(narrative, start=1):
+            system_text, system_pinyin, system_translation = exchange["system"]
+            student_text, student_pinyin, student_translation = exchange["student"]
+            turns.extend([
+                {
+                    "id": f"system-{index}",
+                    "speaker": "system",
+                    "text": system_text,
+                    "pinyin": system_pinyin,
+                    "translation": system_translation,
+                },
+                {
+                    "id": f"student-{index}",
+                    "speaker": "student",
+                    "text": student_text,
+                    "targetText": student_text,
+                    "pinyin": student_pinyin,
+                    "translation": student_translation,
+                },
+            ])
+        return turns
+
+    turns = []
+    source_turns = dialogue["turns"][: len(dialogue["turns"]) // 2 * 2]
+    for index in range(0, len(source_turns), 2):
+        system = source_turns[index]
+        student = source_turns[index + 1]
+        turns.extend([
+            {
+                "id": f"system-{index // 2 + 1}",
+                "speaker": "system",
+                "text": system["zh"],
+                "pinyin": _without_speaker_prefix(system["pinyin"]),
+                "translation": _without_speaker_prefix(system["en"]),
+            },
+            {
+                "id": f"student-{index // 2 + 1}",
+                "speaker": "student",
+                "text": student["zh"],
+                "targetText": student["zh"],
+                "pinyin": _without_speaker_prefix(student["pinyin"]),
+                "translation": _without_speaker_prefix(student["en"]),
+            },
+        ])
+    return turns
+
+
 def crop_panels(png_bytes: bytes, cols: int, rows: int, count: int) -> list[str]:
     im = Image.open(BytesIO(png_bytes)).convert("RGB")
     w, h = im.size
@@ -190,6 +300,9 @@ def build_story_payload(spec: StorySpec, dialogue: dict, panel_urls: list[str]) 
             "phrases": dialogue["phrases"],
             "phrasesTranslation": dialogue["phrases_translation"],
         }},
+        "conversationTurns": build_conversation_turns(
+            f"lesson-{spec.lesson}-{spec.slug}", dialogue,
+        ),
         "published": False,
         "lessonNumber": spec.lesson,
         "lessonSubOrder": spec.sub_order,

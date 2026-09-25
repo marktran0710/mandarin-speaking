@@ -15,6 +15,7 @@ import sys
 LESSON_MODULES = (
     "scripts.seed_materials",
     "scripts.seed_grammar_lesson",
+    "scripts.seed_conversation_practice",
 )
 
 
