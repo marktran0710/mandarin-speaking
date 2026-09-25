@@ -170,7 +170,7 @@ describe("StudentApp", () => {
   });
 
   it("gates the sidebar's phase-nav by furthest phase reached and the real quiz-stars gate", () => {
-    const s1 = makeTopic({ id: "s1" });
+    const s1 = makeTopic({ id: "s1", conversationTurns });
     recordLocalStars("s1", 3);
     render(<StudentApp studentName="Student One" topics={[s1]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
 

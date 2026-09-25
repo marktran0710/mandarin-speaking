@@ -143,7 +143,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const activeStoryId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
   const activeStars = activeProgression?.quizStars ?? (activeStoryId ? loadLocalStars(activeStoryId) : 0);
   const speakingUnlocked = activeTopic ? (!topicHasQuiz(activeTopic) || activeStars >= 3) : false;
-  const conversationUnlocked = speakingUnlocked;
+  const conversationUnlocked = speakingUnlocked && conversationContentAvailable;
 
   let body: React.ReactNode;
 
@@ -166,7 +166,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyQuizPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        hasConversation
+        hasConversation={conversationContentAvailable}
         onFinished={() => advancePhase("story-speaking")}
         onStartPractice={(practice) => {
           setCompletedPractice(practice === "conversation" ? "conversation" : "speaking");

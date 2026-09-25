@@ -1,4 +1,5 @@
 import type { Topic } from "@entities/topic";
+import { buildConversationTurnsFromScenes } from "@entities/conversation";
 import { numericToToneMarked } from "@entities/vocabulary";
 import { resolveImageUrl, splitCsvField, tierText, TIER_SUFFIX } from "./storyText";
 import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "./types";
@@ -21,6 +22,7 @@ export function storyToTopic(
   const vocabularyPos: Record<number, string[]> = {};
   const vocabularyTranslation: Record<number, string[]> = {};
   const suggestedAnswers: Record<number, string> = {};
+  const prompts = story.frames.map((frame) => tierText(frame, "prompt", difficultyLevel) || "");
   const listenAudioUrls: Record<number, string> = {};
   const listenAudioSources: Record<number, "teacher"> = {};
   const listenScripts: Record<number, string> = {};
@@ -123,15 +125,29 @@ export function storyToTopic(
     vocabularyTranslation[0] = canonicalVocabulary.map((question) => question.simpleEnglishMeaning);
   }
 
+  // Conversation Practice is a view over the same scene targets as Story
+  // Speaking. Keep explicit authored turns as an override for older/custom
+  // stories, but derive the default when the story has no separate payload.
+  const sharedConversationTurns = buildConversationTurnsFromScenes(
+    story.frames.map((_, index) => ({
+      targetText: suggestedAnswers[index],
+      prompt: prompts[index],
+      audioUrl: listenAudioUrls[index],
+    })),
+  );
+  const conversationTurns = story.conversationTurns?.length
+    ? story.conversationTurns
+    : sharedConversationTurns;
+
   return {
     id: `teacher-${story.id}`,
     name: story.title,
-    ...(story.conversationTurns ? { conversationTurns: story.conversationTurns } : {}),
+    ...(conversationTurns ? { conversationTurns } : {}),
     ...(vocabAssessment ? { vocabAssessment } : {}),
     description: "Teacher published activity",
     skillFocus: "Teacher published activity",
     images: story.frames.map((frame) => resolveImageUrl(tierText(frame, "imageUrl", difficultyLevel) || "")),
-    prompts: story.frames.map((frame) => tierText(frame, "prompt", difficultyLevel) || ""),
+    prompts,
     vocabulary,
     ...(!canonicalVocabulary.length && Object.keys(vocabularyGroups).length ? { vocabularyGroups } : {}),
     ...(Object.keys(phrases).length ? { phrases } : {}),

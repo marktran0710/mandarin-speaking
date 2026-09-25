@@ -100,6 +100,23 @@ class TestResolveVerifiedSpeakingTarget:
             )
         assert exc.value.status_code == 422
 
+    def test_shared_story_frames_resolve_the_alternating_student_turn(self, monkeypatch):
+        story = {
+            "id": "story-1",
+            "frames": [
+                {"suggestedAnswer": "System scene"},
+                {"suggestedAnswer": "Student scene"},
+            ],
+        }
+        _patch_db(monkeypatch, FakeDb(story=story))
+
+        scene = verified_speaking.resolve_verified_speaking_target(
+            "story-1", 1, "easy", conversation_id="c", turn_id="student-scene-1", turn_index=1,
+        )
+
+        assert scene["target_text"] == "Student scene"
+        assert scene["reference_word_curves"] == {}
+
 
 class TestAnalyzeVerifiedSpeechWithConversationIdentity:
     @pytest.mark.asyncio
@@ -119,10 +136,10 @@ class TestAnalyzeVerifiedSpeechWithConversationIdentity:
 
         assert result["serverVerified"] is True
         analysis_args, _ = calls[0]
-        # _do_analyze's target_text positional argument must be the
+        # _do_analyze's target_text keyword argument must be the
         # conversation turn's targetText, never the scene's
         # suggestedAnswer/listenScript ("這是房間。" in this fixture).
-        assert analysis_args[13] == "我想跟朋友去喝下午茶。"
+        assert calls[0][1]["scene_target_text"] == "我想跟朋友去喝下午茶。"
         assert analysis_args[8] == "這是房間。"  # scene's own suggested_answer, untouched
 
     @pytest.mark.asyncio

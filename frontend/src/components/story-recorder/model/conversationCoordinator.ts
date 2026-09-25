@@ -66,6 +66,12 @@ export function transitionConversation(
       if (state.step !== "system" || turns[state.turnIndex]?.speaker !== "system") {
         return { state, accepted: false };
       }
+      if (state.turnIndex + 1 >= turns.length) {
+        return {
+          state: { turnIndex: turns.length, step: "summary" },
+          accepted: true,
+        };
+      }
       return {
         state: { turnIndex: state.turnIndex + 1, step: "student" },
         accepted: true,

@@ -11,15 +11,16 @@ class _Rows:
 
 
 class _Db:
-    def __init__(self, response_rows, conversation_turns):
+    def __init__(self, response_rows, conversation_turns, frames=None):
         self.response_rows = response_rows
         self.conversation_turns = conversation_turns
+        self.frames = frames
 
     def execute(self, query, params):
         if "FROM vocab_quiz_responses" in query:
             return _Rows(self.response_rows)
         if "FROM custom_stories" in query:
-            return _Rows([{"conversation_turns": self.conversation_turns}])
+            return _Rows([{"conversation_turns": self.conversation_turns, "frames": self.frames}])
         raise AssertionError(f"Unexpected query: {query}")
 
 
@@ -103,3 +104,19 @@ def test_invalid_conversation_turns_keep_conversation_locked(monkeypatch):
     assert result["speakingUnlocked"] is True
     assert result["conversationAvailable"] is False
     assert result["conversationUnlocked"] is False
+
+
+def test_shared_story_frames_make_conversation_available_without_saved_turns(monkeypatch):
+    attempts = [_attempt("tier1", "q1"), _attempt("tier2", "q2"), _attempt("tier3", "q3")]
+    responses = _responses("tier1", "q1", 7) + _responses("tier2", "q2", 9) + _responses("tier3", "q3", 9)
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+
+    frames = [
+        {"suggestedAnswer": "System line"},
+        {"suggestedAnswer": "Student line"},
+        {"suggestedAnswer": "Closing line"},
+    ]
+    result = progression.get_progression(_Db(responses, None, frames), "student-1", "story-5-1")
+
+    assert result["conversationAvailable"] is True
+    assert result["conversationUnlocked"] is True

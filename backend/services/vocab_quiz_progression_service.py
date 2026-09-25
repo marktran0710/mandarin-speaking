@@ -20,7 +20,7 @@ _TIERS = ("tier1", "tier2", "tier3")
 
 
 def _conversation_is_valid(turns: Any) -> bool:
-    if not isinstance(turns, list) or not turns or len(turns) % 2:
+    if not isinstance(turns, list) or len(turns) < 2:
         return False
     ids: set[str] = set()
     for index, turn in enumerate(turns):
@@ -38,6 +38,20 @@ def _conversation_is_valid(turns: Any) -> bool:
             return False
         ids.add(turn_id)
     return True
+
+
+def _frames_conversation_available(frames: Any) -> bool:
+    """The shared-content fallback has one alternating turn per scene."""
+    if not isinstance(frames, list):
+        return False
+    usable = []
+    for frame in frames:
+        if not isinstance(frame, dict):
+            continue
+        text = frame.get("suggestedAnswer") or frame.get("prompt")
+        if isinstance(text, str) and text.strip():
+            usable.append(text)
+    return len(usable) >= 2
 
 
 def _authoritative_scores(db: Any, student_id: str, attempts: list[dict]) -> dict[str, dict[str, int]]:
@@ -83,10 +97,14 @@ def _authoritative_scores(db: Any, student_id: str, attempts: list[dict]) -> dic
 
 def _story_conversation_available(db: Any, story_id: str) -> bool:
     rows = db.execute(
-        "SELECT conversation_turns FROM custom_stories WHERE id = ANY(%s) AND published = TRUE",
+        "SELECT conversation_turns, frames FROM custom_stories WHERE id = ANY(%s) AND published = TRUE",
         [story_scope_ids(story_id)],
     ).fetchall()
-    return any(_conversation_is_valid(row.get("conversation_turns")) for row in rows)
+    return any(
+        _conversation_is_valid(row.get("conversation_turns"))
+        or _frames_conversation_available(row.get("frames"))
+        for row in rows
+    )
 
 
 def get_progression(db: Any, student_id: str, story_id: str) -> dict[str, Any]:

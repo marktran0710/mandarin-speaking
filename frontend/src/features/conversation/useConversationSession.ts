@@ -63,7 +63,7 @@ export function useConversationSession({
 
   const recorder = useSpeakingRecorder((attemptNumber) => ({
     baseStoryId,
-    sceneIndex: 0,
+    sceneIndex: currentTurn?.sceneIndex ?? 0,
     difficultyLevel: topic.difficultyLevel ?? "easy",
     scenePrompt: topic.name,
     sceneTargetText: currentTurn?.targetText || currentTurn?.text || "",
@@ -106,15 +106,15 @@ export function useConversationSession({
       modelSentence: currentTurn.targetText || currentTurn.text,
       praatMetrics: result.metrics,
       ready: result.masteryPassed && result.contentPassed,
-      selectedImageIndex: 0,
+      selectedImageIndex: currentTurn.sceneIndex ?? 0,
     });
     setLastResult(result);
     setLastRecognizedText(transcription);
     setLastAnalysis(analysis);
 
     const submission: SceneSubmission = {
-      sceneIndex: 0,
-      imageUrl: topic.images[0] ?? "",
+      sceneIndex: currentTurn.sceneIndex ?? 0,
+      imageUrl: topic.images[currentTurn.sceneIndex ?? 0] ?? "",
       transcription,
       vocabUsed: result.metrics.ai_feedback?.vocabulary_coverage?.used ?? [],
       vocabMissing: result.metrics.ai_feedback?.vocabulary_coverage?.missing ?? [],
@@ -139,8 +139,8 @@ export function useConversationSession({
       transcription,
       model: normalizeSpeechModel(result.metrics.transcription_model),
       topicId: topic.id,
-      imageUrl: topic.images[0] ?? "",
-      imageIndex: 0,
+      imageUrl: topic.images[currentTurn.sceneIndex ?? 0] ?? "",
+      imageIndex: currentTurn.sceneIndex ?? 0,
       conversationId: conversationIdRef.current,
       turnId: currentTurn.id,
       turnIndex: state.turnIndex,
@@ -158,7 +158,7 @@ export function useConversationSession({
         await saveSpeakingProgress({
           studentId,
           topicId: topic.id,
-          sceneIndex: 0,
+          sceneIndex: currentTurn.sceneIndex ?? 0,
           attempts: 1,
           bestTone: submission.toneAccuracy,
           bestFluency: submission.fluencyScore ?? 0,

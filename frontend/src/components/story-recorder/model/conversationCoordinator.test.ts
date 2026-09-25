@@ -87,4 +87,26 @@ describe("conversation coordinator", () => {
       accepted: false,
     });
   });
+
+  it("finishes after a final system turn when shared scene data is odd-sized", () => {
+    const oddTurns = [
+      turns[0],
+      turns[1],
+      turns[2],
+    ] as const;
+    let state = transitionConversation(
+      createConversationState(oddTurns)!,
+      { type: "systemAudioCompleted" },
+      oddTurns,
+    ).state;
+    state = transitionConversation(state, { type: "studentRecordingCompleted", recordingId: "audio-1" }, oddTurns).state;
+    state = transitionConversation(state, { type: "selfEvaluationSkipped" }, oddTurns).state;
+    state = transitionConversation(state, { type: "feedbackCompleted" }, oddTurns).state;
+
+    expect(state).toEqual({ turnIndex: 2, step: "system" });
+    expect(transitionConversation(state, { type: "systemAudioCompleted" }, oddTurns)).toEqual({
+      state: { turnIndex: 3, step: "summary" },
+      accepted: true,
+    });
+  });
 });

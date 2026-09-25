@@ -21,7 +21,7 @@ def find_published_scene(db, story_id: str) -> Optional[dict]:
 
 def find_published_conversation_turns(db, story_id: str) -> Optional[dict]:
     return db.execute(
-        "SELECT conversation_turns FROM custom_stories WHERE id = %s AND published = TRUE",
+        "SELECT conversation_turns, frames FROM custom_stories WHERE id = %s AND published = TRUE",
         (story_id,),
     ).fetchone()
 

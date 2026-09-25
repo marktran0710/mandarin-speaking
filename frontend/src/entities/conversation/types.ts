@@ -4,6 +4,7 @@ export interface ConversationTurn {
   id: string;
   speaker: ConversationSpeaker;
   text: string;
+  sceneIndex?: number;
   pinyin?: string;
   translation?: string;
   audioUrl?: string;

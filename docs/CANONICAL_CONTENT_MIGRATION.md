@@ -55,7 +55,7 @@ this document. Verified by reading the actual code (not assumed):
 |---|---|---|
 | Vocabulary + quiz questions | `custom_stories.vocab_assessment` | Canonical in practice; not yet a normalized `vocabulary_items`/`quiz_questions` table (target's Phase B, not started) |
 | Story/scene authored content | `custom_stories.frames`, `.story_vocabulary`, `.story_phrases` | Still the compatibility aggregate; canonical vocabulary/question imports are managed in Admin Content Bank |
-| Conversation | `custom_stories.conversation_turns` | Alternating-turn JSON; already the sole source (no second conversation DB) |
+| Conversation | `custom_stories.frames` (derived), with optional `conversation_turns` override | One alternating turn per Story Speaking scene; scene 0 is always `system`, then `student`, with explicit authored turns retained for legacy/custom stories |
 | Instructional media (images, scene/vocab/conversation audio) | URLs embedded in the `custom_stories` JSON | Ownership is implicit in the story/media persistence paths, not an explicit `MediaAsset` table yet |
 | Student evidence (recordings) | `audio_records` | Stable; already excluded from the content/curriculum domain |
 | Story submissions | `story_submissions` | Stable |
@@ -105,13 +105,22 @@ this document. Verified by reading the actual code (not assumed):
 - **Readers**: `StoryRecorderRuntime.js` (scene playback — see 2.7 below on why this file is
   hands-off).
 
-### 2.4 Conversation (`conversation_turns[].audioUrl`, `.targetAudioUrl`)
+### 2.4 Conversation (shared Story Speaking scenes)
+
+The runtime derives one conversation turn from each usable `frames[]` target
+(`suggestedAnswer`, falling back to `prompt`). Scene index 0 is always
+`system`, then speakers alternate `student`, `system`, `student`, and so on.
+An odd final scene may remain a final system turn and ends after the learner
+listens to it. Explicit `custom_stories.conversation_turns` remains supported
+as an override for older/custom stories whose authored conversation is
+intentionally different. Shared teacher/model scene audio maps to
+`audioUrl` on system turns and `targetAudioUrl` on student turns.
 
 - **Writers**: `backend/services/media.py:persist_story_conversation_audio()` (this
   session's Dual Speaking Modes work, `ae38984`) — converts data-URI uploads to `/uploads/...`
   independently for character (`audioUrl`) vs student-model (`targetAudioUrl`) audio, never
   conflating the two roles.
-- **Readers**: `SpeakingConversationFlow.tsx` (frontend playback),
+- **Readers**: `ConversationPage.tsx` (frontend playback),
   `verified_speaking.py:resolve_verified_speaking_target()` (resolves a conversation turn's
   target text server-side — never trusts client-submitted text, per Section 20's requirement,
   already implemented this session in `3eacb9f`).

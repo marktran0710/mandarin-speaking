@@ -81,13 +81,42 @@ def _load_published_scene(story_id: str, scene_index: int, difficulty_level: str
     }
 
 
-def _load_conversation_turns(story_id: str) -> list[dict[str, Any]] | None:
+def _load_conversation_turns(story_id: str, difficulty_level: str = "easy") -> list[dict[str, Any]] | None:
     with connect_db() as db:
         row = repo.find_published_conversation_turns(db, story_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Published story not found.")
     turns = row.get("conversation_turns")
-    return turns if isinstance(turns, list) else None
+    if isinstance(turns, list) and turns:
+        return turns
+
+    frames = row.get("frames") or []
+    if not isinstance(frames, list):
+        return None
+
+    shared_turns: list[dict[str, Any]] = []
+    for scene_index, frame in enumerate(frames):
+        if not isinstance(frame, dict):
+            continue
+        target = str(
+            _tier_value(frame, "suggestedAnswer", difficulty_level)
+            or _tier_value(frame, "prompt", difficulty_level)
+            or ""
+        ).strip()
+        if not target:
+            continue
+        speaker = "system" if len(shared_turns) % 2 == 0 else "student"
+        turn = {
+            "id": f"{speaker}-scene-{scene_index}",
+            "speaker": speaker,
+            "text": target,
+            "sceneIndex": scene_index,
+        }
+        if speaker == "student":
+            turn["targetText"] = target
+        shared_turns.append(turn)
+
+    return shared_turns if len(shared_turns) >= 2 else None
 
 
 def resolve_verified_speaking_target(
@@ -106,7 +135,7 @@ def resolve_verified_speaking_target(
     No conversation identity -> the existing scene-based target (legacy
     Story Practice path, unchanged). Conversation identity present -> the
     student's OWN resolved turn's targetText, re-derived server-side from
-    the published story's conversation_turns - never the scene's
+    the published story's authored conversation or shared scene frames - never the scene's
     suggestedAnswer/listenScript, which is a different sentence belonging
     to a different (legacy) activity. A conversation turn also does not
     reuse the scene's reference pitch curves (Epic 2's "do not forge a
@@ -118,7 +147,7 @@ def resolve_verified_speaking_target(
     if not conversation_id and not turn_id:
         return scene
 
-    turns = _load_conversation_turns(story_id)
+    turns = _load_conversation_turns(story_id, difficulty_level)
     if not turns:
         raise HTTPException(status_code=422, detail="This story has no conversation turns to resolve.")
 

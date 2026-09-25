@@ -57,6 +57,24 @@ describe("storyToTopic canonical mapping", () => {
     expect(storyToTopic({ ...story, conversationTurns: conversation }).conversationTurns).toEqual(conversation);
   });
 
+  it("derives alternating conversation turns from shared story-speaking targets", () => {
+    const topic = storyToTopic({
+      ...story,
+      conversationTurns: undefined,
+      frames: [
+        { imageUrl: "one.png", prompt: "One prompt", suggestedAnswer: "第一句", vocabulary: "" },
+        { imageUrl: "two.png", prompt: "Two prompt", suggestedAnswer: "第二句", vocabulary: "" },
+        { imageUrl: "three.png", prompt: "Three prompt", suggestedAnswer: "第三句", vocabulary: "" },
+      ],
+    });
+
+    expect(topic.conversationTurns?.map(({ speaker, text, sceneIndex }) => ({ speaker, text, sceneIndex }))).toEqual([
+      { speaker: "system", text: "第一句", sceneIndex: 0 },
+      { speaker: "student", text: "第二句", sceneIndex: 1 },
+      { speaker: "system", text: "第三句", sceneIndex: 2 },
+    ]);
+  });
+
   it("does not expose legacy generated TTS audio to students", () => {
     const legacyStory = {
       ...story,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeConversationTurns } from "@entities/conversation";
+import { buildConversationTurnsFromScenes, normalizeConversationTurns } from "@entities/conversation";
 
 describe("normalizeConversationTurns", () => {
   it("returns a copied valid alternating conversation", () => {
@@ -31,7 +31,7 @@ describe("normalizeConversationTurns", () => {
   it.each([
     [undefined, "is missing"],
     [[], "is empty"],
-    [[{ id: "one", speaker: "system", text: "雿末" }], "does not end with a student turn"],
+    [[{ id: "one", speaker: "system", text: "雿末" }], "has fewer than two turns"],
     [[{ id: " ", speaker: "system", text: "你好" }], "has a blank id"],
     [[{ id: "one", speaker: "system", text: " " }], "has blank text"],
     [[{ id: "one", speaker: "student", text: "你好" }], "does not start with system"],
@@ -59,5 +59,29 @@ describe("normalizeConversationTurns", () => {
     ],
   ])("returns null when the conversation %s", (turns: unknown, _reason: string) => {
     expect(normalizeConversationTurns(turns)).toBeNull();
+  });
+});
+
+describe("buildConversationTurnsFromScenes", () => {
+  it("reuses scene targets, starts with system, and alternates speakers", () => {
+    const turns = buildConversationTurnsFromScenes([
+      { targetText: "Scene one", audioUrl: "/audio/one.mp3" },
+      { targetText: "Scene two", audioUrl: "/audio/two.mp3" },
+      { targetText: "Scene three" },
+    ]);
+
+    expect(turns).toEqual([
+      { id: "system-scene-0", speaker: "system", text: "Scene one", sceneIndex: 0, audioUrl: "/audio/one.mp3" },
+      { id: "student-scene-1", speaker: "student", text: "Scene two", sceneIndex: 1, targetText: "Scene two", targetAudioUrl: "/audio/two.mp3" },
+      { id: "system-scene-2", speaker: "system", text: "Scene three", sceneIndex: 2 },
+    ]);
+  });
+
+  it("falls back to the Story Speaking prompt and needs two usable scenes", () => {
+    expect(buildConversationTurnsFromScenes([{ prompt: "Only scene" }])).toBeNull();
+    expect(buildConversationTurnsFromScenes([
+      { prompt: "First prompt" },
+      { targetText: "Second target" },
+    ])?.map((turn) => turn.text)).toEqual(["First prompt", "Second target"]);
   });
 });
