@@ -2,72 +2,70 @@
    Source of truth: DESIGN.md supplied by the user. Scoped under .student-app
    so this never leaks into teacher.html/admin.html (which keep "Tone Colors").
 
-   Palette: "Illuminated Manuscript" (2026-09-25). The system's own brief
-   describes it as resembling "an illuminated philological manuscript" but
-   originally shipped as a desaturated, cool Material-You grey-teal that
-   never carried that idea through — this repaints the same token structure
-   with real jewel-tone inks on warm vellum instead. Deliberately blue-led
-   (lapis/verdigris/amethyst) rather than gold-led, so it stays visually
-   distinct from the gold/jade "Tone Colors" system used by teacher/admin/
-   landing. Every on-X pair below is WCAG-AA-checked against its X (>=4.5:1
-   for text; on-primary alone is ~7.7:1). */
+   Palette: "Scholarly Navy & Citation Gold" (2026-09-25), Swiss Modernism 2.0
+   — replaces the earlier "Illuminated Manuscript" jewel-tone/warm-vellum
+   attempt (rejected same day as uglier than the original). This direction
+   came from ui-ux-pro-max's --design-system match for "academic research
+   tool scholarly minimal" rather than another from-scratch guess: cool,
+   crisp, grid-rational, navy-led rather than warm/gold-led. Every on-X pair
+   is WCAG-AA-checked against its X (>=4.5:1 for text; on-primary ~11.5:1). */
 
 .student-app {
-  /* ---- Surfaces & neutrals (warm vellum) ---- */
-  --sa-surface: #fbf7ee;
-  --sa-surface-dim: #dbd3c1;
-  --sa-surface-bright: #fbf7ee;
+  /* ---- Surfaces & neutrals (cool, crisp) ---- */
+  --sa-surface: #f8fafc;
+  --sa-surface-dim: #cbd5e1;
+  --sa-surface-bright: #f8fafc;
   --sa-surface-container-lowest: #ffffff;
-  --sa-surface-container-low: #f5efe1;
-  --sa-surface-container: #efe7d6;
-  --sa-surface-container-high: #e9e0cb;
-  --sa-surface-container-highest: #e3d9c0;
-  --sa-on-surface: #211e1a;
-  --sa-on-surface-variant: #4a4437;
-  --sa-inverse-surface: #372f26;
-  --sa-inverse-on-surface: #f7f1e5;
-  --sa-outline: #7a7161;
-  --sa-outline-variant: #d2c8ae;
-  --sa-background: #fbf7ee;
-  --sa-on-background: #211e1a;
-  --sa-surface-variant: #e3d9c0;
+  --sa-surface-container-low: #f1f5f9;
+  --sa-surface-container: #e9eef5;
+  --sa-surface-container-high: #e2e8f0;
+  --sa-surface-container-highest: #dae1ea;
+  --sa-on-surface: #0f172a;
+  --sa-on-surface-variant: #475569;
+  --sa-inverse-surface: #1e293b;
+  --sa-inverse-on-surface: #f1f5f9;
+  --sa-outline: #64748b;
+  --sa-outline-variant: #cbd5e1;
+  --sa-background: #f8fafc;
+  --sa-on-background: #0f172a;
+  --sa-surface-variant: #e2e8f0;
 
-  /* ---- Primary: Lapis Lazuli ---- */
-  --sa-primary: #26548b;
+  /* ---- Primary: Navy ---- */
+  --sa-primary: #1e3a5f;
   --sa-on-primary: #ffffff;
-  --sa-primary-container: #d6e3f5;
-  --sa-on-primary-container: #17395e;
-  --sa-inverse-primary: #a8c7eb;
-  --sa-primary-fixed: #d6e3f5;
-  --sa-primary-fixed-dim: #a8c7eb;
-  --sa-on-primary-fixed: #081a2e;
-  --sa-on-primary-fixed-variant: #1f4771;
+  --sa-primary-container: #d7e3f0;
+  --sa-on-primary-container: #12283f;
+  --sa-inverse-primary: #a9c3de;
+  --sa-primary-fixed: #d7e3f0;
+  --sa-primary-fixed-dim: #a9c3de;
+  --sa-on-primary-fixed: #0a1826;
+  --sa-on-primary-fixed-variant: #1c3552;
 
-  /* ---- Secondary: Verdigris ---- */
-  --sa-secondary: #257a6c;
+  /* ---- Secondary: Forest ---- */
+  --sa-secondary: #2f6f4e;
   --sa-on-secondary: #ffffff;
-  --sa-secondary-container: #cfeae3;
-  --sa-on-secondary-container: #0f4a40;
-  --sa-secondary-fixed: #cfeae3;
-  --sa-secondary-fixed-dim: #9fd3c6;
-  --sa-on-secondary-fixed: #032420;
-  --sa-on-secondary-fixed-variant: #16463d;
+  --sa-secondary-container: #d3e9da;
+  --sa-on-secondary-container: #16402a;
+  --sa-secondary-fixed: #d3e9da;
+  --sa-secondary-fixed-dim: #9fcbae;
+  --sa-on-secondary-fixed: #06210f;
+  --sa-on-secondary-fixed-variant: #1f4a31;
 
-  /* ---- Tertiary: Amethyst ---- */
-  --sa-tertiary: #7a4f86;
+  /* ---- Tertiary: Citation Gold ---- */
+  --sa-tertiary: #b45309;
   --sa-on-tertiary: #ffffff;
-  --sa-tertiary-container: #edddf2;
-  --sa-on-tertiary-container: #4a2e54;
-  --sa-tertiary-fixed: #edddf2;
-  --sa-tertiary-fixed-dim: #cfaeda;
-  --sa-on-tertiary-fixed: #2c1732;
-  --sa-on-tertiary-fixed-variant: #573a61;
+  --sa-tertiary-container: #f6dfc2;
+  --sa-on-tertiary-container: #6e3306;
+  --sa-tertiary-fixed: #f6dfc2;
+  --sa-tertiary-fixed-dim: #e3b77f;
+  --sa-on-tertiary-fixed: #3d1c03;
+  --sa-on-tertiary-fixed-variant: #833e08;
 
-  /* ---- Error: Vermillion (manuscript rubric red) ---- */
-  --sa-error: #b23a2e;
+  /* ---- Error ---- */
+  --sa-error: #dc2626;
   --sa-on-error: #ffffff;
-  --sa-error-container: #f9d9d3;
-  --sa-on-error-container: #6e1b12;
+  --sa-error-container: #fbd5d5;
+  --sa-on-error-container: #7f1414;
 
   /* ---- Radius ---- */
   --sa-radius-sm: 0.25rem;   /* 4px  — annotation pills, radical badges */
@@ -77,17 +75,21 @@
   --sa-radius-xl: 1.5rem;
   --sa-radius-full: 9999px;
 
-  /* ---- Spacing ---- */
+  /* ---- Spacing — normalized to a standard 4/8px grid (2026-09-25; was
+     4/6/12/20/32, off-grid at sm/md/lg). Per ui-ux-pro-max's design-system
+     spacing_scale for this product profile. ---- */
   --sa-gutter: 1rem;
   --sa-gutter-desktop: 1.5rem;
   --sa-margin: 1rem;
   --sa-margin-tablet: 2rem;
   --sa-margin-desktop: 3rem;
-  --sa-space-xs: 0.25rem;
-  --sa-space-sm: 0.375rem;
-  --sa-space-md: 0.75rem;
-  --sa-space-lg: 1.25rem;
-  --sa-space-xl: 2rem;
+  --sa-space-xs: 0.25rem;   /* 4px  (unchanged) */
+  --sa-space-sm: 0.5rem;    /* 8px  (was 6px) */
+  --sa-space-md: 1rem;      /* 16px (was 12px) */
+  --sa-space-lg: 1.5rem;    /* 24px (was 20px) */
+  --sa-space-xl: 2rem;      /* 32px (unchanged) */
+  --sa-space-2xl: 3rem;     /* 48px (new) */
+  --sa-space-3xl: 4rem;     /* 64px (new) */
 
   /* ---- Typography ---- */
   --sa-font-headline: "Newsreader", Georgia, serif;
@@ -109,8 +111,8 @@
   --sa-text-caption: 12px;       --sa-leading-caption: 16px;
 
   /* ---- Shadows (flat system; use only for elevated overlays) ---- */
-  --sa-shadow-sm: 0 1px 2px rgba(33, 30, 26, 0.06), 0 1px 1px rgba(33, 30, 26, 0.04);
-  --sa-shadow-md: 0 4px 12px rgba(33, 30, 26, 0.10);
+  --sa-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
+  --sa-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
 
   /* ---- Layout ---- */
   --sa-sidebar-width: 16rem; /* 256px */
