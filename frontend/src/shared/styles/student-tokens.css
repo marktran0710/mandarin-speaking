@@ -1,73 +1,63 @@
 /* Academic Mandarin Research Studio — design tokens.
    Source of truth: DESIGN.md supplied by the user. Scoped under .student-app
-   so this never leaks into teacher.html/admin.html (which keep "Tone Colors").
-
-   Palette: "Illuminated Manuscript" (2026-09-25). The system's own brief
-   describes it as resembling "an illuminated philological manuscript" but
-   originally shipped as a desaturated, cool Material-You grey-teal that
-   never carried that idea through — this repaints the same token structure
-   with real jewel-tone inks on warm vellum instead. Deliberately blue-led
-   (lapis/verdigris/amethyst) rather than gold-led, so it stays visually
-   distinct from the gold/jade "Tone Colors" system used by teacher/admin/
-   landing. Every on-X pair below is WCAG-AA-checked against its X (>=4.5:1
-   for text; on-primary alone is ~7.7:1). */
+   so this never leaks into teacher.html/admin.html (which keep "Tone Colors"). */
 
 .student-app {
-  /* ---- Surfaces & neutrals (warm vellum) ---- */
-  --sa-surface: #fbf7ee;
-  --sa-surface-dim: #dbd3c1;
-  --sa-surface-bright: #fbf7ee;
+  /* ---- Surfaces & neutrals ---- */
+  --sa-surface: #f7f9ff;
+  --sa-surface-dim: #d7dadf;
+  --sa-surface-bright: #f7f9ff;
   --sa-surface-container-lowest: #ffffff;
-  --sa-surface-container-low: #f5efe1;
-  --sa-surface-container: #efe7d6;
-  --sa-surface-container-high: #e9e0cb;
-  --sa-surface-container-highest: #e3d9c0;
-  --sa-on-surface: #211e1a;
-  --sa-on-surface-variant: #4a4437;
-  --sa-inverse-surface: #372f26;
-  --sa-inverse-on-surface: #f7f1e5;
-  --sa-outline: #7a7161;
-  --sa-outline-variant: #d2c8ae;
-  --sa-background: #fbf7ee;
-  --sa-on-background: #211e1a;
-  --sa-surface-variant: #e3d9c0;
+  --sa-surface-container-low: #f1f4f9;
+  --sa-surface-container: #ebeef3;
+  --sa-surface-container-high: #e5e8ed;
+  --sa-surface-container-highest: #e0e3e8;
+  --sa-on-surface: #181c20;
+  --sa-on-surface-variant: #42474b;
+  --sa-inverse-surface: #2d3135;
+  --sa-inverse-on-surface: #eef1f6;
+  --sa-outline: #73787c;
+  --sa-outline-variant: #c2c7cb;
+  --sa-background: #f7f9ff;
+  --sa-on-background: #181c20;
+  --sa-surface-variant: #e0e3e8;
 
-  /* ---- Primary: Lapis Lazuli ---- */
-  --sa-primary: #26548b;
+  /* ---- Primary (teal-slate) ---- */
+  --sa-primary: #49626f;
   --sa-on-primary: #ffffff;
-  --sa-primary-container: #d6e3f5;
-  --sa-on-primary-container: #17395e;
-  --sa-inverse-primary: #a8c7eb;
-  --sa-primary-fixed: #d6e3f5;
-  --sa-primary-fixed-dim: #a8c7eb;
-  --sa-on-primary-fixed: #081a2e;
-  --sa-on-primary-fixed-variant: #1f4771;
+  --sa-primary-container: #bdd7e7;
+  --sa-on-primary-container: #465e6c;
+  --sa-inverse-primary: #b0cada;
+  --sa-primary-fixed: #cce6f7;
+  --sa-primary-fixed-dim: #b0cada;
+  --sa-on-primary-fixed: #031e2a;
+  --sa-on-primary-fixed-variant: #314a57;
 
-  /* ---- Secondary: Verdigris ---- */
-  --sa-secondary: #257a6c;
+  /* ---- Secondary (sage) ---- */
+  --sa-secondary: #4d6452;
   --sa-on-secondary: #ffffff;
-  --sa-secondary-container: #cfeae3;
-  --sa-on-secondary-container: #0f4a40;
-  --sa-secondary-fixed: #cfeae3;
-  --sa-secondary-fixed-dim: #9fd3c6;
-  --sa-on-secondary-fixed: #032420;
-  --sa-on-secondary-fixed-variant: #16463d;
+  --sa-secondary-container: #d0e9d2;
+  --sa-on-secondary-container: #536a58;
+  --sa-secondary-fixed: #d0e9d2;
+  --sa-secondary-fixed-dim: #b4cdb7;
+  --sa-on-secondary-fixed: #0b2012;
+  --sa-on-secondary-fixed-variant: #364c3b;
 
-  /* ---- Tertiary: Amethyst ---- */
-  --sa-tertiary: #7a4f86;
+  /* ---- Tertiary (lavender) ---- */
+  --sa-tertiary: #665a71;
   --sa-on-tertiary: #ffffff;
-  --sa-tertiary-container: #edddf2;
-  --sa-on-tertiary-container: #4a2e54;
-  --sa-tertiary-fixed: #edddf2;
-  --sa-tertiary-fixed-dim: #cfaeda;
-  --sa-on-tertiary-fixed: #2c1732;
-  --sa-on-tertiary-fixed-variant: #573a61;
+  --sa-tertiary-container: #ddcde9;
+  --sa-on-tertiary-container: #62566e;
+  --sa-tertiary-fixed: #eddcf9;
+  --sa-tertiary-fixed-dim: #d0c1dc;
+  --sa-on-tertiary-fixed: #21172c;
+  --sa-on-tertiary-fixed-variant: #4e4259;
 
-  /* ---- Error: Vermillion (manuscript rubric red) ---- */
-  --sa-error: #b23a2e;
+  /* ---- Error (rose) ---- */
+  --sa-error: #ba1a1a;
   --sa-on-error: #ffffff;
-  --sa-error-container: #f9d9d3;
-  --sa-on-error-container: #6e1b12;
+  --sa-error-container: #ffdad6;
+  --sa-on-error-container: #93000a;
 
   /* ---- Radius ---- */
   --sa-radius-sm: 0.25rem;   /* 4px  — annotation pills, radical badges */
@@ -109,8 +99,8 @@
   --sa-text-caption: 12px;       --sa-leading-caption: 16px;
 
   /* ---- Shadows (flat system; use only for elevated overlays) ---- */
-  --sa-shadow-sm: 0 1px 2px rgba(33, 30, 26, 0.06), 0 1px 1px rgba(33, 30, 26, 0.04);
-  --sa-shadow-md: 0 4px 12px rgba(33, 30, 26, 0.10);
+  --sa-shadow-sm: 0 1px 2px rgba(24, 28, 32, 0.06), 0 1px 1px rgba(24, 28, 32, 0.04);
+  --sa-shadow-md: 0 4px 12px rgba(24, 28, 32, 0.10);
 
   /* ---- Layout ---- */
   --sa-sidebar-width: 16rem; /* 256px */
