@@ -1,7 +1,7 @@
 """Persistence boundary for vocab_research_studies / vocab_research_participants.
 
 Pure CRUD only - no policy decisions (those live in
-domain/vocabulary/research_policy.py). Every function takes an already-open
+domain/research/policy.py). Every function takes an already-open
 connection so the caller controls the transaction boundary.
 """
 from typing import Optional
@@ -275,7 +275,7 @@ def upsert_research_bkt_state(db, *, student_id: str, study_id: str, states: lis
 
 def find_retention_states(db, student_id: str, study_id: str, word_ids: Optional[list[str]] = None) -> dict:
     """word_id -> raw retention_state row for this student's study (Epic 5,
-    Task 5.1). Kept as raw rows here - domain/vocabulary/research_retention.py
+    Task 5.1). Kept as raw rows here - domain/research/retention.py
     and analytics/srs.py's SrsState own the typed conversion, matching how
     repositories/srs_store.py keeps persistence and algorithm separate."""
     if word_ids is not None:

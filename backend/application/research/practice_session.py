@@ -16,11 +16,11 @@ from datetime import datetime, timezone
 
 from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint
 from analytics.learner_model.bkt.mastery import get_treatment_vocabulary_mastery
-from application.research_logging import record_policy_event
-from application.vocabulary_research import get_research_context
-from domain.vocabulary.research_assignment import BktPolicy, CONDITION_POLICIES, RetentionPolicy, condition_for_policies
-from domain.vocabulary.research_practice import allocate_slots, select_bkt_ranked, select_mastery_blind
-from repositories import vocabulary_research as repo
+from application.research.logging import record_policy_event
+from application.research.response_routing import get_research_context
+from domain.research.assignment import BktPolicy, CONDITION_POLICIES, RetentionPolicy, condition_for_policies
+from domain.research.practice import allocate_slots, select_bkt_ranked, select_mastery_blind
+from repositories import research as repo
 
 
 # The plan's own worked example (Task 4.5: "2 slots per condition out of 8").

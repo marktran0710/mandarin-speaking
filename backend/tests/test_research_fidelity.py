@@ -4,9 +4,9 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 import db
-from application.research_fidelity import ResearchStudyNotFoundError, build_admin_summary, build_fidelity_summary
-from application.research_logging import record_policy_event
-from repositories import vocabulary_research as repo
+from application.research.fidelity import ResearchStudyNotFoundError, build_admin_summary, build_fidelity_summary
+from application.research.logging import record_policy_event
+from repositories import research as repo
 
 NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 

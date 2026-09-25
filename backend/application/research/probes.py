@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from application.research_logging import condition_label, record_policy_event
-from domain.vocabulary.research_probes import PROBE_TYPES, due_at_for_probe_type, partition_probe_pool
-from repositories import vocabulary_research as repo
+from application.research.logging import condition_label, record_policy_event
+from domain.research.probes import PROBE_TYPES, due_at_for_probe_type, partition_probe_pool
+from repositories import research as repo
 
 
 class ResearchProbeUnavailableError(Exception):
@@ -71,7 +71,7 @@ def build_due_probes(db, student_id: str) -> dict:
     """Task 7.5: which of this student's probes are due and unanswered
     right now. Student-safe shape only: word, question content, and choices
     - never probe_type, study_id, or the correct answer (Task 7.6)."""
-    from application.vocabulary_research import get_research_context
+    from application.research.response_routing import get_research_context
 
     context = get_research_context(db, student_id)
     if not context.active or not context.study_id:

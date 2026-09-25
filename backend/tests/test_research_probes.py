@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 import db
-from application.research_probes import (
+from application.research.probes import (
     PROBE_TYPES,
     ResearchProbeAssignmentNotFoundError,
     ResearchProbeUnavailableError,
@@ -12,7 +12,7 @@ from application.research_probes import (
     enroll_section_probes,
     submit_probe_response,
 )
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 def _create_study(study_id: str, status: str = "active") -> None:

@@ -5,7 +5,7 @@ submitted response never comes back with correctness feedback (Task 7.6)."""
 from datetime import datetime, timedelta, timezone
 
 import db
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 NOW = datetime.now(timezone.utc)
 

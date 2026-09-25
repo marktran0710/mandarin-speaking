@@ -3,8 +3,8 @@ import pytest
 from psycopg.types.json import Jsonb
 
 import db
-from application.research_practice_session import ResearchPracticeUnavailableError, build_practice_session
-from repositories import vocabulary_research as repo
+from application.research.practice_session import ResearchPracticeUnavailableError, build_practice_session
+from repositories import research as repo
 
 
 def _create_study(study_id: str, status: str = "active", practice_budget: int = 8) -> None:

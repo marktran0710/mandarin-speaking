@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from domain.vocabulary.research_assignment import (
+from domain.research.assignment import (
     AssignmentCondition,
     CONDITION_POLICIES,
     assign_conditions_for_student,
@@ -23,7 +23,7 @@ from domain.vocabulary.research_assignment import (
     sequence_for_roster_position,
     yoke_pairs_for_student,
 )
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 DEFAULT_RELATED_VOCAB_CSV = Path(__file__).resolve().parents[1] / "research_related_vocab.csv"
 

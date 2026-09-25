@@ -2,16 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 
 import security.auth as auth
 from api.schemas.models import ResearchProbeResponseRequest
-from application.research_practice_session import ResearchPracticeUnavailableError, build_practice_session
-from application.research_probes import (
+from application.research.practice_session import ResearchPracticeUnavailableError, build_practice_session
+from application.research.probes import (
     ResearchProbeAssignmentNotFoundError,
     ResearchProbeUnavailableError,
     build_due_probes,
     submit_probe_response,
 )
-from application.research_fidelity import ResearchStudyNotFoundError, build_admin_summary
-from application.research_retention import ResearchReviewUnavailableError, build_review_session
-from application.vocabulary_research import get_research_context
+from application.research.fidelity import ResearchStudyNotFoundError, build_admin_summary
+from application.research.retention import ResearchReviewUnavailableError, build_review_session
+from application.research.response_routing import get_research_context
 from db import connect_db
 
 router = APIRouter()

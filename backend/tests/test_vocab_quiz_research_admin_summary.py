@@ -1,8 +1,8 @@
 """GET /api/research/vocabulary/admin/summary (Epic 8, Task 8.3/8.4) - admin
 only, and its response shape/values."""
 import db
-from application.research_logging import record_policy_event
-from repositories import vocabulary_research as repo
+from application.research.logging import record_policy_event
+from repositories import research as repo
 
 
 def _insert_study(study_id: str, status: str = "active") -> None:

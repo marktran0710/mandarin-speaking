@@ -21,9 +21,9 @@ from analytics.learner_model.srs import (
     review,
     should_advance,
 )
-from application.research_logging import condition_label, record_policy_event
-from domain.vocabulary.research_retention import initial_enrollment_state, mirror_yoked_state
-from repositories import vocabulary_research as repo
+from application.research.logging import condition_label, record_policy_event
+from domain.research.retention import initial_enrollment_state, mirror_yoked_state
+from repositories import research as repo
 
 
 class ResearchReviewUnavailableError(Exception):
@@ -207,7 +207,7 @@ def build_review_session(db, student_id: str) -> dict:
     """Task 5.7: which words are due right now for this research
     participant, from vocab_research_retention_state only - never production's
     SM-2 queue. A yoked word's due-ness is whatever its last mirror set it to."""
-    from application.vocabulary_research import get_research_context
+    from application.research.response_routing import get_research_context
 
     context = get_research_context(db, student_id)
     if not context.active or not context.study_id:

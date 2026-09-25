@@ -1,8 +1,8 @@
 """GET /api/research/vocabulary/review-session - auth gating, the 409 for a
 non-participant, and that the response never leaks study_id/condition."""
 import db
-from application.research_retention import enroll_section_retention
-from repositories import vocabulary_research as repo
+from application.research.retention import enroll_section_retention
+from repositories import research as repo
 
 
 def _insert_study(study_id: str, status: str = "active") -> None:

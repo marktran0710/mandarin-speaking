@@ -15,7 +15,7 @@ replaying/fetching treatment BKT state for mastery-blind words.
 """
 from __future__ import annotations
 
-from domain.vocabulary.research_assignment import AssignmentCondition
+from domain.research.assignment import AssignmentCondition
 
 
 # Fixed, deterministic order used only to decide which conditions absorb the

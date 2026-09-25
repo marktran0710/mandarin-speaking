@@ -13,9 +13,9 @@ run unless --force is passed, and even --force is blocked once frozen.
 
 Examples::
 
-    python -m scripts.build_research_assignments --study-id pilot-2026
-    python -m scripts.build_research_assignments --study-id pilot-2026 --force
-    python -m scripts.build_research_assignments --study-id pilot-2026 --lesson-min 5 --lesson-max 8
+    python -m scripts.research.build_assignments --study-id pilot-2026
+    python -m scripts.research.build_assignments --study-id pilot-2026 --force
+    python -m scripts.research.build_assignments --study-id pilot-2026 --lesson-min 5 --lesson-max 8
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from application.research_assignment_builder import (  # noqa: E402
+from application.research.assignment_builder import (  # noqa: E402
     AssignmentsAlreadyExistError,
     StudyFrozenError,
     build_assignments_for_study,
@@ -72,7 +72,7 @@ def main() -> None:
         print(
             f"WARNING: {result.unyoked_word_count} yoked-condition words had no matching "
             "adaptive-condition word to yoke to (uneven word count) - run "
-            "scripts.audit_research_assignments before treating this run as final."
+            "scripts.research.audit_assignments before treating this run as final."
         )
 
 

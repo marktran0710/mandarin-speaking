@@ -1,7 +1,7 @@
 """GET /api/research/vocabulary/context - auth gating, safe-field shape,
 and that it reflects real vocab_research_participants/studies rows."""
 import db
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 def _insert_study(study_id: str, status: str, config: dict | None = None) -> None:

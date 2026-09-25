@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import db
-from application.research_retention import enroll_section_retention
-from application.vocabulary_research import apply_response_routing, enroll_research_retention_for_attempt
-from domain.vocabulary.research_policy import build_research_context
-from repositories import vocabulary_research as repo
+from application.research.retention import enroll_section_retention
+from application.research.response_routing import apply_response_routing, enroll_research_retention_for_attempt
+from domain.research.policy import build_research_context
+from repositories import research as repo
 
 
 INACTIVE = build_research_context(

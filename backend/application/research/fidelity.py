@@ -5,8 +5,8 @@ Read-only - never writes anything, unlike research_logging.py.
 """
 from __future__ import annotations
 
-from application.research_assignment_audit import audit_assignments_for_study
-from repositories import vocabulary_research as repo
+from application.research.assignment_audit import audit_assignments_for_study
+from repositories import research as repo
 
 
 class ResearchStudyNotFoundError(Exception):

@@ -28,7 +28,7 @@ from routers.teachers import router as teachers_router
 from routers.submissions import router as submissions_router
 from routers.tones import router as tones_router
 from routers.vocab_quiz import router as vocab_quiz_router
-from routers.vocab_quiz_research import router as vocab_quiz_research_router
+from routers.research import router as vocab_quiz_research_router
 from routers.frontend import router as frontend_router
 
 

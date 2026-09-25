@@ -24,8 +24,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from domain.vocabulary.research_assignment import BktPolicy, RetentionPolicy, condition_for_policies
-from repositories import vocabulary_research as repo
+from domain.research.assignment import BktPolicy, RetentionPolicy, condition_for_policies
+from repositories import research as repo
 
 POLICY_EVENT_TYPES = (
     "assignment_loaded",

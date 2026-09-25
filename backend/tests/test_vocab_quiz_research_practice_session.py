@@ -1,7 +1,7 @@
 """POST /api/research/vocabulary/practice-session - auth gating, the 409 for
 a non-participant, and that the response never leaks study_id/condition."""
 import db
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 def _insert_study(study_id: str, status: str, practice_budget: int = 4) -> None:

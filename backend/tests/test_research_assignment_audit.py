@@ -2,9 +2,9 @@
 actually detects each kind of problem it claims to, not just that it runs
 without crashing on well-formed data."""
 import db
-from application.research_assignment_audit import audit_assignments_for_study
-from application.research_assignment_builder import build_assignments_for_study
-from repositories import vocabulary_research as repo
+from application.research.assignment_audit import audit_assignments_for_study
+from application.research.assignment_builder import build_assignments_for_study
+from repositories import research as repo
 from psycopg.types.json import Jsonb
 
 

@@ -1,7 +1,7 @@
 """Epic 6, Task 6.1: pure activity-routing policy."""
 import pytest
 
-from domain.vocabulary.research_routing import (
+from domain.research.routing import (
     ResearchActivityType,
     activity_type_for_mode,
     route_research_response,

@@ -4,13 +4,13 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 import db
-from application.research_retention import (
+from application.research.retention import (
     ResearchReviewUnavailableError,
     apply_retention_review,
     build_review_session,
     enroll_section_retention,
 )
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 def _create_study(study_id: str, status: str = "active") -> None:

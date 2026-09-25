@@ -1,11 +1,11 @@
 """Read-only balance/integrity report for a research study's item
 assignments (Epic 2, Task 2.5). Never modifies data - run this after every
-scripts.build_research_assignments run and before freezing a study.
+scripts.research.build_assignments run and before freezing a study.
 
 Examples::
 
-    python -m scripts.audit_research_assignments --study-id pilot-2026
-    python -m scripts.audit_research_assignments --study-id pilot-2026 --fail-on-violations
+    python -m scripts.research.audit_assignments --study-id pilot-2026
+    python -m scripts.research.audit_assignments --study-id pilot-2026 --fail-on-violations
 
 Exit code is 1 when --fail-on-violations is passed and the report is not
 clean (missing assignments, duplicates, related-set violations, or unyoked
@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from application.research_assignment_audit import audit_assignments_for_study  # noqa: E402
+from application.research.assignment_audit import audit_assignments_for_study  # noqa: E402
 from db import connect_db  # noqa: E402
 
 

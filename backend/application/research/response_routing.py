@@ -14,12 +14,12 @@ from typing import Any, Iterable, Optional
 from analytics.learner_model.bkt.mastery import diagnostic_status
 from analytics.learner_model.srs import DAY_SECONDS
 from analytics.learner_model.srs_store import apply_srs_updates
-from application.research_logging import record_policy_event
-from application.research_probes import enroll_section_probes
-from application.research_retention import apply_retention_review, enroll_section_retention
-from domain.vocabulary.research_policy import ResearchContext, build_research_context
-from domain.vocabulary.research_routing import ResearchActivityType, activity_type_for_mode, route_research_response
-from repositories import vocabulary_research as repo
+from application.research.logging import record_policy_event
+from application.research.probes import enroll_section_probes
+from application.research.retention import apply_retention_review, enroll_section_retention
+from domain.research.policy import ResearchContext, build_research_context
+from domain.research.routing import ResearchActivityType, activity_type_for_mode, route_research_response
+from repositories import research as repo
 
 
 def get_research_context(db, student_id: str) -> ResearchContext:

@@ -1,6 +1,6 @@
 """Epic 4, Task 4.5/4.6/4.7: pure practice-session selection math."""
-from domain.vocabulary.research_assignment import AssignmentCondition, BktPolicy, RetentionPolicy, condition_for_policies
-from domain.vocabulary.research_practice import allocate_slots, select_bkt_ranked, select_mastery_blind
+from domain.research.assignment import AssignmentCondition, BktPolicy, RetentionPolicy, condition_for_policies
+from domain.research.practice import allocate_slots, select_bkt_ranked, select_mastery_blind
 
 
 def test_condition_for_policies_matches_the_2x2_design():

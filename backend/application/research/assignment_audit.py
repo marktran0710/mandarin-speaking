@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 @dataclass

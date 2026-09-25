@@ -1,5 +1,5 @@
 """Pure unit tests for domain/vocabulary/research_policy.py - no database."""
-from domain.vocabulary.research_policy import (
+from domain.research.policy import (
     VocabularyProgressionPolicy,
     build_research_context,
 )

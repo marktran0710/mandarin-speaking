@@ -3,12 +3,12 @@ import pytest
 from psycopg.types.json import Jsonb
 
 import db
-from application.research_assignment_builder import (
+from application.research.assignment_builder import (
     AssignmentsAlreadyExistError,
     StudyFrozenError,
     build_assignments_for_study,
 )
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 def _publish_story(story_id: str, lesson_number: int, word_ids: list[str]) -> None:

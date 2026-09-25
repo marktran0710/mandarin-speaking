@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 
 from analytics.learner_model.srs import DAY_SECONDS, SrsState
-from domain.vocabulary.research_retention import initial_enrollment_state, mirror_yoked_state
+from domain.research.retention import initial_enrollment_state, mirror_yoked_state
 
 
 def test_initial_enrollment_state_gives_a_one_day_interval():

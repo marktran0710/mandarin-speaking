@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 import pytest
 
 import db
-from application.research_logging import condition_label, record_policy_event
-from repositories import vocabulary_research as repo
+from application.research.logging import condition_label, record_policy_event
+from repositories import research as repo
 
 NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 

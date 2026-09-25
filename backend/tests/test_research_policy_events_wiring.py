@@ -5,10 +5,10 @@ covered by each feature's own test file)."""
 from datetime import datetime, timedelta, timezone
 
 import db
-from application.research_practice_session import build_practice_session
-from application.research_probes import enroll_section_probes, submit_probe_response
-from application.research_retention import apply_retention_review, enroll_section_retention
-from repositories import vocabulary_research as repo
+from application.research.practice_session import build_practice_session
+from application.research.probes import enroll_section_probes, submit_probe_response
+from application.research.retention import apply_retention_review, enroll_section_retention
+from repositories import research as repo
 
 NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
@@ -117,8 +117,8 @@ class TestRetentionEvents:
         assert yoked[0]["payload_json"]["sourceWordId"] == "word-source"
 
     def test_logs_review_completed_via_the_response_routing_orchestrator(self):
-        from application.vocabulary_research import apply_response_routing
-        from domain.vocabulary.research_policy import build_research_context
+        from application.research.response_routing import apply_response_routing
+        from domain.research.policy import build_research_context
         from types import SimpleNamespace
 
         study_id = "study-events-review-completed"

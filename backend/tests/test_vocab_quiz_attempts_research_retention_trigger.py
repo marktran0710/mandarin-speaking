@@ -5,7 +5,7 @@ NOT enroll (or touch production student_vocab_srs) for a non-participant."""
 from psycopg.types.json import Jsonb
 
 import db
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 _MODE_LEVEL = {"tier1": "easy", "tier2": "medium", "tier3": "hard"}

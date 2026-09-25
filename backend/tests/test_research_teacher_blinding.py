@@ -4,8 +4,8 @@ active research participant with real assignment/event data. The teacher
 still sees participation, lesson progress, and quiz attempts - just never
 C/BKT/SRS/BS or the underlying policy vocabulary."""
 import db
-from application.research_logging import record_policy_event
-from repositories import vocabulary_research as repo
+from application.research.logging import record_policy_event
+from repositories import research as repo
 
 # Task 10.4's own forbidden list, checked here at the teacher-facing surface
 # rather than waiting for that later Epic's UI sweep.

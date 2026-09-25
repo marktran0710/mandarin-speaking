@@ -1,7 +1,7 @@
 """Epic 7, Task 7.3/7.7: pure probe-pool partitioning and due-date rules."""
 from datetime import datetime, timedelta, timezone
 
-from domain.vocabulary.research_probes import (
+from domain.research.probes import (
     PROBE_TYPES,
     due_at_for_probe_type,
     is_probe_due,

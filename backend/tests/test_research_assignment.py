@@ -1,5 +1,5 @@
 """Pure unit tests for domain/vocabulary/research_assignment.py - no database."""
-from domain.vocabulary.research_assignment import (
+from domain.research.assignment import (
     AssignmentCondition,
     AssignmentUnit,
     CONDITION_POLICIES,
@@ -28,7 +28,7 @@ def test_roster_position_cycles_through_all_four_sequences_evenly():
 
 
 def test_each_sequence_visits_every_condition_exactly_once_per_cycle():
-    from domain.vocabulary.research_assignment import COUNTERBALANCE_SEQUENCES
+    from domain.research.assignment import COUNTERBALANCE_SEQUENCES
 
     for sequence in COUNTERBALANCE_SEQUENCES.values():
         assert set(sequence) == set(AssignmentCondition)
@@ -84,7 +84,7 @@ def test_two_students_on_different_sequences_get_the_same_related_set_in_differe
 
 
 def test_yoke_pairs_positionally_pair_control_with_srs_and_bkt_with_bkt_srs():
-    from domain.vocabulary.research_assignment import WordAssignment
+    from domain.research.assignment import WordAssignment
 
     assignments = [
         WordAssignment("c1", AssignmentCondition.CONTROL, None),
@@ -99,7 +99,7 @@ def test_yoke_pairs_positionally_pair_control_with_srs_and_bkt_with_bkt_srs():
 
 
 def test_yoke_pairs_leaves_excess_yoked_words_unpaired_rather_than_guessing():
-    from domain.vocabulary.research_assignment import WordAssignment
+    from domain.research.assignment import WordAssignment
 
     assignments = [
         WordAssignment("c1", AssignmentCondition.CONTROL, None),

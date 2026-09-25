@@ -1,7 +1,7 @@
 """Epic 3, Task 3.4: POST /api/vocab-quiz-attempts stamps the real,
 server-resolved progression policy - never trusts the client for it."""
 import db
-from repositories import vocabulary_research as repo
+from repositories import research as repo
 
 
 def _attempt(attempt_id: str, story_id: str = "story-1") -> dict:

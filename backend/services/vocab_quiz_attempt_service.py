@@ -12,7 +12,7 @@ from uuid import uuid4
 from analytics.learner_model.bkt.assessment_resolver import resolve_assessment_response
 from analytics.learner_model.bkt.mastery import get_vocabulary_mastery, record_attempt_and_rebuild
 from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words
-from application.vocabulary_research import (
+from application.research.response_routing import (
     apply_response_routing,
     enroll_research_probes_for_attempt,
     enroll_research_retention_for_attempt,
