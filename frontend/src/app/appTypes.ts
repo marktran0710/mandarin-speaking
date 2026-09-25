@@ -1,4 +1,4 @@
-import type { SpeechModel } from "../components/story-recorder/StoryRecorder";
+import type { StudentAudioRecord } from "@entities/audio";
 import type { Page } from "../types/page";
 
 /** Was exported by the deleted pages/StudentWorkspacePage. StudentApp owns
@@ -6,35 +6,8 @@ import type { Page } from "../types/page";
  * encoding appNavigation.ts still reads when restoring a saved page. */
 export type StudentWorkspaceView = "practice" | "progress";
 
-export interface AudioRecord {
-  id: string;
-  audioBlob: Blob;
-  timestamp: string;
-  duration: number;
-  transcription: string;
-  model: SpeechModel;
-  praatMetrics?: any;
-  topicId?: string;
-  studentId?: string | null;
-  imageUrl?: string;
-  imageIndex?: number;
-  conversationId?: string;
-  turnId?: string;
-  turnIndex?: number;
-  audioUrl?: string;
-  audioName?: string;
-  analysisVersion?: "stable_v1";
-  analysisSchemaVersion?: string;
-  modelVersion?: string;
-  comparisonGroupId?: string;
-  sessionId?: string;
-  attemptId?: string;
-  attemptNumber?: number;
-  attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
-  /** Set when the server already persisted this stable analysis. */
-  serverVerified?: boolean;
-  serverRecordId?: string;
-}
+/** @deprecated Import StudentAudioRecord from @entities/audio. */
+export type AudioRecord = StudentAudioRecord;
 
 export interface PracticeTarget {
   topicId: string;

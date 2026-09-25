@@ -6,7 +6,7 @@
 // its output for a read-only preview screen, plus a best-effort per-word
 // audio lookup topicQuizEntries itself doesn't carry.
 
-import { topicQuizEntries, type QuizSourceTopic } from "./topicQuiz";
+import { topicQuizEntries, type QuizSourceTopic } from "@entities/vocabulary";
 
 export interface SpeakingVocabularyPreviewItem {
   wordId: string;

@@ -1,11 +1,11 @@
 import { useId } from "react";
 import PitchChart from "../pitch/PitchChart";
-import { resolveImageUrl } from "../../utils/teacherStories";
+import { resolveImageUrl } from "@entities/story";
 import { BiLabel } from "../ui/BiLabel";
 import { getToneName, getTopicLabel, formatContourShape } from "../../utils/myStoriesUtils";
-import type { AudioRecord } from "../../types/audioRecord";
+import type { AudioRecord } from "@entities/audio";
 import type { WordProsody } from "../story-recorder/StoryRecorder";
-import VoiceFeedbackReliabilityNotice from "../student/VoiceFeedbackReliabilityNotice";
+import VoiceFeedbackReliabilityNotice from "../../shared/ui/VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";
 
 export default function RecordCard({

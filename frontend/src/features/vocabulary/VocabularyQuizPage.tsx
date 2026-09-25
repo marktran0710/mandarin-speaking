@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Topic } from "../../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import {
   type VocabQuizEntry,
   type VocabQuizMode,

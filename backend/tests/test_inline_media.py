@@ -123,22 +123,22 @@ class TestResolveMediaB64:
 
 
 class TestInlineMediaEndpoint:
-    def test_resolves_local_upload(self, client, uploaded_image):
-        response = client.get(
+    def test_resolves_local_upload(self, admin_client, uploaded_image):
+        response = admin_client.get(
             "/api/inline-media", params={"url": "/uploads/images/sample.png"}
         )
         assert response.status_code == 200
         body = response.json()
         assert body["dataUrl"].startswith("data:image/png;base64,")
 
-    def test_404_for_missing_file(self, client, uploaded_image):
-        response = client.get(
+    def test_404_for_missing_file(self, admin_client, uploaded_image):
+        response = admin_client.get(
             "/api/inline-media", params={"url": "/uploads/images/nope.png"}
         )
         assert response.status_code == 404
 
-    def test_404_for_path_traversal(self, client, uploaded_image):
-        response = client.get(
+    def test_404_for_path_traversal(self, admin_client, uploaded_image):
+        response = admin_client.get(
             "/api/inline-media", params={"url": "/uploads/../../etc/passwd"}
         )
         assert response.status_code == 404

@@ -1,6 +1,6 @@
 import type { VocabQuizAttempt } from "../services/database";
-import { loadPublishedTeacherTopics } from "./teacherStories";
-import type { AudioRecord } from "../types/audioRecord";
+import { loadPublishedTeacherTopics } from "@entities/story";
+import type { AudioRecord } from "@entities/audio";
 import type { CustomStoryValidationErrors } from "../components/teacher/StoryBuilderSection";
 
 export function getStudentTopics() {

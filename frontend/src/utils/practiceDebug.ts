@@ -1,4 +1,4 @@
-import type { AudioRecord } from "../types/audioRecord";
+import type { AudioRecord } from "@entities/audio";
 
 export type DebugAttemptSource = "runtime" | "recorded" | "sample";
 

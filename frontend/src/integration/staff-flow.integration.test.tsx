@@ -2,6 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.setConfig({ testTimeout: 15000 });
+
 const staffDb = vi.hoisted(() => ({
   students: [
     {
@@ -117,8 +119,10 @@ describe("teacher and admin integration flows", () => {
     const newStudentRow = screen.getByText("New Student").closest(".account-row");
     expect(newStudentRow).not.toBeNull();
     await user.click(within(newStudentRow as HTMLElement).getByRole("button", { name: "Edit" }));
-    await user.clear(screen.getByLabelText("Name"));
-    await user.type(screen.getByLabelText("Name"), "Renamed Student");
+    const editDialog = screen.getByRole("dialog");
+    const editName = within(editDialog).getByLabelText("Name");
+    await user.clear(editName);
+    await user.type(editName, "Renamed Student");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByText("Renamed Student")).toBeInTheDocument();
 

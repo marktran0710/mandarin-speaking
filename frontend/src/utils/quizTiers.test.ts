@@ -8,7 +8,7 @@ import {
   nextStarGap,
   loadLocalStars,
   recordLocalStars,
-} from "./quizTiers";
+} from "@entities/vocabulary";
 
 describe("TIER_CONFIGS", () => {
   it("defines the three star tiers with dynamic pass ratios", () => {
@@ -129,7 +129,7 @@ describe("isTierUnlocked", () => {
 
 describe("starsByStory", () => {
   it("derives each story's stars from a mixed attempt history", async () => {
-    const { starsByStory } = await import("./quizTiers");
+    const { starsByStory } = await import("@entities/vocabulary");
     expect(
       starsByStory([
         { storyId: "a", mode: "tier1", correctCount: 15, totalQuestions: 20 },
@@ -150,7 +150,7 @@ describe("practiceUnlocked", () => {
   });
 
   it("uses contiguous tiers per story", async () => {
-    const { starsByStory } = await import("./quizTiers");
+    const { starsByStory } = await import("@entities/vocabulary");
     expect(
       starsByStory([
         { storyId: "skipped", mode: "tier3", correctCount: 25, totalQuestions: 25 },

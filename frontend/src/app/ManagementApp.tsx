@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminApp from "./AdminApp";
 import TeacherApp from "./TeacherApp";
-import LoginPage from "../pages/LoginPage";
+import LoginPage from "../features/auth/LoginPage";
 import { loginAdmin } from "../services/database";
 import { currentRole } from "../utils/session";
 import "../styles/management-login.css";

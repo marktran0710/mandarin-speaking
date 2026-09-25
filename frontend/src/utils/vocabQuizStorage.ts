@@ -1,5 +1,5 @@
 import { getStudentScopeKey } from "./studentSession";
-import { loadLocalStars, practiceUnlocked } from "./quizTiers";
+import { loadLocalStars, practiceUnlocked } from "@entities/vocabulary";
 
 export const VOCAB_QUIZ_COMPLETED_KEY = "vocabQuizCompletedStoryIds";
 

@@ -1,4 +1,4 @@
-import type { Topic } from "../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,

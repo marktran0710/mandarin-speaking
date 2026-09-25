@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import HomePage from "../pages/HomePage";
+import HomePage from "../features/home/HomePage";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
 
-import StudentLoginPage from "../pages/StudentLoginPage";
+import StudentLoginPage from "../features/auth/StudentLoginPage";
 import Navigation from "../components/navigation/Navigation";
 import {
   getStudentName,
@@ -23,15 +23,15 @@ import {
   serializeAudioRecord,
   updateStoredAudioRecord,
   writeAudioRecordsCache,
-} from "../helpers/audioRecords";
+} from "@entities/audio";
 import {
   publishedTopicsFromStories,
   saveCustomStories,
-} from "../utils/teacherStories";
-import type { Topic } from "../components/content/topic-selector/types";
+} from "@entities/story";
+import type { Topic } from "@entities/topic";
 import { primePinyin } from "../utils/pinyin";
 import type { Page } from "../types/page";
-import StudentApp from "../student/StudentApp";
+import StudentApp from "./student/StudentApp";
 import { replaceHistorySnapshot } from "../utils/studentHistory";
 
 const STUDENT_APP_HISTORY_KEY = "mandarinApp";
@@ -257,7 +257,7 @@ export default function App() {
       }`}
     >
       {/* The student workspace carries its own left rail (StudentSidebar),
-          which already holds the section switch and identity,
+          which already holds the section switch, identity, dark mode and
           log out — rendering this top bar as well would put those same
           actions on screen twice. The rail stays fixed through a practice
           session too (the running story's own navigation lives in a header

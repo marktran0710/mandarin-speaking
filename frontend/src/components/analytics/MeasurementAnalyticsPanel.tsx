@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import DashboardStat from "./DashboardStat";
 import { summarizeMeasurements, type MeasurementEvent } from "../../utils/measurement";
 import { calibrateItems, type IrtItem, type IrtResponse } from "../../utils/irt";
-import type { AudioRecord } from "../../types/audioRecord";
+import type { AudioRecord } from "@entities/audio";
 import "./MeasurementAnalyticsPanel.css";
 
 export default function MeasurementAnalyticsPanel({

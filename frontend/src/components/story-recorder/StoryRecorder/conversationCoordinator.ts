@@ -1,7 +1,7 @@
 import {
   normalizeConversationTurns,
   type ConversationTurn,
-} from "./conversation";
+} from "@entities/conversation";
 
 export type ConversationStep = "system" | "student" | "selfEval" | "feedback" | "summary";
 

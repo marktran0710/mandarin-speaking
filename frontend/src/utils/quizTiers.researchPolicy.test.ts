@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const { getCachedResearchContext } = vi.hoisted(() => ({ getCachedResearchContext: vi.fn() }));
 vi.mock("./researchContext", () => ({ getCachedResearchContext }));
 
-import { attemptEarnsStar, effectiveTimeLimitMs, starsFromAttempts } from "./quizTiers";
+import { attemptEarnsStar, effectiveTimeLimitMs, starsFromAttempts } from "@entities/vocabulary";
 
 function mockPolicy(coreCompletionPolicy: "production_accuracy" | "research_coverage") {
   getCachedResearchContext.mockReturnValue({

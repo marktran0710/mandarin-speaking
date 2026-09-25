@@ -1,7 +1,6 @@
-import type { Topic } from "../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import { isAdminSession } from "./studentSession";
-import { loadLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
-import { topicHasQuiz } from "./topicQuiz";
+import { loadLocalStars, PRACTICE_UNLOCK_STARS, topicHasQuiz } from "@entities/vocabulary";
 
 /** The lesson picker is the table of contents of 時代華語 第一冊 (Modern
  * Chinese Book 1) — the textbook every story in this app is grounded in.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { topicQuizEntries, type QuizSourceTopic } from "./topicQuiz";
+import { topicQuizEntries, type QuizSourceTopic } from "@entities/vocabulary";
 import { speakingVocabularyItems } from "./speakingVocabulary";
 
 const makeTopic = (overrides: Partial<QuizSourceTopic> = {}): QuizSourceTopic & { vocabulary: Record<number, string[]> } => ({

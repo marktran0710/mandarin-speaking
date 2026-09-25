@@ -18,12 +18,12 @@ export {
   vocabTooltip,
 } from "./StoryRecorder/storyContent";
 
-export { normalizeConversationTurns } from "./StoryRecorder/conversation";
+export { normalizeConversationTurns } from "@entities/conversation";
 
 export type {
   ConversationSpeaker,
   ConversationTurn,
-} from "./StoryRecorder/conversation";
+} from "@entities/conversation";
 
 export {
   createConversationState,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Topic } from "../../../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import type { VocabQuizMode } from "@entities/vocabulary";
 import { topicQuizEntries } from "@entities/vocabulary";
 import { getStudentId, getStudentName } from "../../../utils/studentSession";

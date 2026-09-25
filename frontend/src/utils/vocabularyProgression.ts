@@ -15,11 +15,11 @@
  * Epic 3's job) - calling it throws rather than silently returning
  * plausible-looking but wrong data.
  */
-import type { Topic } from "../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import { isStoryFinished, type StarsForTopic } from "./lessonGroups";
-import { PRACTICE_UNLOCK_STARS, loadLocalStars, practiceUnlocked } from "./quizTiers";
+import { PRACTICE_UNLOCK_STARS, loadLocalStars, practiceUnlocked } from "@entities/vocabulary";
 import { loadSubmittedStoryIds } from "./storyLevelProgress";
-import { topicHasQuiz } from "./topicQuiz";
+import { topicHasQuiz } from "@entities/vocabulary";
 
 export type VocabularyProgressionPolicy = "production_accuracy" | "research_coverage";
 

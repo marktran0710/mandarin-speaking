@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeConversationTurns } from "./conversation";
+import { normalizeConversationTurns } from "@entities/conversation";
 
 describe("normalizeConversationTurns", () => {
   it("returns a copied valid alternating conversation", () => {

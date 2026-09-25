@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import TeacherDashboardPage from "../pages/TeacherDashboardPage";
-import type { TeacherView } from "../pages/TeacherDashboardPage";
-import LoginPage from "../pages/LoginPage";
+import TeacherDashboardPage from "../features/teacher/TeacherDashboardPage";
+import type { TeacherView } from "../features/teacher/TeacherDashboardPage";
+import LoginPage from "../features/auth/LoginPage";
 import Navigation from "../components/navigation/Navigation";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
 import { currentRole, signOut } from "../utils/session";
