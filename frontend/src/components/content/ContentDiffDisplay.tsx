@@ -1,6 +1,6 @@
 import type { ContentDiffSegment } from "../story-recorder/StoryRecorder";
 import StudentIcon from "../navigation/StudentIcon";
-import { BiLabel } from "../ui/BiLabel";
+import { BiLabel } from "@shared/ui";
 
 /**
  * Always renders the same two-line-plus-status shape (Target / You said /

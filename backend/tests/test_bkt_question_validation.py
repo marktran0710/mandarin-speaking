@@ -1,9 +1,9 @@
-from analytics.bkt_question_validation import (
+from analytics.learner_model.bkt.question_validation import (
     classify_bkt_response,
     validate_bkt_diagnostic_design,
     validate_vocabulary_question,
 )
-from analytics.knowledge_tracing import normalize_vocab_attempts
+from analytics.learner_model.knowledge_tracing import normalize_vocab_attempts
 
 
 def question(**over):

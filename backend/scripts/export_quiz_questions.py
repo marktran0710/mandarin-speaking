@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db import connect_db  # noqa: E402
 
 
-DEFAULT_TIERS = ("easy",)
-ALL_TIERS = ("easy", "medium", "hard")
+DEFAULT_TIERS = ("tier1",)
+ALL_TIERS = ("tier1", "tier2", "tier3")
 
 CSV_FIELDS = (
     "story_id", "story_title", "published", "lesson_number", "lesson_sub_order",
@@ -80,11 +80,19 @@ def _validation_record(story: dict[str, Any], question: dict[str, Any], errors: 
 
 
 def _canonical_question(story: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:
+    round_number = item.get("round")
+    try:
+        round_number = int(round_number)
+    except (TypeError, ValueError):
+        round_number = None
+    tier = _text(item.get("tier"))
+    if not tier and round_number in {1, 2, 3}:
+        tier = f"tier{round_number}"
     return {
         "story_id": story.get("id", ""), "story_title": story.get("title", ""),
         "published": bool(story.get("published")), "lesson_number": story.get("lesson_number") or "",
         "lesson_sub_order": story.get("lesson_sub_order") or "",
-        "tier": _text(item.get("level") or item.get("tier")), "frame_index": "", "word_index": "",
+        "tier": tier, "frame_index": "", "word_index": "",
         "word": _text(item.get("targetWord") or item.get("target_word") or item.get("wordId") or item.get("word_id")),
         "question_type": _text(item.get("questionType") or item.get("question_type")),
         "prompt": _text(item.get("prompt") or item.get("questionPrompt")),

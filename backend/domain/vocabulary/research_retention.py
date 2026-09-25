@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from analytics.srs import INITIAL_EASE, FIRST_INTERVAL_DAYS, SrsState
+from analytics.learner_model.srs import INITIAL_EASE, FIRST_INTERVAL_DAYS, SrsState
 
 
 def initial_enrollment_state(now: datetime, day_seconds: float) -> SrsState:

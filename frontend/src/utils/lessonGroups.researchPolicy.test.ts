@@ -11,9 +11,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const { getCachedResearchContext } = vi.hoisted(() => ({ getCachedResearchContext: vi.fn() }));
 vi.mock("./researchContext", () => ({ getCachedResearchContext }));
 
-import { attemptEarnsStar, recordLocalStars } from "./quizTiers";
+import { attemptEarnsStar, recordLocalStars } from "@entities/vocabulary";
 import { isStoryFinished, isLessonGroupUnlocked, lessonCompletion } from "./lessonGroups";
-import type { Topic } from "../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 
 function topic(id: string, lessonNumber: number): Topic {
   return {

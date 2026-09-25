@@ -1,7 +1,6 @@
-import type { Topic } from "../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import { isAdminSession } from "./studentSession";
-import { loadLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
-import { topicHasQuiz } from "./topicQuiz";
+import { loadLocalStars, PRACTICE_UNLOCK_STARS, topicHasQuiz } from "@entities/vocabulary";
 
 /** The lesson picker is the table of contents of 時代華語 第一冊 (Modern
  * Chinese Book 1) — the textbook every story in this app is grounded in.
@@ -176,4 +175,54 @@ export function isStoryUnlockedInLesson(
   const previous = group.topics[indexInGroup - 1];
   if (!previous) return true;
   return isStoryFinished(previous, submittedStoryIds, starsFor);
+}
+
+/** The topic right after `topic` in the same flattened book-order sequence
+ * groupTopicsByLesson produces (numbered lessons ascending, then 其他) — or
+ * null when `topic` is the last one. Ignores lock state; the caller (the
+ * Completion screen) decides whether the suggestion is actually reachable
+ * yet via computeStudyRowStatuses. */
+export function nextTopicInSequence(topics: Topic[], topic: Pick<Topic, "id" | "sourceStory">): Topic | null {
+  const flattened = groupTopicsByLesson(topics).flatMap((group) => group.topics);
+  const currentId = topicStoryId(topic);
+  const index = flattened.findIndex((candidate) => topicStoryId(candidate) === currentId);
+  if (index === -1) return null;
+  return flattened[index + 1] ?? null;
+}
+
+export type StudyRowStatus = "completed" | "in-progress" | "not-started" | "locked";
+
+/** Per-story row status for the Study lesson picker: the single source of
+ * truth for lock/current/done state, combining lesson-level and in-lesson
+ * sequential locks with submission + star completion. "in-progress" is the
+ * first row a student can actually act on — the picker highlights exactly
+ * one such row (the rest are either finished, locked, or waiting their
+ * turn). Presentational-only fields (e.g. this session's phase-strip
+ * flags) are layered on by the caller, not this pure gating function. */
+export function computeStudyRowStatuses(
+  topics: Topic[],
+  submittedStoryIds: ReadonlySet<string>,
+  starsFor: StarsForTopic = localStarsForTopic,
+): Record<string, StudyRowStatus> {
+  const statusByStoryId: Record<string, StudyRowStatus> = {};
+  const groups = groupTopicsByLesson(topics);
+  let currentTopicFound = false;
+  groups.forEach((group, groupIndex) => {
+    const groupUnlocked = isLessonGroupUnlocked(groups, groupIndex, submittedStoryIds, starsFor);
+    group.topics.forEach((topic, topicIndex) => {
+      const id = topicStoryId(topic);
+      const finished = isStoryFinished(topic, submittedStoryIds, starsFor);
+      const unlocked = groupUnlocked && isStoryUnlockedInLesson(group, topicIndex, submittedStoryIds, starsFor);
+      const status: StudyRowStatus = finished
+        ? "completed"
+        : !unlocked
+          ? "locked"
+          : !currentTopicFound
+            ? "in-progress"
+            : "not-started";
+      if (status === "in-progress") currentTopicFound = true;
+      statusByStoryId[id] = status;
+    });
+  });
+  return statusByStoryId;
 }

@@ -27,6 +27,6 @@ def test_student_cannot_create_roster_account_without_staff_session(anonymous_cl
     assert response.status_code == 401
 
 
-def test_expensive_ai_mutation_rejects_anonymous_requests(anonymous_client):
+def test_removed_tts_endpoint_is_not_available(anonymous_client):
     response = anonymous_client.post("/api/tts", json={"text": "你好"})
-    assert response.status_code == 401
+    assert response.status_code == 405

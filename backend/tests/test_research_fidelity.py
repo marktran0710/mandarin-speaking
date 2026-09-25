@@ -77,7 +77,7 @@ class TestBuildFidelitySummary:
         study_id = "study-fidelity-delay"
         _create_study(study_id)
         with db.connect_db() as conn:
-            from analytics.srs import SrsState
+            from analytics.learner_model.srs import SrsState
 
             due_on = NOW
             answered_on = NOW + timedelta(days=2)

@@ -16,7 +16,6 @@ praat-parselmouth==0.4.7
 opencc-python-reimplemented==0.1.7
 jieba==0.42.1
 pypinyin==0.52.0
-edge-tts==7.2.8
 soundfile==0.14.0
 openpyxl==3.1.5
 # Optional ML/ASR models — ctwhisper's deps (transformers/torch/librosa) are

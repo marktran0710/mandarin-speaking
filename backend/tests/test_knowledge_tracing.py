@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from analytics.knowledge_tracing import (
+from analytics.learner_model.knowledge_tracing import (
     BKT,
     BKTParameters,
     PFA,
@@ -216,7 +216,7 @@ def test_bkt_fit_marks_optimizer_failure_and_evaluation_does_not_hide_it(monkeyp
     def failed_optimizer(*_args, **_kwargs):
         return SimpleNamespace(success=False, fun=1.0, x=[0.0, 0.0, 0.0, 0.0], message="iteration limit", nit=80)
 
-    monkeypatch.setattr("analytics.knowledge_tracing.minimize", failed_optimizer)
+    monkeypatch.setattr("analytics.learner_model.knowledge_tracing.minimize", failed_optimizer)
     initial = BKTParameters()
     fitted, diagnostics = fit_bkt_parameters([record(True, 0), record(False, 1)], initial=initial, include_diagnostics=True)
     assert fitted == initial
@@ -230,7 +230,7 @@ def test_bkt_fit_rejects_nonfinite_optimizer_output(monkeypatch):
     def nonfinite_optimizer(*_args, **_kwargs):
         return SimpleNamespace(success=True, fun=float("nan"), x=[float("nan")] * 4, message="invalid objective", nit=1)
 
-    monkeypatch.setattr("analytics.knowledge_tracing.minimize", nonfinite_optimizer)
+    monkeypatch.setattr("analytics.learner_model.knowledge_tracing.minimize", nonfinite_optimizer)
     initial = BKTParameters()
     fitted, diagnostics = fit_bkt_parameters([record(True, 0)], initial=initial, include_diagnostics=True)
     assert fitted == initial
@@ -239,7 +239,7 @@ def test_bkt_fit_rejects_nonfinite_optimizer_output(monkeypatch):
 
 
 def test_analytics_pilot_constraints_do_not_change_production_bkt_defaults():
-    from analytics.bkt import BKT_CONFIG
+    from analytics.learner_model.bkt.core import BKT_CONFIG
 
     assert (BKT_CONFIG.initial_mastery, BKT_CONFIG.learn_rate, BKT_CONFIG.guess_rate, BKT_CONFIG.slip_rate) == (0.2, 0.15, 0.2, 0.1)
 

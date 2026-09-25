@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
-from analytics.srs import (
+from analytics.learner_model.srs import (
     DAY_SECONDS,
     SRS_ALGORITHM_VERSION,
     SrsState,

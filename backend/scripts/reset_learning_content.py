@@ -40,7 +40,6 @@ from services.content_reset import (  # noqa: E402
 QUIZ_TABLES = (
     "vocab_quiz_attempts",
     "vocab_quiz_responses",
-    "vocab_quiz_irt_cache",
 )
 
 DEPENDENT_TABLES = (
@@ -321,13 +320,20 @@ def _delete_dependent_state(db: Any) -> dict[str, int]:
 
 def _quiz_like_unknown_tables(db: Any) -> list[str]:
     known = set(QUIZ_TABLES) | {"custom_stories"}
-    return sorted(
+    candidates = sorted(
         table
         for table in _public_tables(db)
         if table not in known
         and not table.startswith("vocab_research_")
         and ("quiz" in table.casefold() or "assessment" in table.casefold())
     )
+    # Empty compatibility/retired tables do not contain reset scope. Only a
+    # table with live rows needs an explicit audit before a destructive reset.
+    return [
+        table
+        for table in candidates
+        if _count(db, table) > 0
+    ]
 
 
 def _snapshot_counts(db: Any, *, preserve_research: bool = True) -> dict[str, int]:
@@ -359,7 +365,6 @@ def _snapshot_counts(db: Any, *, preserve_research: bool = True) -> dict[str, in
         "bkt_mastery": _count(db, "student_vocab_mastery"),
         "srs_states": _count(db, "student_vocab_srs"),
         "srs_events": _count(db, "student_vocab_srs_events"),
-        "irt_cache": _count(db, "vocab_quiz_irt_cache"),
         "speaking_progress": _count(db, "speaking_progress"),
         "learning_measurement_events": _count(db, "learning_measurement_events"),
         "students": _count(db, "students"),
@@ -390,7 +395,7 @@ def _verify(
         raise RuntimeError(f"Story image files disappeared during cleanup: {missing_images[:5]}")
 
     remaining = _snapshot_counts(db)
-    if remove_quiz and any(remaining[key] for key in ("quiz_questions", "quiz_attempts", "quiz_responses", "irt_cache")):
+    if remove_quiz and any(remaining[key] for key in ("quiz_questions", "quiz_attempts", "quiz_responses")):
         raise RuntimeError(f"Quiz reset verification failed: {remaining}")
     if remove_audio and any(remaining[key] for key in ("audio_records", "content_audio_references", "audio_media_assets")):
         raise RuntimeError(f"Audio reset verification failed: {remaining}")

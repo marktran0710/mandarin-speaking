@@ -5,12 +5,12 @@ import {
   quizQuestionAnswer,
   quizQuestionExposure,
   visibleTextContainsAnswer,
-} from "./quizSessionPlanner";
+} from "@entities/vocabulary";
 import {
   buildQuizQuestion,
   type VocabQuizEntry,
   type VocabQuizQuestion,
-} from "../components/story-vocab-quiz/model";
+} from "@entities/vocabulary";
 
 afterEach(() => {
   vi.restoreAllMocks();

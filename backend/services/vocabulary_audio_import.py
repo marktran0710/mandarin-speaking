@@ -28,6 +28,21 @@ import services.media as media_service
 
 AUDIO_EXTENSIONS = frozenset({".mp3", ".wav", ".m4a", ".webm", ".ogg"})
 MAX_ARCHIVE_BYTES = 200 * 1024 * 1024
+SAMPLE_WORD_KEY = "C5-5-1-I1-W001"
+SAMPLE_AUDIO_FILENAME = f"{SAMPLE_WORD_KEY}.mp3"
+SAMPLE_AUDIO_CONTENT = b"Mapping-only sample audio. Replace this file with a real recording.\n"
+
+
+def build_vocabulary_audio_sample() -> bytes:
+    """Build the intentionally non-production ZIP used to demonstrate mapping.
+
+    The sample is structural rather than a Mandarin pronunciation recording.
+    Its filename is the contract: the stem must equal the workbook Word Key.
+    """
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
+        archive.writestr(SAMPLE_AUDIO_FILENAME, SAMPLE_AUDIO_CONTENT)
+    return buffer.getvalue()
 
 
 def _archive_assets(content: bytes) -> tuple[list[dict[str, Any]], list[str]]:
@@ -102,6 +117,31 @@ def _word_locations(db: Any) -> dict[str, list[dict[str, Any]]]:
     return locations
 
 
+def _assessment_audio_urls(assessment: list[dict[str, Any]]) -> set[str]:
+    return {
+        question["audioUrl"]
+        for question in assessment
+        if isinstance(question, dict)
+        and isinstance(question.get("audioUrl"), str)
+        and question["audioUrl"].startswith("/uploads/")
+    }
+
+
+def _remove_unreferenced_audio(db: Any, candidates: set[str]) -> None:
+    if not candidates:
+        return
+    rows = db.execute(
+        "SELECT vocab_assessment FROM custom_stories WHERE vocab_assessment IS NOT NULL"
+    ).fetchall()
+    referenced: set[str] = set()
+    for row in rows:
+        assessment = row.get("vocab_assessment")
+        if isinstance(assessment, list):
+            referenced.update(_assessment_audio_urls(assessment))
+    for url in candidates - referenced:
+        media_service.remove_uploaded_file(url)
+
+
 def _match_assets(db: Any, assets: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
     locations = _word_locations(db)
     matched: list[dict[str, Any]] = []
@@ -173,7 +213,7 @@ def apply_vocabulary_audio_import(db: Any, content: bytes) -> dict[str, Any]:
         grouped[asset["storyId"]].append(asset)
 
     written_urls: list[str] = []
-    old_urls: list[str] = []
+    old_urls: set[str] = set()
     try:
         for story_id, story_assets in grouped.items():
             row = db.execute(
@@ -195,7 +235,7 @@ def apply_vocabulary_audio_import(db: Any, content: bytes) -> dict[str, Any]:
                 for question in questions:
                     old_url = question.get("audioUrl")
                     if isinstance(old_url, str) and old_url.startswith("/uploads/"):
-                        old_urls.append(old_url)
+                        old_urls.add(old_url)
                     question["audioUrl"] = url
             db.execute(
                 "UPDATE custom_stories SET vocab_assessment = %s::jsonb WHERE id = %s",
@@ -206,13 +246,12 @@ def apply_vocabulary_audio_import(db: Any, content: bytes) -> dict[str, Any]:
             media_service.remove_uploaded_file(url)
         raise
 
-    for old_url in old_urls:
-        if old_url not in written_urls:
-            media_service.remove_uploaded_file(old_url)
+    _remove_unreferenced_audio(db, old_urls)
 
     return {
         "files": len(assets),
         "updated": len(matched),
         "unmatched": unmatched,
+        "unmatchedAudio": unmatched,
         "stories": sorted({asset["storyTitle"] for asset in matched}),
     }

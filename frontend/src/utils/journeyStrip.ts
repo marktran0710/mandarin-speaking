@@ -1,4 +1,4 @@
-import { attemptEarnsStar, nextStarGap, type QuizTier } from "./quizTiers";
+import { attemptEarnsStar, nextStarGap, type QuizTier } from "@entities/vocabulary";
 
 // The journey strip's one motivational slot (see the student-shell design
 // in memory): near-miss first — a story the student almost earned a star on

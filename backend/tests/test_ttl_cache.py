@@ -1,6 +1,6 @@
 """Unit tests for the analytics TTL memo cache (no DB, no app)."""
 
-from analytics.ttl_cache import TTLCache
+from analytics.learner_model.ttl_cache import TTLCache
 
 
 class FakeClock:

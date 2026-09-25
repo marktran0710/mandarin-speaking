@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { topicHasQuiz, topicQuizEntries } from "./topicQuiz";
+import { topicHasQuiz, topicQuizEntries } from "@entities/vocabulary";
 
 const question = (overrides: Record<string, unknown> = {}) => ({
   questionId: "bed-easy",

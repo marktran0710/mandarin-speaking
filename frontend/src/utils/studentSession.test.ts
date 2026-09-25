@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { getStudentName, isAdminSession } from "./studentSession";
-import { isTierUnlocked, practiceUnlocked } from "./quizTiers";
+import { isTierUnlocked, practiceUnlocked } from "@entities/vocabulary";
 import { sceneReady } from "./storyRecorderFeedback";
 import { signIn, signOut } from "./session";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessmentAnswerIsCorrect, type VocabQuizAssessmentQuestion } from "./model";
+import { assessmentAnswerIsCorrect, type VocabQuizAssessmentQuestion } from "@entities/vocabulary";
 
 /** Build a minimal assessment question of a given questionType + accepted answers. */
 function question(

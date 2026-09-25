@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
+import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 import type { VocabularyProgressionPolicy } from "../../utils/vocabularyProgression";
 
 /** Student-safe shape only - see backend/routers/vocab_quiz_research.py.

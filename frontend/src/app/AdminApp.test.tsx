@@ -3,15 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import AdminApp from "./AdminApp";
 import ManagementShell from "../components/management/ManagementShell";
-import { SESSION_EXPIRED_EVENT } from "../services/api/client";
+import { SESSION_EXPIRED_EVENT } from "@shared/api/client";
 
-vi.mock("../pages/TeacherPracticeDebugPage", () => ({
+vi.mock("../features/teacher/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,
 }));
-vi.mock("../pages/AdminAudioLibraryPage", () => ({
+vi.mock("../features/admin/AdminAudioLibraryPage", () => ({
   default: () => <p>Audio library content</p>,
 }));
-vi.mock("../pages/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
+vi.mock("../features/admin/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
 
 describe("admin-only diagnostic navigation", () => {
   beforeEach(() => {

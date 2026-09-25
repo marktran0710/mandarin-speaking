@@ -122,6 +122,57 @@ def _current_workbook_questions():
     return parse_vocab_assessment_csv(output.getvalue())
 
 
+def _questions():
+    rows = []
+    for index, word in enumerate(WORDS, start=1):
+        word_id = f"MC1_{index:03d}"
+        for round_number in (1, 2, 3):
+            is_pinyin = round_number == 2
+            correct_answer = f"word{index}" if is_pinyin else (word if round_number == 3 else f"meaning {index}")
+            accepted = [correct_answer]
+            if word_id == "MC1_003" and round_number == 3:
+                accepted.append("?芸?")
+            question_type = {1: "basic_meaning_mcq", 2: "character_to_pinyin_typing", 3: "context_cloze_mcq"}[round_number]
+            rows.append({
+                "question_id": f"{word_id}_R{round_number}",
+                "word_id": word_id,
+                "target_word": word,
+                "pinyin": f"word{index}",
+                "pos": "N",
+                "simple_english_meaning": f"meaning {index}",
+                "round": str(round_number),
+                "question_type": question_type,
+                "answer_format": "free_text" if is_pinyin else "single_choice",
+                "prompt": "Type the pinyin." if is_pinyin else ("Complete the sentence." if round_number == 3 else "Choose the best answer."),
+                "options_json": json.dumps([] if is_pinyin else [correct_answer, "wrong one", "wrong two", "wrong three"], ensure_ascii=False),
+                "correct_answer": correct_answer,
+                "accepted_answers_json": json.dumps(accepted, ensure_ascii=False),
+                "explanation": "Assessment explanation.",
+            })
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+    writer.writeheader()
+    writer.writerows(rows)
+    return parse_vocab_assessment_csv(output.getvalue())
+
+
+def _replace_csv_value(questions, *, question_id, field, value):
+    rows = [dict(question.raw) for question in questions]
+    for row in rows:
+        if row["question_id"] == question_id:
+            row[field] = value
+            break
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+    writer.writeheader()
+    writer.writerows(rows)
+    return parse_vocab_assessment_csv(output.getvalue())
+
+
+def _current_workbook_questions():
+    return _questions()
+
+
 def test_parser_builds_the_fixed_three_level_assessment():
     questions = _questions()
 
@@ -131,18 +182,18 @@ def test_parser_builds_the_fixed_three_level_assessment():
     assert questions[0].accepted_answers == ("meaning 1",)
     items = build_vocabulary_items(questions)
     assert len(items) == 15
-    assert [question.level for question in items[0].observations] == ["Easy", "Medium", "Hard"]
-    assert items[0].observation_for("hard").question_id == "MC1_001_HARD"
+    assert [question.round for question in items[0].observations] == [1, 2, 3]
+    assert items[0].observation_for(3).question_id == "MC1_001_R3"
 
 
 def test_ba_has_all_three_question_shapes_and_hard_has_no_options():
     questions = _questions()
     ba = [question for question in questions if question.word_id == "MC1_015"]
 
-    assert [question.question_id for question in ba] == ["MC1_015_EASY", "MC1_015_MEDIUM", "MC1_015_HARD"]
-    assert ba[0].answer_format == ba[1].answer_format == "single_choice"
-    assert ba[2].answer_format == "free_text"
-    assert ba[2].options == ()
+    assert [question.question_id for question in ba] == ["MC1_015_R1", "MC1_015_R2", "MC1_015_R3"]
+    assert ba[0].answer_format == ba[2].answer_format == "single_choice"
+    assert ba[1].answer_format == "free_text"
+    assert ba[1].options == ()
 
 
 def test_current_workbook_round_shapes_are_valid():
@@ -150,33 +201,33 @@ def test_current_workbook_round_shapes_are_valid():
 
     assert validate_vocab_assessment(questions) == []
     sample = [question for question in questions if question.word_id == "MC1_001"]
-    assert [(question.level, question.question_type, question.answer_format) for question in sample] == [
-        ("Easy", "basic_meaning_mcq", "single_choice"),
-        ("Medium", "character_to_pinyin_typing", "free_text"),
-        ("Hard", "context_cloze_mcq", "single_choice"),
+    assert [(question.round, question.question_type, question.answer_format) for question in sample] == [
+        (1, "basic_meaning_mcq", "single_choice"),
+        (2, "character_to_pinyin_typing", "free_text"),
+        (3, "context_cloze_mcq", "single_choice"),
     ]
 
 
 def test_question_type_cannot_be_used_at_the_wrong_round_or_with_wrong_input_mode():
     wrong_level = _replace_csv_value(
         _current_workbook_questions(),
-        question_id="MC1_001_MEDIUM",
+        question_id="MC1_001_R2",
         field="question_type",
-        value="productive_recall",
+        value="basic_meaning_mcq",
     )
     wrong_format = _replace_csv_value(
         _current_workbook_questions(),
-        question_id="MC1_001_HARD",
+        question_id="MC1_001_R3",
         field="answer_format",
         value="free_text",
     )
 
-    assert "INVALID_QUESTION_TYPE" in {issue.code for issue in validate_vocab_assessment(wrong_level)}
+    assert "INVALID_QUESTION_TYPE_FOR_ROUND" in {issue.code for issue in validate_vocab_assessment(wrong_level)}
     assert "INVALID_ANSWER_FORMAT" in {issue.code for issue in validate_vocab_assessment(wrong_format)}
 
 
 def test_alternative_traditional_answers_and_presentation_normalization_are_accepted():
-    hard_where = next(question for question in _questions() if question.question_id == "MC1_003_HARD")
+    hard_where = next(question for question in _questions() if question.question_id == "MC1_003_R3")
 
     assert answer_is_accepted(hard_where, "哪兒")
     assert answer_is_accepted(hard_where, "  哪裡！ ")
@@ -195,9 +246,9 @@ def test_mcq_options_and_free_text_rules_are_validated():
 
 
 def test_question_type_matches_each_assessment_level():
-    questions = _replace_csv_value(_questions(), question_id="MC1_001_MEDIUM", field="question_type", value="basic_meaning_mcq")
+    questions = _replace_csv_value(_questions(), question_id="MC1_001_R2", field="question_type", value="basic_meaning_mcq")
 
-    assert "INVALID_QUESTION_TYPE" in {issue.code for issue in validate_vocab_assessment(questions)}
+    assert "INVALID_QUESTION_TYPE_FOR_ROUND" in {issue.code for issue in validate_vocab_assessment(questions)}
 
 
 def test_simplified_chinese_is_rejected_without_converting_the_source():
@@ -233,8 +284,8 @@ def test_api_payload_validation_keeps_the_same_contract_as_csv_import():
         "pinyin": question.pinyin,
         "pos": question.part_of_speech,
         "simpleEnglishMeaning": question.simple_english_meaning,
-        "level": question.level.casefold(),
-        "difficultyWeight": question.difficulty_weight,
+        "round": question.round,
+        "tier": question.tier,
         "questionType": question.question_type,
         "answerFormat": question.answer_format,
         "prompt": question.prompt,
@@ -245,8 +296,67 @@ def test_api_payload_validation_keeps_the_same_contract_as_csv_import():
     } for question in _questions()]
 
     assert validate_assessment_payload(payload) == []
-    payload[1]["questionId"] = "wrong-id"
+    payload[1]["questionId"] = ""
     assert "INVALID_QUESTION_ID" in {issue.code for issue in validate_assessment_payload(payload)}
-    payload[1]["questionId"] = "MC1_001_MEDIUM"
+    payload[1]["questionId"] = "MC1_001_R2"
     payload[1]["options"] = ["valid", 123]
     assert "PAYLOAD_OPTIONS_INVALID" in {issue.code for issue in validate_assessment_payload(payload)}
+
+
+# Canonical numeric-round replacements for the historical assertions above.
+def test_mcq_options_and_free_text_rules_are_validated():
+    questions = _questions()
+    bad_mcq = _replace_csv_value(questions, question_id="MC1_001_R1", field="options_json", value='["wallet / purse", "school"]')
+    bad_typed = _replace_csv_value(questions, question_id="MC1_001_R2", field="options_json", value='["wallet / purse"]')
+    assert "INVALID_MCQ_OPTIONS" in {issue.code for issue in validate_vocab_assessment(bad_mcq)}
+    assert "FREE_TEXT_HAS_OPTIONS" in {issue.code for issue in validate_vocab_assessment(bad_typed)}
+
+
+def test_question_type_matches_each_assessment_round():
+    questions = _replace_csv_value(_questions(), question_id="MC1_001_R2", field="question_type", value="basic_meaning_mcq")
+    assert "INVALID_QUESTION_TYPE_FOR_ROUND" in {issue.code for issue in validate_vocab_assessment(questions)}
+
+
+def test_simplified_chinese_is_rejected_without_converting_the_source():
+    simplified = _replace_csv_value(_questions(), question_id="MC1_001_R3", field="correct_answer", value="钱包")
+    assert "SIMPLIFIED_CHINESE" in {issue.code for issue in validate_vocab_assessment(simplified)}
+
+
+def test_question_ids_and_option_shuffles_are_deterministic_and_complete():
+    question = next(question for question in _questions() if question.question_id == "MC1_007_R2")
+    assert question.question_id == "MC1_007_R2"
+    assert shuffled_options(question, seed="student-7") == shuffled_options(question, seed="student-7")
+    assert set(shuffled_options(question, seed="student-7")) == set(question.options)
+
+
+def test_api_payload_validation_keeps_the_numeric_round_contract():
+    payload = [{
+        "questionId": question.question_id,
+        "wordId": question.word_id,
+        "targetWord": question.target_word,
+        "pinyin": question.pinyin,
+        "pos": question.part_of_speech,
+        "simpleEnglishMeaning": question.simple_english_meaning,
+        "round": question.round,
+        "tier": question.tier,
+        "questionType": question.question_type,
+        "answerFormat": question.answer_format,
+        "prompt": question.prompt,
+        "options": list(question.options),
+        "correctAnswer": question.correct_answer,
+        "acceptedAnswers": list(question.accepted_answers),
+        "explanation": question.explanation,
+    } for question in _questions()]
+    assert validate_assessment_payload(payload) == []
+    payload[1]["questionId"] = "MC1_001_MEDIUM"
+    assert "LEGACY_QUESTION_ID" in {issue.code for issue in validate_assessment_payload(payload)}
+    payload[1]["questionId"] = "MC1_001_R2"
+    payload[1]["options"] = ["valid", 123]
+    assert "PAYLOAD_OPTIONS_INVALID" in {issue.code for issue in validate_assessment_payload(payload)}
+
+
+def test_alternative_traditional_answers_and_presentation_normalization_are_accepted():
+    hard_where = next(question for question in _questions() if question.question_id == "MC1_003_R3")
+    assert answer_is_accepted(hard_where, hard_where.accepted_answers[0])
+    assert normalize_answer(f" {hard_where.accepted_answers[0]} ") == normalize_answer(hard_where.accepted_answers[0])
+    assert not answer_is_accepted(hard_where, "not-the-answer")

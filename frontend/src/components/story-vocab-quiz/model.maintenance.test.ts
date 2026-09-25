@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMaintenanceAssessmentQuestions, type VocabQuizEntry } from "./model";
+import { buildMaintenanceAssessmentQuestions, type VocabQuizEntry } from "@entities/vocabulary";
 
 function question(
   questionId: string,

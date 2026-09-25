@@ -1,0 +1,172 @@
+// @ts-nocheck
+import React, { useEffect, useRef, useState } from "react";
+import StoryBuilderFrameEditor from "./frameEditor";
+import StoryBuilderConversationEditor from "./conversationEditor";
+import VocabularyTable from "../VocabularyTable";
+import PhraseTable from "../PhraseTable";
+
+function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
+  return <>
+    <div className="teacher-form-grid">
+      <label className="teacher-field-span2">Story title
+        <input aria-invalid={Boolean(errors.title)} value={draft.title} onChange={(event) => onUpdateField("title", event.target.value)} placeholder="e.g. A Rainy Day at Taipei Station" />
+        {errors.title && <span className="teacher-form-error">{errors.title}</span>}
+      </label>
+      <label>Lesson number<input type="number" min={1} value={draft.lessonNumber} onChange={(event) => onUpdateField("lessonNumber", event.target.value)} placeholder="e.g. 3" /></label>
+      <label>Story order in lesson<input type="number" min={1} disabled={!draft.lessonNumber.trim()} value={draft.lessonSubOrder} onChange={(event) => onUpdateField("lessonSubOrder", event.target.value)} placeholder="e.g. 1 for 5-1, 2 for 5-2…" /></label>
+      <p className="teacher-form-note">Students must finish this story before the next order number in the same lesson unlocks. Leave blank to keep this story unordered — every story in the lesson needs an order number before locking applies to any of them.</p>
+      <label>Number of frames<input type="number" min={1} max={12} value={draft.imageUrls.easy.length} onChange={(event) => onUpdateFrameCount(Number(event.target.value) || 1)} /></label>
+    </div>
+    <div className="story-learning-launcher">
+      <div>
+        <strong>Story-wide vocabulary & phrases</strong>
+        <span>Shared across every scene in the selected level</span>
+      </div>
+      <button ref={learningContentTriggerRef} type="button" className="story-learning-open-btn" onClick={onOpenLearningContent}>
+        Edit learning content <span aria-hidden="true">↗</span>
+      </button>
+    </div>
+  </>;
+}
+
+function StoryStatusMessages({ errors, notice }) {
+  return <>
+    {errors.form && <div className="teacher-form-alert" role="alert">{errors.form}</div>}
+    {notice && <div className="teacher-form-success" role="status">{notice}</div>}
+  </>;
+}
+
+function StoryLearningContent({
+  draft,
+  onUpdateStoryVocabulary,
+  onUpdateStoryPhrases,
+  onClose,
+  closeButtonRef,
+}) {
+  const level = draft.activeLevel;
+  const [activePanel, setActivePanel] = useState("vocabulary");
+  const vocabulary = draft.storyVocabulary[level];
+  const phrases = draft.storyPhrases[level];
+  return <div className="story-learning-content" aria-labelledby="story-learning-content-title">
+    <div className="story-learning-content-header">
+      <div>
+        <h3 id="story-learning-content-title">Story-wide learning content</h3>
+        <p className="story-learning-content-description">Shared across every scene in the <strong>{level}</strong> version.</p>
+      </div>
+      <button ref={closeButtonRef} type="button" className="story-learning-close-btn" aria-label="Close learning content" onClick={onClose}>×</button>
+    </div>
+    <div className="story-learning-toolbar">
+      <div className="story-learning-tabs" role="tablist" aria-label="Learning content type">
+        <button type="button" role="tab" aria-selected={activePanel === "vocabulary"} className={activePanel === "vocabulary" ? "is-active" : ""} onClick={() => setActivePanel("vocabulary")}>Vocabulary</button>
+        <button type="button" role="tab" aria-selected={activePanel === "phrases"} className={activePanel === "phrases" ? "is-active" : ""} onClick={() => setActivePanel("phrases")}>Reusable phrases</button>
+      </div>
+      <span className="story-learning-toolbar-hint">Choose a list to edit</span>
+    </div>
+    <div className="story-learning-editor">
+      {activePanel === "vocabulary" ? <div className="story-learning-table-block" role="tabpanel">
+        <div className="story-learning-table-heading"><div><h4>Vocabulary</h4><span>Add one word per row</span></div><strong>4 fields per word</strong></div>
+        <VocabularyTable key={level} vocabulary={vocabulary.vocabulary}
+          vocabularyPinyin={vocabulary.vocabularyPinyin} vocabularyPos={vocabulary.vocabularyPos}
+          vocabularyTranslation={vocabulary.vocabularyTranslation}
+          onChangeColumn={onUpdateStoryVocabulary} />
+      </div> : <div className="story-learning-table-block" role="tabpanel">
+        <div className="story-learning-table-heading"><div><h4>Reusable phrases</h4><span>Add one reusable phrase per row</span></div><strong>2 fields per phrase</strong></div>
+        <PhraseTable key={level} phrases={phrases.phrases}
+          phrasesTranslation={phrases.phrasesTranslation}
+          onChangeColumn={onUpdateStoryPhrases} />
+      </div>}
+    </div>
+  </div>;
+}
+
+function StoryFormActionGroup({ preparedFrameCount, frameCount, editingStoryId, onCancel }) {
+  return <div className="teacher-builder-actions"><p>{preparedFrameCount}/{frameCount} frames prepared</p><div className="teacher-builder-buttons">
+    {editingStoryId && <button type="button" className="btn-cancel-custom-story" onClick={onCancel}>Cancel edit</button>}
+    <button type="submit" className="btn-save-custom-story">{editingStoryId ? "Update custom story" : "Save custom story"}</button>
+  </div></div>;
+}
+
+export default function StoryBuilderForm(props) {
+  const { draft, validationErrors, customStoryNotice, preparedFrameCount, editingStoryId,
+    onSave, onUpdateField, onUpdateFrameCount, onSetDraft, onCancel } = props;
+  const [learningContentOpen, setLearningContentOpen] = useState(false);
+  const [basicsOpen, setBasicsOpen] = useState(() => !editingStoryId);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const learningContentTriggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!learningContentOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = document.querySelector<HTMLElement>("[data-story-learning-dialog]");
+    const getFocusable = () => dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>("button, input, select, textarea, [tabindex]:not([tabindex='-1'])"))
+      : [];
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setLearningContentOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [learningContentOpen]);
+
+  useEffect(() => {
+    if (validationErrors.title) setBasicsOpen(true);
+  }, [validationErrors.title]);
+
+  useEffect(() => {
+    setBasicsOpen(!editingStoryId);
+  }, [editingStoryId]);
+
+  const closeLearningContent = () => {
+    setLearningContentOpen(false);
+    requestAnimationFrame(() => learningContentTriggerRef.current?.focus());
+  };
+
+  const hasBasicsContent = Boolean(draft.title.trim());
+  const toggleBasics = () => {
+    setBasicsOpen((open) => open ? hasBasicsContent ? false : open : true);
+  };
+
+  return <form className="custom-story-form" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
+    <section className="teacher-story-basics" aria-labelledby="teacher-story-basics-title">
+      <div className="teacher-story-basics-heading">
+        <div>
+          <h3 id="teacher-story-basics-title">Basics</h3>
+          {!basicsOpen && <p className="teacher-story-basics-summary">{draft.title.trim() || "Untitled story"} · Lesson {draft.lessonNumber || "—"} · Order {draft.lessonSubOrder || "—"} · {draft.imageUrls.easy.length} frame{draft.imageUrls.easy.length === 1 ? "" : "s"}</p>}
+        </div>
+        <button type="button" aria-expanded={basicsOpen} aria-controls="teacher-story-basics-content" onClick={toggleBasics}>{basicsOpen ? "Done" : "Edit"}</button>
+      </div>
+      <div id="teacher-story-basics-content" className="teacher-story-basics-content" hidden={!basicsOpen}>
+        <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} onOpenLearningContent={() => setLearningContentOpen(true)} learningContentTriggerRef={learningContentTriggerRef} />
+      </div>
+    </section>
+    <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} />
+    <StoryBuilderFrameEditor {...props} />
+    <StoryBuilderConversationEditor {...props} />
+    <StoryFormActionGroup preparedFrameCount={preparedFrameCount} frameCount={draft.imageUrls.easy.length} editingStoryId={editingStoryId} onCancel={onCancel} />
+    {learningContentOpen && <div className="story-learning-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeLearningContent(); }}>
+      <div className="story-learning-modal" data-story-learning-dialog role="dialog" aria-modal="true" aria-labelledby="story-learning-content-title" onMouseDown={(event) => event.stopPropagation()}>
+        <StoryLearningContent {...props} onClose={closeLearningContent} closeButtonRef={closeButtonRef} />
+      </div>
+    </div>}
+  </form>;
+}

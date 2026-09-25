@@ -1,13 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { fetchWithRetry } = vi.hoisted(() => ({ fetchWithRetry: vi.fn() }));
-
-vi.mock("./client", () => ({
-  BACKEND_URL: "http://backend.test",
-  fetchWithRetry,
+const { ApiRequestAbortedError, ApiRequestTimeoutError, fetchWithRetry } = vi.hoisted(() => ({
+  fetchWithRetry: vi.fn(),
+  ApiRequestTimeoutError: class ApiRequestTimeoutError extends Error {},
+  ApiRequestAbortedError: class ApiRequestAbortedError extends Error {},
 }));
 
-import { createQuizVocabularyWord, listVocabularyStories, type QuizVocabularyWordDraft } from "./vocabulary";
+vi.mock("@shared/api/client", () => ({
+  BACKEND_URL: "http://backend.test",
+  fetchWithRetry,
+  ApiRequestTimeoutError,
+  ApiRequestAbortedError,
+}));
+
+import { createQuizVocabularyWord, listVocabularyStories, previewVocabularyAudioImport, type QuizVocabularyWordDraft } from "./vocabulary";
 
 const draft: QuizVocabularyWordDraft = {
   targetWord: "bed",
@@ -44,5 +50,25 @@ describe("quiz vocabulary API errors", () => {
     fetchWithRetry.mockResolvedValue(new Response(JSON.stringify({ detail: "Administrator account required." }), { status: 403 }));
 
     await expect(listVocabularyStories()).rejects.toThrow("Could not load Speaking vocabulary (403). Administrator account required.");
+  });
+
+  it("uses the longer audio-import timeout", async () => {
+    fetchWithRetry.mockResolvedValue(new Response(JSON.stringify({ detail: "Audio import failed validation." }), { status: 422 }));
+
+    await expect(previewVocabularyAudioImport(new File(["zip"], "audio.zip", { type: "application/zip" })))
+      .rejects.toThrow("Audio import failed validation.");
+    expect(fetchWithRetry).toHaveBeenCalledWith(
+      "http://backend.test/api/admin/vocabulary-audio-import/preview",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+      1,
+      60_000,
+    );
+  });
+
+  it("turns an expired admin session into a clear audio-import error", async () => {
+    fetchWithRetry.mockResolvedValue(new Response(JSON.stringify({ detail: "Administrator account required." }), { status: 401 }));
+
+    await expect(previewVocabularyAudioImport(new File(["zip"], "audio.zip", { type: "application/zip" })))
+      .rejects.toThrow("Your admin session expired");
   });
 });

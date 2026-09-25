@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from analytics.bkt_calibration_store import run_calibration_candidate
+from analytics.learner_model.bkt.calibration_store import run_calibration_candidate
 from db import connect_db
 
 

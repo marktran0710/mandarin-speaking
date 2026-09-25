@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
+import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 
 export interface BktDebugStep {
   index: number;

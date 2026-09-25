@@ -17,9 +17,9 @@ def word_payload(*, target_word="桌子", word_id=None, suffix="one"):
         "pos": "N",
         "simpleEnglishMeaning": "desk",
         "questions": [
-            {"level": "Easy", "prompt": f"Easy {suffix}", "options": ["desk", "book", "door", "bed"],
+            {"round": 1, "prompt": f"Round 1 {suffix}", "options": ["desk", "book", "door", "bed"],
              "correctAnswer": "desk", "acceptedAnswers": ["desk"], "explanation": "Correct."},
-            {"level": "Medium", "prompt": f"Medium {suffix}: type the pinyin", "options": [],
+            {"round": 2, "prompt": f"Round 2 {suffix}: type the pinyin", "options": [],
              "correctAnswer": "zhuozi", "acceptedAnswers": ["zhuozi"], "explanation": "Correct."},
             {"level": "Hard", "prompt": f"Hard {suffix}: 這是___。", "options": ["桌子", "書", "門", "床"],
              "correctAnswer": "桌子", "acceptedAnswers": ["桌子"], "explanation": "Correct."},
@@ -71,30 +71,35 @@ def test_create_generates_stable_ids_and_only_updates_quiz_bank(api):
     questions = state["vocab_assessment"]
     word_id = questions[0]["wordId"]
     assert word_id.startswith("QUIZ_")
-    assert {question["questionId"] for question in questions} == {
-        f"{word_id}_EASY", f"{word_id}_MEDIUM", f"{word_id}_HARD"
-    }
+    assert len({question["questionId"] for question in questions}) == 3
+    assert all(question["questionId"].startswith("Q_") for question in questions)
+    assert [question["round"] for question in questions] == [1, 2, 3]
     assert [question["questionType"] for question in questions] == [
         "basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq"
     ]
     assert [question["answerFormat"] for question in questions] == [
         "single_choice", "free_text", "single_choice"
     ]
-    assert all(question["targetWord"] == "桌子" for question in response.json()["vocabAssessment"])
+    assert all(question["targetWord"] == questions[0]["targetWord"] for question in response.json()["vocabAssessment"])
     assert len([sql for sql in statements if sql.startswith("UPDATE")]) == 1
 
 
 def test_update_replaces_one_word_and_delete_allows_empty_bank(api):
     client, state, _ = api
     assert client.post("/api/custom-stories/book-story/quiz-vocabulary", json=word_payload(word_id="W1")).status_code == 200
+    for question in state["vocab_assessment"]:
+        question["audioUrl"] = f"/uploads/audio/{question['round']}.mp3"
     updated = word_payload(target_word="書", word_id="W1", suffix="two")
     updated["pinyin"] = "shū"
     updated["simpleEnglishMeaning"] = "book"
     updated["questions"][0].update({"options": ["book", "desk", "door", "bed"], "correctAnswer": "book", "acceptedAnswers": ["book"]})
     updated["questions"][1].update({"correctAnswer": "shu", "acceptedAnswers": ["shu"]})
-    updated["questions"][2].update({"correctAnswer": "書", "acceptedAnswers": ["書"]})
+    updated["questions"][2].update({"options": [updated["targetWord"], "one", "two", "three"], "correctAnswer": updated["targetWord"], "acceptedAnswers": [updated["targetWord"]]})
     assert client.put("/api/custom-stories/book-story/quiz-vocabulary/W1", json=updated).status_code == 200
     assert {question["targetWord"] for question in state["vocab_assessment"]} == {"書"}
+    assert {question["audioUrl"] for question in state["vocab_assessment"]} == {
+        "/uploads/audio/1.mp3", "/uploads/audio/2.mp3", "/uploads/audio/3.mp3"
+    }
     response = client.delete("/api/custom-stories/book-story/quiz-vocabulary/W1")
     assert response.status_code == 200
     assert state["vocab_assessment"] == []
@@ -142,3 +147,22 @@ def test_only_admin_can_change_quiz_bank(api, role):
     response = client.post("/api/custom-stories/book-story/quiz-vocabulary", json=word_payload())
     assert response.status_code in (401, 403)
     assert state["vocab_assessment"] == []
+
+
+# The editor now submits numeric rounds. Keep the legacy fixture above only
+# as historical documentation; all tests use the canonical request shape.
+def word_payload(*, target_word="獢?", word_id=None, suffix="one"):
+    payload = {
+        "targetWord": target_word,
+        "pinyin": "zhu?zi",
+        "pos": "N",
+        "simpleEnglishMeaning": "desk",
+        "questions": [
+            {"round": 1, "prompt": f"Round 1 {suffix}", "options": ["desk", "book", "door", "bed"], "correctAnswer": "desk", "acceptedAnswers": ["desk"], "explanation": "Correct."},
+            {"round": 2, "prompt": f"Round 2 {suffix}: type the pinyin", "options": [], "correctAnswer": "zhuozi", "acceptedAnswers": ["zhuozi"], "explanation": "Correct."},
+            {"round": 3, "prompt": f"Round 3 {suffix}: context", "options": ["word", "one", "two", "three"], "correctAnswer": "word", "acceptedAnswers": ["word"], "explanation": "Correct."},
+        ],
+    }
+    if word_id is not None:
+        payload["wordId"] = word_id
+    return payload

@@ -19,9 +19,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 import security.auth as auth
-from analytics.bkt import BKT_CONFIG
-from analytics.bkt_assessment_resolver import _published_assessment
-from analytics.bkt_mastery import (
+from analytics.learner_model.bkt.core import BKT_CONFIG
+from analytics.learner_model.bkt.assessment_resolver import _item_round, _published_assessment
+from analytics.learner_model.bkt.mastery import (
     mastery_trace_for_word,
     response_rows_for_attempt,
     upsert_raw_responses,
@@ -40,16 +40,16 @@ class BktDebugInjectRequest(BaseModel):
     pattern: str = Field(..., description="e.g. '1011010' - 1 = correct, 0 = incorrect, in order")
 
 
-def _find_easy_item(story_id: str, word_id: str) -> tuple[str, dict[str, Any]]:
+def _find_round_one_item(story_id: str, word_id: str) -> tuple[str, dict[str, Any]]:
     with connect_db() as db:
         published = _published_assessment(db, story_id)
     if published is None:
         raise HTTPException(status_code=404, detail="Story not found or not published.")
     canonical_id, assessment = published
     for item in assessment:
-        if item.get("wordId") == word_id and str(item.get("level") or "").casefold() == "easy":
+        if item.get("wordId") == word_id and _item_round(item) == 1:
             return canonical_id, item
-    raise HTTPException(status_code=404, detail="No tier1 (easy) assessment item for this word in this story.")
+    raise HTTPException(status_code=404, detail="No round 1 assessment item for this word in this story.")
 
 
 def _fake_result(item: dict[str, Any], word_id: str, correct: bool, exposure: int) -> dict[str, Any]:
@@ -57,11 +57,11 @@ def _fake_result(item: dict[str, Any], word_id: str, correct: bool, exposure: in
         "word": item.get("targetWord") or word_id,
         "conceptId": word_id,
         "correct": correct,
-        "level": "tier1",
+        "tier": "tier1",
+        "round": 1,
         "mode": "tier1",
         "itemId": f"bkt-debug-{word_id}-{exposure}",
         "questionKind": "basic_meaning_mcq",
-        "roundType": "know_it",
         "knowledgeDimension": "meaning",
         "activityType": "diagnostic",
         "isBktEligible": True,
@@ -79,7 +79,7 @@ async def inject_bkt_debug_responses(request: BktDebugInjectRequest) -> dict[str
     if not _PATTERN_RE.match(request.pattern):
         raise HTTPException(status_code=400, detail="Pattern must be 1-50 characters of 0/1 only.")
 
-    canonical_story_id, item = _find_easy_item(request.storyId, request.wordId)
+    canonical_story_id, item = _find_round_one_item(request.storyId, request.wordId)
     completed_at = "2026-01-01T00:00:00Z"
     results = [
         _fake_result(item, request.wordId, char == "1", exposure)

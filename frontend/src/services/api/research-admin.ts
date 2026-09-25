@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
+import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 
 /** Epic 8, Task 8.3/8.4: the one call the research admin page needs. Admin
  * only (backend/routers/vocab_quiz_research.py's admin/summary route) -

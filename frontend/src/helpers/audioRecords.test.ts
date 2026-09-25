@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializeAudioRecord } from "./audioRecords";
+import { serializeAudioRecord } from "@entities/audio";
 
 describe("serializeAudioRecord", () => {
   it("preserves optional conversation identity fields", () => {

@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from analytics.review_queue import combine_review_queue
-from analytics.srs import SrsState
-from analytics.srs_store import apply_srs_updates, enroll_strong_words, load_srs_states, upsert_srs_state
+from analytics.learner_model.review_queue import combine_review_queue
+from analytics.learner_model.srs import SrsState
+from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words, load_srs_states, upsert_srs_state
 
 
 class _Cursor:

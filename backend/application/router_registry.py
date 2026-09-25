@@ -9,8 +9,10 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from routers.admin import router as admin_router
+from routers.admin_learning_engine import router as admin_learning_engine_router
 from routers.bkt_debug import router as bkt_debug_router
 from routers.knowledge_analytics import router as knowledge_analytics_router
+from routers.placement_test import router as placement_test_router
 from routers.asr import router as asr_router
 from routers.verified_speaking import router as verified_speaking_router
 from routers.audio import router as audio_router
@@ -25,7 +27,6 @@ from routers.students import router as students_router
 from routers.teachers import router as teachers_router
 from routers.submissions import router as submissions_router
 from routers.tones import router as tones_router
-from routers.tts import router as tts_router
 from routers.vocab_quiz import router as vocab_quiz_router
 from routers.vocab_quiz_research import router as vocab_quiz_research_router
 from routers.frontend import router as frontend_router
@@ -33,8 +34,10 @@ from routers.frontend import router as frontend_router
 
 def register_routers(app: FastAPI) -> None:
     app.include_router(admin_router)
+    app.include_router(admin_learning_engine_router)
     app.include_router(bkt_debug_router)
     app.include_router(knowledge_analytics_router)
+    app.include_router(placement_test_router)
     app.include_router(asr_router)
     app.include_router(verified_speaking_router)
     app.include_router(audio_router)
@@ -48,7 +51,6 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(students_router)
     app.include_router(teachers_router)
     app.include_router(submissions_router)
-    app.include_router(tts_router)
     app.include_router(tones_router)
     app.include_router(vocab_quiz_router)
     app.include_router(vocab_quiz_research_router)

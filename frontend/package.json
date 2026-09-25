@@ -11,10 +11,13 @@
     "start:next": "next start",
     "typecheck:all": "tsc --noEmit --noUnusedLocals false --noUnusedParameters false",
     "check:lines": "node scripts/check-lines.mjs",
+    "check": "tsc --noEmit && depcruise src && node scripts/check-structure.mjs && vitest run",
+    "new:feature": "node scripts/new-feature.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:integration": "vitest run src/integration",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "chart.js": "^4.4.0",
@@ -24,6 +27,7 @@
     "react-dom": "^18.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -32,6 +36,7 @@
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/coverage-v8": "^4.1.11",
+    "dependency-cruiser": "^18.4.0",
     "jsdom": "^29.1.1",
     "typescript": "^5.3.0",
     "vite": "^5.0.0",

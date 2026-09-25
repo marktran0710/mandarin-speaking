@@ -62,7 +62,6 @@ from api.schemas.models import (
     TeacherCreateRequest,
     TeacherLoginRequest,
     TeacherUpdateRequest,
-    TTSRequest,
     RecordingQualityMetrics,
     FeedbackQuality,
     ProcessingTraceStage,

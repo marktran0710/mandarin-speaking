@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import useColorMode from "../../hooks/useColorMode";
 import ToneMark from "../tone/ToneMark";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
-import SourceAttribution from "../ui/SourceAttribution";
+import SourceAttribution from "@shared/ui/SourceAttribution";
 import "./ManagementShell.css";
 
 export type ManagementRole = "teacher" | "admin";
@@ -31,6 +31,7 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Materials", label: "Materials", icon: "library", group: "Content" },
   { id: "Audio Library", label: "Audio Library", icon: "microphone", group: "Content" },
   { id: "Vocabulary", label: "Content Bank", icon: "book", group: "Content" },
+  { id: "Placement Test", label: "Placement Test", icon: "quiz", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },

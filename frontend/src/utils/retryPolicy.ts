@@ -12,7 +12,7 @@
  * once per attempt.
  */
 
-import type { AssistiveState } from "./assistiveFeedback";
+import type { AssistiveState } from "@entities/speech";
 
 /** Fixed, per this task's STEP 3 spec ("at most one focused retry") --
  * not a tunable, not sourced from any research artifact. */

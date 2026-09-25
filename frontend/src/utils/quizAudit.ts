@@ -1,9 +1,9 @@
-import { toPinyin } from "./pinyin";
+import { toPinyin } from "@entities/vocabulary/api";
 import {
   CLOZE_BLANK,
   type VocabQuizEntry,
   type VocabQuizQuestion,
-} from "../components/story-vocab-quiz/model";
+} from "@entities/vocabulary";
 
 /** One rule violation found in a generated quiz question. `error` means the
  * question is broken for a student (missing/duplicate/second correct

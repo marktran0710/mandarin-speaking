@@ -1,0 +1,114 @@
+.sa-inline-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sa-space-sm);
+}
+
+.sa-inline-feedback__verdicts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sa-space-xs);
+}
+
+.sa-verdict-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sa-space-sm);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-body-sm);
+}
+
+.sa-verdict-row.is-ok { color: var(--sa-on-surface); }
+.sa-verdict-row.is-ok .sa-icon { color: var(--sa-secondary); }
+.sa-verdict-row.is-attention { color: var(--sa-on-surface); }
+.sa-verdict-row.is-attention .sa-icon { color: var(--sa-error); }
+
+.sa-word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sa-space-sm);
+}
+
+.sa-word-chip {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: var(--sa-space-xs);
+  row-gap: var(--sa-space-xs);
+  min-width: 5.5rem;
+  padding: var(--sa-space-sm) var(--sa-space-md);
+  border-radius: var(--sa-radius-sm);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-body-sm);
+}
+
+.sa-word-chip--correct { background: var(--sa-secondary-container); color: var(--sa-on-secondary-container); }
+.sa-word-chip--correct .sa-icon { color: var(--sa-secondary); }
+.sa-word-chip--uncertain { background: var(--sa-surface-container); color: var(--sa-on-surface-variant); }
+.sa-word-chip--uncertain .sa-icon { color: var(--sa-outline); }
+.sa-word-chip--incorrect { background: var(--sa-error-container); color: var(--sa-on-error-container); font-weight: 600; }
+.sa-word-chip--incorrect .sa-icon { color: var(--sa-error); }
+.sa-word-chip--invalid_audio { background: var(--sa-surface-container-high); color: var(--sa-on-surface-variant); }
+.sa-word-chip--invalid_audio .sa-icon { color: var(--sa-error); }
+.sa-word-chip--neutral { background: var(--sa-surface-container-low); color: var(--sa-on-surface-variant); }
+.sa-word-chip--neutral .sa-icon { color: var(--sa-outline); }
+.sa-word-chip__reading { display: grid; grid-column: 1 / -1; gap: var(--sa-space-xs); min-width: 0; }
+.sa-word-chip__pinyin { color: currentColor; font-family: var(--sa-font-label); font-size: var(--sa-text-pinyin-sm); line-height: var(--sa-leading-pinyin-sm); }
+.sa-word-chip__hanzi { font-family: var(--sa-font-body); }
+.sa-word-chip__status { font-size: var(--sa-text-label-sm); font-weight: 600; }
+.sa-word-chip__note { grid-column: 1 / -1; max-width: 18rem; color: currentColor; font-size: var(--sa-text-label-sm); line-height: var(--sa-leading-body-sm); overflow-wrap: anywhere; }
+
+.sa-ai-coach {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sa-space-sm);
+  padding: var(--sa-space-md);
+  border-radius: var(--sa-radius);
+  background: color-mix(in srgb, var(--sa-tertiary-container) 30%, var(--sa-surface-container-lowest));
+}
+.sa-ai-coach .sa-icon { color: var(--sa-tertiary); margin-top: 2px; flex-shrink: 0; }
+.sa-ai-coach__label {
+  display: block;
+  margin-bottom: var(--sa-space-xs);
+  color: var(--sa-on-tertiary-container);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-label-sm);
+  font-weight: 700;
+}
+.sa-ai-coach p {
+  margin: 0;
+  font-family: var(--sa-font-body);
+  font-size: var(--sa-text-body-sm);
+  line-height: var(--sa-leading-body-sm);
+  color: var(--sa-on-surface);
+}
+
+.sa-details-disclosure__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sa-space-xs);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--sa-primary);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-label-sm);
+  font-weight: 600;
+}
+.sa-details-disclosure__trigger:hover { color: var(--sa-on-primary-fixed-variant); }
+
+.sa-details-disclosure__panel {
+  margin-top: var(--sa-space-sm);
+  padding: var(--sa-space-sm);
+  border-radius: var(--sa-radius);
+  background: var(--sa-surface-container-low);
+}
+
+.sa-inline-feedback__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sa-space-md);
+  padding-top: var(--sa-space-xs);
+}

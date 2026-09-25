@@ -39,7 +39,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import security.auth as auth  # noqa: E402
-from analytics.bkt_mastery import response_rows_for_attempt, upsert_raw_responses  # noqa: E402
+from analytics.learner_model.bkt.mastery import response_rows_for_attempt, upsert_raw_responses  # noqa: E402
 from db import connect_db  # noqa: E402
 from scripts.purge_test_accounts import purge  # noqa: E402
 
@@ -73,11 +73,11 @@ def _placement_result(word: str, correct: bool, exposure: int) -> dict:
         # here) — NOT the story-text difficulty label ("easy"/PlacementTest's
         # own client-side field name); classify_bkt_response's
         # ROUND_LEVEL_MISMATCH check is strict about this.
-        "level": "tier1",
+        "tier": "tier1",
+        "round": 1,
         "mode": "tier1",
         "itemId": f"item-{word}-{exposure}",
         "questionKind": "basic_meaning_mcq",
-        "roundType": "know_it",
         "knowledgeDimension": "meaning",
         "activityType": "diagnostic",
         "isBktEligible": True,

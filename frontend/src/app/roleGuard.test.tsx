@@ -8,8 +8,8 @@ import { readSession, signIn } from "../utils/session";
 // the guard, which decides before any of it renders. (CreateStoryPage and
 // MyStoriesPage were replaced by src/student/ — StudentApp is the single
 // entry that now needs stubbing.)
-vi.mock("../student/StudentApp", () => ({ default: () => <div /> }));
-vi.mock("../pages/TeacherDashboardPage", () => ({
+vi.mock("./student/StudentApp", () => ({ default: () => <div /> }));
+vi.mock("../features/teacher/TeacherDashboardPage", () => ({
   default: () => <div>Teacher dashboard</div>,
 }));
 

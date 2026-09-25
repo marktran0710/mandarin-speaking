@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "../App.tsx";
-import "../../styles/index.css";
-import "../../styles/shared-ui.css";
-import "../../student/tokens.css";
+import "../../styles/index-legacy.css";
+import "../../styles/shared-ui-legacy.css";
+import "../../shared/styles/student-tokens.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

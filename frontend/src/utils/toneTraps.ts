@@ -1,4 +1,4 @@
-import { numericToToneMarked } from "./pinyin";
+import { numericToToneMarked } from "@entities/vocabulary/api";
 
 // Tone-trap distractors for pinyin quiz questions: readings that differ from
 // the correct one by exactly one syllable's tone (hē chá → hé chá / hē chà…).

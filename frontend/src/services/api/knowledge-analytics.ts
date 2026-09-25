@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry, REQUEST_TIMEOUT_MS } from "./client";
+import { BACKEND_URL, fetchWithRetry, REQUEST_TIMEOUT_MS } from "@shared/api/client";
 
 export type KnowledgeModelName = "pfa" | "bkt" | "compare";
 

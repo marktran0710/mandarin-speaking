@@ -1,0 +1,35 @@
+.sa-audio-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sa-space-sm);
+  padding: var(--sa-space-sm) var(--sa-space-md);
+  border-radius: var(--sa-radius);
+  border: 1px solid var(--sa-outline-variant);
+  background: var(--sa-surface-container-lowest);
+  color: var(--sa-on-surface);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-label-md);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  transition: background-color var(--sa-motion-fast), border-color var(--sa-motion-fast);
+}
+.sa-audio-control .sa-icon { color: var(--sa-primary); }
+.sa-audio-control:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline); }
+.sa-audio-control[aria-pressed="true"] { border-color: var(--sa-primary); color: var(--sa-primary); }
+.sa-audio-control:disabled {
+  background: var(--sa-surface-container-low);
+  border-color: var(--sa-outline-variant);
+  color: var(--sa-on-surface-variant);
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+.sa-audio-control:disabled .sa-icon { color: var(--sa-on-surface-variant); }
+.sa-audio-control:disabled:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline-variant); }
+
+.sa-audio-control.is-compact {
+  padding: var(--sa-space-xs) var(--sa-space-sm);
+  min-height: 28px;
+  font-size: var(--sa-text-label-sm);
+  border-radius: var(--sa-radius-sm);
+}

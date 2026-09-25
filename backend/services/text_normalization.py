@@ -8,6 +8,9 @@ from __future__ import annotations
 from helpers.pinyin_service import canonical_pinyin_tone3
 
 
+_OPENCC_S2TWP = None
+
+
 def correct_homophones(text: str, vocab_hint: str) -> str:
     """Replace homophones in transcript with vocab words that share the same tone-aware pinyin."""
     vocab_words = [w.strip() for w in vocab_hint.split(",") if w.strip()]
@@ -43,9 +46,12 @@ def correct_homophones(text: str, vocab_hint: str) -> str:
 
 
 def convert_to_traditional_chinese(text: str) -> str:
+    global _OPENCC_S2TWP
     try:
-        from opencc import OpenCC
+        if _OPENCC_S2TWP is None:
+            from opencc import OpenCC
 
-        return OpenCC("s2twp").convert(text)
+            _OPENCC_S2TWP = OpenCC("s2twp")
+        return _OPENCC_S2TWP.convert(text)
     except Exception:
         return text

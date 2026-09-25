@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
+import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 import type { VocabQuizAttempt } from "./quiz-analytics";
 export interface HelpRequest { id: string; studentName: string; message: string; status: "open" | "resolved"; createdAt: string; resolvedAt?: string | null; }
 export interface Student { id: string; name: string; createdAt: string; status: "active" | "inactive"; }

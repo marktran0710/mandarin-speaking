@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Topic } from "../components/content/topic-selector/types";
+import type { Topic } from "@entities/topic";
 import { isStoryFinished } from "./lessonGroups";
-import { practiceUnlocked } from "./quizTiers";
+import { practiceUnlocked } from "@entities/vocabulary";
 import { vocabularyGateStateFor, getVocabularyGateState } from "./vocabularyProgression";
 
 // Epic 1 (BKT x SM-2 research-mode plan): proves the production adapter is

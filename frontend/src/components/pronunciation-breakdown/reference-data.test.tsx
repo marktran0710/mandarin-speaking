@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import PronunciationBreakdown from "./index";
 import type { WordProsody } from "../story-recorder/StoryRecorder";
 
@@ -68,13 +67,6 @@ const passingWord = word({
     },
   ],
 });
-
-/** Every character row is a button; the legend items are not. */
-function characterRows() {
-  return screen
-    .getAllByRole("button")
-    .filter((node) => node.classList.contains("pb-row"));
-}
 
 describe("PronunciationBreakdown: reference and source data", () => {
   it("uses a passing real reference curve consistently with the progression gate", () => {

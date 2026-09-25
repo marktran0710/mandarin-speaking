@@ -1,7 +1,7 @@
-import type { AudioRecord } from "../types/audioRecord";
+import type { AudioRecord } from "@entities/audio";
 import type { StorySubmission, Student, VocabQuizAttempt } from "../services/database";
 import { computeWordMissStats, getTopicLabel, type WordMissStats } from "./myStoriesUtils";
-import { attemptEarnsStar, starsByStory, type QuizTier } from "./quizTiers";
+import { attemptEarnsStar, starsByStory, type QuizTier } from "@entities/vocabulary";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

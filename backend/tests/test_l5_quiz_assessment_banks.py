@@ -40,9 +40,9 @@ def test_l5_2_vocabulary_list_bank_has_every_supplied_word_and_coverage():
         "\u5e6b": ("b\u0101ng", "V", "to help"), "\u627e": ("zh\u01ceo", "V", "to look for"),
         "\u5eda\u623f": ("ch\u00faf\u00e1ng", "N", "kitchen"), "\u518d": ("z\u00e0i", "Adv", "again"),
     }
-    li_hard = next(question for question in questions if question.question_id == "L5_2_021_HARD")
+    li_hard = next(question for question in questions if question.question_id == "L5_2_021_R3")
     assert set(li_hard.accepted_answers) == {"\u88e1", "\u88e1\u9762"}
-    sister_hard = next(question for question in questions if question.question_id == "L5_2_025_HARD")
+    sister_hard = next(question for question in questions if question.question_id == "L5_2_025_R3")
     assert set(sister_hard.accepted_answers) == {"\u59d0\u59d0", "\u59ca\u59ca"}
     prompts_and_explanations = "\n".join(question.prompt + question.explanation for question in questions)
     assert "\u9019\u500b\u86cb\u7cd5\u8ddf\u9019\u74f6\u679c\u6c41\u4e00\u5171\u591a\u5c11\u9322\uff1f" in prompts_and_explanations
@@ -74,7 +74,7 @@ def test_l5_3_vocabulary_bank_has_every_referenced_word_and_vocab_coverage():
         "\u592a\u967d": ("t\u00e0iy\u00e1ng", "N", "the sun"),
     }
     assert all(
-        question.correct_answer == (question.simple_english_meaning if question.level == "Easy" else question.target_word)
+        question.correct_answer == (question.simple_english_meaning if question.round == 1 else (question.pinyin if question.round == 2 else question.target_word))
         for question in questions
     )
     prompts_and_explanations = "\n".join(question.prompt + question.explanation for question in questions)
@@ -82,9 +82,9 @@ def test_l5_3_vocabulary_bank_has_every_referenced_word_and_vocab_coverage():
     assert "\u9019\u500b\u65b0\u623f\u5b50\u6c92\u6709\u5f88\u591a\u5bb6\u5177" in prompts_and_explanations
     assert "\u6211\u5bb6\u6709\u4e00\u96bb\u8c93\u3001\u5169\u96bb\u72d7\u548c\u4e09\u96bb\u9ce5" in prompts_and_explanations
     assert "\u6211\u7684\u8c93\u5728\u623f\u5b50\u5916\u9762\u66ec\u592a\u967d" in prompts_and_explanations
-    tv_questions = [q for q in questions if q.target_word == "\u96fb\u8996\u6a5f" and q.level in {"Medium", "Hard"}]
+    tv_questions = [q for q in questions if q.target_word == "\u96fb\u8996\u6a5f" and q.round == 3]
     assert all(set(q.accepted_answers) == {"\u96fb\u8996\u6a5f", "\u96fb\u8996"} for q in tv_questions)
-    sun_questions = [q for q in questions if q.target_word == "\u66ec\u592a\u967d" and q.level in {"Medium", "Hard"}]
+    sun_questions = [q for q in questions if q.target_word == "\u66ec\u592a\u967d" and q.round == 3]
     assert all(set(q.accepted_answers) == {"\u66ec\u592a\u967d", "\u6652\u592a\u967d"} for q in sun_questions)
 
 

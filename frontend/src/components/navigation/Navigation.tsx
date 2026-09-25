@@ -1,11 +1,11 @@
 import "./Navigation.css";
 import { Page } from "../../types/page";
-import { LoginRole } from "../../pages/LoginPage";
-import { BiLabel } from "../ui/BiLabel";
+import { LoginRole } from "../../features/auth/LoginPage";
+import { BiLabel } from "@shared/ui";
 import ToneMark from "../tone/ToneMark";
 import StudentIcon from "./StudentIcon";
 import useColorMode from "../../hooks/useColorMode";
-import "../ui/BiLabel.css";
+import "@shared/ui/BilingualText.css";
 
 interface NavigationProps {
   currentPage: Page;

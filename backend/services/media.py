@@ -371,8 +371,7 @@ def _refresh_scene_reference_curves(
     """Re-derives a scene's per-word target pitch curves from its real model
     recording whenever a teacher uploads or re-records one, so the "target
     shape" a student practices against always reflects the actual final
-    model audio (teacher voice or TTS) rather than going stale after a
-    manual upload that bypasses the TTS generation endpoint.
+    teacher recording rather than going stale after a manual upload.
 
     Best-effort: a scene with no suggested-answer/listen-script text, or an
     audio file the pitch tracker can't read, just keeps whatever reference

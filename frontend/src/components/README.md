@@ -28,22 +28,19 @@ components/
 
 ## Rules
 
-1. New reusable primitives belong in `ui/`, not at the `components/` root.
+1. New reusable primitives belong in `shared/ui`; `components/` owns domain
+   presentations only.
 2. A domain folder owns its implementation, colocated styles, tests, and small
    domain helpers. Move a whole slice together rather than leaving CSS/tests at
    the root.
 3. A folder `index.ts` is the public boundary for the grouped components. Pages
    may use a direct file import only when they need a domain-internal module.
-4. `pages/` owns route composition and data orchestration. Components do not
-   reach across domains through duplicated UI files.
-5. `features/` owns feature-level composition and contracts. It may re-export
-   a component group while a migration is in progress, but it is not a second
-   component home.
-6. The root-level `AppButton.tsx`, `BiLabel.tsx`, `BiLabel.css`, and
-   `StudentHelpPanel.tsx` are temporary compatibility bridges for the checked-in
-   legacy `StoryRecorderRuntime.js` bundle. New code must import from `ui/` or
-   `student/`; remove these bridges when that bundle is rebuilt and its import
-   paths are updated.
+4. `app/` owns route composition and data orchestration. Components do not
+   reach across features through duplicated UI files.
+5. `features/` owns feature-level composition and contracts. It is the home
+   for workflow UI; `components/` is not a second page tree.
+6. There are no compatibility bridge files in this tree. Reusable UI imports
+   come from `@shared/ui` or `@shared/ui/student`.
 
 7. Student Mode pages use `student-workspace/student-layout` for page bodies,
    sibling rhythm, repeated grids, rows, and action groups. Feature CSS may

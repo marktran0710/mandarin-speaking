@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { fetchWithRetry } = vi.hoisted(() => ({ fetchWithRetry: vi.fn() }));
 
-vi.mock("./client", () => ({
+vi.mock("@shared/api/client", () => ({
   BACKEND_URL: "http://backend.test",
   fetchWithRetry,
 }));

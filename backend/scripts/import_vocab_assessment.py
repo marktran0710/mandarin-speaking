@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from psycopg.types.json import Jsonb  # noqa: E402
 
 from db import connect_db  # noqa: E402
-from domain.vocabulary.assessment import build_vocabulary_items, parse_vocab_assessment_csv  # noqa: E402
+from domain.vocabulary.assessment import TIER_BY_ROUND, build_vocabulary_items, parse_vocab_assessment_csv  # noqa: E402
 
 
 def assessment_payload(source: str | Path) -> list[dict]:
@@ -30,8 +30,8 @@ def assessment_payload(source: str | Path) -> list[dict]:
             "pinyin": question.pinyin,
             "pos": question.part_of_speech,
             "simpleEnglishMeaning": question.simple_english_meaning,
-            "level": question.level.casefold(),
-            "difficultyWeight": question.difficulty_weight,
+            "round": question.round,
+            "tier": TIER_BY_ROUND[question.round],
             "questionType": question.question_type,
             "answerFormat": question.answer_format,
             "prompt": question.prompt,
@@ -39,9 +39,6 @@ def assessment_payload(source: str | Path) -> list[dict]:
             "correctAnswer": question.correct_answer,
             "acceptedAnswers": list(question.accepted_answers),
             "explanation": question.explanation,
-            # Keep the source row available for audit/replay; the normalized
-            # fields above are the runtime contract, while this is provenance.
-            "raw": dict(question.raw),
         }
         for item in items
         for question in item.observations

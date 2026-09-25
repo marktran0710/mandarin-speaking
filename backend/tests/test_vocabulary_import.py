@@ -7,13 +7,15 @@ import openpyxl
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from psycopg.types.json import Jsonb
 
 import security.auth as auth
 from db import connect_db
 from routers import admin
 from services.vocabulary_import import (
-    _merge_assessment,
+    _replace_assessment,
     apply_vocabulary_import,
+    build_vocabulary_import_template,
     parse_csv_rows,
     parse_uploaded_rows,
     parse_xlsx_rows,
@@ -22,9 +24,11 @@ from services.vocabulary_import import (
 )
 from services.vocabulary_audio_import import (
     apply_vocabulary_audio_import,
+    build_vocabulary_audio_sample,
     preview_vocabulary_audio_import,
 )
 import services.media as media_service
+import services.vocabulary_audio_import as vocabulary_audio_service
 from scripts.import_question_bank_workbook import build_payloads
 
 COLUMNS = [
@@ -114,8 +118,8 @@ def test_import_payload_contains_only_canonical_question_data():
         payload = build_payloads(parsed)["99-1"]
         assert all(set(question) == {
             "questionId", "wordId", "targetWord", "pinyin", "pos", "simpleEnglishMeaning",
-            "level", "difficultyWeight", "questionType", "answerFormat", "prompt", "options",
-            "correctAnswer", "acceptedAnswers", "explanation", "sourceQuestionId", "sourceType", "round",
+            "round", "tier", "questionType", "answerFormat", "prompt", "options",
+            "correctAnswer", "acceptedAnswers", "explanation", "sourceType",
         } for question in payload)
 
 
@@ -163,6 +167,12 @@ def test_parse_csv_rows_reports_missing_columns():
         parse_csv_rows(bad)
 
 
+def test_parse_csv_rows_accepts_template_without_source_type():
+    columns = [column for column in COLUMNS if column != "Source Type"]
+    parsed = parse_csv_rows(csv_bytes(word_rows(), columns=columns))
+    assert validate_import_rows(parsed) == []
+
+
 def test_validate_import_rows_accepts_a_well_formed_word():
     rows = word_rows()
     assert validate_import_rows(rows) == []
@@ -181,11 +191,19 @@ def test_validate_import_rows_flags_missing_round():
     assert any("expected exactly one row for each round" in issue for issue in issues)
 
 
-def test_merge_assessment_replaces_by_word_id_and_keeps_untouched_words():
-    existing = [{"wordId": "W001", "targetWord": "old"}, {"wordId": "W002", "targetWord": "keep me"}]
+def test_replace_assessment_removes_words_outside_the_lesson_file_and_preserves_audio():
+    existing = [
+        {"wordId": "W001", "targetWord": "old", "audioUrl": "/uploads/audio/w001.mp3"},
+        {"wordId": "W001", "targetWord": "old", "audioUrl": "/uploads/audio/w001.mp3"},
+        {"wordId": "W001", "targetWord": "old", "audioUrl": "/uploads/audio/w001.mp3"},
+        {"wordId": "W002", "targetWord": "remove me", "audioUrl": "/uploads/audio/w002.mp3"},
+    ]
     incoming = [{"wordId": "W001", "targetWord": "new"}]
-    merged = _merge_assessment(existing, incoming)
-    assert {q["wordId"]: q["targetWord"] for q in merged} == {"W001": "new", "W002": "keep me"}
+    replacement, new_words, removed_words, missing_audio = _replace_assessment(existing, incoming)
+    assert replacement == [{"wordId": "W001", "targetWord": "new", "audioUrl": "/uploads/audio/w001.mp3"}]
+    assert new_words == set()
+    assert removed_words == {"W002"}
+    assert missing_audio == set()
 
 
 def test_preview_reports_row_issues_without_touching_the_database(client):
@@ -219,15 +237,18 @@ def test_preview_and_confirm_against_a_real_story(admin_client):
 
     with connect_db() as db:
         result = apply_vocabulary_import(db, content)
-    assert result["published"] == [
-        {"section": "99-1", "storyId": "vocab-import-story-99-1", "storyTitle": "Import test story", "questionCount": 3}
-    ]
+    assert result["published"] == [{
+        "section": "99-1", "storyId": "vocab-import-story-99-1", "storyTitle": "Import test story",
+        "questionCount": 3, "newWords": 1, "updatedWords": 0, "removedWords": 0,
+        "preservedAudio": 0, "missingAudio": 1,
+    }]
+    assert result["mode"] == "replace_lesson"
 
     saved = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == "vocab-import-story-99-1")
     assert len(saved["vocabAssessment"]) == 3
     assert {q["wordId"] for q in saved["vocabAssessment"]} == {"C99-1-I1-W001"}
 
-    # Re-importing the same word updates it in place rather than duplicating it.
+    # Re-importing the same word replaces its three rounds rather than duplicating it.
     updated_rows = word_rows(meaning="coin purse")
     with connect_db() as db:
         preview_again = preview_vocabulary_import(db, csv_bytes(updated_rows))
@@ -239,6 +260,75 @@ def test_preview_and_confirm_against_a_real_story(admin_client):
     saved_again = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == "vocab-import-story-99-1")
     assert len(saved_again["vocabAssessment"]) == 3
     assert saved_again["vocabAssessment"][0]["simpleEnglishMeaning"] == "coin purse"
+    assert all("sourceType" not in question for question in saved_again["vocabAssessment"])
+
+
+def test_replace_lesson_removes_stale_words_and_clears_legacy_story_vocabulary(admin_client, tmp_path, monkeypatch):
+    story = {
+        "id": "vocab-replace-story-99-2", "title": "Replace test story", "frames": [],
+        "published": True, "lessonNumber": 99, "lessonSubOrder": 2,
+    }
+    assert admin_client.post("/api/custom-stories", json=story).status_code == 200
+    duplicate = {
+        "id": "vocab-replace-story-99-duplicate", "title": "Published legacy duplicate",
+        "frames": [{
+            "imageUrl": "duplicate.png", "prompt": "Keep this duplicate prompt",
+            "vocabulary": "legacy word", "vocabularyPinyin": "legacy",
+            "vocabularyPos": "N", "vocabularyTranslation": "legacy",
+        }],
+        "storyVocabulary": {"easy": {
+            "vocabulary": "legacy story word", "vocabularyPinyin": "legacy",
+            "vocabularyPos": "N", "vocabularyTranslation": "legacy",
+        }},
+        "published": True, "lessonNumber": 99,
+    }
+    assert admin_client.post("/api/custom-stories", json=duplicate).status_code == 200
+    upload_root = tmp_path / "uploads"
+    old_audio = upload_root / "audio" / "old.mp3"
+    tier_audio = upload_root / "audio" / "tier.mp3"
+    old_audio.parent.mkdir(parents=True)
+    old_audio.write_bytes(b"old")
+    tier_audio.write_bytes(b"tier")
+    monkeypatch.setattr(media_service, "UPLOAD_DIR", str(upload_root))
+    monkeypatch.setattr(media_service, "AUDIO_UPLOAD_DIR", str(upload_root / "audio"))
+    original_frames = [{
+        "imageUrl": "frame.png", "prompt": "Keep this frame",
+        "vocabularyMedium": "legacy medium",
+        "vocabularyAudioUrlsMedium": "[\"/uploads/audio/tier.mp3\"]",
+        "vocabularyReferenceCurvesHard": "legacy curves",
+    }]
+    original_story_vocabulary = {"easy": {"vocabulary": "keep this story vocab"}}
+    old_assessment = [
+        {"wordId": "OLD-W001", "audioUrl": "/uploads/audio/old.mp3"},
+        {"wordId": "OLD-W001", "audioUrl": "/uploads/audio/old.mp3"},
+        {"wordId": "OLD-W001", "audioUrl": "/uploads/audio/old.mp3"},
+    ]
+    with connect_db() as db:
+        db.execute(
+            "UPDATE custom_stories SET frames = %s::jsonb, story_vocabulary = %s::jsonb, vocab_assessment = %s::jsonb WHERE id = %s",
+            (Jsonb(original_frames), Jsonb(original_story_vocabulary), Jsonb(old_assessment), story["id"]),
+        )
+        result = apply_vocabulary_import(db, csv_bytes(word_rows(word_key="NEW-W001", section="99-2")))
+
+    assert result["removedWords"] == 1
+    assert result["missingAudio"] == 1
+    assert not old_audio.exists()
+    assert not tier_audio.exists()
+    saved = next(item for item in admin_client.get("/api/custom-stories").json() if item["id"] == story["id"])
+    assert {question["wordId"] for question in saved["vocabAssessment"]} == {"NEW-W001"}
+    assert saved["frames"] == [{
+        "imageUrl": "frame.png", "prompt": "Keep this frame", "vocabulary": "",
+        "vocabularyGroups": [], "vocabularyPinyin": "", "vocabularyPos": "",
+        "vocabularyTranslation": "", "vocabularyAudioUrls": "",
+        "vocabularyReferenceCurves": "",
+        "vocabularyMedium": "", "vocabularyAudioUrlsMedium": "",
+        "vocabularyReferenceCurvesHard": "",
+    }]
+    assert saved["storyVocabulary"] is None
+    saved_duplicate = next(item for item in admin_client.get("/api/custom-stories").json() if item["id"] == duplicate["id"])
+    assert saved_duplicate["published"] is True
+    assert saved_duplicate["storyVocabulary"] is None
+    assert saved_duplicate["frames"][0]["vocabulary"] == ""
 
 
 def test_preview_reports_when_no_story_matches_the_section(client):
@@ -289,8 +379,61 @@ def test_vocabulary_audio_import_matches_word_keys_and_updates_all_rounds(admin_
     saved = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == story["id"])
     audio_urls = {question["audioUrl"] for question in saved["vocabAssessment"]}
     assert len(audio_urls) == 1
-    assert next(iter(audio_urls)).startswith("/uploads/audio/vocab-C99-1-I1-W001-")
-    assert (upload_root / "audio").joinpath(next(iter(audio_urls)).rsplit("/", 1)[-1]).is_file()
+    first_url = next(iter(audio_urls))
+    assert first_url.startswith("/uploads/audio/vocab-C99-1-I1-W001-")
+    first_path = (upload_root / "audio").joinpath(first_url.rsplit("/", 1)[-1])
+    assert first_path.is_file()
+
+    with connect_db() as db:
+        result_again = apply_vocabulary_audio_import(db, audio_zip({"C99-1-I1-W001.mp3": b"replacement-mp3"}))
+    assert result_again["updated"] == 1
+    saved_again = next(s for s in admin_client.get("/api/custom-stories").json() if s["id"] == story["id"])
+    second_urls = {question["audioUrl"] for question in saved_again["vocabAssessment"]}
+    assert len(second_urls) == 1
+    second_url = next(iter(second_urls))
+    assert second_url != first_url
+    assert not first_path.exists()
+    assert (upload_root / "audio").joinpath(second_url.rsplit("/", 1)[-1]).is_file()
+
+
+def test_audio_sample_preview_matches_the_template_word_key(monkeypatch):
+    monkeypatch.setattr(
+        vocabulary_audio_service,
+        "_word_locations",
+        lambda _db: {
+            "C5-5-1-I1-W001": [{"storyId": "sample-story", "storyTitle": "Sample lesson", "questionIndex": 0}]
+        },
+    )
+    preview = preview_vocabulary_audio_import(object(), build_vocabulary_audio_sample())
+    assert preview["files"] == 1
+    assert [match["wordKey"] for match in preview["matched"]] == ["C5-5-1-I1-W001"]
+    assert preview["unmatched"] == []
+
+
+def test_audio_word_key_suffix_and_duplicates_are_not_accepted(admin_client, tmp_path, monkeypatch):
+    story = {
+        "id": "vocab-audio-validation-story-99-2", "title": "Audio validation story", "frames": [],
+        "published": True, "lessonNumber": 99, "lessonSubOrder": 2,
+    }
+    assert admin_client.post("/api/custom-stories", json=story).status_code == 200
+    with connect_db() as db:
+        db.execute(
+            "UPDATE custom_stories SET vocab_assessment = %s::jsonb WHERE id = %s",
+            (Jsonb([
+                {"wordId": "C99-2-I1-W001"},
+                {"wordId": "C99-2-I1-W001"},
+                {"wordId": "C99-2-I1-W001"},
+            ]), story["id"]),
+        )
+        suffix_preview = preview_vocabulary_audio_import(
+            db, audio_zip({"C99-2-I1-W001_r1.mp3": b"wrong-key"})
+        )
+        assert suffix_preview["matched"] == []
+        assert suffix_preview["unmatched"] == ["C99-2-I1-W001_r1.mp3"]
+
+        duplicate = audio_zip({"C99-2-I1-W001.mp3": b"one", "C99-2-I1-W001.wav": b"two"})
+        with pytest.raises(ValueError, match="duplicate audio files"):
+            apply_vocabulary_audio_import(db, duplicate)
 
 
 @pytest.fixture()
@@ -303,8 +446,11 @@ def import_endpoint_api(monkeypatch):
 
 def test_import_endpoints_are_admin_only(import_endpoint_api, monkeypatch):
     test_client = import_endpoint_api
-    monkeypatch.setattr(admin, "preview_vocabulary_import", lambda db, content, filename="": {"rows": 0, "rowIssues": [], "sections": []})
-    files = {"file": ("bank.csv", b"Question ID\n", "text/csv")}
+    monkeypatch.setattr(admin, "preview_vocabulary_import", lambda db, content, filename="", mode="": {
+        "mode": mode, "rows": 0, "rowIssues": [], "sections": [], "newWords": 0,
+        "updatedWords": 0, "removedWords": 0, "preservedAudio": 0, "missingAudio": 0,
+    })
+    files = {"file": ("bank.csv", b"Question ID\n", "text/csv"), "mode": (None, "replace_lesson")}
 
     response = test_client.post("/api/admin/vocabulary-import/preview", files=files)
     assert response.status_code == 401
@@ -316,13 +462,56 @@ def test_import_endpoints_are_admin_only(import_endpoint_api, monkeypatch):
     test_client.cookies.set(auth.ROLE_COOKIE_NAMES["admin"], auth.issue_token("admin", "admin"))
     response = test_client.post("/api/admin/vocabulary-import/preview", files=files)
     assert response.status_code == 200
-    assert response.json() == {"rows": 0, "rowIssues": [], "sections": []}
+    assert response.json() == {
+        "mode": "replace_lesson", "rows": 0, "rowIssues": [], "sections": [], "newWords": 0,
+        "updatedWords": 0, "removedWords": 0, "preservedAudio": 0, "missingAudio": 0,
+    }
 
 
 def test_preview_endpoint_returns_422_on_bad_file(import_endpoint_api):
     test_client = import_endpoint_api
     test_client.cookies.set(auth.ROLE_COOKIE_NAMES["admin"], auth.issue_token("admin", "admin"))
-    files = {"file": ("bank.csv", b"not,a,valid,header\n", "text/csv")}
+    files = {"file": ("bank.csv", b"not,a,valid,header\n", "text/csv"), "mode": (None, "replace_lesson")}
     response = test_client.post("/api/admin/vocabulary-import/preview", files=files)
     assert response.status_code == 422
     assert "missing required columns" in response.json()["detail"]
+
+
+def test_template_has_instructions_and_questions_sheets_without_retired_source_column():
+    workbook = openpyxl.load_workbook(io.BytesIO(build_vocabulary_import_template()), read_only=True, data_only=True)
+    assert workbook.sheetnames == ["Instructions", "Questions"]
+    headers = [cell.value for cell in next(workbook["Questions"].iter_rows(max_row=1))]
+    assert "Word Key" in headers
+    assert "Source Type" not in headers
+    assert "Book source" not in headers
+    workbook.close()
+
+
+def test_template_endpoint_is_admin_only(import_endpoint_api):
+    test_client = import_endpoint_api
+    assert test_client.get("/api/admin/vocabulary-import/template").status_code == 401
+    test_client.cookies.set(auth.ROLE_COOKIE_NAMES["admin"], auth.issue_token("admin", "admin"))
+    response = test_client.get("/api/admin/vocabulary-import/template")
+    assert response.status_code == 200
+    assert response.headers["content-disposition"].endswith('vocabulary-import-template.xlsx"')
+    workbook = openpyxl.load_workbook(io.BytesIO(response.content), read_only=True, data_only=True)
+    assert workbook.sheetnames == ["Instructions", "Questions"]
+    workbook.close()
+
+
+def test_audio_template_contains_only_the_canonical_word_key_filename():
+    with zipfile.ZipFile(io.BytesIO(build_vocabulary_audio_sample())) as archive:
+        assert archive.namelist() == ["C5-5-1-I1-W001.mp3"]
+        assert archive.read("C5-5-1-I1-W001.mp3").startswith(b"Mapping-only sample")
+
+
+def test_audio_template_endpoint_is_admin_only(import_endpoint_api):
+    test_client = import_endpoint_api
+    assert test_client.get("/api/admin/vocabulary-audio-import/template").status_code == 401
+    test_client.cookies.set(auth.ROLE_COOKIE_NAMES["admin"], auth.issue_token("admin", "admin"))
+    response = test_client.get("/api/admin/vocabulary-audio-import/template")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/zip")
+    assert response.headers["content-disposition"].endswith('vocabulary-audio-sample.zip"')
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert archive.namelist() == ["C5-5-1-I1-W001.mp3"]
