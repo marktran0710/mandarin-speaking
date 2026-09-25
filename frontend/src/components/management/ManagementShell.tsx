@@ -35,6 +35,7 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
+  { id: "Placement Data", label: "Placement Data", icon: "analytics", group: "Insights" },
   { id: "Measurement", label: "Measurement", icon: "analytics", group: "Insights" },
   { id: "Practice Debug", label: "Practice Debug", icon: "debug", group: "Insights" },
   { id: "ASR Compare", label: "ASR Compare", icon: "debug", group: "Insights" },

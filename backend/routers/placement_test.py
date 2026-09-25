@@ -32,6 +32,12 @@ def get_admin_placement_test(_identity: auth.Identity = Depends(auth.require_adm
         return service.get_admin_blueprint(db)
 
 
+@router.get("/api/admin/placement-test/results")
+def get_admin_placement_results(_identity: auth.Identity = Depends(auth.require_admin)):
+    with connect_db() as db:
+        return service.get_admin_import_results(db)
+
+
 @router.post("/api/admin/placement-test/import/preview")
 async def preview_placement_test(
     file: UploadFile = File(...),

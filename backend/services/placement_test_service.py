@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
@@ -11,6 +12,7 @@ from uuid import uuid4
 import openpyxl
 
 from analytics.learner_model.bkt.mastery import rebuild_student_vocabulary_mastery, upsert_raw_responses
+from analytics.learner_model.bkt.core import BKT_CONFIG, mastery_status
 from domain.vocabulary.assessment import (
     ANSWER_FORMAT_BY_ROUND,
     QUESTION_TYPE_BY_ROUND,
@@ -22,6 +24,7 @@ from repositories import placement_test_repository as repo
 
 
 PLACEMENT_RESOLVER_VERSION = "placement-assessment-v1"
+WORKBOOK_IMPORT_RESOLVER_VERSION = "placement-workbook-import-v1"
 SUPPORTED_TYPES = {
     "basic_meaning_mcq": (1, "tier1", "meaning"),
     "character_to_pinyin_typing": (2, "tier2", "pinyin_production"),
@@ -264,6 +267,151 @@ def get_admin_blueprint(db: Any) -> dict[str, Any]:
         "questions": blueprint.get("questions") or [],
         "updatedAt": blueprint.get("updated_at"),
     }
+
+
+def _empty_admin_import_results() -> dict[str, Any]:
+    empty_metric = {"responseCount": 0, "correctCount": 0, "incorrectCount": 0, "accuracy": 0.0}
+    return {
+        "available": False,
+        "evidenceOrigin": "synthetic",
+        "resolverVersion": WORKBOOK_IMPORT_RESOLVER_VERSION,
+        "importedAt": None,
+        "summary": {
+            "studentCount": 0,
+            "attemptCount": 0,
+            "responseCount": 0,
+            "correctCount": 0,
+            "incorrectCount": 0,
+            "accuracy": 0.0,
+            "tier1": dict(empty_metric),
+            "tier3": dict(empty_metric),
+            "masteryRowCount": 0,
+            "masteryStatuses": {},
+        },
+        "modelVersions": [],
+        "parameterFingerprints": [],
+        "students": [],
+    }
+
+
+def _finish_metric(metric: dict[str, Any]) -> None:
+    total = int(metric["responseCount"])
+    metric["accuracy"] = round((int(metric["correctCount"]) / total) * 100, 1) if total else 0.0
+
+
+def _admin_import_response(row: dict[str, Any], mastery: dict[str, Any] | None) -> dict[str, Any]:
+    p_learned = float(mastery["p_learned"]) if mastery else None
+    observation_count = int(mastery["observation_count"]) if mastery else 0
+    return {
+        "order": int(row["attempt_order"]) + 1,
+        "itemId": row["item_id"],
+        "wordId": row["word_id"],
+        "word": row["word"],
+        "lessonId": row["lesson_id"],
+        "questionType": row["question_type"],
+        "tier": row["quiz_level"] or row["quiz_mode"],
+        "selectedAnswer": row["selected_answer"],
+        "correctAnswer": row["correct_answer"],
+        "correct": bool(row["correct"]),
+        "responseTimeMs": int(row["response_time_ms"] or 0),
+        "pLearned": p_learned,
+        "observationCount": observation_count,
+        "status": mastery_status(observation_count, p_learned, params=BKT_CONFIG) if mastery else "NOT_ASSESSED",
+    }
+
+
+def get_admin_import_results(db: Any) -> dict[str, Any]:
+    """Build the read-only admin visualization payload for the workbook import."""
+    response_rows = repo.list_imported_response_rows(db, WORKBOOK_IMPORT_RESOLVER_VERSION)
+    if not response_rows:
+        return _empty_admin_import_results()
+
+    mastery_rows = repo.list_imported_mastery_rows(db, WORKBOOK_IMPORT_RESOLVER_VERSION)
+    mastery_by_key = {(row["student_id"], row["word_id"]): row for row in mastery_rows}
+    result = _empty_admin_import_results()
+    result["available"] = True
+    result["importedAt"] = min(
+        (_iso_timestamp(row.get("ingested_at")) for row in response_rows if row.get("ingested_at")),
+        default=None,
+    )
+    result["modelVersions"] = sorted({str(row["model_version"]) for row in mastery_rows if row.get("model_version")})
+    result["parameterFingerprints"] = sorted({str(row["parameter_fingerprint"]) for row in mastery_rows if row.get("parameter_fingerprint")})
+
+    students: dict[str, dict[str, Any]] = {}
+    summary = result["summary"]
+    for row in response_rows:
+        student_id = str(row["student_id"])
+        student = students.setdefault(student_id, {
+            "studentId": student_id,
+            "name": row["student_name"],
+            "sessionId": row["quiz_id"],
+            "attemptId": row["attempt_id"],
+            "attemptStatus": row["attempt_status"],
+            "blueprintRevision": row["blueprint_revision"],
+            "completedAt": row["completed_at"],
+            "totalQuestions": int(row["total_questions"] or 0),
+            "correctCount": int(row["correct_count"] or 0),
+            "totalTimeMs": int(row["total_time_ms"] or 0),
+            "tier1": _metric(),
+            "tier3": _metric(),
+            "accuracy": 0.0,
+            "mastery": {"rowCount": 0, "statuses": {}, "minPLearned": None, "maxPLearned": None},
+            "responses": [],
+        })
+        tier = row["quiz_level"] or row["quiz_mode"]
+        metric = student.get(tier)
+        if isinstance(metric, dict):
+            _add_metric(metric, bool(row["correct"]))
+            _add_metric(summary[tier], bool(row["correct"]))
+        _add_metric(summary, bool(row["correct"]))
+        mastery = mastery_by_key.get((student_id, row["word_id"]))
+        student["responses"].append(_admin_import_response(row, mastery))
+
+    for student in students.values():
+        _finish_metric(student["tier1"])
+        _finish_metric(student["tier3"])
+        student["accuracy"] = round((student["correctCount"] / len(student["responses"])) * 100, 1) if student["responses"] else 0.0
+        student_mastery = [mastery_by_key[key] for key in mastery_by_key if key[0] == student["studentId"]]
+        p_values = [float(row["p_learned"]) for row in student_mastery]
+        statuses = dict(Counter(
+            mastery_status(int(row["observation_count"]), float(row["p_learned"]), params=BKT_CONFIG)
+            for row in student_mastery
+        ))
+        student["mastery"] = {
+            "rowCount": len(student_mastery),
+            "statuses": statuses,
+            "minPLearned": min(p_values) if p_values else None,
+            "maxPLearned": max(p_values) if p_values else None,
+        }
+
+    _finish_metric(summary["tier1"])
+    _finish_metric(summary["tier3"])
+    _finish_metric(summary)
+    summary["studentCount"] = len(students)
+    summary["attemptCount"] = len({student["attemptId"] for student in students.values()})
+    summary["masteryRowCount"] = len(mastery_rows)
+    summary["masteryStatuses"] = {
+        status: sum(int(student["mastery"]["statuses"].get(status, 0)) for student in students.values())
+        for status in {status for student in students.values() for status in student["mastery"]["statuses"]}
+    }
+    result["students"] = sorted(students.values(), key=lambda student: student["studentId"])
+    return result
+
+
+def _metric() -> dict[str, Any]:
+    return {"responseCount": 0, "correctCount": 0, "incorrectCount": 0, "accuracy": 0.0}
+
+
+def _add_metric(metric: dict[str, Any], correct: bool) -> None:
+    metric["responseCount"] += 1
+    if correct:
+        metric["correctCount"] += 1
+    else:
+        metric["incorrectCount"] += 1
+
+
+def _iso_timestamp(value: Any) -> str:
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 def start_attempt(db: Any, student_id: str) -> dict[str, Any]:

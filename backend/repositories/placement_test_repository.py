@@ -105,3 +105,51 @@ def complete_attempt(
         """,
         (Jsonb(response_snapshot), completed_at, correct_count, total_time_ms, completed_at, attempt_id),
     )
+
+
+def list_imported_response_rows(db: Any, resolver_version: str) -> list[dict[str, Any]]:
+    """Return the immutable response facts for one admin-visible import batch."""
+    return db.execute(
+        """
+        SELECT
+            r.student_id, s.name AS student_name,
+            r.quiz_id, r.attempt_id, r.item_id, r.word_id, r.word,
+            r.lesson_id, r.question_type, r.selected_answer, r.correct_answer,
+            r.correct, r.response_time_ms, r.attempt_order,
+            r.quiz_level, r.quiz_mode, r.bkt_eligible,
+            r.evidence_origin, r.resolver_version, r.ingested_at,
+            a.status AS attempt_status, a.blueprint_revision,
+            a.completed_at, a.total_questions, a.correct_count, a.total_time_ms
+        FROM vocab_quiz_responses AS r
+        JOIN students AS s ON s.id = r.student_id
+        LEFT JOIN placement_test_attempts AS a ON a.id = r.attempt_id
+        WHERE r.evidence_origin = 'synthetic'
+          AND r.resolver_version = %s
+          AND r.bkt_eligible = TRUE
+        ORDER BY r.student_id, r.attempt_order, r.id
+        """,
+        (resolver_version,),
+    ).fetchall()
+
+
+def list_imported_mastery_rows(db: Any, resolver_version: str) -> list[dict[str, Any]]:
+    """Return mastery projections belonging to the selected import batch."""
+    return db.execute(
+        """
+        SELECT m.student_id, m.word_id, m.p_learned,
+               m.observation_count, m.correct_count, m.incorrect_count,
+               m.model_version, m.parameter_fingerprint
+        FROM student_vocab_mastery AS m
+        WHERE EXISTS (
+            SELECT 1
+            FROM vocab_quiz_responses AS r
+            WHERE r.student_id = m.student_id
+              AND r.word_id = m.word_id
+              AND r.evidence_origin = 'synthetic'
+              AND r.resolver_version = %s
+              AND r.bkt_eligible = TRUE
+        )
+        ORDER BY m.student_id, m.word_id
+        """,
+        (resolver_version,),
+    ).fetchall()
