@@ -6,18 +6,11 @@
   background: transparent;
 }
 
-/* Tonal surfaces (2026-09-25): panel/tinted cards carry a wash of an accent
-   hue instead of sitting flat white/cream, so color reads across the page's
-   actual surface area, not just on buttons and pills. Two hues, each tied
-   to an existing meaning rather than picked for variety: primary for
-   ordinary content (matches StudentStatusPill's "info" tone), tertiary for
-   an aside/note (matches its "selected"/highlight tone) — secondary stays
-   reserved for success/completion so "green = done" keeps one meaning. */
 .sa-section--panel {
-  background: color-mix(in srgb, var(--sa-primary) 16%, var(--sa-surface-container-lowest));
-  border: 1px solid color-mix(in srgb, var(--sa-primary) 28%, transparent);
+  background: var(--sa-surface-container-lowest);
+  border: 1px solid var(--sa-surface-container-highest);
 }
 
 .sa-section--tinted {
-  background: color-mix(in srgb, var(--sa-tertiary) 16%, var(--sa-surface-container-lowest));
+  background: var(--sa-surface-container-low);
 }
