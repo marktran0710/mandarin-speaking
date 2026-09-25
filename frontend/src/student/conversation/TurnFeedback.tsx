@@ -8,7 +8,6 @@ interface TurnFeedbackProps {
   session: ConversationSession;
   continueLabel: string;
 }
-
 export default function TurnFeedback({ session, continueLabel }: TurnFeedbackProps) {
   const { lastAnalysis, lastResult, lastRecognizedText } = session;
   if (!lastAnalysis || !lastResult) return null;
@@ -47,4 +46,3 @@ export default function TurnFeedback({ session, continueLabel }: TurnFeedbackPro
     </section>
   );
 }
-

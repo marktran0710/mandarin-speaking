@@ -7,7 +7,6 @@ interface StudentTurnProps {
   turn: ConversationTurn;
   session: ConversationSession;
 }
-
 export default function StudentTurn({ turn, session }: StudentTurnProps) {
   const { recorder } = session;
   return (
@@ -33,4 +32,3 @@ export default function StudentTurn({ turn, session }: StudentTurnProps) {
     </section>
   );
 }
-

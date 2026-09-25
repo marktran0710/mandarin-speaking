@@ -7,4 +7,3 @@ export function normalizeSpeechModel(model?: string): SpeechModel {
   }
   return "webspeech";
 }
-

@@ -7,7 +7,6 @@ interface InterlocutorTurnProps {
   turn: ConversationTurn;
   onContinue: () => void;
 }
-
 export default function InterlocutorTurn({ turn, onContinue }: InterlocutorTurnProps) {
   return (
     <section className="sa-bubble-row is-character sa-conversation__current-turn" aria-label="Conversation partner turn">
@@ -22,4 +21,3 @@ export default function InterlocutorTurn({ turn, onContinue }: InterlocutorTurnP
     </section>
   );
 }
-

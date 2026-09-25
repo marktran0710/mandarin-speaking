@@ -6,7 +6,6 @@ interface ConversationHeaderProps {
   totalExchanges: number;
   onBack: () => void;
 }
-
 export default function ConversationHeader({ title, currentExchange, totalExchanges, onBack }: ConversationHeaderProps) {
   return (
     <header className="sa-conversation__header">
@@ -26,4 +25,3 @@ export default function ConversationHeader({ title, currentExchange, totalExchan
     </header>
   );
 }
-
