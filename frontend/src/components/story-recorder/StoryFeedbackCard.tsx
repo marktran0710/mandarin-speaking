@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
-import { BiLabel } from "../ui/BiLabel";
+import { BiLabel } from "@shared/ui";
 import StudentIcon, { type StudentIconName } from "../navigation/StudentIcon";
 import type { SceneSubmission, StoryFeedback, StoryFeedbackDimension } from "../../services/database";
 import { getBackendUrl } from "../../config/runtimeEnv";

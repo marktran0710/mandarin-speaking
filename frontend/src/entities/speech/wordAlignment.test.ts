@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { WordProsody, WordProsodySyllable } from "../../components/story-recorder/StoryRecorder";
 import { mapWordProsodyToAlignment } from "./wordAlignment";
 
-vi.mock("../../utils/pinyin", () => ({
+vi.mock("@entities/vocabulary", () => ({
   toPinyin: (text: string) => ({
     "\u4eca\u5929": "j\u012bn ti\u0101n",
     "\u597d": "h\u01ceo",

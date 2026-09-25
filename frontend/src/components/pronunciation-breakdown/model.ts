@@ -1,7 +1,7 @@
-import { toPinyin, toPinyinSyllables } from "../../utils/pinyin";
+import { toPinyin, toPinyinSyllables } from "@entities/vocabulary";
 import {
   scoreScriptChunks, scriptAlignmentText, scriptDisplayChars, splitTeacherScriptIntoPhrases,
-} from "../../utils/scriptAlignment";
+} from "@entities/speech";
 import type { WordProsody, WordProsodySyllable } from "../story-recorder/StoryRecorder";
 import { NEUTRAL_LABEL, TONE_STATUS } from "./constants";
 import type { BreakdownGroup, PhraseBreakdownGroup } from "./types";

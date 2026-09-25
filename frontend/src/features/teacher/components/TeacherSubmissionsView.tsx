@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import {
   updateSubmissionReview,
   type StorySubmission,
-} from "../../services/database";
+} from "../../../services/database";
 import { resolveImageUrl } from "@entities/story";
-import StoryFeedbackCard from "../story-recorder/StoryFeedbackCard";
-import Icon from "../../shared/ui/Icon";
-import SelfEvalIcon from "../../shared/ui/SelfEvalIcon";
-import StudentIcon from "../navigation/StudentIcon";
+import StoryFeedbackCard from "../../../components/story-recorder/StoryFeedbackCard";
+import Icon from "@shared/ui/Icon";
+import SelfEvalIcon from "@shared/ui/SelfEvalIcon";
+import StudentIcon from "../../../components/navigation/StudentIcon";
 
 function submittedTime(submission: StorySubmission) {
   const time = Date.parse(submission.submittedAt);

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import AdminApp from "./AdminApp";
 import ManagementShell from "../components/management/ManagementShell";
-import { SESSION_EXPIRED_EVENT } from "../services/api/client";
+import { SESSION_EXPIRED_EVENT } from "@shared/api/client";
 
 vi.mock("../features/teacher/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,

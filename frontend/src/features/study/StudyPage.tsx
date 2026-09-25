@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Topic } from "@entities/topic";
 import { groupTopicsByLesson, lessonTitle, topicStoryId } from "../../utils/lessonGroups";
-import { speakingVocabularyItems } from "../../utils/speakingVocabulary";
+import { speakingVocabularyItems } from "@entities/vocabulary";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";

@@ -1,5 +1,5 @@
-import { ASSISTIVE_MESSAGE, type AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
-import { BiLabel } from "../ui/BiLabel";
+import { ASSISTIVE_MESSAGE, type AssistiveFeedbackSyllable } from "@entities/speech";
+import { BiLabel } from "@shared/ui";
 import StudentIcon from "../navigation/StudentIcon";
 import MiniContourChart from "../pitch/MiniContourChart";
 import type { WordProsody, WordProsodySyllable, VowelZone } from "../story-recorder/StoryRecorder";

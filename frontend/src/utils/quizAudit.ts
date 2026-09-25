@@ -1,4 +1,4 @@
-import { toPinyin } from "./pinyin";
+import { toPinyin } from "@entities/vocabulary/api";
 import {
   CLOZE_BLANK,
   type VocabQuizEntry,

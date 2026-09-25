@@ -3,7 +3,7 @@ import TeacherDashboardPage from "../features/teacher/TeacherDashboardPage";
 import type { TeacherView } from "../features/teacher/TeacherDashboardPage";
 import LoginPage from "../features/auth/LoginPage";
 import Navigation from "../components/navigation/Navigation";
-import ErrorBoundary from "../components/ui/ErrorBoundary";
+import ErrorBoundary from "@shared/ui/ErrorBoundary";
 import { currentRole, signOut } from "../utils/session";
 import {
   canUseDatabase,

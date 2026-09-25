@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { BiLabel, BiText } from "../../components/ui/BiLabel";
+import { BiLabel, BiText } from "@shared/ui";
 import ToneMark from "../../components/tone/ToneMark";
 import "@shared/ui/BilingualText.css";
 import "./LoginPage.css";
@@ -7,7 +7,7 @@ import "./StudentLoginPage.css";
 import { loginStudent } from "../../services/database";
 import { signIn } from "../../utils/session";
 import StudentIcon from "../../components/navigation/StudentIcon";
-import SourceAttribution from "../../components/ui/SourceAttribution";
+import SourceAttribution from "@shared/ui/SourceAttribution";
 
 /** Dedicated student sign-in. Student accounts are provisioned by an admin;
  * the public student portal never creates roster accounts. */

@@ -1,7 +1,7 @@
 import "./Navigation.css";
 import { Page } from "../../types/page";
 import { LoginRole } from "../../features/auth/LoginPage";
-import { BiLabel } from "../ui/BiLabel";
+import { BiLabel } from "@shared/ui";
 import ToneMark from "../tone/ToneMark";
 import StudentIcon from "./StudentIcon";
 import useColorMode from "../../hooks/useColorMode";

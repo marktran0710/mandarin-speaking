@@ -1,7 +1,7 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
-import type { StoryPhrasesByLevel, StoryVocabularyByLevel } from "../../utils/teacherStories";
-import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
-import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder/conversation";
+import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
+import type { StoryPhrasesByLevel, StoryVocabularyByLevel } from "@entities/story";
+import type { VocabAssessmentQuestion } from "@entities/vocabulary";
+import type { ConversationTurn } from "@entities/conversation";
 
 export interface CustomStoryFrame { imageUrl: string; prompt: string; vocabulary: string; vocabularyGroups?: Array<{ name: string; words: string[] }>; phrases?: string; phrasesTranslation?: string; vocabularyPinyin?: string; vocabularyPos?: string; vocabularyTranslation?: string; suggestedAnswer?: string; listenAudioUrl?: string; listenScript?: string; vocabularyAudioUrls?: string; imageUrlMedium?: string; imageUrlHard?: string; promptMedium?: string; promptHard?: string; vocabularyMedium?: string; vocabularyHard?: string; vocabularyPinyinMedium?: string; vocabularyPinyinHard?: string; vocabularyPosMedium?: string; vocabularyPosHard?: string; vocabularyTranslationMedium?: string; vocabularyTranslationHard?: string; phrasesMedium?: string; phrasesHard?: string; phrasesTranslationMedium?: string; phrasesTranslationHard?: string; suggestedAnswerMedium?: string; suggestedAnswerHard?: string; listenAudioUrlMedium?: string; listenAudioUrlHard?: string; listenScriptMedium?: string; listenScriptHard?: string; }
 export interface StoredCustomStory { id: string; title: string; frames: CustomStoryFrame[]; conversationTurns?: ConversationTurn[]; storyVocabulary?: StoryVocabularyByLevel; storyPhrases?: StoryPhrasesByLevel; vocabAssessment?: VocabAssessmentQuestion[]; vocabAssessmentRevision?: string | null; published?: boolean; rubricScores?: Record<string, unknown> | null; lessonNumber?: number | null; lessonSubOrder?: number | null; }

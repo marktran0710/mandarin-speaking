@@ -6,6 +6,14 @@ import { resolve } from "node:path";
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [react()],
+  resolve: {
+    alias: {
+      "@app": resolve(import.meta.dirname, "src/app"),
+      "@features": resolve(import.meta.dirname, "src/features"),
+      "@entities": resolve(import.meta.dirname, "src/entities"),
+      "@shared": resolve(import.meta.dirname, "src/shared"),
+    },
+  },
   server: {
     port: 5173,
     open: process.env.VITE_OPEN_BROWSER !== "false",

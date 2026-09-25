@@ -3,7 +3,7 @@ import {
   blankConversationExchange,
   emptyCustomStoryDraft,
   validateCustomStoryDraft,
-} from "./StoryBuilderSection.helpers";
+} from "./modelHelpers";
 
 const baseDraft = {
   ...emptyCustomStoryDraft,

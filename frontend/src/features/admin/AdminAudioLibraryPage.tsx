@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { AudioRecord } from "@entities/audio";
-import TeacherRecordingsView from "../../components/teacher/TeacherRecordingsView";
+import TeacherRecordingsView from "@features/teacher/components/TeacherRecordingsView";
 import "../../shared/styles/MyStoriesPage.css";
 import "../teacher/TeacherDashboardPage.css";
 import "./AdminAudioLibraryPage.css";

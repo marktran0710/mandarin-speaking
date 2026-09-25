@@ -12,13 +12,13 @@ import {
 import type { AudioRecord } from "@entities/audio";
 import ManagementShell from "../../components/management/ManagementShell";
 import Icon from "../../shared/ui/Icon";
-import TeacherHelpQueue from "../../components/teacher/TeacherHelpQueue";
-import TeacherRecordingsView from "../../components/teacher/TeacherRecordingsView";
-import TeacherSubmissionsView from "../../components/teacher/TeacherSubmissionsView";
-import QuizAnalyticsPanel from "../../components/teacher/QuizAnalyticsPanel";
+import TeacherHelpQueue from "./components/TeacherHelpQueue";
+import TeacherRecordingsView from "./components/TeacherRecordingsView";
+import TeacherSubmissionsView from "./components/TeacherSubmissionsView";
+import QuizAnalyticsPanel from "./components/QuizAnalyticsPanel";
 import RecordingAnalyticsPanel from "../../components/analytics/RecordingAnalyticsPanel";
-import TeacherRosterTable from "../../components/teacher/TeacherRosterTable";
-import TeacherStudentProfile from "../../components/teacher/TeacherStudentProfile";
+import TeacherRosterTable from "./components/TeacherRosterTable";
+import TeacherStudentProfile from "./components/TeacherStudentProfile";
 import { buildStudentAssessments } from "../../utils/studentAssessment";
 // Legacy view internals (panels, tables, builder form) still live in the
 // shared stylesheet; the shell + workspace styles are in the two new files.

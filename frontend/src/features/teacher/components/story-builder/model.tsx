@@ -7,13 +7,13 @@ import type {
   StoryVocabularyByLevel,
 } from "@entities/story";
 import type { ConversationTurn } from "@entities/conversation";
-import { buildPhraseRows, buildVocabRows } from "../../utils/myStoriesUtils";
+import { buildPhraseRows, buildVocabRows } from "../../../../utils/myStoriesUtils";
 import {
   blankStoryPhrases,
   blankStoryVocabulary,
   emptyCustomStoryDraft,
   type ConversationExchangeDraft,
-} from "./StoryBuilderSection.helpers";
+} from "./modelHelpers";
 
 /** Epic 3: one exchange draft -> one system turn + one student turn. Skips
  * an exchange with no content at all (a freshly-added blank row that was

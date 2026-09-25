@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { resolveImageUrl } from "@entities/story";
-import { splitScriptIntoChunks } from "../../utils/scriptAlignment";
-import { STORY_FRAME_GUIDES } from "./StoryBuilderSection.helpers";
+import { splitScriptIntoChunks } from "@entities/speech";
+import { STORY_FRAME_GUIDES } from "./modelHelpers";
 
 function FramePreview({ draft, index, imageUrl, onPaste }) {
   const guide = STORY_FRAME_GUIDES[index];

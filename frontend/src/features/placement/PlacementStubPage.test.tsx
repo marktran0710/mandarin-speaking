@@ -5,7 +5,7 @@ import { unavailablePlacementSession } from "./placementSession";
 
 describe("PlacementStubPage", () => {
   it("renders the honest unavailable state without assessment data", () => {
-    render(<PlacementStubPage />);
+    render(<PlacementStubPage live={false} />);
 
     expect(screen.getByRole("heading", { name: "入門測驗" })).toBeInTheDocument();
     expect(screen.getByText("Placement Test")).toBeInTheDocument();

@@ -1,12 +1,12 @@
 import { FormEvent, useEffect, useState } from "react";
-import { BiLabel, BiText } from "../../components/ui/BiLabel";
+import { BiLabel, BiText } from "@shared/ui";
 import ToneMark from "../../components/tone/ToneMark";
 import ToneField from "../../components/tone/ToneField";
 import "@shared/ui/BilingualText.css";
 import "./LoginPage.css";
 import { canUseDatabase, listStudents, loginStudent, loginTeacher, type Student } from "../../services/database";
 import { signIn } from "../../utils/session";
-import SourceAttribution from "../../components/ui/SourceAttribution";
+import SourceAttribution from "@shared/ui/SourceAttribution";
 
 export type LoginRole = "student" | "teacher";
 

@@ -3,7 +3,7 @@ import type {
   WordProsody,
   WordProsodySyllable,
 } from "../../components/story-recorder/StoryRecorder";
-import { toPinyin, toPinyinSyllables } from "../../utils/pinyin";
+import { toPinyin, toPinyinSyllables } from "@entities/vocabulary";
 
 export type WordAlignmentStatus = DiagnosticStatus | "NEUTRAL";
 

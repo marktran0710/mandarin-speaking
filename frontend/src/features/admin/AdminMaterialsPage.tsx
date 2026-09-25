@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
-import StoryBuilderSection from "../../components/teacher/StoryBuilderSection";
+import StoryBuilderSection from "@features/teacher/components/story-builder/StoryBuilderSection";
 import TeacherImageBuilderPage from "../teacher/TeacherImageBuilderPage";
 import "../../shared/styles/MyStoriesPage.css";
 import "../teacher/TeacherDashboardPage.css";

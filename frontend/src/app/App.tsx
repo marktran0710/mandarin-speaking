@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import HomePage from "../features/home/HomePage";
-import ErrorBoundary from "../components/ui/ErrorBoundary";
+import ErrorBoundary from "@shared/ui/ErrorBoundary";
 
 import StudentLoginPage from "../features/auth/StudentLoginPage";
 import Navigation from "../components/navigation/Navigation";
@@ -29,7 +29,7 @@ import {
   saveCustomStories,
 } from "@entities/story";
 import type { Topic } from "@entities/topic";
-import { primePinyin } from "../utils/pinyin";
+import { primePinyin } from "@entities/vocabulary";
 import type { Page } from "../types/page";
 import StudentApp from "./student/StudentApp";
 import { replaceHistorySnapshot } from "../utils/studentHistory";

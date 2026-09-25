@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ASSISTIVE_MESSAGE, matchAssistiveRecord } from "../../utils/assistiveFeedback";
-import { primePinyin } from "../../utils/pinyin";
-import { scriptAlignmentText } from "../../utils/scriptAlignment";
+import { ASSISTIVE_MESSAGE, matchAssistiveRecord } from "@entities/speech";
+import { primePinyin } from "@entities/vocabulary";
+import { scriptAlignmentText } from "@entities/speech";
 import { toneArrow } from "../../utils/storyRecorderFeedback";
-import { BiLabel } from "../ui/BiLabel";
+import { BiLabel } from "@shared/ui";
 import StudentIcon from "../navigation/StudentIcon";
 import { SUMMARY_BUCKETS, TONE_STATUS } from "./constants";
 import { breakdownGroups, breakdownPhraseGroups, countByBucket, displayWordsForScript, referenceEvidenceAccepted, statusLabel } from "./model";

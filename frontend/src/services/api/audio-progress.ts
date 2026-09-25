@@ -1,7 +1,7 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
+import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 import type { SceneSubmission, StorySubmission } from "./stories-submissions";
 import type { VocabQuizAttempt } from "./quiz-analytics";
-import { buildPracticeAnalysisFormData, type PracticeAnalysisRequestContext } from "../../utils/practiceAnalysis";
+import { buildPracticeAnalysisFormData, type PracticeAnalysisRequestContext } from "../../shared/api/practice-form";
 
 function snapshotIdFor(result: SceneSubmission): string {
   if (result.snapshotId) return result.snapshotId;

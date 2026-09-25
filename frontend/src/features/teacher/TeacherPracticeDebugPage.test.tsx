@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, vi } from "vitest";
 import TeacherPracticeDebugPage from "./TeacherPracticeDebugPage";
 import TeacherDashboardPage from "./TeacherDashboardPage";
-import { redactDebugValue } from "../../utils/practiceDebug";
+import { redactDebugValue } from "./practice-debug/debugModel";
 import type { AudioRecord } from "@entities/audio";
 
 afterEach(() => {

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { getAudioUploadError, getImageUploadError } from "../../utils/myStoriesUtils";
+import { getAudioUploadError, getImageUploadError } from "../../../../utils/myStoriesUtils";
 
 export function useStoryBuilderFrameActions(deps) {
   const { updateDraftFrame, setValidationErrors } = deps;

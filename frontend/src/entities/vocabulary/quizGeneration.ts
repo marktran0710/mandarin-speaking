@@ -1,4 +1,4 @@
-import { toPinyin } from "../../utils/pinyin";
+import { toPinyin } from "./api";
 import { DIAGNOSTIC_ROUNDS, type TierMode } from "./progression";
 import type { VocabAssessmentLevel, VocabAssessmentQuestion, VocabQuizEntry } from "./types";
 import type { VocabQuizAssessmentQuestion } from "./quizTypes";

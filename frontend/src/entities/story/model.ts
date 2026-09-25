@@ -1,5 +1,5 @@
 import type { Topic } from "@entities/topic";
-import { numericToToneMarked } from "../../utils/pinyin";
+import { numericToToneMarked } from "@entities/vocabulary";
 import { resolveImageUrl, splitCsvField, tierText, TIER_SUFFIX } from "./storyText";
 import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "./types";
 

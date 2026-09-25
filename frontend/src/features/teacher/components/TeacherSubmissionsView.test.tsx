@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { updateSubmissionReview, type StorySubmission } from "../../services/database";
+import { updateSubmissionReview, type StorySubmission } from "../../../services/database";
 import TeacherSubmissionsView from "./TeacherSubmissionsView";
 
-vi.mock("../../services/database", () => ({
+vi.mock("../../../services/database", () => ({
   updateSubmissionReview: vi.fn(),
 }));
 

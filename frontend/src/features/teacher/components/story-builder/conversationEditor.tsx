@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { getAudioUploadError } from "../../utils/myStoriesUtils";
-import { blankConversationExchange } from "./StoryBuilderSection.helpers";
+import { getAudioUploadError } from "../../../../utils/myStoriesUtils";
+import { blankConversationExchange } from "./modelHelpers";
 
 function readAudioAsDataUrl(file, onLoaded) {
   const reader = new FileReader();

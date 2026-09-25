@@ -4,8 +4,8 @@ import {
   createCustomStory,
   exchangesToConversationTurns,
   storyToDraft,
-} from "./StoryBuilderSection.model";
-import { blankConversationExchange, emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
+} from "./model";
+import { blankConversationExchange, emptyCustomStoryDraft } from "./modelHelpers";
 
 describe("story-wide learning content", () => {
   it("serializes vocabulary and phrases outside the frame list", () => {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import StoryBuilderConversationEditor from "./StoryBuilderSection.ConversationEditor";
-import { blankConversationExchange, emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
+import StoryBuilderConversationEditor from "./conversationEditor";
+import { blankConversationExchange, emptyCustomStoryDraft } from "./modelHelpers";
 
 function renderEditor(draft: typeof emptyCustomStoryDraft) {
   let current = draft;

@@ -5,7 +5,7 @@ import {
   createCustomStory as saveCustomStoryToDatabase,
   deleteCustomStoryFromDatabase,
   listCustomStories,
-} from "../../services/database";
+} from "../../../../services/database";
 import {
   CustomTeacherStory,
   type StoryDifficultyLevel,
@@ -13,14 +13,14 @@ import {
   loadCustomStories,
   saveCustomStories,
 } from "@entities/story";
-import { exportStoryFile, readStoryImportFile } from "../../utils/storyPortability";
+import { exportStoryFile, readStoryImportFile } from "./storyPortability";
 import {
   clearFrameError,
   getAudioUploadError,
   getImageUploadError,
   hasCustomStoryErrors,
   resizeToCount,
-} from "../../utils/myStoriesUtils";
+} from "../../../../utils/myStoriesUtils";
 
 import {
   BACKEND_URL,
@@ -29,12 +29,12 @@ import {
   type CustomStoryValidationErrors,
   type TieredDraftField,
   validateCustomStoryDraft,
-} from "./StoryBuilderSection.helpers";
-import { createCustomStory, storyToDraft } from "./StoryBuilderSection.model";
-import StoryBuilderForm from "./StoryBuilderSection.Form";
-import StoryBuilderLibrary from "./StoryBuilderSection.Library";
-import { useStoryBuilderFrameActions } from "./StoryBuilderSection.frameActions";
-export type { CustomStoryValidationErrors } from "./StoryBuilderSection.helpers";
+} from "./modelHelpers";
+import { createCustomStory, storyToDraft } from "./model";
+import StoryBuilderForm from "./form";
+import StoryBuilderLibrary from "./library";
+import { useStoryBuilderFrameActions } from "./frameActions";
+export type { CustomStoryValidationErrors } from "./modelHelpers";
 export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: () => void }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),

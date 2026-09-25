@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buildVocabRows, type VocabRow } from "../../utils/myStoriesUtils";
+import { buildVocabRows, type VocabRow } from "../../../utils/myStoriesUtils";
 
 const VOCAB_POS_OPTIONS = [
   "N",

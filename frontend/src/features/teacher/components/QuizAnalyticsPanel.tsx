@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { VocabQuizAttempt } from "../../services/database";
-import DashboardStat from "../analytics/DashboardStat";
+import type { VocabQuizAttempt } from "../../../services/database";
+import DashboardStat from "../../../components/analytics/DashboardStat";
 
 /** Class-wide quiz totals under the roster table. The trend chart and the
  * missed-words list were cut — per-student accuracy and missed words already

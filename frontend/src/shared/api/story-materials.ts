@@ -16,6 +16,19 @@ export interface GeneratedStory {
   frames: GeneratedFrame[];
 }
 
+export async function inlineMedia(url: string): Promise<string> {
+  if (!url || url.startsWith("data:")) return url;
+
+  const response = await fetch(
+    `${getBackendUrl()}/api/inline-media?url=${encodeURIComponent(url)}`,
+  );
+  if (!response.ok) {
+    throw new Error(`Could not download "${url}" while preparing the export.`);
+  }
+  const { dataUrl } = await response.json() as { dataUrl: string };
+  return dataUrl;
+}
+
 export async function generateStoryImages(input: {
   situation: string;
   level: string;

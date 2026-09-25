@@ -8,8 +8,8 @@ import type {
   StoryVocabularyByLevel,
   VocabGroup,
 } from "@entities/story";
-import { frameCountForMode } from "../../utils/myStoriesUtils";
-import { getBackendUrl } from "../../config/runtimeEnv";
+import { frameCountForMode } from "../../../../utils/myStoriesUtils";
+import { getBackendUrl } from "../../../../config/runtimeEnv";
 
 export const BACKEND_URL = getBackendUrl();
 

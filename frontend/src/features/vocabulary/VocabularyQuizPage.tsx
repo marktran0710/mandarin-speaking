@@ -7,7 +7,7 @@ import {
   type VocabQuizQuestionResult,
 } from "@entities/vocabulary";
 import type { TierMode } from "@entities/vocabulary";
-import { toPinyin } from "../../utils/pinyin";
+import { toPinyin } from "@entities/vocabulary";
 import { useVocabQuizFlow } from "./hooks/useVocabQuizFlow";
 import { ROUND_LABEL, TIER_SEQUENCE } from "./model/tierRounds";
 import BilingualWord from "@shared/ui/student/BilingualWord";

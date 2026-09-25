@@ -1,4 +1,4 @@
-import type { AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
+import type { AssistiveFeedbackSyllable } from "@entities/speech";
 import type { WordProsody, WordProsodySyllable } from "../story-recorder/StoryRecorder";
 
 export interface BreakdownRow {

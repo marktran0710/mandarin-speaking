@@ -1,5 +1,5 @@
-import type { HelpRequest } from "../../services/database";
-import { formatRequestTime } from "../../utils/myStoriesUtils";
+import type { HelpRequest } from "../../../services/database";
+import { formatRequestTime } from "../../../utils/myStoriesUtils";
 
 export default function TeacherHelpQueue({
   helpRequests,

@@ -1,4 +1,4 @@
-import { numericToToneMarked } from "../../utils/pinyin";
+import { numericToToneMarked } from "./api";
 import type { VocabAssessmentQuestion } from "./types";
 import type { VocabQuizAssessmentQuestion } from "./quizTypes";
 import type { VocabQuizEntry } from "./types";

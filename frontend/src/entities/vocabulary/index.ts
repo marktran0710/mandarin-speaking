@@ -8,6 +8,9 @@ export type {
 } from "./types";
 export { topicHasQuiz, topicQuizEntries } from "./model";
 export type { QuizSourceTopic } from "./model";
+export { speakingVocabularyItems } from "./preview";
+export type { SpeakingVocabularyPreviewItem } from "./preview";
+export { numericToToneMarked, primePinyin, toPinyin, toPinyinSyllables } from "./api";
 export {
   DIAGNOSTIC_ROUNDS,
   PRACTICE_UNLOCK_STARS,

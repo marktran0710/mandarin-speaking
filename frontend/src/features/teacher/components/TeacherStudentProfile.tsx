@@ -1,10 +1,10 @@
-import DashboardStat from "../analytics/DashboardStat";
-import { AccuracyTimeChart, FluencyToneTimeChart } from "../analytics/MyStoriesCharts";
+import DashboardStat from "../../../components/analytics/DashboardStat";
+import { AccuracyTimeChart, FluencyToneTimeChart } from "../../../components/analytics/MyStoriesCharts";
 import type { AudioRecord } from "@entities/audio";
-import type { VocabQuizAttempt } from "../../services/database";
-import { getTopicLabel, quizAttemptAccuracy } from "../../utils/myStoriesUtils";
-import type { StudentAssessment } from "../../utils/studentAssessment";
-import StudentIcon from "../navigation/StudentIcon";
+import type { VocabQuizAttempt } from "../../../services/database";
+import { getTopicLabel, quizAttemptAccuracy } from "../../../utils/myStoriesUtils";
+import type { StudentAssessment } from "../../../utils/studentAssessment";
+import StudentIcon from "../../../components/navigation/StudentIcon";
 
 function score(value: number | null, suffix = "") {
   return value === null ? "--" : `${value}${suffix}`;

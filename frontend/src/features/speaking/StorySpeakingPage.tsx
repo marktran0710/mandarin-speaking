@@ -6,7 +6,7 @@ import { saveSpeakingProgress, type SceneSubmission } from "../../services/datab
 import {
   analyzeSpeakingResult,
   type SpeakingResultAnalysis,
-} from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
+} from "../../components/speaking-flow-card/model/analysis";
 import { getStudentId } from "../../utils/studentSession";
 import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";

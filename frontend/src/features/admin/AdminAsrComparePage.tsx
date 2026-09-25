@@ -2,7 +2,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import type { AudioRecord } from "@entities/audio";
 import { buildSceneReferenceCurves, type SpeechModel } from "../../components/story-recorder/StoryRecorder";
 import { convertBlobToWav } from "@entities/audio";
-import { buildPracticeAnalysisFormData } from "../../utils/practiceAnalysis";
+import { buildPracticeAnalysisFormData } from "@shared/api/practice-form";
 import { formatBackendError } from "../../utils/storyRecorderFeedback";
 import { postPracticeAnalysisStream } from "../../shared/api/practice-analysis";
 import { canUseDatabase, listCustomStories } from "../../services/database";

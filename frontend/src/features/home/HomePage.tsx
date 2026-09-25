@@ -1,10 +1,10 @@
 import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../../types/page";
-import { BiLabel, BiText } from "../../components/ui/BiLabel";
+import { BiLabel, BiText } from "@shared/ui";
 import ToneStroke from "../../components/tone/ToneStroke";
 import StudentIcon from "../../components/navigation/StudentIcon";
-import SourceAttribution from "../../components/ui/SourceAttribution";
+import SourceAttribution from "@shared/ui/SourceAttribution";
 import "@shared/ui/BilingualText.css";
 
 interface HomePageProps {

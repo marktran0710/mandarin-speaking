@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Topic } from "@entities/topic";
-import { speakingVocabularyItems } from "../../utils/speakingVocabulary";
+import { speakingVocabularyItems } from "@entities/vocabulary";
 import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";

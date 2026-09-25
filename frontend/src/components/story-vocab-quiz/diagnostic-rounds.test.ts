@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDiagnosticRoundQuestions, validateRoundCoverage, type VocabQuizEntry } from "./model";
+import { buildDiagnosticRoundQuestions, validateRoundCoverage, type VocabQuizEntry } from "@entities/vocabulary";
 
 const entries: VocabQuizEntry[] = Array.from({ length: 15 }, (_, index) => ({
   word: `詞${index + 1}`,

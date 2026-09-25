@@ -1,9 +1,9 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from "react";
-import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
-import StoryBuilderConversationEditor from "./StoryBuilderSection.ConversationEditor";
-import VocabularyTable from "./VocabularyTable";
-import PhraseTable from "./PhraseTable";
+import StoryBuilderFrameEditor from "./frameEditor";
+import StoryBuilderConversationEditor from "./conversationEditor";
+import VocabularyTable from "../VocabularyTable";
+import PhraseTable from "../PhraseTable";
 
 function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
   return <>

@@ -1,4 +1,4 @@
-﻿import { BACKEND_URL, fetchWithRetry } from "./client";
+﻿import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 
 function devSrsToday(): string | undefined {
   if (!import.meta.env.DEV || typeof window === "undefined") return undefined;

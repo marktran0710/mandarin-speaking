@@ -1,4 +1,4 @@
-import { toPinyin } from "../../utils/pinyin";
+import { toPinyin } from "./api";
 import type { VocabQuizEntry } from "./types";
 import type { VocabQuizMode, VocabQuizQuestion } from "./quizModel";
 

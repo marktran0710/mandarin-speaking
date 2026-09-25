@@ -2,14 +2,14 @@ import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "@entities/topic";
-import type { SpeakingResultAnalysis } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
-import { analyzeSpeakingResult } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
+import type { SpeakingResultAnalysis } from "../../components/speaking-flow-card/model/analysis";
+import { analyzeSpeakingResult } from "../../components/speaking-flow-card/model/analysis";
 import { saveSpeakingProgress } from "../../services/database";
 import StorySpeakingPage from "./StorySpeakingPage";
 import { useSpeakingRecorder, type SpeakingAnalysisResult } from "./hooks/useSpeakingRecorder";
 
 vi.mock("./hooks/useSpeakingRecorder", () => ({ useSpeakingRecorder: vi.fn() }));
-vi.mock("../../components/speaking-flow-card/SpeakingResultsFlow.analysis", () => ({ analyzeSpeakingResult: vi.fn() }));
+vi.mock("../../components/speaking-flow-card/model/analysis", () => ({ analyzeSpeakingResult: vi.fn() }));
 vi.mock("../../services/database", () => ({ saveSpeakingProgress: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../../utils/studentSession", () => ({
   getStudentId: () => "student-1",

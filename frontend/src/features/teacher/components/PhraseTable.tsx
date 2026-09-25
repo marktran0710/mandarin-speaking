@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buildPhraseRows, type PhraseRow } from "../../utils/myStoriesUtils";
+import { buildPhraseRows, type PhraseRow } from "../../../utils/myStoriesUtils";
 
 /** Per-scene "handy phrases" table — easy-to-learn, practice, and remember
  * chunks students can reuse (replaces the old single whole-story grammar

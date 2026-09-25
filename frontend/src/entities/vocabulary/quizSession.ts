@@ -1,4 +1,4 @@
-import { toPinyin } from "../../utils/pinyin";
+import { toPinyin } from "./api";
 import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type DiagnosticRoundType, type TierMode } from "./progression";
 import { toneTrapVariants } from "../../utils/toneTraps";
 import { normalizeQuizExposure } from "./quizSessionPlanner";

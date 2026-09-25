@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import RecordCard from "../speaking-flow-card/RecordCard";
+import RecordCard from "../../../components/speaking-flow-card/RecordCard";
 import type { AudioRecord } from "@entities/audio";
 
 export default function TeacherRecordingsView({

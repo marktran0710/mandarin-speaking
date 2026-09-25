@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry } from "./client";
+import { ApiRequestAbortedError, ApiRequestTimeoutError, BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 import type { StoredCustomStory } from "./stories-submissions";
 
 export type QuizVocabularyLevel = "Easy" | "Medium" | "Hard";
@@ -220,12 +220,29 @@ export interface VocabularyAudioImportResult {
   stories: string[];
 }
 
+export const VOCABULARY_AUDIO_IMPORT_TIMEOUT_MS = 60_000;
+
 async function postVocabularyAudioImport<T>(path: string, file: File): Promise<T> {
   const body = new FormData();
   body.append("file", file);
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/vocabulary-audio-import/${path}`, { method: "POST", body }, 1);
+  let response: Response;
+  try {
+    response = await fetchWithRetry(
+      `${BACKEND_URL}/api/admin/vocabulary-audio-import/${path}`,
+      { method: "POST", body },
+      1,
+      VOCABULARY_AUDIO_IMPORT_TIMEOUT_MS,
+    );
+  } catch (error) {
+    if (error instanceof ApiRequestTimeoutError) throw error;
+    if (error instanceof ApiRequestAbortedError) throw error;
+    throw new Error("Could not reach the audio import backend. Check that the admin backend is running and healthy.");
+  }
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Your admin session expired. Please log in again.");
+    }
     throw new Error(typeof payload?.detail === "string" ? payload.detail : "Could not process the audio import.");
   }
   return response.json() as Promise<T>;

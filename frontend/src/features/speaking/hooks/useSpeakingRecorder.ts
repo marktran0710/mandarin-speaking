@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PraatMetrics } from "../../../components/story-recorder/StoryRecorder";
 import { convertBlobToWav } from "@entities/audio";
-import { buildPracticeAnalysisFormData, type PracticeAnalysisRequestContext } from "../../../utils/practiceAnalysis";
+import { buildPracticeAnalysisFormData, type PracticeAnalysisRequestContext } from "@shared/api/practice-form";
 import { formatBackendError, getBackendUrl } from "../../../utils/storyRecorderFeedback";
 import { getStudentId } from "../../../utils/studentSession";
 import { postSpeechAnalysis } from "@shared/api/speech-analysis";

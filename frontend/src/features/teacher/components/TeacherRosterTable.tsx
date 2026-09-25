@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { getTopicLabel } from "../../utils/myStoriesUtils";
-import type { StudentAssessment } from "../../utils/studentAssessment";
-import StudentIcon from "../navigation/StudentIcon";
+import { getTopicLabel } from "../../../utils/myStoriesUtils";
+import type { StudentAssessment } from "../../../utils/studentAssessment";
+import StudentIcon from "../../../components/navigation/StudentIcon";
 
 /** One roster table replaces what used to be four overlapping student lists
  * (Watchlist, Class Star Board, "All students", and the quiz panel's own

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
-import { createCustomStory } from "./StoryBuilderSection.model";
+import { emptyCustomStoryDraft } from "./modelHelpers";
+import { createCustomStory } from "./model";
 
 describe("StoryBuilderSection canonical content", () => {
   it("creates a story without retired quiz-material keys", () => {

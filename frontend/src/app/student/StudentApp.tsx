@@ -126,7 +126,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   if (section === "progress") {
     body = <ProgressPage topics={topics} />;
   } else if (section === "placement") {
-    body = <PlacementStubPage />;
+    body = <PlacementStubPage live />;
   } else if (!activeTopic) {
     body = <StudyPage topics={topics} statusByStoryId={statusByStoryId} onOpenTopic={openTopic} />;
   } else if (phase === "vocab-preview") {

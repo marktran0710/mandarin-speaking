@@ -5,18 +5,18 @@
  * renders scenes and conversations directly. This file still exists because
  * a wide set of kept, non-student files (teacher pages, pronunciation
  * breakdown, content-diff, measurement) import types and pure helpers from
- * this exact path rather than reaching into the StoryRecorder/ subfolder
+ * this exact path rather than reaching into the model/ subfolder
  * directly. Do not add a component export here again.
  */
 export {
   practiceSceneIndicesFor,
   sceneSubmissionFromAudioRecord,
-} from "./StoryRecorder/types";
+} from "./model/types";
 
 export {
   buildSceneReferenceCurves,
   vocabTooltip,
-} from "./StoryRecorder/storyContent";
+} from "./model/storyContent";
 
 export { normalizeConversationTurns } from "@entities/conversation";
 
@@ -31,20 +31,20 @@ export {
   isStudentRecordingStep,
   shouldAnalyzeConversationTurn,
   transitionConversation,
-} from "./StoryRecorder/conversationCoordinator";
+} from "./model/conversationCoordinator";
 
 export type {
   ConversationEvent,
   ConversationState,
   ConversationStep,
   ConversationTransition,
-} from "./StoryRecorder/conversationCoordinator";
+} from "./model/conversationCoordinator";
 
 export type {
   AiProviderOption,
   SpeechModel,
   Topic,
-} from "./StoryRecorder/storyContent";
+} from "./model/storyContent";
 
 export type {
   ContentDiffSegment,
@@ -58,4 +58,4 @@ export type {
   VowelZone,
   WordProsody,
   WordProsodySyllable,
-} from "./StoryRecorder/types";
+} from "./model/types";
