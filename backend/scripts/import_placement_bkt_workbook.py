@@ -24,7 +24,7 @@ import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, BinaryIO, Iterable, Mapping
 
 from dotenv import load_dotenv
 import openpyxl
@@ -89,7 +89,7 @@ def _as_time_ms(value: object, row_number: int) -> int:
     return int(value)
 
 
-def read_workbook(path: Path) -> list[dict[str, object]]:
+def read_workbook(path: Path | BinaryIO) -> list[dict[str, object]]:
     """Read the exact response shape used by the import contract."""
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:

@@ -130,6 +130,26 @@ def test_placement_preview_is_read_only_and_resolves_order_across_published_stor
     assert xlsx_preview.json()["questions"][0]["questionId"] == "Q-C5-5-1-I1-002"
 
 
+def test_placement_import_accepts_question_id_arrays_directly(admin_client):
+    _publish("placement-question-id-story", "DIRECT")
+    question_ids = ["Q-DIRECT-003", "Q-DIRECT-001"]
+
+    preview = admin_client.post(
+        "/api/admin/placement-test/import/preview",
+        json={"questionIds": question_ids},
+    )
+    assert preview.status_code == 200
+    assert preview.json()["valid"] is True
+    assert [question["questionId"] for question in preview.json()["questions"]] == question_ids
+
+    confirm = admin_client.post(
+        "/api/admin/placement-test/import/confirm",
+        json=question_ids,
+    )
+    assert confirm.status_code == 200
+    assert [question["questionId"] for question in confirm.json()["questions"]] == question_ids
+
+
 def test_placement_grades_from_snapshot_and_writes_real_diagnostic_bkt_evidence(admin_client):
     _publish("placement-story-all", "ALL")
     content = "Word Key,Round\nALL-W001,1\nALL-W002,2\nALL-W003,3\n".encode()

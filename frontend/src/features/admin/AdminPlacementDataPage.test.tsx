@@ -1,8 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import AdminPlacementDataPage from "./AdminPlacementDataPage";
 
 vi.mock("../../shared/api/placement-test", () => ({
+  confirmPlacementResponseImport: vi.fn(),
+  downloadPlacementResponseSample: vi.fn(),
   getAdminPlacementImportResults: vi.fn().mockResolvedValue({
     available: true,
     evidenceOrigin: "synthetic",
@@ -40,7 +43,13 @@ vi.mock("../../shared/api/placement-test", () => ({
       responses: [],
     }],
   }),
+  previewPlacementResponseImport: vi.fn(),
 }));
+
+import {
+  downloadPlacementResponseSample,
+  previewPlacementResponseImport,
+} from "../../shared/api/placement-test";
 
 describe("AdminPlacementDataPage", () => {
   it("renders the import totals and student detail control", async () => {
@@ -52,5 +61,33 @@ describe("AdminPlacementDataPage", () => {
     expect(screen.getByText((_, element) => element?.textContent === "1 of 40 students visible")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Imported student comparison" })).toHaveClass("placement-data-student-table-wrap");
     expect(screen.getByRole("button", { name: /SIM001.*Synthetic Student 001/ })).toBeInTheDocument();
+  });
+
+  it("offers the response workbook sample and file preview", async () => {
+    vi.mocked(downloadPlacementResponseSample).mockResolvedValue(new Blob(["xlsx"]));
+    vi.mocked(previewPlacementResponseImport).mockResolvedValue({
+      valid: true,
+      filename: "responses.xlsx",
+      rowIssues: [],
+      studentCount: 40,
+      questionCount: 28,
+      responseCount: 1120,
+      correctCount: 636,
+      incorrectCount: 484,
+      correctByMode: { tier1: 338, tier3: 298 },
+      canonicalizedStoryAliases: 0,
+      existingSessions: 0,
+      newSessions: 40,
+    });
+    const user = userEvent.setup();
+    render(<AdminPlacementDataPage />);
+
+    expect(await screen.findByRole("heading", { name: "40-student response view" })).toBeInTheDocument();
+    await user.click(screen.getByText("Download sample and view required format"));
+    await user.click(screen.getByRole("button", { name: "Download XLSX sample" }));
+    await waitFor(() => expect(downloadPlacementResponseSample).toHaveBeenCalledTimes(1));
+
+    await user.upload(screen.getByLabelText("Placement response XLSX file"), new File(["xlsx"], "responses.xlsx"));
+    expect(await screen.findByText("1,120 responses ready")).toBeInTheDocument();
   });
 });

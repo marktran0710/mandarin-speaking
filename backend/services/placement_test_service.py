@@ -107,9 +107,18 @@ def _public_question(question: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _load_candidates(db: Any) -> tuple[dict[tuple[str, int], list[dict[str, Any]]], dict[tuple[str, int], list[dict[str, Any]]]]:
+def _load_candidates(
+    db: Any,
+) -> tuple[
+    dict[tuple[str, int], list[dict[str, Any]]],
+    dict[tuple[str, int], list[dict[str, Any]]],
+    dict[str, list[dict[str, Any]]],
+    dict[str, list[dict[str, Any]]],
+]:
     published: dict[tuple[str, int], list[dict[str, Any]]] = {}
     all_stories: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    published_by_question_id: dict[str, list[dict[str, Any]]] = {}
+    all_by_question_id: dict[str, list[dict[str, Any]]] = {}
     rows = db.execute("SELECT id, title, published, vocab_assessment FROM custom_stories").fetchall()
     for story in rows:
         assessment = story.get("vocab_assessment")
@@ -130,16 +139,23 @@ def _load_candidates(db: Any) -> tuple[dict[tuple[str, int], list[dict[str, Any]
                 continue
             if not word_key or round_number not in TIER_BY_ROUND:
                 continue
-            target.setdefault((word_key, round_number), []).append({
+            match = {
                 "storyId": str(story["id"]),
                 "storyTitle": str(story.get("title") or story["id"]),
                 "item": item,
-            })
+            }
+            target.setdefault((word_key, round_number), []).append(match)
+            question_id = str(item.get("questionId") or "").strip()
+            if question_id:
+                question_target = published_by_question_id if story.get("published") else all_by_question_id
+                question_target.setdefault(question_id, []).append(match)
     # Include published rows in the all-stories view so an unpublished-only
     # diagnostic can distinguish unknown from unpublished content.
     for key, matches in published.items():
         all_stories.setdefault(key, []).extend(matches)
-    return published, all_stories
+    for question_id, matches in published_by_question_id.items():
+        all_by_question_id.setdefault(question_id, []).extend(matches)
+    return published, all_stories, published_by_question_id, all_by_question_id
 
 
 def _snapshot_question(word_key: str, round_number: int, match: dict[str, Any], position: int) -> dict[str, Any]:
@@ -198,7 +214,7 @@ def _validate_rows(db: Any, rows: list[dict[str, str]]) -> list[dict[str, Any]]:
         seen.add(key)
     if duplicates:
         raise ValueError("Duplicate Word Key + Round: " + ", ".join(f"{word} + {round_number}" for word, round_number in duplicates[:20]))
-    published, all_stories = _load_candidates(db)
+    published, all_stories, _, _ = _load_candidates(db)
     snapshot: list[dict[str, Any]] = []
     for position, (word_key, round_number) in enumerate(normalized, start=1):
         candidates = published.get((word_key, round_number), [])
@@ -210,6 +226,43 @@ def _validate_rows(db: Any, rows: list[dict[str, str]]) -> list[dict[str, Any]]:
             stories = ", ".join(sorted({str(candidate["storyId"]) for candidate in candidates}))
             raise ValueError(f"Ambiguous Word Key + Round {word_key} + {round_number}; found in published stories: {stories}.")
         snapshot.append(_snapshot_question(word_key, round_number, candidates[0], position))
+    return snapshot
+
+
+def _validate_question_ids(db: Any, question_ids: list[str]) -> list[dict[str, Any]]:
+    normalized = [str(question_id).strip() for question_id in question_ids]
+    if not normalized or any(not question_id for question_id in normalized):
+        raise ValueError("questionIds must contain at least one non-empty question ID.")
+    duplicates = [
+        question_id
+        for question_id, count in Counter(normalized).items()
+        if count > 1
+    ]
+    if duplicates:
+        raise ValueError("Duplicate question IDs: " + ", ".join(duplicates[:20]))
+
+    _, _, published, all_stories = _load_candidates(db)
+    snapshot: list[dict[str, Any]] = []
+    for position, question_id in enumerate(normalized, start=1):
+        candidates = published.get(question_id, [])
+        if not candidates:
+            if all_stories.get(question_id):
+                raise ValueError(f"Question ID {question_id} belongs to an unpublished story.")
+            raise ValueError(f"Unknown question ID: {question_id}")
+        if len(candidates) > 1:
+            stories = ", ".join(sorted({str(candidate["storyId"]) for candidate in candidates}))
+            raise ValueError(f"Ambiguous question ID {question_id}; found in published stories: {stories}.")
+        match = candidates[0]
+        item = match["item"]
+        round_number = item.get("round")
+        if round_number is None:
+            round_number = next(
+                (number for number, question_type in QUESTION_TYPE_BY_ROUND.items()
+                 if question_type == str(item.get("questionType") or "")),
+                0,
+            )
+        round_number = int(round_number)
+        snapshot.append(_snapshot_question(str(item.get("wordId") or ""), round_number, match, position))
     return snapshot
 
 
@@ -231,9 +284,37 @@ def build_preview(db: Any, content: bytes, filename: str) -> dict[str, Any]:
     }
 
 
+def build_question_ids_preview(db: Any, question_ids: list[str]) -> dict[str, Any]:
+    try:
+        questions = _validate_question_ids(db, question_ids)
+        errors: list[str] = []
+    except ValueError as exc:
+        questions = []
+        errors = [str(exc)]
+    current = repo.get_active_blueprint(db)
+    return {
+        "valid": not errors,
+        "rowIssues": errors,
+        "questionCount": len(questions),
+        "questions": [_public_question(question) for question in questions],
+        "currentRevision": current["revision"] if current else None,
+    }
+
+
 def replace_from_upload(db: Any, content: bytes, filename: str) -> dict[str, Any]:
     rows = _parse_rows(filename, content)
     questions = _validate_rows(db, rows)
+    blueprint = repo.replace_active_blueprint(db, questions, _now())
+    return {
+        "configured": True,
+        "revision": blueprint["revision"],
+        "questionCount": len(questions),
+        "questions": [_public_question(question) for question in questions],
+    }
+
+
+def replace_from_question_ids(db: Any, question_ids: list[str]) -> dict[str, Any]:
+    questions = _validate_question_ids(db, question_ids)
     blueprint = repo.replace_active_blueprint(db, questions, _now())
     return {
         "configured": True,

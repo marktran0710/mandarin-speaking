@@ -10,12 +10,18 @@ import {
 } from "../../shared/api/placement-test";
 import "./AdminPlacementTestPage.css";
 
-const SAMPLE_ROWS = [
-  ["C5-5-1-I1-W001", "1"],
-  ["C5-5-1-I1-W001", "2"],
-  ["C5-5-1-I1-W001", "3"],
-  ["C5-6-1-I2-W004", "1"],
-];
+function parseQuestionIds(value: string): string[] {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[")) {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === "string")) {
+      throw new Error("Use a JSON array of question IDs.");
+    }
+    return parsed.map((item) => item.trim()).filter(Boolean);
+  }
+  return trimmed.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean);
+}
 
 function questionLabel(question: PlacementQuestion): string {
   if (question.questionType === "basic_meaning_mcq") return "Meaning MCQ";
@@ -25,7 +31,7 @@ function questionLabel(question: PlacementQuestion): string {
 
 export default function AdminPlacementTestPage() {
   const [current, setCurrent] = useState<PlacementBlueprint | null>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [questionIdsText, setQuestionIdsText] = useState("");
   const [preview, setPreview] = useState<PlacementPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -42,48 +48,57 @@ export default function AdminPlacementTestPage() {
 
   useEffect(load, []);
 
-  const previewFile = async () => {
-    if (!file) return;
+  const previewQuestions = async () => {
+    let questionIds: string[];
+    try {
+      questionIds = parseQuestionIds(questionIdsText);
+    } catch (reason) {
+      setPreview(null);
+      setError(reason instanceof Error ? reason.message : "Could not read the question IDs.");
+      return;
+    }
+    if (!questionIds.length) {
+      setPreview(null);
+      setError("Enter at least one question ID.");
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      setPreview(await previewPlacementImport(file));
+      setPreview(await previewPlacementImport(questionIds));
     } catch (reason) {
       setPreview(null);
-      setError(reason instanceof Error ? reason.message : "Could not preview the placement file.");
+      setError(reason instanceof Error ? reason.message : "Could not preview the placement questions.");
     } finally {
       setBusy(false);
     }
   };
 
   const confirmImport = async () => {
-    if (!file || !preview?.valid) return;
+    if (!preview?.valid) return;
+    let questionIds: string[];
+    try {
+      questionIds = parseQuestionIds(questionIdsText);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not read the question IDs.");
+      return;
+    }
     if (!window.confirm("Overwrite the active placement test with this question list? Students already in progress keep their snapshot.")) return;
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      const result = await confirmPlacementImport(file);
+      const result = await confirmPlacementImport(questionIds);
       setCurrent(result);
       setPreview(null);
-      setFile(null);
+      setQuestionIdsText("");
       setMessage(`Placement test updated with ${result.questionCount} questions.`);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not import the placement blueprint.");
+      setError(reason instanceof Error ? reason.message : "Could not update the placement blueprint.");
     } finally {
       setBusy(false);
     }
-  };
-
-  const downloadSample = () => {
-    const csv = [["Word Key", "Round"], ...SAMPLE_ROWS].map((row) => row.join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([`${csv}\n`], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "placement-test-sample.csv";
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
@@ -91,51 +106,46 @@ export default function AdminPlacementTestPage() {
       <div className="admin-placement__intro">
         <div>
           <span className="admin-eyebrow">Diagnostic assessment</span>
-          <h2>Import question codes</h2>
+          <h2>Set placement question IDs</h2>
           <p>
-            Upload two columns — <code>Word Key</code> and <code>Round</code> — from the canonical <code>vocabAssessment</code> bank.
-            Use round <code>1</code>, <code>2</code>, or <code>3</code>. The backend resolves the question ID across every published story.
+            Enter the canonical <code>questionId</code> values in the order students should answer them.
+            The IDs must belong to published vocabulary banks.
           </p>
         </div>
         <div className="admin-placement__rules">
-          <span>CSV / XLSX</span><span>Published banks only</span><span>Preview before overwrite</span>
+          <span>Question IDs only</span><span>One per line or JSON array</span><span>Preview before overwrite</span>
         </div>
       </div>
 
-      <section className="admin-placement__card" aria-labelledby="placement-upload-title">
+      <section className="admin-placement__card" aria-labelledby="placement-input-title">
         <div className="admin-placement__card-heading">
-          <div><span className="admin-eyebrow">Step 1</span><h3 id="placement-upload-title">Choose a Word Key + Round file</h3></div>
-          <Icon name="upload" size={22} />
+          <div><span className="admin-eyebrow">Step 1</span><h3 id="placement-input-title">Enter question IDs</h3></div>
+          <Icon name="quiz" size={22} />
         </div>
-        <p className="admin-placement__hint">Use exactly <code>Word Key,Round</code> with round values <code>1</code>, <code>2</code>, <code>3</code>. You may also use <code>Word Key,Question Type</code>.</p>
+        <p className="admin-placement__hint">
+          Paste one ID per line, separated by commas, or use a JSON array such as <code>["Q0001", "Q0002"]</code>.
+        </p>
+        <label className="admin-placement__question-input">
+          <span>Placement question IDs</span>
+          <textarea
+            rows={8}
+            value={questionIdsText}
+            placeholder={'Q0001\nQ0002\nQ0003'}
+            onChange={(event) => { setQuestionIdsText(event.target.value); setPreview(null); setError(""); setMessage(""); }}
+          />
+        </label>
         <div className="admin-placement__upload-row">
-          <label className="admin-placement__file">
-            <span>{file?.name ?? "Choose CSV or XLSX"}</span>
-            <input type="file" accept=".csv,.xlsx,.xlsm" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPreview(null); setError(""); setMessage(""); }} />
-          </label>
-          <button type="button" className="admin-placement__button admin-placement__button--primary" disabled={!file || busy} onClick={() => void previewFile()}>
-            <Icon name="eye" size={17} />{busy ? "Checking…" : "Preview file"}
+          <span className="admin-placement__hint">The order you provide becomes the default test order.</span>
+          <button type="button" className="admin-placement__button admin-placement__button--primary" disabled={!questionIdsText.trim() || busy} onClick={() => void previewQuestions()}>
+            <Icon name="eye" size={17} />{busy ? "Checking…" : "Preview questions"}
           </button>
         </div>
-      </section>
-
-      <section className="admin-placement__sample" aria-labelledby="placement-sample-title">
-        <div className="admin-placement__sample-copy">
-          <span className="admin-eyebrow">Reference</span>
-          <h3 id="placement-sample-title">Sample placement test file</h3>
-          <p>Two columns are required. The row order becomes the default test order. No Story ID or Question ID is required.</p>
-        </div>
-        <div className="admin-placement__sample-file" aria-label="Sample CSV contents">
-          <div className="admin-placement__sample-row admin-placement__sample-row--header"><code>Word Key</code><code>Round</code></div>
-          {SAMPLE_ROWS.map(([wordKey, round]) => <div className="admin-placement__sample-row" key={`${wordKey}-${round}`}><code>{wordKey}</code><code>{round}</code></div>)}
-        </div>
-        <button type="button" className="admin-placement__button" onClick={downloadSample}><Icon name="download" size={17} />Download sample CSV</button>
       </section>
 
       {preview && (
         <section className={`admin-placement__card admin-placement__preview${preview.valid ? " is-valid" : " is-invalid"}`} aria-labelledby="placement-preview-title">
           <div className="admin-placement__card-heading">
-            <div><span className="admin-eyebrow">Step 2</span><h3 id="placement-preview-title">Preview import</h3></div>
+            <div><span className="admin-eyebrow">Step 2</span><h3 id="placement-preview-title">Preview placement test</h3></div>
             <strong>{preview.valid ? `${preview.questionCount} questions ready` : "Import blocked"}</strong>
           </div>
           {preview.rowIssues.length > 0 && (
@@ -144,8 +154,8 @@ export default function AdminPlacementTestPage() {
           {preview.valid && <>
             <p className="admin-placement__hint">This will replace the active blueprint. In-progress student attempts keep the question snapshot they started with.</p>
             <div className="admin-placement__table-wrap" tabIndex={0} role="region" aria-label="Placement question preview">
-              <table className="admin-placement__table"><caption className="admin-placement__sr-only">Placement questions in imported order</caption><thead><tr><th>Order</th><th>Word Key</th><th>Round</th><th>Source story</th><th>Word</th><th>Type</th></tr></thead><tbody>
-                {preview.questions.map((question) => <tr key={question.questionId}><td>{question.position}</td><td><code>{question.sourceWordId}</code></td><td>{question.round}</td><td>{question.sourceStoryTitle}</td><td lang="zh-Hant">{question.targetWord}</td><td>{questionLabel(question)}</td></tr>)}
+              <table className="admin-placement__table"><caption className="admin-placement__sr-only">Placement questions in imported order</caption><thead><tr><th>Order</th><th>Question ID</th><th>Round</th><th>Source story</th><th>Word</th><th>Type</th></tr></thead><tbody>
+                {preview.questions.map((question) => <tr key={question.questionId}><td>{question.position}</td><td><code>{question.questionId}</code></td><td>{question.round}</td><td>{question.sourceStoryTitle}</td><td lang="zh-Hant">{question.targetWord}</td><td>{questionLabel(question)}</td></tr>)}
               </tbody></table>
             </div>
             <div className="admin-placement__confirm-row"><span>Current active revision: {preview.currentRevision ?? "none"}</span><button type="button" className="admin-placement__button admin-placement__button--primary" disabled={busy} onClick={() => void confirmImport()}><Icon name="check" size={17} />Confirm overwrite</button></div>

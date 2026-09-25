@@ -122,6 +122,36 @@ export interface PlacementImportResults {
   students: PlacementImportedStudent[];
 }
 
+export interface PlacementResponseImportSummary {
+  filename: string;
+  studentCount: number;
+  questionCount: number;
+  responseCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  correctByMode: Record<string, number>;
+  canonicalizedStoryAliases: number;
+  existingSessions: number;
+  newSessions: number;
+}
+
+export interface PlacementResponseImportPreview extends PlacementResponseImportSummary {
+  valid: boolean;
+  rowIssues: string[];
+}
+
+export interface PlacementResponseImportResult extends PlacementResponseImportSummary {
+  valid: true;
+  createdStudents: number;
+  createdAttempts: number;
+  createdResponses: number;
+  rebuiltStudents: number;
+}
+
+export interface PlacementResponseReplaceResult extends PlacementResponseImportResult {
+  deletedStudents: number;
+}
+
 async function parseError(response: Response, fallback: string): Promise<Error> {
   const body = await response.json().catch(() => null) as { detail?: unknown } | null;
   return new Error(typeof body?.detail === "string" ? body.detail : `${fallback} (${response.status}).`);
@@ -161,19 +191,47 @@ export async function getAdminPlacementImportResults(): Promise<PlacementImportR
   return response.json() as Promise<PlacementImportResults>;
 }
 
-async function uploadPlacementFile(path: string, file: File): Promise<PlacementPreview> {
+async function uploadPlacementResponseFile<T>(path: string, file: File): Promise<T> {
   const form = new FormData();
   form.append("file", file);
   const response = await fetchWithRetry(`${BACKEND_URL}${path}`, { method: "POST", body: form }, 1);
-  if (!response.ok) throw await parseError(response, "Could not validate the placement file");
+  if (!response.ok) throw await parseError(response, "Could not process the placement response workbook");
+  return response.json() as Promise<T>;
+}
+
+export function previewPlacementResponseImport(file: File): Promise<PlacementResponseImportPreview> {
+  return uploadPlacementResponseFile("/api/admin/placement-test/results/import/preview", file);
+}
+
+export function confirmPlacementResponseImport(file: File): Promise<PlacementResponseImportResult> {
+  return uploadPlacementResponseFile("/api/admin/placement-test/results/import/confirm", file);
+}
+
+export function replacePlacementResponseImport(file: File): Promise<PlacementResponseReplaceResult> {
+  return uploadPlacementResponseFile("/api/admin/placement-test/results/import/replace", file);
+}
+
+export async function downloadPlacementResponseSample(): Promise<Blob> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/placement-test/results/import/sample`);
+  if (!response.ok) throw await parseError(response, "Could not download the placement response sample");
+  return response.blob();
+}
+
+async function postPlacementQuestionIds(path: string, questionIds: string[]): Promise<PlacementPreview> {
+  const response = await fetchWithRetry(`${BACKEND_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ questionIds }),
+  }, 1);
+  if (!response.ok) throw await parseError(response, "Could not validate the placement question IDs");
   return response.json() as Promise<PlacementPreview>;
 }
 
-export function previewPlacementImport(file: File): Promise<PlacementPreview> {
-  return uploadPlacementFile("/api/admin/placement-test/import/preview", file);
+export function previewPlacementImport(questionIds: string[]): Promise<PlacementPreview> {
+  return postPlacementQuestionIds("/api/admin/placement-test/import/preview", questionIds);
 }
 
-export async function confirmPlacementImport(file: File): Promise<PlacementBlueprint> {
-  const result = await uploadPlacementFile("/api/admin/placement-test/import/confirm", file);
+export async function confirmPlacementImport(questionIds: string[]): Promise<PlacementBlueprint> {
+  const result = await postPlacementQuestionIds("/api/admin/placement-test/import/confirm", questionIds);
   return result;
 }

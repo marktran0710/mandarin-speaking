@@ -1,9 +1,17 @@
 """Admin read model for the synthetic placement workbook import."""
 
 from datetime import datetime, timezone
+from io import BytesIO
+
+import openpyxl
+import pytest
+from psycopg.types.json import Jsonb
 
 import db
 from analytics.learner_model.bkt.mastery import upsert_raw_responses
+from routers import placement_test as placement_test_router
+from scripts import import_placement_bkt_workbook as workbook_import
+from services import placement_data_import_service
 
 
 def _response(student_id: str, order: int, *, tier: str, correct: bool) -> dict:
@@ -109,3 +117,178 @@ def test_admin_placement_data_summarizes_imported_batch(admin_client):
     }
     assert body["students"][0]["studentId"] == "SIM001"
     assert body["students"][0]["responses"][1]["status"] == "UNASSESSED"
+
+
+def test_admin_placement_data_import_preview_and_sample(admin_client, monkeypatch):
+    captured: dict[str, object] = {}
+
+    def preview(_db, content: bytes, filename: str):
+        captured.update({"content": content, "filename": filename})
+        return {"valid": True, "filename": filename, "rowIssues": [], "responseCount": 2}
+
+    monkeypatch.setattr(placement_test_router.data_import_service, "preview_import", preview)
+    preview_response = admin_client.post(
+        "/api/admin/placement-test/results/import/preview",
+        files={"file": ("responses.xlsx", b"workbook", "application/octet-stream")},
+    )
+    assert preview_response.status_code == 200
+    assert captured == {"content": b"workbook", "filename": "responses.xlsx"}
+
+    monkeypatch.setattr(placement_test_router.data_import_service, "build_sample_workbook", lambda _db: b"xlsx")
+    sample_response = admin_client.get("/api/admin/placement-test/results/import/sample")
+    assert sample_response.status_code == 200
+    assert sample_response.content == b"xlsx"
+    assert "placement-responses-sample.xlsx" in sample_response.headers["content-disposition"]
+
+
+def test_admin_placement_data_import_replace_route(admin_client, monkeypatch):
+    captured: dict[str, object] = {}
+
+    def replace(_db, content: bytes, filename: str):
+        captured.update({"content": content, "filename": filename})
+        return {"valid": True, "filename": filename, "deletedStudents": 1, "responseCount": 2}
+
+    monkeypatch.setattr(placement_test_router.data_import_service, "replace_import", replace)
+    response = admin_client.post(
+        "/api/admin/placement-test/results/import/replace",
+        files={"file": ("responses.xlsx", b"workbook", "application/octet-stream")},
+    )
+    assert response.status_code == 200
+    assert response.json()["deletedStudents"] == 1
+    assert captured == {"content": b"workbook", "filename": "responses.xlsx"}
+
+
+_REPLACE_BLUEPRINT_QUESTIONS = [
+    {
+        "questionId": "Q0016",
+        "sourceStoryId": "canonical-story-5-1",
+        "sourceWordId": "word-1",
+        "targetWord": "自由",
+        "position": 1,
+        "questionType": "basic_meaning_mcq",
+        "answerFormat": "single_choice",
+        "round": 1,
+        "tier": "tier1",
+        "correctAnswer": "to be free",
+        "acceptedAnswers": ["to be free"],
+        "options": ["to be free", "here", "chair", "window"],
+        "prompt": "What does 自由 mean?",
+    },
+    {
+        "questionId": "Q0063",
+        "sourceStoryId": "canonical-story-5-2",
+        "sourceWordId": "word-2",
+        "targetWord": "裡",
+        "position": 2,
+        "questionType": "context_cloze_mcq",
+        "answerFormat": "single_choice",
+        "round": 3,
+        "tier": "tier3",
+        "correctAnswer": "裡",
+        "acceptedAnswers": ["裡"],
+        "options": ["哥哥", "裡", "房間", "桌子"],
+        "prompt": "Choose the missing word.",
+    },
+]
+
+
+def _seed_active_blueprint(revision: int) -> None:
+    with db.connect_db() as connection:
+        connection.execute(
+            "INSERT INTO placement_test_blueprints (id, revision, questions, created_at, updated_at) "
+            "VALUES ('active', %s, %s, now(), now())",
+            (revision, Jsonb(_REPLACE_BLUEPRINT_QUESTIONS)),
+        )
+
+
+def _full_roster_workbook_bytes() -> bytes:
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.append(list(workbook_import.EXPECTED_HEADERS))
+    for student_id in workbook_import.EXPECTED_STUDENT_IDS:
+        session_id = f"PLACEMENT-{student_id}-V1"
+        sheet.append([
+            student_id, f"Synthetic {student_id}", session_id, "lesson-5-1",
+            "Q0016", "tier1", "to be free", "2026-09-25T00:00:00+00:00", 3000,
+        ])
+        sheet.append([
+            student_id, f"Synthetic {student_id}", session_id, "lesson-5-2",
+            "Q0063", "tier3", "裡", "2026-09-25T00:00:00+00:00", 4000,
+        ])
+    output = BytesIO()
+    workbook.save(output)
+    workbook.close()
+    return output.getvalue()
+
+
+def test_replace_import_deletes_conflicting_sim_data_then_reimports(monkeypatch):
+    monkeypatch.setattr(workbook_import, "EXPECTED_QUESTION_COUNT", 2)
+    _seed_active_blueprint(revision=2)
+    # SIM001 already holds a completed attempt frozen against a stale/empty
+    # snapshot, exactly like the "question snapshot differs from the active
+    # blueprint" conflict this endpoint exists to clear.
+    _seed_import_batch()
+
+    with db.connect_db() as connection:
+        result = placement_data_import_service.replace_import(
+            connection, _full_roster_workbook_bytes(), "responses.xlsx"
+        )
+
+    assert result["deletedStudents"] == 1
+    assert result["createdStudents"] == 40
+    assert result["createdAttempts"] == 40
+    assert result["createdResponses"] == 80
+
+    with db.connect_db() as connection:
+        attempt = connection.execute(
+            "SELECT blueprint_revision FROM placement_test_attempts WHERE id = 'PLACEMENT-SIM001-V1'"
+        ).fetchone()
+        assert attempt["blueprint_revision"] == 2
+        response_count = connection.execute(
+            "SELECT count(*) AS n FROM vocab_quiz_responses WHERE student_id = 'SIM001'"
+        ).fetchone()
+        assert response_count["n"] == 2
+
+
+def test_replace_import_rejects_students_outside_the_synthetic_roster():
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.append(list(workbook_import.EXPECTED_HEADERS))
+    sheet.append([
+        "REAL001", "A Real Student", "SESSION-1", "lesson-5-1",
+        "Q0016", "tier1", "to be free", "2026-09-25T00:00:00+00:00", 3000,
+    ])
+    output = BytesIO()
+    workbook.save(output)
+    workbook.close()
+
+    with db.connect_db() as connection:
+        with pytest.raises(ValueError, match="unexpected student_id"):
+            placement_data_import_service.replace_import(connection, output.getvalue(), "bad.xlsx")
+
+
+def test_replace_import_refuses_to_touch_a_non_test_account():
+    with db.connect_db() as connection:
+        connection.execute(
+            "INSERT INTO students (id, name, password, password_reset_required, status, is_test_account) "
+            "VALUES ('SIM001', 'A Real Student', 'hash', TRUE, 'active', FALSE)"
+        )
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.append(list(workbook_import.EXPECTED_HEADERS))
+    sheet.append([
+        "SIM001", "A Real Student", "SESSION-1", "lesson-5-1",
+        "Q0016", "tier1", "to be free", "2026-09-25T00:00:00+00:00", 3000,
+    ])
+    output = BytesIO()
+    workbook.save(output)
+    workbook.close()
+
+    with db.connect_db() as connection:
+        with pytest.raises(ValueError, match="not flagged as test accounts"):
+            placement_data_import_service.replace_import(connection, output.getvalue(), "bad.xlsx")
+
+    with db.connect_db() as connection:
+        still_there = connection.execute("SELECT id FROM students WHERE id = 'SIM001'").fetchone()
+        assert still_there is not None
