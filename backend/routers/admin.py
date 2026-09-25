@@ -14,12 +14,12 @@ from pydantic import BaseModel
 import security.auth as auth
 import services.admin_service as admin_service
 from db import connect_db
-from services.vocabulary_audio_import import (
+from services.content.vocabulary_audio_import import (
     apply_vocabulary_audio_import,
     build_vocabulary_audio_sample,
     preview_vocabulary_audio_import,
 )
-from services.vocabulary_import import (
+from services.content.vocabulary_import import (
     apply_vocabulary_import,
     build_vocabulary_import_template,
     preview_vocabulary_import,

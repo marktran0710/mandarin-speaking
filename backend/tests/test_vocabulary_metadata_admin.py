@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import security.auth as auth
-from routers import story_vocabulary_metadata, vocabulary
+from routers.content import vocabulary_metadata as story_vocabulary_metadata, vocabulary
 
 
 @pytest.fixture

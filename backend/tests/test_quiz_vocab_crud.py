@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import security.auth as auth
-from routers import story_quiz_vocabulary, vocabulary
+from routers.content import quiz_vocabulary as story_quiz_vocabulary, vocabulary
 
 
 def word_payload(*, target_word="桌子", word_id=None, suffix="one"):

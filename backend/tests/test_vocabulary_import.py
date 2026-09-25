@@ -12,7 +12,7 @@ from psycopg.types.json import Jsonb
 import security.auth as auth
 from db import connect_db
 from routers import admin
-from services.vocabulary_import import (
+from services.content.vocabulary_import import (
     _replace_assessment,
     apply_vocabulary_import,
     build_vocabulary_import_template,
@@ -22,13 +22,13 @@ from services.vocabulary_import import (
     preview_vocabulary_import,
     validate_import_rows,
 )
-from services.vocabulary_audio_import import (
+from services.content.vocabulary_audio_import import (
     apply_vocabulary_audio_import,
     build_vocabulary_audio_sample,
     preview_vocabulary_audio_import,
 )
 import services.media as media_service
-import services.vocabulary_audio_import as vocabulary_audio_service
+import services.content.vocabulary_audio_import as vocabulary_audio_service
 from scripts.import_question_bank_workbook import build_payloads
 
 COLUMNS = [

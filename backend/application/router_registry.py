@@ -22,7 +22,7 @@ from routers.media import router as media_router
 from routers.measurement import router as measurement_router
 from routers.pinyin import router as pinyin_router
 from routers.speaking_progress import router as speaking_progress_router
-from routers.story_crud import router as story_crud_router
+from routers.content.crud import router as story_crud_router
 from routers.students import router as students_router
 from routers.teachers import router as teachers_router
 from routers.submissions import router as submissions_router

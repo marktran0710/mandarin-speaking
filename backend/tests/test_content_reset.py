@@ -1,4 +1,4 @@
-from services.content_reset import clean_story_content, story_preservation_snapshot
+from services.content.reset import clean_story_content, story_preservation_snapshot
 
 
 def test_cleanup_preserves_story_frames_images_and_scripts():

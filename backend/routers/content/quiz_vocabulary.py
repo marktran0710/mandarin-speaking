@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import security.auth as auth
-import services.story_quiz_vocabulary_service as story_quiz_vocabulary_service
+import services.content.quiz_vocabulary as story_quiz_vocabulary_service
 from db import connect_db
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])

@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from services.pronunciation_scoring import build_pronunciation_mastery
-from services.content_verification import (
+from services.content.verification import (
     _acoustic_scoring_source,
     _scene_content_diff,
     _scene_content_match,

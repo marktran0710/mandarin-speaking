@@ -29,7 +29,7 @@ from psycopg.types.json import Jsonb  # noqa: E402
 
 from config import settings  # noqa: E402
 from db import connect_db  # noqa: E402
-from services.content_reset import (  # noqa: E402
+from services.content.reset import (  # noqa: E402
     clean_json_value,
     clean_story_content,
     contains_nonempty_audio_reference,

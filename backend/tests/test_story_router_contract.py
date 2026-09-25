@@ -2,10 +2,10 @@ from fastapi.routing import APIRoute
 
 import security.auth as auth
 from main import app
-from routers import stories, vocabulary
-from routers.story_crud import router as story_crud_router
-from routers.story_quiz_vocabulary import router as story_quiz_vocabulary_router
-from routers.story_vocabulary_metadata import router as story_vocabulary_metadata_router
+from routers.content import stories, vocabulary
+from routers.content.crud import router as story_crud_router
+from routers.content.quiz_vocabulary import router as story_quiz_vocabulary_router
+from routers.content.vocabulary_metadata import router as story_vocabulary_metadata_router
 
 
 EXPECTED_STORY_OPERATIONS = {

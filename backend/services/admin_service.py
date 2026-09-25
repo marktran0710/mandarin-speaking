@@ -5,7 +5,7 @@ standalone students/teachers/vocab-quiz-attempts endpoints use, so the
 console stays field-for-field compatible with those.
 """
 from repositories import admin_repository as repo
-from repositories import story_repository
+from repositories.content import stories as story_repository
 from repositories.database import row_to_student, row_to_teacher, row_to_vocab_quiz_attempt
 from repositories.database import row_to_custom_story
 

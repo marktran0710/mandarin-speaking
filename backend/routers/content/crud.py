@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from db import connect_db
 import security.auth as auth
-import services.story_service as story_service
+import services.content.stories as story_service
 from api.schemas.models import CustomStoryRequest
-from routers.story_quiz_vocabulary import router as story_quiz_vocabulary_router
-from routers.story_vocabulary_metadata import router as story_vocabulary_metadata_router
+from routers.content.quiz_vocabulary import router as story_quiz_vocabulary_router
+from routers.content.vocabulary_metadata import router as story_vocabulary_metadata_router
 
 # Students may read lesson content after login; story writes and generated
 # media are restricted by auth.require_story_access to teacher/admin accounts.

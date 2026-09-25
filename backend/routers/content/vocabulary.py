@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 
-from routers.story_quiz_vocabulary import (
+from routers.content.quiz_vocabulary import (
     QuizVocabularyQuestionInput,
     QuizVocabularyWordInput,
     create_quiz_vocabulary_word,
@@ -10,7 +10,7 @@ from routers.story_quiz_vocabulary import (
     router as story_quiz_vocabulary_router,
     update_quiz_vocabulary_word,
 )
-from services.story_quiz_vocabulary_service import (
+from services.content.quiz_vocabulary import (
     _assessment_rows,
     _check_expected_revision,
     _ensure_unique_quiz_content,
@@ -18,13 +18,13 @@ from services.story_quiz_vocabulary_service import (
     _validate_quiz_bank,
     _write_quiz_bank,
 )
-from routers.story_vocabulary_metadata import (
+from routers.content.vocabulary_metadata import (
     VocabularyColumns,
     VocabularyMetadataEdit,
     router as story_vocabulary_metadata_router,
     update_vocabulary_metadata,
 )
-from services.story_vocabulary_metadata_service import (
+from services.content.vocabulary_metadata import (
     FIELDS,
     SUFFIXES,
     _replace_answer_value,

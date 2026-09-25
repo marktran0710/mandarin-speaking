@@ -7,7 +7,7 @@ maps it to an HTTP status code.
 from db import connect_db
 import services.media as media_service
 from domain.vocabulary.assessment import validate_assessment_payload
-from repositories import story_repository as repo
+from repositories.content import stories as repo
 from repositories.database import row_to_custom_story
 
 

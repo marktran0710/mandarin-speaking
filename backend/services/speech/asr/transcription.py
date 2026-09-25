@@ -102,7 +102,7 @@ def _has_speech(audio_content: bytes) -> bool:
     # Deferred: content_verification imports transcribe_audio_content from
     # this module, so importing assess_recording_quality at module scope
     # here would be circular.
-    from services.content_verification import assess_recording_quality
+    from services.content.verification import assess_recording_quality
 
     quality = assess_recording_quality(audio_content)
     # Keep the legacy fail-open behavior for formats this WAV-only preflight

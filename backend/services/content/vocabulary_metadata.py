@@ -4,13 +4,13 @@ Holds the business logic that used to live inline in
 routers/story_vocabulary_metadata.py. ``metadata_changes`` and
 ``update_assessment_metadata`` raise ``fastapi.HTTPException`` directly
 (rather than a domain exception) because they are consumed directly - by
-name - from other modules (the ``routers.vocabulary`` compatibility facade,
+name - from other modules (the ``routers.content.vocabulary`` compatibility facade,
 and tests) that expect exactly that exception type; changing that would be
 a behavior change for those callers, not just this router.
 """
 from fastapi import HTTPException
 
-from repositories import story_vocabulary_metadata_repository as repo
+from repositories.content import vocabulary_metadata as repo
 from repositories.database import row_to_custom_story
 
 FIELDS = {"vocabulary": "vocabulary", "pinyin": "vocabularyPinyin",

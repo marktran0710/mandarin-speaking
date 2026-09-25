@@ -32,7 +32,7 @@ from services.media import (
     UPLOAD_DIR,
     STORY_AUDIO_UPLOAD_DIR,
 )
-from services.content_verification import _MAX_AUDIO_BYTES
+from services.content.verification import _MAX_AUDIO_BYTES
 from services.speech_analysis import _do_analyze
 from application.analysis_capacity import (
     acquire_analysis_slot,

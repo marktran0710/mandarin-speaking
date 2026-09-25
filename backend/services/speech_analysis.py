@@ -28,7 +28,7 @@ from helpers.pinyin_service import canonical_pinyin
 from api.schemas.models import AnalysisResponse, ProcessingTrace, ProcessingTraceStage
 from domain.speech.acoustics import analyze_all
 from services.asr import transcribe_audio_content
-from services.content_verification import (
+from services.content.verification import (
     assess_recording_quality,
     _target_syllable_count,
     _scene_content_match,

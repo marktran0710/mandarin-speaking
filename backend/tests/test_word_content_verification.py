@@ -21,8 +21,8 @@ class TestVerifyWordTranscription:
 
     @pytest.mark.asyncio
     async def test_extra_text_does_not_match_a_word_target(self):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好嗎", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized == "你好嗎"
@@ -31,8 +31,8 @@ class TestVerifyWordTranscription:
     @pytest.mark.asyncio
     @pytest.mark.asyncio
     async def test_exact_word_alignment_matches(self):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="abc", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "abc")
         assert recognized == "abc"
@@ -40,8 +40,8 @@ class TestVerifyWordTranscription:
 
     @pytest.mark.asyncio
     async def test_no_match_when_word_absent(self):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="再見", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized == "再見"
@@ -56,8 +56,8 @@ class TestVerifyWordTranscription:
         passing drills from ever firing onPass. Empty is unverifiable
         (None), the same fail-open contract as an ASR error.
         """
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="   ", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized == ""
@@ -65,8 +65,8 @@ class TestVerifyWordTranscription:
 
     @pytest.mark.asyncio
     async def test_fails_open_on_asr_error(self):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.side_effect = RuntimeError("all ASR providers failed")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized is None
@@ -80,10 +80,10 @@ class TestVerifyWordTranscription:
         forced can_score_pronunciation=False and showed students a "not
         enough clear pitch evidence" retry message for what was actually a
         content-verification ASR slip, not a recording-quality problem."""
-        from services.content_verification import _verify_word_transcription
+        from services.content.verification import _verify_word_transcription
         target = "妳這個週末要做什麼"
         heard = "妳這個週未要做什麼"  # 末 -> 未, one-character ASR slip
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text=heard, model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, target)
         assert recognized == heard
@@ -91,10 +91,10 @@ class TestVerifyWordTranscription:
 
     @pytest.mark.asyncio
     async def test_still_rejects_a_mostly_wrong_longer_phrase(self):
-        from services.content_verification import _verify_word_transcription
+        from services.content.verification import _verify_word_transcription
         target = "妳這個週末要做什麼"
         heard = "完全不一樣的句子內容"
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text=heard, model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, target)
         assert recognized == heard
@@ -110,8 +110,8 @@ class TestVerifyWordTranscription:
         Both characters of "你好" appear in "好你在家" (reordered), which a
         bag-of-characters ratio would accept — the exact-substring check
         correctly still rejects it."""
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="好你在家", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized == "好你在家"
@@ -119,24 +119,24 @@ class TestVerifyWordTranscription:
 
     @pytest.mark.asyncio
     async def test_prefers_groq_when_key_configured(self, with_groq_key):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="groq")
             await _verify_word_transcription(SILENT_WAV, "你好")
         mock.assert_awaited_once_with(SILENT_WAV, "groq", vocab_hint="你好")
 
     @pytest.mark.asyncio
     async def test_falls_back_to_auto_chain_without_groq_key(self, no_groq_key):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="auto:ctwhisper")
             await _verify_word_transcription(SILENT_WAV, "你好")
         mock.assert_awaited_once_with(SILENT_WAV, "auto", vocab_hint="你好")
 
     @pytest.mark.asyncio
     async def test_uses_explicit_vocab_hint_when_provided(self, with_groq_key):
-        from services.content_verification import _verify_word_transcription
-        with patch("services.content_verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        from services.content.verification import _verify_word_transcription
+        with patch("services.content.verification.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="groq")
             await _verify_word_transcription(SILENT_WAV, "你好", vocab_hint="你好, 再見, 謝謝")
         mock.assert_awaited_once_with(SILENT_WAV, "groq", vocab_hint="你好, 再見, 謝謝")

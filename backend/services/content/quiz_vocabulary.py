@@ -3,7 +3,7 @@
 Holds the business logic that used to live inline in
 routers/story_quiz_vocabulary.py. The validation helpers raise
 ``fastapi.HTTPException`` directly (rather than a domain exception) because
-they are consumed directly - by name - from the ``routers.vocabulary``
+they are consumed directly - by name - from the ``routers.content.vocabulary``
 compatibility facade; changing that would be a behavior change for that
 caller, not just this router.
 """
@@ -13,7 +13,7 @@ from fastapi import HTTPException
 
 from db import vocab_assessment_revision
 from domain.vocabulary.assessment import ANSWER_FORMAT_BY_ROUND, QUESTION_TYPE_BY_ROUND, ROUNDS, TIER_BY_ROUND, normalize_answer, validate_assessment_payload
-from repositories import story_quiz_vocabulary_repository as repo
+from repositories.content import quiz_vocabulary as repo
 from repositories.database import row_to_custom_story
 
 

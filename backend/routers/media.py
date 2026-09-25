@@ -10,9 +10,9 @@ import security.auth as auth
 import main
 import services.media as media_service
 import services.media_access_service as media_access_service
-import services.story_images as story_images_service
+import services.content.images as story_images_service
 from db import connect_db
-from services.story_images import StoryImageGenerationRequest, StoryImageGenerationResponse
+from services.content.images import StoryImageGenerationRequest, StoryImageGenerationResponse
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 

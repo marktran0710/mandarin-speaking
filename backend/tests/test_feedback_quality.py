@@ -33,7 +33,7 @@ def _short_single_syllable_wav() -> bytes:
 
 
 def test_silence_is_retry_and_cannot_be_scored():
-    from services.content_verification import assess_recording_quality
+    from services.content.verification import assess_recording_quality
 
     quality = assess_recording_quality(SILENT_WAV)
 
@@ -106,7 +106,7 @@ async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch)
 
 
 def test_audible_signal_needs_post_analysis_before_it_can_be_scored():
-    from services.content_verification import assess_recording_quality
+    from services.content.verification import assess_recording_quality
 
     quality = assess_recording_quality(SPEECH_WAV)
 
@@ -117,7 +117,7 @@ def test_audible_signal_needs_post_analysis_before_it_can_be_scored():
 
 
 def test_single_syllable_target_uses_a_shorter_voiced_floor():
-    from services.content_verification import assess_recording_quality
+    from services.content.verification import assess_recording_quality
 
     audio = _short_single_syllable_wav()
     generic = assess_recording_quality(audio)
@@ -128,7 +128,7 @@ def test_single_syllable_target_uses_a_shorter_voiced_floor():
 
 
 def test_open_story_audio_is_review_only_without_independent_content_check():
-    from services.content_verification import assess_recording_quality, finalize_feedback_quality
+    from services.content.verification import assess_recording_quality, finalize_feedback_quality
 
     preflight = assess_recording_quality(SPEECH_WAV)
     pitch = [(index * 0.02, 200.0 + index) for index in range(20)]
@@ -141,7 +141,7 @@ def test_open_story_audio_is_review_only_without_independent_content_check():
 
 
 def test_verified_target_can_be_reliable():
-    from services.content_verification import finalize_feedback_quality
+    from services.content.verification import finalize_feedback_quality
 
     preflight = {
         "status": "review",
@@ -166,7 +166,7 @@ def test_verified_target_can_be_reliable():
 
 
 def test_sentence_content_match_tolerates_common_asr_name_confusion():
-    from services.content_verification import _scene_content_match
+    from services.content.verification import _scene_content_match
 
     target = "友美，妳這個週末要做什麼？"
     recognized = "遊妹,你這個週末要做什麼?"
@@ -175,7 +175,7 @@ def test_sentence_content_match_tolerates_common_asr_name_confusion():
 
 
 def test_sentence_content_match_rejects_an_omitted_required_name():
-    from services.content_verification import _scene_content_match
+    from services.content.verification import _scene_content_match
 
     target = "友美，妳這個週末要做什麼？"
     recognized = "你這個週末要做什麼?"
@@ -184,7 +184,7 @@ def test_sentence_content_match_rejects_an_omitted_required_name():
 
 
 def test_content_mismatch_keeps_pronunciation_feedback_but_blocks_content_pass():
-    from services.content_verification import finalize_feedback_quality
+    from services.content.verification import finalize_feedback_quality
 
     preflight = {
         "status": "review",
@@ -210,7 +210,7 @@ def test_content_mismatch_keeps_pronunciation_feedback_but_blocks_content_pass()
 
 
 def test_sentence_content_match_rejects_unrelated_answer():
-    from services.content_verification import _scene_content_match
+    from services.content.verification import _scene_content_match
 
     target = "友美，妳這個週末要做什麼？"
 
@@ -218,7 +218,7 @@ def test_sentence_content_match_rejects_unrelated_answer():
 
 
 def test_sustained_tone_never_becomes_reliable_mastery_evidence():
-    from services.content_verification import assess_recording_quality, finalize_feedback_quality
+    from services.content.verification import assess_recording_quality, finalize_feedback_quality
 
     preflight = assess_recording_quality(SPEECH_WAV)
     pitch = [(index * 0.02, 220.0) for index in range(20)]
@@ -236,7 +236,7 @@ def test_sustained_tone_never_becomes_reliable_mastery_evidence():
 
 
 def test_unverified_target_cannot_receive_pronunciation_score():
-    from services.content_verification import assess_recording_quality, finalize_feedback_quality
+    from services.content.verification import assess_recording_quality, finalize_feedback_quality
 
     preflight = assess_recording_quality(SPEECH_WAV)
     pitch = [(index * 0.02, 200.0 + index) for index in range(20)]
