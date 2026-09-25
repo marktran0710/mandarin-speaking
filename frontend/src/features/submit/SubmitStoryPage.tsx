@@ -39,6 +39,7 @@ export default function SubmitStoryPage({ topic, sceneCount, hasConversation, on
   return (
     <div className="sa-page-container sa-page-container--narrow">
       <StudentPageHeader
+        eyebrowZh="口語練習 · 準備提交"
         eyebrowEn="Story Speaking · Ready to Submit"
         titleZh="準備提交"
         titleEn="Turn in your work"

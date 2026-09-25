@@ -14,9 +14,10 @@ import BilingualWord from "@shared/ui/student/BilingualWord";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
+import StudentPage from "@shared/ui/student/StudentPage";
+import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
-import "@shared/ui/student/layout.css";
 import "./VocabularyQuizPage.css";
 
 interface VocabularyQuizPageProps {
@@ -89,13 +90,13 @@ function formatTime(milliseconds: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-function QuizHeader({
+/** The meta chips + progress bar that sit below the shared page header —
+ * the header itself (and its one H1) is StudentPageHeader, via StudentPage. */
+function QuizStatusBar({
   flow,
-  lessonLabel,
   question,
 }: {
   flow: ReturnType<typeof useVocabQuizFlow>;
-  lessonLabel: string;
   question: VocabQuizQuestion | null;
 }) {
   const total = flow.questionLimit ?? flow.entries.length;
@@ -103,18 +104,7 @@ function QuizHeader({
   const progress = total > 0 ? Math.min(100, (completed / total) * 100) : 0;
 
   return (
-    <div className="sa-quiz__header">
-      <div className="sa-quiz__header-copy">
-        <p className="sa-quiz__breadcrumb">Study <span aria-hidden="true">/</span> {lessonLabel}</p>
-        <div className="sa-quiz__title-row">
-          <h1 className="sa-quiz__title">
-            <span lang="zh-Hant">詞彙練習</span>
-            <span className="sa-quiz__title-en">Vocabulary Quiz</span>
-          </h1>
-          <span className="sa-quiz__round-tag">{roundName(flow.mode, flow.tierPos)}</span>
-        </div>
-      </div>
-
+    <div className="sa-quiz__status-bar">
       <div className="sa-quiz__header-meta" aria-label="Quiz status">
         {question && (
           <span className="sa-quiz__meta-chip">
@@ -383,21 +373,35 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
     setHintOpen(false);
   }, [flow.index, flow.tierPos, flow.view, flow.question?.word]);
 
+  const header = (
+    <StudentPageHeader
+      eyebrowZh={`學習 · ${lessonLabel} · 詞彙練習`}
+      eyebrowEn={`Study · ${lessonLabel} · Vocabulary Quiz`}
+      titleZh="詞彙練習"
+      titleEn="Vocabulary Quiz"
+      aside={flow.entries.length > 0 ? <span className="sa-quiz__round-tag">{roundName(flow.mode, flow.tierPos)}</span> : undefined}
+    />
+  );
+
   if (flow.entries.length === 0) {
     return (
-      <div className="sa-page-container sa-page-container--narrow">
-        <StudentSection variant="panel" className="sa-quiz__empty">
-          <StudentIcon name="quiz" size={22} role="decorative" />
-          <p><span lang="zh-Hant">本課沒有測驗</span> · No quiz for this lesson</p>
+      <StudentPage
+        layout="task"
+        header={header}
+        state="empty"
+        emptyTitle={<><span lang="zh-Hant">本課沒有測驗</span> · No quiz for this lesson</>}
+        emptyAction={
           <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}>
             <span lang="zh-Hant">前往口語練習</span> · Continue to Story Speaking
           </StudentButton>
-        </StudentSection>
-      </div>
+        }
+      />
     );
   }
 
-  if (flow.view === "loading") return <div className="sa-page-container sa-page-container--narrow"><p className="sa-quiz__loading" role="status">Loading practice options…</p></div>;
+  if (flow.view === "loading") {
+    return <StudentPage layout="task" header={header} state="loading" />;
+  }
 
   const question = flow.question;
   const entry = entryFor(flow.entries, question);
@@ -407,14 +411,14 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
   const isLastTier = flow.tierPos === TIER_SEQUENCE.length - 1;
 
   return (
-    <div className="sa-page-container sa-page-container--quiz">
-      <QuizHeader flow={flow} lessonLabel={lessonLabel} question={question} />
+    <StudentPage layout="task" wide header={header}>
+      <QuizStatusBar flow={flow} question={question} />
       {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} /> : question ? (
         <div className="sa-quiz__workspace">
           <QuizQuestion flow={flow} question={question} entry={entry} lessonLabel={lessonLabel} pinyinDraft={pinyinDraft} setPinyinDraft={setPinyinDraft} showingFeedback={showingFeedback} lastResult={lastResult} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
           <QuizRail flow={flow} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
         </div>
       ) : null}
-    </div>
+    </StudentPage>
   );
 }

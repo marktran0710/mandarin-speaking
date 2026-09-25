@@ -1,0 +1,105 @@
+/* StudentPage — one shell, three layouts (LAYOUT-1). No 100vh/100dvh here:
+   the shell (#sa-main) owns height and scrolling; this component only lays
+   out content within it. */
+
+.sa-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sa-space-lg);
+}
+
+.sa-page__body {
+  min-width: 0;
+}
+
+.sa-page__status {
+  margin: 0;
+  padding: var(--sa-space-xl) 0;
+  color: var(--sa-outline);
+  font-family: var(--sa-font-label);
+  text-align: center;
+}
+
+.sa-page__state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sa-space-md);
+  padding: var(--sa-space-xl);
+  text-align: center;
+  color: var(--sa-outline);
+}
+.sa-page__state-card h2 {
+  margin: 0;
+  color: var(--sa-on-surface);
+  font-family: var(--sa-font-headline);
+  font-size: var(--sa-text-headline-sm);
+  font-weight: 500;
+}
+.sa-page__state-card p {
+  margin: 0;
+  color: var(--sa-on-surface-variant);
+  font-family: var(--sa-font-label);
+}
+
+/* hub: two columns, no outer card (LAYOUT-3) */
+.sa-page--hub .sa-page__hub-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  gap: var(--sa-space-lg);
+}
+.sa-page--hub .sa-page__hub-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sa-page--hub .sa-page__hub-main,
+.sa-page--hub .sa-page__hub-rail { min-width: 0; }
+.sa-page--hub .sa-page__hub-rail { display: grid; align-content: start; gap: var(--sa-space-lg); }
+
+@media (max-width: 1100px) {
+  .sa-page--hub .sa-page__hub-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* task: single column, capped width unless the content opts out (wide) */
+.sa-page--task .sa-page__task {
+  max-width: 720px;
+}
+.sa-page--task.sa-page--wide .sa-page__task {
+  max-width: none;
+}
+
+/* stage: two equal columns, media optional */
+.sa-page--stage .sa-page__stage-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sa-space-lg);
+  align-items: start;
+}
+.sa-page--stage .sa-page__stage-media,
+.sa-page--stage .sa-page__stage-activity { min-width: 0; }
+.sa-page--stage .sa-page__stage-split--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 900px) {
+  .sa-page--stage .sa-page__stage-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Shared footer action bar (ACTION-1/ACTION-2) */
+.sa-page__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sa-space-md);
+  padding-top: var(--sa-space-lg);
+  border-top: 1px solid var(--sa-outline-variant);
+}
+.sa-page__actions-secondary {
+  margin-right: auto;
+  display: flex;
+  gap: var(--sa-space-sm);
+}
+
+@media (max-width: 640px) {
+  .sa-page__actions { flex-wrap: wrap; }
+  .sa-page__actions-secondary { margin-right: 0; }
+}

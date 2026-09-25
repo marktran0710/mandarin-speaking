@@ -12,7 +12,7 @@ export default function InterlocutorTurn({ turn, onContinue }: InterlocutorTurnP
     <section className="sa-bubble-row is-character sa-conversation__current-turn" aria-label="Conversation partner turn">
       <div className="sa-bubble-row__who">
         <span className="sa-bubble-row__dot" aria-hidden="true" />
-        <span>Conversation partner</span>
+        <span><span lang="zh-Hant">對話角色</span> · Character</span>
       </div>
       <div className="sa-bubble">
         <BilingualWord hanzi={turn.text} pinyin={turn.pinyin} gloss={turn.translation} size="display" />

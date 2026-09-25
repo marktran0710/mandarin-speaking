@@ -2,10 +2,10 @@ import { useMemo } from "react";
 import type { Topic } from "@entities/topic";
 import { groupTopicsByLesson, lessonTitle, topicStoryId } from "../../utils/lessonGroups";
 import { loadSubmittedStoryIds } from "../../utils/storyLevelProgress";
+import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
-import "@shared/ui/student/layout.css";
 import "./ProgressPage.css";
 
 interface ProgressPageProps {
@@ -51,9 +51,10 @@ export default function ProgressPage({ topics }: ProgressPageProps) {
   );
 
   return (
-    <div className="sa-page-container">
-      <StudentPageHeader eyebrowEn="Progress" eyebrowZh="進度" titleZh="學習進度" titleEn="Study Progress" />
-
+    <StudentPage
+      layout="hub"
+      header={<StudentPageHeader eyebrowZh="進度" eyebrowEn="Progress" titleZh="學習進度" titleEn="Study Progress" />}
+    >
       <StudentSection variant="panel" className="sa-progress__list">
         {lessonRows.map((row) => (
           <div key={row.key} className="sa-progress__row">
@@ -72,6 +73,6 @@ export default function ProgressPage({ topics }: ProgressPageProps) {
         <span className="sa-progress__stat-label">Sessions completed</span>
         <span className="sa-progress__stat-value">{totalDone} / {totalStories}</span>
       </StudentSection>
-    </div>
+    </StudentPage>
   );
 }
