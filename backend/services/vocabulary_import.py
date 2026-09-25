@@ -8,8 +8,9 @@ canonical Chapters 5-8 workbook, minus that script's one-time assumptions
 one carried those assumptions to begin with.
 
 The admin import replaces each matched lesson's complete ``vocab_assessment``
-bank. Existing audio is carried forward by ``wordId``; frame vocabulary and
-``story_vocabulary`` remain outside this canonical quiz/content source.
+bank. Existing audio is carried forward by ``wordId``. Once a lesson has a
+canonical quiz bank, legacy frame/story vocabulary is cleared so quiz content
+is the one vocabulary source used by the story.
 Nothing is written until ``apply_vocabulary_import`` is called explicitly -
 preview is read-only.
 """
@@ -18,13 +19,19 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from collections import defaultdict
 from typing import Any
 
 import openpyxl
 from psycopg.types.json import Jsonb
 
-from domain.vocabulary.assessment import validate_assessment_payload
+from domain.vocabulary.assessment import (
+    ANSWER_FORMAT_BY_ROUND,
+    QUESTION_TYPE_BY_ROUND,
+    ROUNDS as ASSESSMENT_ROUNDS,
+    validate_assessment_payload,
+)
 from scripts.import_question_bank_workbook import REQUIRED_COLUMNS, ROUNDS, build_payloads
 from scripts.seed_quiz_assessments import find_story_for_part
 import services.media as media_service
@@ -145,19 +152,19 @@ def validate_import_rows(rows: list[dict[str, str]]) -> list[str]:
         section = row.get("Section", "")
         if "-" not in section or not all(part.strip().isdigit() for part in section.split("-", 1)):
             issues.append(f"{qid}: Section must look like '5-1' (chapter-part), found {section!r}")
-        round_info = ROUNDS.get(row.get("Round", ""))
-        if round_info is None:
+        round_number = ROUNDS.get(row.get("Round", ""))
+        if round_number is None:
             issues.append(f"{qid}: unsupported round {row.get('Round')!r}")
             continue
-        level, _, answer_format = round_info
-        expected_type = {"easy": "basic_meaning_mcq", "medium": "character_to_pinyin_typing", "hard": "context_cloze_mcq"}[level]
+        answer_format = ANSWER_FORMAT_BY_ROUND[round_number]
+        expected_type = QUESTION_TYPE_BY_ROUND[round_number]
         if row.get("Question Type") != expected_type:
             issues.append(f"{qid}: {row.get('Round')} uses {row.get('Question Type')}, expected {expected_type}")
         if row.get("Input Mode") == "click" and answer_format != "single_choice":
             issues.append(f"{qid}: click input is not a single-choice question")
         if row.get("Input Mode") == "free_text" and answer_format != "free_text":
             issues.append(f"{qid}: free-text input has the wrong answer format")
-        if level in {"easy", "hard"}:
+        if answer_format == "single_choice":
             options = [row.get(f"Option {letter}", "") for letter in "ABCD"]
             if len(set(options)) != 4 or any(not option for option in options):
                 issues.append(f"{qid}: options must contain four distinct values")
@@ -174,7 +181,9 @@ def validate_import_rows(rows: list[dict[str, str]]) -> list[str]:
             if not (row.get(required) or "").strip():
                 issues.append(f"{qid}: empty {required}")
     for word_id, word_rows in by_word.items():
-        if len(word_rows) != 3 or {row.get("Round") for row in word_rows} != set(ROUNDS):
+        if len(word_rows) != len(ASSESSMENT_ROUNDS) or {
+            ROUNDS.get(row.get("Round", "")) for row in word_rows
+        } != set(ASSESSMENT_ROUNDS):
             issues.append(f"{word_id}: expected exactly one row for each round (Round 1/2/3)")
         for field in ("Chapter", "Section", "Traditional Chinese", "Pinyin", "POS", "English Meaning"):
             if len({row.get(field) for row in word_rows}) != 1:
@@ -223,6 +232,116 @@ def _replace_assessment(
     return replacement, incoming_word_ids - existing_word_ids, existing_word_ids - incoming_word_ids, missing_audio
 
 
+LEGACY_VOCABULARY_FRAME_FIELDS = (
+    "vocabulary",
+    "vocabularyGroups",
+    "vocabularyPinyin",
+    "vocabularyPos",
+    "vocabularyTranslation",
+    "vocabularyAudioUrls",
+    "vocabularyReferenceCurves",
+    "vocabularyMedium",
+    "vocabularyHard",
+    "vocabularyPinyinMedium",
+    "vocabularyPinyinHard",
+    "vocabularyPosMedium",
+    "vocabularyPosHard",
+    "vocabularyTranslationMedium",
+    "vocabularyTranslationHard",
+    "vocabularyAudioUrlsMedium",
+    "vocabularyAudioUrlsHard",
+    "vocabularyReferenceCurvesMedium",
+    "vocabularyReferenceCurvesHard",
+)
+
+LEGACY_VOCABULARY_AUDIO_FIELDS = {
+    "vocabularyAudioUrls",
+    "vocabularyAudioUrlsMedium",
+    "vocabularyAudioUrlsHard",
+}
+
+
+def _frame_audio_urls(frames: object) -> set[str]:
+    """Return stored per-word frame audio URLs before legacy vocab cleanup."""
+    urls: set[str] = set()
+    if not isinstance(frames, list):
+        return urls
+    for frame in frames:
+        if not isinstance(frame, dict):
+            continue
+        for field in LEGACY_VOCABULARY_AUDIO_FIELDS:
+            raw_urls = frame.get(field)
+            if isinstance(raw_urls, str):
+                try:
+                    raw_urls = json.loads(raw_urls)
+                except json.JSONDecodeError:
+                    raw_urls = []
+            if isinstance(raw_urls, list):
+                urls.update(
+                    value.strip()
+                    for value in raw_urls
+                    if isinstance(value, str) and value.strip().startswith("/uploads/")
+                )
+            elif isinstance(raw_urls, dict):
+                for value in raw_urls.values():
+                    if isinstance(value, str) and value.strip().startswith("/uploads/"):
+                        urls.add(value.strip())
+                    elif isinstance(value, list):
+                        urls.update(
+                            item.strip()
+                            for item in value
+                            if isinstance(item, str) and item.strip().startswith("/uploads/")
+                        )
+    return urls
+
+
+def _clear_legacy_vocabulary(frames: object) -> tuple[list[dict[str, Any]], set[str]]:
+    """Clear old authored vocabulary while preserving scene prompts/media."""
+    normalized_frames: list[dict[str, Any]] = []
+    old_audio_urls = _frame_audio_urls(frames)
+    for raw_frame in frames if isinstance(frames, list) else []:
+        frame = dict(raw_frame) if isinstance(raw_frame, dict) else {}
+        for field in LEGACY_VOCABULARY_FRAME_FIELDS:
+            if field not in frame and field not in LEGACY_VOCABULARY_FRAME_FIELDS[:7]:
+                continue
+            if field == "vocabulary":
+                # The API's frame contract requires this field to be a string.
+                frame[field] = ""
+            elif field == "vocabularyGroups":
+                frame[field] = []
+            else:
+                frame[field] = ""
+        normalized_frames.append(frame)
+    return normalized_frames, old_audio_urls
+
+
+def _clear_legacy_vocabulary_for_lessons(db: Any, lesson_numbers: set[int]) -> set[str]:
+    """Clear scene/story vocabulary on every story in imported lessons.
+
+    This includes published teacher-created duplicates with no lesson part;
+    their publication state is intentionally left unchanged.
+    """
+    if not lesson_numbers:
+        return set()
+    rows = db.execute(
+        "SELECT id, frames FROM custom_stories WHERE lesson_number = ANY(%s) FOR UPDATE",
+        (list(lesson_numbers),),
+    ).fetchall()
+    cleanup_urls: set[str] = set()
+    for row in rows:
+        frames, old_audio_urls = _clear_legacy_vocabulary(row.get("frames"))
+        cleanup_urls.update(old_audio_urls)
+        db.execute(
+            """
+            UPDATE custom_stories
+            SET frames = %s::jsonb, story_vocabulary = NULL
+            WHERE id = %s
+            """,
+            (Jsonb(frames), row["id"]),
+        )
+    return cleanup_urls
+
+
 def _assessment_audio_urls(assessment: list[dict[str, Any]]) -> set[str]:
     return {
         question["audioUrl"]
@@ -236,14 +355,13 @@ def _assessment_audio_urls(assessment: list[dict[str, Any]]) -> set[str]:
 def _remove_unreferenced_audio(db: Any, candidates: set[str]) -> None:
     if not candidates:
         return
-    rows = db.execute(
-        "SELECT vocab_assessment FROM custom_stories WHERE vocab_assessment IS NOT NULL"
-    ).fetchall()
+    rows = db.execute("SELECT vocab_assessment, frames FROM custom_stories").fetchall()
     referenced: set[str] = set()
     for row in rows:
         assessment = row.get("vocab_assessment")
         if isinstance(assessment, list):
             referenced.update(_assessment_audio_urls(assessment))
+        referenced.update(_frame_audio_urls(row.get("frames")))
     for url in candidates - referenced:
         media_service.remove_uploaded_file(url)
 
@@ -355,6 +473,11 @@ def apply_vocabulary_import(
             "removedWords": len(removed_words), "preservedAudio": section_preserved_audio,
             "missingAudio": section_missing_audio,
         })
+    # The imported quiz bank is now the sole vocabulary source for every
+    # story in the affected lesson(s), including published custom duplicates
+    # that have no lesson sub-order. Keep prompts/images/phrases intact.
+    lesson_numbers = {int(section.split("-", 1)[0]) for section in payloads}
+    cleanup_urls.update(_clear_legacy_vocabulary_for_lessons(db, lesson_numbers))
     _remove_unreferenced_audio(db, cleanup_urls)
     return {"mode": mode, "published": published, **totals}
 
@@ -369,7 +492,7 @@ def build_vocabulary_import_template() -> bytes:
         ["Workflow", "Upload this workbook first, then import a ZIP of audio files."],
         ["Identity", "Word Key is the stable identifier. Audio filenames must use the exact Word Key stem."],
         ["Rows", "Each Word Key must have exactly three rows: Round 1, Round 2 and Round 3."],
-        ["Replace behavior", "The imported rows replace the canonical quiz bank for each Section. Existing audio is preserved by Word Key."],
+        ["Replace behavior", "The imported rows replace the canonical quiz bank for each Section. Existing audio is preserved by Word Key, and legacy scene/story vocabulary for the affected lesson is cleared."],
         ["Required question data", "Do not add Book source, Source Type, Tier, Skill Label, context or page-reference columns."],
         ["Round 1", "Meaning multiple choice: basic_meaning_mcq / click"],
         ["Round 2", "Pinyin typing: character_to_pinyin_typing / free_text"],

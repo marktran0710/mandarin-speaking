@@ -99,7 +99,7 @@ export default function VocabularyImportDialog({ onClose, onImported }: {
           Upload the canonical vocabulary + question XLSX or CSV. The standard XLSX has
           <strong> Instructions</strong> and <strong>Questions</strong> sheets. Each Word Key needs
           exactly three rounds. The file replaces the canonical quiz bank for every Section it contains;
-          frame/story vocabulary is not changed.
+          legacy frame/story vocabulary for the affected lessons is cleared, while prompts, images and phrases stay intact.
         </p>
         <div className="av-audio-import-rule" role="note">
           <Icon name="info" size={18} />

@@ -3,7 +3,7 @@ import Modal from "../../../shared/ui/Modal";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import type { StoredCustomStory } from "../../../services/api/stories-submissions";
 import type { CustomTeacherStory } from "@entities/story";
-import { parseJsonArray, resolveImageUrl, storyToTopic } from "@entities/story";
+import { resolveImageUrl, storyToTopic } from "@entities/story";
 import { topicQuizEntries } from "@entities/vocabulary";
 import {
   buildWordQuestionVariants,
@@ -22,10 +22,10 @@ interface PreviewCard {
   typed: boolean;
 }
 
-const ROUND_LABEL: Record<string, { round: string; en: string }> = {
-  know_it: { round: "Round 1", en: "Know it — meaning" },
-  say_it: { round: "Round 2", en: "Say it — pinyin" },
-  use_it: { round: "Round 3", en: "Use it — in context" },
+const ROUND_LABEL: Record<number, { round: string; en: string }> = {
+  1: { round: "Round 1", en: "Meaning" },
+  2: { round: "Round 2", en: "Pinyin" },
+  3: { round: "Round 3", en: "Context" },
 };
 
 const KIND_LABEL: Record<string, string> = {
@@ -100,14 +100,11 @@ function renderPrompt(prompt: string) {
   return <>{before}<span className="av-qcard-blank">____</span>{after}</>;
 }
 
-function previewAudioUrl(entry: VocabularyEntry, story: StoredCustomStory | undefined): string | undefined {
+function previewAudioUrl(entry: VocabularyEntry): string | undefined {
   const importedAudio = entry.assessmentQuestions
     .map(question => question.audioUrl?.trim())
     .find((url): url is string => Boolean(url));
-  if (importedAudio) return resolveImageUrl(importedAudio);
-
-  const frameAudio = parseJsonArray(story?.frames[entry.frameIndex]?.vocabularyAudioUrls)?.[entry.wordIndex];
-  return typeof frameAudio === "string" && frameAudio.trim() ? resolveImageUrl(frameAudio.trim()) : undefined;
+  return importedAudio ? resolveImageUrl(importedAudio) : undefined;
 }
 
 export default function QuestionPreview({ entry, story, onClose }: {
@@ -125,7 +122,7 @@ export default function QuestionPreview({ entry, story, onClose }: {
     if (!wordEntry) return { rounds: [], practice: [], entries: entries.length };
     return { ...buildWordQuestionVariants(wordEntry, entries), entries: entries.length };
   }, [story, entry.word, entry.assessmentWordId]);
-  const audioUrl = previewAudioUrl(entry, story);
+  const audioUrl = previewAudioUrl(entry);
 
   return (
     <Modal open title={`Quiz questions: ${entry.word}`} onClose={onClose}>
@@ -160,7 +157,7 @@ export default function QuestionPreview({ entry, story, onClose }: {
               {variants.rounds.length ? (
                 <ul className="av-qlist">
                   {variants.rounds.map((round) => {
-                    const label = ROUND_LABEL[round.roundType];
+                    const label = ROUND_LABEL[round.round];
                     return <QuestionCard key={round.mode} heading={label?.round ?? round.mode} sub={label?.en} card={fromAssessment(round.question)} />;
                   })}
                 </ul>

@@ -12,13 +12,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 from db import vocab_assessment_revision
-from domain.vocabulary.assessment import (
-    CURRENT_ANSWER_FORMAT_BY_LEVEL,
-    CURRENT_QUESTION_TYPE_BY_LEVEL,
-    LEVELS,
-    normalize_answer,
-    validate_assessment_payload,
-)
+from domain.vocabulary.assessment import ANSWER_FORMAT_BY_ROUND, QUESTION_TYPE_BY_ROUND, ROUNDS, TIER_BY_ROUND, normalize_answer, validate_assessment_payload
 from repositories import story_quiz_vocabulary_repository as repo
 from repositories.database import row_to_custom_story
 
@@ -33,29 +27,33 @@ def _assessment_rows(row: dict) -> list[dict]:
     return assessment
 
 
-def _question_rows(word_id: str, word) -> list[dict]:
-    levels = [question.level for question in word.questions]
-    if set(levels) != set(LEVELS) or len(levels) != len(LEVELS):
-        raise HTTPException(422, "Each quiz word must include exactly one Easy, Medium, and Hard question.")
+def _question_rows(word_id: str, word, audio_by_round: dict[int, str] | None = None) -> list[dict]:
+    rounds = [question.round for question in word.questions]
+    if set(rounds) != set(ROUNDS) or len(rounds) != len(ROUNDS):
+        raise HTTPException(422, "Each quiz word must include exactly one question for rounds 1, 2, and 3.")
     rows = []
     for question in word.questions:
-        rows.append({
-            "questionId": f"{word_id}_{question.level.upper()}",
+        round_number = int(question.round)
+        row = {
+            "questionId": f"Q_{uuid4().hex}",
             "wordId": word_id,
             "targetWord": word.targetWord,
             "pinyin": word.pinyin,
             "pos": word.pos,
             "simpleEnglishMeaning": word.simpleEnglishMeaning,
-            "level": question.level,
-            "difficultyWeight": {"Easy": 1, "Medium": 2, "Hard": 3}[question.level],
-            "questionType": CURRENT_QUESTION_TYPE_BY_LEVEL[question.level],
-            "answerFormat": CURRENT_ANSWER_FORMAT_BY_LEVEL[question.level],
+            "round": round_number,
+            "tier": TIER_BY_ROUND[round_number],
+            "questionType": QUESTION_TYPE_BY_ROUND[round_number],
+            "answerFormat": ANSWER_FORMAT_BY_ROUND[round_number],
             "prompt": question.prompt,
             "options": question.options,
             "correctAnswer": question.correctAnswer,
             "acceptedAnswers": question.acceptedAnswers,
             "explanation": question.explanation,
-        })
+        }
+        if audio_by_round and audio_by_round.get(round_number):
+            row["audioUrl"] = audio_by_round[round_number]
+        rows.append(row)
     return rows
 
 
@@ -121,7 +119,14 @@ def update_word(db, story_id: str, word_id: str, word) -> dict:
     _check_expected_revision(assessment, word.expectedRevision)
     if not any(question.get("wordId") == word_id for question in assessment):
         raise HTTPException(404, "Quiz word not found.")
-    replacement = _question_rows(word_id, word)
+    audio_by_round = {
+        int(question["round"]): question["audioUrl"]
+        for question in assessment
+        if question.get("wordId") == word_id
+        and question.get("audioUrl")
+        and question.get("round") is not None
+    }
+    replacement = _question_rows(word_id, word, audio_by_round)
     updated_assessment = [
         question for question in assessment if question.get("wordId") != word_id
     ]

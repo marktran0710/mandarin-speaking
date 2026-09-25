@@ -34,9 +34,19 @@ describe("storyToTopic canonical mapping", () => {
   it("passes vocab_assessment through without frame-pool compatibility fields", () => {
     const topic = storyToTopic(story);
     expect(topic.vocabAssessment).toEqual(story.vocabAssessment);
+    expect(topic.vocabulary[0]).toEqual([story.vocabAssessment![0].targetWord]);
     expect(topic.vocabularyTranslation?.[0]).toEqual(["to learn"]);
     expect(topic).not.toHaveProperty("quizVocabulary");
     expect(topic).not.toHaveProperty("vocabularyDistractors");
+  });
+
+  it("uses quiz-bank metadata instead of legacy frame vocabulary", () => {
+    const topic = storyToTopic({
+      ...story,
+      frames: [{ ...story.frames[0], vocabulary: "legacy", vocabularyTranslation: "legacy meaning" }],
+    });
+    expect(topic.vocabulary[0]).toEqual([story.vocabAssessment![0].targetWord]);
+    expect(topic.vocabularyTranslation?.[0]).toEqual(["to learn"]);
   });
 
   it("preserves the conversation contract for student runtime selection", () => {

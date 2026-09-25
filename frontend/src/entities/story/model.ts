@@ -109,6 +109,19 @@ export function storyToTopic(
       ...(question.audioUrl ? { audioUrl: resolveImageUrl(question.audioUrl) } : {}),
     }))
     : undefined;
+  const canonicalVocabulary = vocabAssessment?.length
+    ? Array.from(new Map(vocabAssessment.map((question) => [question.wordId, question])).values())
+    : [];
+  if (canonicalVocabulary.length) {
+    // A published quiz bank is the story's vocabulary source. Keep the
+    // story-wide shape used by the speaking pipeline, but do not expose any
+    // legacy per-scene vocabulary that may still exist in an older payload.
+    Object.keys(vocabulary).forEach((key) => { vocabulary[Number(key)] = []; });
+    vocabulary[0] = canonicalVocabulary.map((question) => question.targetWord);
+    vocabularyPinyin[0] = canonicalVocabulary.map((question) => numericToToneMarked(question.pinyin));
+    vocabularyPos[0] = canonicalVocabulary.map((question) => question.pos);
+    vocabularyTranslation[0] = canonicalVocabulary.map((question) => question.simpleEnglishMeaning);
+  }
 
   return {
     id: `teacher-${story.id}`,
@@ -120,7 +133,7 @@ export function storyToTopic(
     images: story.frames.map((frame) => resolveImageUrl(tierText(frame, "imageUrl", difficultyLevel) || "")),
     prompts: story.frames.map((frame) => tierText(frame, "prompt", difficultyLevel) || ""),
     vocabulary,
-    ...(Object.keys(vocabularyGroups).length ? { vocabularyGroups } : {}),
+    ...(!canonicalVocabulary.length && Object.keys(vocabularyGroups).length ? { vocabularyGroups } : {}),
     ...(Object.keys(phrases).length ? { phrases } : {}),
     ...(Object.keys(phrasesTranslation).length ? { phrasesTranslation } : {}),
     ...(Object.keys(vocabularyPinyin).length ? { vocabularyPinyin } : {}),
@@ -130,8 +143,8 @@ export function storyToTopic(
     ...(Object.keys(listenAudioUrls).length ? { listenAudioUrls } : {}),
     ...(Object.keys(listenAudioSources).length ? { listenAudioSources } : {}),
     ...(Object.keys(listenScripts).length ? { listenScripts } : {}),
-    ...(Object.keys(vocabularyAudioUrls).length ? { vocabularyAudioUrls } : {}),
-    ...(Object.keys(vocabularyReferenceCurves).length ? { vocabularyReferenceCurves } : {}),
+    ...(!canonicalVocabulary.length && Object.keys(vocabularyAudioUrls).length ? { vocabularyAudioUrls } : {}),
+    ...(!canonicalVocabulary.length && Object.keys(vocabularyReferenceCurves).length ? { vocabularyReferenceCurves } : {}),
     ...(Object.keys(sentenceReferenceCurves).length ? { sentenceReferenceCurves } : {}),
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),

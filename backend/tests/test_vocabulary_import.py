@@ -118,8 +118,8 @@ def test_import_payload_contains_only_canonical_question_data():
         payload = build_payloads(parsed)["99-1"]
         assert all(set(question) == {
             "questionId", "wordId", "targetWord", "pinyin", "pos", "simpleEnglishMeaning",
-            "level", "difficultyWeight", "questionType", "answerFormat", "prompt", "options",
-            "correctAnswer", "acceptedAnswers", "explanation", "sourceQuestionId", "sourceType", "round",
+            "round", "tier", "questionType", "answerFormat", "prompt", "options",
+            "correctAnswer", "acceptedAnswers", "explanation", "sourceType",
         } for question in payload)
 
 
@@ -263,19 +263,40 @@ def test_preview_and_confirm_against_a_real_story(admin_client):
     assert all("sourceType" not in question for question in saved_again["vocabAssessment"])
 
 
-def test_replace_lesson_removes_stale_words_and_preserves_story_content(admin_client, tmp_path, monkeypatch):
+def test_replace_lesson_removes_stale_words_and_clears_legacy_story_vocabulary(admin_client, tmp_path, monkeypatch):
     story = {
         "id": "vocab-replace-story-99-2", "title": "Replace test story", "frames": [],
         "published": True, "lessonNumber": 99, "lessonSubOrder": 2,
     }
     assert admin_client.post("/api/custom-stories", json=story).status_code == 200
+    duplicate = {
+        "id": "vocab-replace-story-99-duplicate", "title": "Published legacy duplicate",
+        "frames": [{
+            "imageUrl": "duplicate.png", "prompt": "Keep this duplicate prompt",
+            "vocabulary": "legacy word", "vocabularyPinyin": "legacy",
+            "vocabularyPos": "N", "vocabularyTranslation": "legacy",
+        }],
+        "storyVocabulary": {"easy": {
+            "vocabulary": "legacy story word", "vocabularyPinyin": "legacy",
+            "vocabularyPos": "N", "vocabularyTranslation": "legacy",
+        }},
+        "published": True, "lessonNumber": 99,
+    }
+    assert admin_client.post("/api/custom-stories", json=duplicate).status_code == 200
     upload_root = tmp_path / "uploads"
     old_audio = upload_root / "audio" / "old.mp3"
+    tier_audio = upload_root / "audio" / "tier.mp3"
     old_audio.parent.mkdir(parents=True)
     old_audio.write_bytes(b"old")
+    tier_audio.write_bytes(b"tier")
     monkeypatch.setattr(media_service, "UPLOAD_DIR", str(upload_root))
     monkeypatch.setattr(media_service, "AUDIO_UPLOAD_DIR", str(upload_root / "audio"))
-    original_frames = [{"imageUrl": "frame.png", "prompt": "Keep this frame"}]
+    original_frames = [{
+        "imageUrl": "frame.png", "prompt": "Keep this frame",
+        "vocabularyMedium": "legacy medium",
+        "vocabularyAudioUrlsMedium": "[\"/uploads/audio/tier.mp3\"]",
+        "vocabularyReferenceCurvesHard": "legacy curves",
+    }]
     original_story_vocabulary = {"easy": {"vocabulary": "keep this story vocab"}}
     old_assessment = [
         {"wordId": "OLD-W001", "audioUrl": "/uploads/audio/old.mp3"},
@@ -292,10 +313,22 @@ def test_replace_lesson_removes_stale_words_and_preserves_story_content(admin_cl
     assert result["removedWords"] == 1
     assert result["missingAudio"] == 1
     assert not old_audio.exists()
+    assert not tier_audio.exists()
     saved = next(item for item in admin_client.get("/api/custom-stories").json() if item["id"] == story["id"])
     assert {question["wordId"] for question in saved["vocabAssessment"]} == {"NEW-W001"}
-    assert saved["frames"] == original_frames
-    assert saved["storyVocabulary"] == original_story_vocabulary
+    assert saved["frames"] == [{
+        "imageUrl": "frame.png", "prompt": "Keep this frame", "vocabulary": "",
+        "vocabularyGroups": [], "vocabularyPinyin": "", "vocabularyPos": "",
+        "vocabularyTranslation": "", "vocabularyAudioUrls": "",
+        "vocabularyReferenceCurves": "",
+        "vocabularyMedium": "", "vocabularyAudioUrlsMedium": "",
+        "vocabularyReferenceCurvesHard": "",
+    }]
+    assert saved["storyVocabulary"] is None
+    saved_duplicate = next(item for item in admin_client.get("/api/custom-stories").json() if item["id"] == duplicate["id"])
+    assert saved_duplicate["published"] is True
+    assert saved_duplicate["storyVocabulary"] is None
+    assert saved_duplicate["frames"][0]["vocabulary"] == ""
 
 
 def test_preview_reports_when_no_story_matches_the_section(client):
