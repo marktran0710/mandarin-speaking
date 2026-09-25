@@ -25,7 +25,7 @@ function makeTopic(overrides: Partial<Topic> = {}): Topic {
   };
 }
 
-function tierNumber(mode: TierMode | null): number {
+function tierNumber(mode: TierMode | "weak_words" | "maintenance_review" | null): number {
   return mode === "tier1" ? 1 : mode === "tier2" ? 2 : mode === "tier3" ? 3 : 0;
 }
 
@@ -40,7 +40,7 @@ function tierNumber(mode: TierMode | null): number {
  */
 function useFakeQuizSession() {
   const [screen, setScreen] = useState<"mode-select" | "quiz" | "summary">("mode-select");
-  const [mode, setMode] = useState<TierMode | null>(null);
+  const [mode, setMode] = useState<TierMode | "weak_words" | "maintenance_review" | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<{ word: string; correct: boolean; correctAnswer: string }[]>([]);
   const [stars, setStars] = useState(0);
@@ -61,6 +61,10 @@ function useFakeQuizSession() {
     selected,
     results,
     stars,
+    sessionReady: true,
+    weakEntries: [{ word: "weak-word" }],
+    interimReviewEntries: [],
+    dueWords: [{ word: "due-word" }],
     startTier: (tier: TierMode) => {
       setMode(tier);
       setScreen("quiz");
@@ -79,6 +83,19 @@ function useFakeQuizSession() {
       }
       setScreen("summary");
     },
+    startWeakWords: () => {
+      setMode("weak_words");
+      setScreen("quiz");
+      setSelected(null);
+      setResults([]);
+    },
+    startDueReview: () => {
+      setMode("maintenance_review");
+      setScreen("quiz");
+      setSelected(null);
+      setResults([]);
+    },
+    returnToModes: () => setScreen("mode-select"),
   };
 }
 
@@ -93,8 +110,9 @@ describe("VocabularyQuizPage", () => {
     const onFinished = vi.fn();
     render(<VocabularyQuizPage topic={makeTopic()} lessonLabel="Lesson" onFinished={onFinished} />);
 
-    // Tier 1: auto-started from mode-select. The stimulus word encodes the
-    // tier the fake hook was started with, so it doubles as proof of order.
+    // Tier 1 starts only after the learner chooses the diagnostic path. The
+    // stimulus word encodes the tier, so it doubles as proof of order.
+    fireEvent.click(screen.getByRole("button", { name: /Start Know It/ }));
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "right" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -124,6 +142,7 @@ describe("VocabularyQuizPage", () => {
     const onFinished = vi.fn();
     render(<VocabularyQuizPage topic={makeTopic()} lessonLabel="Lesson" onFinished={onFinished} />);
 
+    fireEvent.click(screen.getByRole("button", { name: /Start Know It/ }));
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "wrong" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -137,5 +156,20 @@ describe("VocabularyQuizPage", () => {
     // Retrying re-starts the SAME tier fresh, never the next one.
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     expect(onFinished).not.toHaveBeenCalled();
+  });
+
+  it("keeps weak-word and due-review practice reachable from the mode picker", () => {
+    render(<VocabularyQuizPage topic={makeTopic()} lessonLabel="Lesson" onFinished={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Practice weak words/ }));
+    expect(screen.getByText("word-weak_words")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Practice complete")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to practice options" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /Review due words/ }));
+    expect(screen.getByText("word-maintenance_review")).toBeInTheDocument();
   });
 });

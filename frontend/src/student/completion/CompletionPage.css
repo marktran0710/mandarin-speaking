@@ -7,7 +7,7 @@
 .sa-completion__stat {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sa-space-xs);
   font-family: var(--sa-font-label);
   font-size: var(--sa-text-body-md);
   color: var(--sa-on-surface);

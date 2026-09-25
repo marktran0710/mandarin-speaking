@@ -586,6 +586,25 @@ export function useQuizSession({
     setIsRetryRound(false);
     if (researchDueEntries.length > 0) chooseMode("maintenance_review", researchDueEntries, researchDueEntries.length);
   };
+  const startWeakWords = async () => {
+    if (getCachedResearchContext().active) {
+      await startResearchPractice();
+      return;
+    }
+    const entriesForRound = weakEntries.length > 0 ? weakEntries : interimReviewEntries;
+    if (entriesForRound.length > 0) chooseMode("weak_words", entriesForRound, entriesForRound.length, entries);
+  };
+  const startDueReview = () => {
+    if (getCachedResearchContext().active) {
+      startResearchReview();
+      return;
+    }
+    const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
+    const entriesForRound = dueWords
+      .map((item) => byWordId.get(item.wordId) ?? entries.find((entry) => entry.word === item.word))
+      .filter((entry): entry is VocabQuizEntry => Boolean(entry));
+    if (entriesForRound.length > 0) chooseMode("maintenance_review", entriesForRound, entriesForRound.length, entries);
+  };
   const returnToModes = () => {
     setScreen("mode-select");
     if (lessonProgress.lessonCompleted) recordLessonEvent("lesson_completed", { strongWords: lessonProgress.strongWords, remainingWords: lessonProgress.remainingWords });
@@ -600,7 +619,7 @@ export function useQuizSession({
     question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
-    startResearchPractice, researchDueEntries, startResearchReview, returnToModes, sessionReady,
+    startResearchPractice, researchDueEntries, startResearchReview, startWeakWords, startDueReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }

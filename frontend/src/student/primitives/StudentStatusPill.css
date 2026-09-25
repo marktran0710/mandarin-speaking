@@ -1,7 +1,7 @@
 .sa-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sa-space-xs);
   padding: 2px var(--sa-space-md);
   border-radius: var(--sa-radius-full);
   font-family: var(--sa-font-label);

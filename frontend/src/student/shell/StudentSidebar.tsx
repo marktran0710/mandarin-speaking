@@ -1,5 +1,4 @@
 import StudentIcon from "../primitives/StudentIcon";
-import useColorMode from "../../hooks/useColorMode";
 import "./StudentSidebar.css";
 
 export type StudentTopSection = "study" | "progress" | "placement";
@@ -56,7 +55,6 @@ export default function StudentSidebar({
   onNavigatePhase,
   onLogout,
 }: StudentSidebarProps) {
-  const [colorMode, toggleColorMode] = useColorMode();
   const visiblePhaseNav = PHASE_NAV.filter((phase) => phase.id !== "conversation" || hasConversation);
   const furthestIndex = PHASE_ORDER.indexOf(furthestPhase ?? activePhase ?? PHASE_ORDER[0]);
 
@@ -153,12 +151,6 @@ export default function StudentSidebar({
           </span>
           <span className="sa-sidebar__identity-name">{studentName || "Learner"}</span>
         </div>
-        <button type="button" className="sa-sidebar__footer-action" onClick={toggleColorMode} aria-pressed={colorMode === "dark"}>
-          <span className="sa-sidebar__footer-action-label">
-            <StudentIcon name={colorMode === "dark" ? "light_mode" : "dark_mode"} size={18} role="decorative" />
-            {colorMode === "dark" ? "Light" : "Dark"}
-          </span>
-        </button>
         <button type="button" className="sa-sidebar__footer-action" onClick={onLogout}>
           <span className="sa-sidebar__footer-action-label">
             <StudentIcon name="logout" size={18} role="decorative" />

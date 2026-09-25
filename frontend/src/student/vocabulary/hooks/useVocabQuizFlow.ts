@@ -6,21 +6,23 @@ import { getStudentId, getStudentName } from "../../../utils/studentSession";
 import { topicStoryId } from "../../../utils/lessonGroups";
 import { markPhaseSeen } from "../../studyProgressFlags";
 import { computeRoundResult, TIER_SEQUENCE, type RoundResult } from "../model/tierRounds";
+import type { VocabQuizMode } from "../../../components/story-vocab-quiz/model";
 
 interface UseVocabQuizFlowArgs {
   topic: Topic;
   onFinished: () => void;
 }
+export interface PracticeResult {
+  mode: VocabQuizMode;
+  correctCount: number;
+  totalQuestions: number;
+}
 
-export type VocabQuizFlowView = "loading" | "quiz" | "round-result";
+export type VocabQuizFlowView = "loading" | "mode-select" | "quiz" | "round-result" | "practice-result";
 
 /**
- * Owns the tier1->tier2->tier3 sequencing on top of the raw useQuizSession
- * state machine: each tier must actually be passed (a real star earned) to
- * advance — failing one surfaces a round-result view with a retry action
- * instead of silently continuing. onFinished() is reachable only once
- * tier3's star is confirmed, restoring the gate practiceUnlocked()/
- * PRACTICE_UNLOCK_STARS already enforce everywhere else in the app.
+ * Keeps the diagnostic ladder sequential while exposing the raw session's
+ * server-selected weak-word and due-review modes from a real mode picker.
  */
 export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
   const entries = useMemo(() => topicQuizEntries(topic), [topic]);
@@ -34,24 +36,34 @@ export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
   });
   const [tierPos, setTierPos] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  const [practiceResult, setPracticeResult] = useState<PracticeResult | null>(null);
 
   useEffect(() => {
-    if (session.screen === "mode-select") {
-      session.startTier(TIER_SEQUENCE[0]);
+    if (session.screen === "mode-select" && !roundResult && !practiceResult) {
+      setTierPos(Math.min(session.stars ?? 0, TIER_SEQUENCE.length - 1));
+    }
+  }, [practiceResult, roundResult, session.screen, session.stars]);
+
+  useEffect(() => {
+    if (session.screen !== "summary") return;
+    const diagnosticMode = session.mode === "tier1" || session.mode === "tier2" || session.mode === "tier3";
+    if (diagnosticMode) {
+      setRoundResult(computeRoundResult(tierPos, session.results, (session.stars ?? 0) >= tierPos + 1));
+    } else if (session.mode) {
+      setPracticeResult({
+        mode: session.mode,
+        correctCount: session.results.filter((result) => result.correct).length,
+        totalQuestions: session.results.length,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.screen]);
 
-  // Every tier's summary stops here now instead of auto-advancing — passed
-  // reflects whatever useQuizSession's own finish()/attemptEarnsStar just
-  // decided (session.stars is updated in the same batch as screen), never
-  // re-derived independently.
-  useEffect(() => {
-    if (session.screen !== "summary") return;
-    const passed = session.stars >= tierPos + 1;
-    setRoundResult(computeRoundResult(tierPos, session.results, passed));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.screen]);
+  const startTier = () => {
+    setRoundResult(null);
+    setPracticeResult(null);
+    session.startTier(TIER_SEQUENCE[tierPos]);
+  };
 
   const retry = () => {
     setRoundResult(null);
@@ -71,19 +83,47 @@ export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
     }
   };
 
-  const view: VocabQuizFlowView = roundResult
-    ? "round-result"
-    : session.screen === "quiz" && session.question
-      ? "quiz"
-      : "loading";
+  const startWeakWords = () => {
+    setPracticeResult(null);
+    void session.startWeakWords?.();
+  };
+
+  const startDueReview = () => {
+    setPracticeResult(null);
+    session.startDueReview?.();
+  };
+
+  const returnToModes = () => {
+    setRoundResult(null);
+    setPracticeResult(null);
+    session.returnToModes();
+  };
+
+  const ready = session.sessionReady !== false;
+  const view: VocabQuizFlowView = !ready
+    ? "loading"
+    : roundResult
+      ? "round-result"
+      : practiceResult
+        ? "practice-result"
+        : session.screen === "mode-select"
+          ? "mode-select"
+          : session.screen === "quiz" && session.question
+            ? "quiz"
+            : "loading";
 
   return {
     view,
     entries,
     tierPos,
     roundResult,
+    practiceResult,
     retry,
     continueToNext,
+    startTier,
+    startWeakWords,
+    startDueReview,
+    returnToModes,
     question: session.question,
     index: session.index,
     questionLimit: session.questionLimit,
@@ -91,5 +131,9 @@ export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
     results: session.results,
     choose: session.choose,
     next: session.next,
+    stars: session.stars ?? 0,
+    weakEntries: session.weakEntries ?? [],
+    interimReviewEntries: session.interimReviewEntries ?? [],
+    dueWords: session.dueWords ?? [],
   };
 }

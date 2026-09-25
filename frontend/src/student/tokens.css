@@ -162,4 +162,9 @@
   -webkit-font-smoothing: antialiased;
   display: inline-block;
   vertical-align: middle;
+  width: 1em;
+  height: 1em;
+  max-width: 1em;
+  overflow: hidden;
+  flex: 0 0 1em;
 }

@@ -8,13 +8,47 @@
 .sa-quiz__round {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px var(--sa-space-md);
+  gap: var(--sa-space-xs);
+  padding: var(--sa-space-xs) var(--sa-space-md);
   border-radius: var(--sa-radius-full);
   font-family: var(--sa-font-label);
   font-size: var(--sa-text-label-sm);
   font-weight: 600;
 }
+
+.sa-quiz__loading {
+  margin: 0;
+  color: var(--sa-outline);
+  font-family: var(--sa-font-label);
+}
+
+.sa-quiz__mode-grid {
+  display: grid;
+  gap: var(--sa-space-md);
+}
+
+.sa-quiz__mode-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sa-space-md);
+  padding: var(--sa-space-lg);
+}
+
+.sa-quiz__mode-card > .sa-icon { color: var(--sa-primary); }
+.sa-quiz__mode-card h2 {
+  margin: 0;
+  color: var(--sa-on-surface);
+  font-family: var(--sa-font-body);
+  font-size: var(--sa-text-body-lg);
+}
+.sa-quiz__mode-card p {
+  margin: var(--sa-space-xs) 0 0;
+  color: var(--sa-outline);
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-body-sm);
+}
+.sa-quiz__mode-card--diagnostic { border-color: var(--sa-primary-container); }
 .sa-quiz__round.is-done { background: var(--sa-secondary-container); color: var(--sa-on-secondary-container); }
 .sa-quiz__round.is-current { background: var(--sa-primary-container); color: var(--sa-on-primary-container); }
 .sa-quiz__round.is-upcoming { color: var(--sa-outline); }
@@ -51,7 +85,7 @@
   max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sa-space-xs);
 }
 .sa-quiz__input-label {
   font-family: var(--sa-font-label);
@@ -95,7 +129,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--sa-space-xs);
   padding: var(--sa-space-md);
   border-radius: var(--sa-radius);
   background: var(--sa-surface-container-low);
@@ -103,8 +137,8 @@
 .sa-quiz__feedback-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px var(--sa-space-md);
+  gap: var(--sa-space-xs);
+  padding: var(--sa-space-xs) var(--sa-space-md);
   border-radius: var(--sa-radius-full);
   font-family: var(--sa-font-label);
   font-size: var(--sa-text-label-sm);
@@ -143,4 +177,14 @@
   font-family: var(--sa-font-label);
   font-size: var(--sa-text-body-sm);
   color: var(--sa-outline);
+}
+
+@media (max-width: 640px) {
+  .sa-quiz__mode-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .sa-quiz__mode-card .sa-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 }

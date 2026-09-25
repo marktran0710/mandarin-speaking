@@ -257,7 +257,7 @@ export default function App() {
       }`}
     >
       {/* The student workspace carries its own left rail (StudentSidebar),
-          which already holds the section switch, identity, dark mode and
+          which already holds the section switch and identity,
           log out — rendering this top bar as well would put those same
           actions on screen twice. The rail stays fixed through a practice
           session too (the running story's own navigation lives in a header

@@ -26,7 +26,11 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
   }, [flow.index, flow.tierPos]);
 
   if (flow.view === "loading") {
-    return null;
+    return (
+      <div className="sa-page-container sa-page-container--narrow">
+        <p className="sa-quiz__loading" role="status">Loading practice options…</p>
+      </div>
+    );
   }
 
   const isLastTier = flow.tierPos === TIER_SEQUENCE.length - 1;
@@ -61,7 +65,52 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
         ))}
       </div>
 
-      {flow.view === "round-result" && flow.roundResult ? (
+      {flow.view === "mode-select" ? (
+        <div className="sa-quiz__mode-grid">
+          <StudentSection variant="panel" className="sa-quiz__mode-card sa-quiz__mode-card--diagnostic">
+            <StudentIcon name="stairs" size={20} role="decorative" />
+            <div>
+              <h2>Diagnostic rounds</h2>
+              <p>Complete each round in order to unlock speaking practice.</p>
+            </div>
+            <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.startTier}>
+              Start {ROUND_LABEL[TIER_SEQUENCE[flow.tierPos]]}
+            </StudentButton>
+          </StudentSection>
+
+          <StudentSection variant="panel" className="sa-quiz__mode-card">
+            <StudentIcon name="psychology" size={20} role="decorative" />
+            <div>
+              <h2>Weak words</h2>
+              <p>Practice words selected from your current learning record.</p>
+            </div>
+            <StudentButton
+              variant="secondary"
+              icon="fitness_center"
+              disabled={flow.weakEntries.length === 0 && flow.interimReviewEntries.length === 0}
+              onClick={flow.startWeakWords}
+            >
+              Practice weak words{flow.weakEntries.length > 0 ? ` (${flow.weakEntries.length})` : ""}
+            </StudentButton>
+          </StudentSection>
+
+          <StudentSection variant="panel" className="sa-quiz__mode-card">
+            <StudentIcon name="event_repeat" size={20} role="decorative" />
+            <div>
+              <h2>Review today</h2>
+              <p>Review words that are due in the spaced-repetition schedule.</p>
+            </div>
+            <StudentButton
+              variant="secondary"
+              icon="schedule"
+              disabled={flow.dueWords.length === 0}
+              onClick={flow.startDueReview}
+            >
+              Review due words{flow.dueWords.length > 0 ? ` (${flow.dueWords.length})` : ""}
+            </StudentButton>
+          </StudentSection>
+        </div>
+      ) : flow.view === "round-result" && flow.roundResult ? (
         <StudentSection variant="panel" className="sa-quiz__round-result">
           <StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}>
             {flow.roundResult.passed ? "Passed" : "Not quite"}
@@ -83,6 +132,16 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
               Try Again
             </StudentButton>
           )}
+        </StudentSection>
+      ) : flow.view === "practice-result" && flow.practiceResult ? (
+        <StudentSection variant="panel" className="sa-quiz__round-result">
+          <StudentStatusPill tone="success">Practice complete</StudentStatusPill>
+          <p className="sa-quiz__round-result-score">
+            {flow.practiceResult.correctCount} / {flow.practiceResult.totalQuestions}
+          </p>
+          <StudentButton variant="primary" iconTrailing="arrow_back" onClick={flow.returnToModes}>
+            Back to practice options
+          </StudentButton>
         </StudentSection>
       ) : question ? (
         <StudentSection variant="panel" className="sa-quiz__card">
