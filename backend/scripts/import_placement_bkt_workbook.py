@@ -11,6 +11,11 @@ Examples::
     python -m scripts.import_placement_bkt_workbook \
         "D:/data/responses_to_import_only_40_students_28q_placementtest_bkt.xlsx" \
         --apply
+    # After the active blueprint changed: drop this importer's earlier data
+    # for the workbook's students and import again, in one transaction.
+    python -m scripts.import_placement_bkt_workbook \
+        "D:/data/responses_to_import_only_40_students_28q_placementtest_bkt.xlsx" \
+        --apply --replace
 """
 
 from __future__ import annotations
@@ -517,6 +522,66 @@ def _existing_state(db: Any, plan: Mapping[str, Any]) -> dict[str, Any]:
     return {"students": students, "attempts": attempts, "skip_sessions": skip_sessions}
 
 
+_REPLACEABLE_ATTEMPTS = """
+    SELECT a.id FROM placement_test_attempts AS a
+    WHERE a.student_id = ANY(%(students)s)
+      AND (
+        a.id = ANY(%(sessions)s)
+        OR EXISTS (
+            SELECT 1 FROM vocab_quiz_responses AS r
+            WHERE r.attempt_id = a.id AND r.evidence_origin = 'synthetic' AND r.resolver_version = %(resolver)s
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM vocab_quiz_responses AS r
+        WHERE r.attempt_id = a.id
+          AND NOT (r.evidence_origin = 'synthetic' AND r.resolver_version = %(resolver)s)
+      )
+"""
+
+
+def _replace_params(plan: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "students": [student["id"] for student in plan["students"]],
+        "sessions": [attempt["id"] for attempt in plan["attempts"]],
+        "resolver": IMPORT_RESOLVER_VERSION,
+    }
+
+
+def previous_import_counts(db: Any, plan: Mapping[str, Any]) -> dict[str, int]:
+    """Count what --replace would delete (see delete_previous_import)."""
+    params = _replace_params(plan)
+    attempts = db.execute(f"SELECT count(*) AS n FROM ({_REPLACEABLE_ATTEMPTS}) AS a", params).fetchone()
+    responses = db.execute(
+        "SELECT count(*) AS n FROM vocab_quiz_responses WHERE student_id = ANY(%(students)s) "
+        "AND evidence_origin = 'synthetic' AND resolver_version = %(resolver)s",
+        params,
+    ).fetchone()
+    return {"attempts": int(attempts["n"]), "responses": int(responses["n"])}
+
+
+def delete_previous_import(db: Any, plan: Mapping[str, Any]) -> dict[str, int]:
+    """Remove this importer's earlier data for the workbook's students.
+
+    Responses are deleted only when they are synthetic rows written by this
+    importer. An attempt is deleted only when it belongs to a workbook student,
+    is one of the workbook's sessions or held this importer's rows, and holds
+    no other evidence - so real learner evidence is never touched. Student
+    accounts are kept so their ids stay stable.
+    """
+    params = _replace_params(plan)
+    attempt_ids = [row["id"] for row in db.execute(_REPLACEABLE_ATTEMPTS, params).fetchall()]
+    responses = db.execute(
+        "DELETE FROM vocab_quiz_responses WHERE student_id = ANY(%(students)s) "
+        "AND evidence_origin = 'synthetic' AND resolver_version = %(resolver)s",
+        params,
+    ).rowcount
+    attempts = db.execute(
+        "DELETE FROM placement_test_attempts WHERE id = ANY(%s)", (attempt_ids,)
+    ).rowcount
+    return {"attempts": attempts, "responses": responses}
+
+
 def _insert_student(db: Any, student: Mapping[str, str]) -> None:
     db.execute(
         "INSERT INTO students "
@@ -610,6 +675,12 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--dry-run", action="store_true", help="Validate only; this is the default.")
     mode.add_argument("--apply", action="store_true", help="Write the validated import to the database.")
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL", ""))
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Delete this importer's earlier synthetic data for the workbook's students, then import "
+        "(use after the active blueprint changed). Same transaction as the import.",
+    )
     parser.add_argument("--force", action="store_true", help="Allow a non-localhost database URL.")
     args = parser.parse_args(argv)
     if not args.workbook.is_file():
@@ -630,6 +701,17 @@ def main(argv: list[str] | None = None) -> int:
             rows = read_workbook(args.workbook)
             plan = build_import_plan(rows, blueprint, imported_at=imported_at)
             _print_summary(plan["summary"])
+            if args.replace:
+                previous = previous_import_counts(connection, plan)
+                print(
+                    f"--replace: {previous['attempts']} earlier imported attempts and "
+                    f"{previous['responses']} responses will be deleted first."
+                )
+                if not args.apply:
+                    print("Validation only; no database changes made. Add --apply to replace.")
+                    return 0
+                deleted = delete_previous_import(connection, plan)
+                print(f"Deleted {deleted['attempts']} attempts and {deleted['responses']} responses.")
             state = _existing_state(connection, plan)
             print(
                 f"Existing compatible sessions: {len(state['skip_sessions'])}; "
