@@ -118,7 +118,7 @@ export default function StudyPage({ topics, statusByStoryId, onOpenTopic }: Stud
       </StudentSection>
       <StudentSection variant="panel" className="sa-study__rail-schedule">
         <StudentIcon name="calendar_month" size={18} role="decorative" />
-        <strong>本週 {totalUnits} 個課程單元</strong>
+        <strong>共 {totalUnits} 個課程單元</strong>
         <span>依序完成即可</span>
       </StudentSection>
     </div>
@@ -166,10 +166,12 @@ export default function StudyPage({ topics, statusByStoryId, onOpenTopic }: Stud
                       {entry.status === "completed" && <StudentStatusPill tone="success">完成</StudentStatusPill>}
                       {isCurrent && <StudentStatusPill tone="info">進行中</StudentStatusPill>}
                       {entry.status === "not-started" && <span className="sa-study__row-hint">待解鎖</span>}
+                      {/* The pill above already carries its own lock icon
+                          (StudentStatusPill's neutral tone) — a second,
+                          standalone lock icon here was a duplicate of the
+                          same indicator, not a second piece of information. */}
                       {locked && <StudentStatusPill tone="neutral">未開啟</StudentStatusPill>}
-                      {locked ? (
-                        <StudentIcon name="lock" size={18} role="meaningful" label="Locked" />
-                      ) : (
+                      {!locked && (
                         <StudentButton
                           variant={isCurrent ? "primary" : "secondary"}
                           size={isCurrent ? "default" : "sm"}

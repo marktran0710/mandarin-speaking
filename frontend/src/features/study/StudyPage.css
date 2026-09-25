@@ -31,6 +31,10 @@
   grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   column-gap: var(--sa-space-md);
+  /* Keeps locked/not-started rows (no phase strip) from reading thinner
+     than the current row — a steady rhythm down the list instead of one
+     tall row next to short ones. */
+  min-height: 76px;
   padding: var(--sa-space-lg);
   border-bottom: 1px solid var(--sa-surface-container-highest);
   background: var(--sa-surface-container-lowest);
@@ -60,8 +64,12 @@
   background: var(--sa-surface-container-lowest);
 }
 
-/* AFFORD-1 / D5: status indicators only — no border/button look. */
-.sa-study__phase { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 28px; padding: 0 var(--sa-space-xs); border-radius: var(--sa-radius-sm); color: var(--sa-outline); font-family: var(--sa-font-label); font-size: var(--sa-text-label-sm); }
+/* AFFORD-1 / D5: status indicators only — no border/button look (a fill is
+   fine, a border/cursor/hover would read as clickable). Every cell gets a
+   fill now — a neutral one when not done — so the strip reads as four
+   related chips of equal weight instead of one green pill next to three
+   bare, disconnected-looking labels. */
+.sa-study__phase { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 28px; padding: 0 var(--sa-space-xs); border-radius: var(--sa-radius-sm); background: var(--sa-surface-container-low); color: var(--sa-outline); font-family: var(--sa-font-label); font-size: var(--sa-text-label-sm); }
 .sa-study__phase.is-done { background: var(--sa-secondary-container); color: var(--sa-on-secondary-container); }
 .sa-study__phase.is-done .sa-icon { color: var(--sa-secondary); }
 
