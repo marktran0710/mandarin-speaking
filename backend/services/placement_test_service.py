@@ -544,7 +544,6 @@ def complete_attempt(db: Any, student_id: str, attempt_id: str, responses: list[
             "research_study_id": None,
         })
     upsert_raw_responses(db, rows)
-    rebuild_student_vocabulary_mastery(db, student_id)
     finished_at = _parse_answered_at(completed_at, _now())
     repo.complete_attempt(
         db,
@@ -554,6 +553,10 @@ def complete_attempt(db: Any, student_id: str, attempt_id: str, responses: list[
         correct_count=correct_count,
         total_time_ms=total_time_ms,
     )
+    # Rebuild only after the attempt is marked completed: chapter placement
+    # priors read completed attempts only, so rebuilding earlier caches every
+    # word from the global prior (same transaction, so nothing is visible early).
+    rebuild_student_vocabulary_mastery(db, student_id)
     return _result(attempt_id, len(questions), correct_count)
 
 
