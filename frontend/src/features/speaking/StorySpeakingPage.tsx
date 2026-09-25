@@ -76,8 +76,12 @@ export default function StorySpeakingPage({
     || "";
   const selectedImage = topic.images[selectedImageIndex];
   const studentId = getStudentId();
+  const baseStoryId = topic.sourceStory?.id ?? topic.id;
 
   const recorder = useSpeakingRecorder((attemptNumber) => ({
+    baseStoryId,
+    sceneIndex: selectedImageIndex,
+    difficultyLevel: topic.difficultyLevel ?? "easy",
     sceneVocabulary: (topic.vocabulary[selectedImageIndex] || []).join(", "),
     scenePrompt: topic.prompts?.[selectedImageIndex] || topic.name,
     sceneImageUrl: selectedImage,
@@ -111,7 +115,7 @@ export default function StorySpeakingPage({
       utteranceCount: result.metrics.pause_analysis?.utterance_count ?? 0,
       choppyPauseCount: result.metrics.pause_analysis?.choppy_pause_count ?? 0,
       articulationRate: result.metrics.pause_analysis?.articulation_rate ?? 0,
-      baseStoryId: topic.sourceStory?.id ?? topic.id,
+      baseStoryId,
       difficultyLevel: topic.difficultyLevel ?? "easy",
       promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${selectedImageIndex}`,
     };

@@ -26,4 +26,18 @@ describe("buildPracticeAnalysisFormData", () => {
     expect(form.get("turn_id")).toBe("student-2");
     expect(form.get("turn_index")).toBe("3");
   });
+
+  it("carries the server-authoritative verified speaking identity", () => {
+    const form = buildPracticeAnalysisFormData(new Blob(["audio"]), {
+      baseStoryId: "story-1",
+      sceneIndex: 2,
+      difficultyLevel: "medium",
+      attemptId: "attempt-1",
+    });
+
+    expect(form.get("base_story_id")).toBe("story-1");
+    expect(form.get("scene_index")).toBe("2");
+    expect(form.get("difficulty_level")).toBe("medium");
+    expect(form.get("attempt_id")).toBe("attempt-1");
+  });
 });

@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
         allow_origin_regex=get_cors_origin_regex(),
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "X-Client-Role"],
     )
     app.middleware("http")(add_security_headers)
     # Added after add_security_headers, so it is the outermost middleware and

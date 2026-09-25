@@ -28,6 +28,13 @@ export interface SpeakingAnalysisResult {
 
 const MAX_RECORDING_SECONDS = 30;
 
+function createAnalysisAttemptId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `speaking-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function useSpeakingRecorder(buildContext: (attemptNumber: number) => PracticeAnalysisRequestContext) {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -67,6 +74,7 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
       const context = buildContext(nextAttemptNumber);
       const formData = buildPracticeAnalysisFormData(wav, {
         ...context,
+        attemptId: context.attemptId ?? createAnalysisAttemptId(),
         participantId: getStudentId(),
         attemptNumber: nextAttemptNumber,
         attemptType: nextAttemptNumber === 1 ? "WHOLE_SENTENCE_INITIAL" : "WHOLE_SENTENCE_FINAL",

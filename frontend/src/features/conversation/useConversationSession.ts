@@ -58,9 +58,13 @@ export function useConversationSession({
   const [lastRecognizedText, setLastRecognizedText] = useState("");
   const conversationIdRef = useRef(`conv-${topic.id}-${Date.now()}`);
   const studentId = getStudentId();
+  const baseStoryId = topic.sourceStory?.id ?? topic.id;
   const currentTurn = currentConversationTurn(state, turns);
 
   const recorder = useSpeakingRecorder((attemptNumber) => ({
+    baseStoryId,
+    sceneIndex: 0,
+    difficultyLevel: topic.difficultyLevel ?? "easy",
     scenePrompt: topic.name,
     sceneTargetText: currentTurn?.targetText || currentTurn?.text || "",
     conversationId: conversationIdRef.current,
@@ -122,7 +126,7 @@ export function useConversationSession({
       conversationId: conversationIdRef.current,
       turnId: currentTurn.id,
       turnIndex: state.turnIndex,
-      baseStoryId: topic.sourceStory?.id ?? topic.id,
+      baseStoryId,
       difficultyLevel: topic.difficultyLevel ?? "easy",
       promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${currentTurn.id}`,
     };

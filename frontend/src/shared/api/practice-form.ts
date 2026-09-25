@@ -17,6 +17,10 @@ export interface PracticeAnalysisRequestContext {
   sceneTargetText?: string;
   sceneAttemptNumber?: number;
   sceneReferenceCurves?: Record<string, number[]> | null;
+  /** Server-authoritative identity for the verified speaking route. */
+  baseStoryId?: string;
+  sceneIndex?: number;
+  difficultyLevel?: string;
   verifyWord?: string;
   pinyinHint?: string;
   analysisDetail?: string;
@@ -60,6 +64,11 @@ export function buildPracticeAnalysisFormData(
   appendIfPresent("scene_phrases", context.scenePhrases);
   appendIfPresent("scene_suggested_answer", context.sceneSuggestedAnswer);
   appendIfPresent("scene_target_text", context.sceneTargetText);
+  appendIfPresent("base_story_id", context.baseStoryId);
+  if (context.sceneIndex !== undefined) {
+    formData.append("scene_index", String(context.sceneIndex));
+  }
+  appendIfPresent("difficulty_level", context.difficultyLevel);
   appendIfPresent("verify_word", context.verifyWord);
   appendIfPresent("pinyin_hint", context.pinyinHint);
   appendIfPresent("alignment_detail", context.analysisDetail);

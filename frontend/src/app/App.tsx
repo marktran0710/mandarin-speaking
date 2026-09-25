@@ -17,6 +17,7 @@ import {
   listCustomStories,
   logoutStudent,
 } from "../services/database";
+import { SESSION_EXPIRED_EVENT, type SessionExpiredEventDetail } from "@shared/api/client";
 import { getStudentAppBootstrapState, collectPinyinTexts } from "../config/appNavigation";
 import type { AudioRecord, PracticeTarget } from "./appTypes";
 import {
@@ -71,6 +72,23 @@ export default function App() {
   const [publishedTopics, setPublishedTopics] = useState<Topic[]>([]);
   const [, setPinyinRevision] = useState(0);
   const storyTopics = publishedTopics;
+
+  useEffect(() => {
+    const handleSessionExpired = (event: Event) => {
+      const detail = (event as CustomEvent<SessionExpiredEventDetail>).detail;
+      if (detail?.role !== "student") return;
+
+      clearLastVisitedPage();
+      signOut("student");
+      setActiveRole(null);
+      setAudioRecords([]);
+      setPublishedTopics([]);
+      setCurrentPage("student-login");
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   // The student workspace is state-driven rather than URL-driven, so keep a
   // browser history snapshot for deep activity launches. This lets the story
