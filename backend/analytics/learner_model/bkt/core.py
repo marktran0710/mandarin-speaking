@@ -164,23 +164,31 @@ def update_bkt(
     return clamp_probability(posterior + (1.0 - posterior) * params.learn_rate)
 
 
-def replay_bkt(responses: Iterable[bool], params: BktConfig = BKT_CONFIG) -> float:
+def replay_bkt(
+    responses: Iterable[bool],
+    params: BktConfig = BKT_CONFIG,
+    *,
+    initial_mastery: float | None = None,
+) -> float:
     """Replay binary correct/incorrect with the default (multiple-choice) rates.
 
     Retained for callers without per-response question types; the format-aware
     path is replay_bkt_typed.
     """
-    mastery = params.initial_mastery
+    mastery = params.initial_mastery if initial_mastery is None else initial_mastery
     for correct in responses:
         mastery = update_bkt(mastery, correct, params)
     return clamp_probability(mastery)
 
 
 def replay_bkt_typed(
-    responses: Iterable[tuple[bool, str | None]], params: BktConfig = BKT_CONFIG
+    responses: Iterable[tuple[bool, str | None]],
+    params: BktConfig = BKT_CONFIG,
+    *,
+    initial_mastery: float | None = None,
 ) -> float:
     """Replay (correct, question_type) responses with format-aware guess/slip."""
-    mastery = params.initial_mastery
+    mastery = params.initial_mastery if initial_mastery is None else initial_mastery
     for correct, question_type in responses:
         guess, slip = guess_slip_for(question_type, params)
         mastery = update_bkt(mastery, bool(correct), params, guess=guess, slip=slip)

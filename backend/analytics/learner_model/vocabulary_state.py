@@ -179,6 +179,11 @@ def build_vocabulary_state(
     practice = build_practice_state(history, failed_dimensions_list, required=practice_required)
     if practice["status"] == "COMPLETE" and p_learned >= mastery_threshold:
         review_status = "STRONG"
+    elif observation_count == 0:
+        # A placement prior is an initialization estimate, not learner
+        # evidence. Keep an unseen word semantically unassessed even after
+        # the diagnostic gate is open.
+        review_status = "NOT_ASSESSED"
     elif diagnostic_complete and (p_learned < mastery_threshold or practice["status"] in {"PENDING", "IN_PROGRESS"}):
         review_status = "NEEDS_PRACTICE"
     elif diagnostic_complete and observation_count >= 1:

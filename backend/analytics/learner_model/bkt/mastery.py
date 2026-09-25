@@ -20,6 +20,11 @@ from analytics.learner_model.bkt.core import (
     replay_bkt_typed,
 )
 from analytics.learner_model.bkt.question_validation import classify_bkt_response
+from analytics.learner_model.bkt.placement_prior import (
+    get_published_word_chapters,
+    initial_priors_by_word as placement_initial_priors_by_word,
+    is_placement_response,
+)
 from analytics.learner_model.vocabulary_state import build_vocabulary_state
 from domain.vocabulary.story_scope import canonical_story_id, story_scope_ids
 
@@ -237,7 +242,8 @@ def _ordered_responses(db: Any, student_id: str, story_id: str | None = None) ->
         SELECT id, student_id, word_id, word, lesson_id, quiz_id, attempt_id,
                item_id, question_type, diagnostic_exposure_id, bkt_eligible, correct, response_time_ms, occurred_at,
                occurred_at_utc,
-               attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type
+               attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type,
+               evidence_origin, resolver_version
         FROM vocab_quiz_responses
         WHERE student_id = %s
           AND (
@@ -265,12 +271,20 @@ def _treatment_ordered_responses(db: Any, student_id: str, study_id: str) -> lis
         """
         SELECT id, student_id, word_id, word, lesson_id, quiz_id, attempt_id,
                item_id, question_type, diagnostic_exposure_id, bkt_eligible, correct, response_time_ms, occurred_at,
-               occurred_at_utc, attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type
+               occurred_at_utc, attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type,
+               evidence_origin, resolver_version
         FROM vocab_quiz_responses
         WHERE student_id = %s
           AND (
             (lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3') AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE)
             OR (quiz_mode = 'weak_words' AND research_study_id = %s)
+          )
+          -- Imported synthetic placement is development evidence, not a real
+          -- participant's treatment history. Keep it out of frozen research
+          -- BKT state while retaining ordinary diagnostic replay semantics.
+          AND NOT (
+            evidence_origin = 'synthetic'
+            AND diagnostic_exposure_id LIKE 'placement:%%'
           )
         ORDER BY occurred_at_utc ASC NULLS LAST, id ASC, attempt_order ASC
         """,
@@ -287,11 +301,18 @@ def get_treatment_vocabulary_mastery(
     the caller (a BKT-personalized practice-session selection) needs every
     candidate word ranked, seen or not.
     """
-    states = _mastery_states_from_responses(_treatment_ordered_responses(db, student_id, study_id), params)
+    requested_word_ids = list(word_ids)
+    word_chapters = get_published_word_chapters(db, requested_word_ids)
+    initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
+    states = _mastery_states_from_responses(
+        _treatment_ordered_responses(db, student_id, study_id),
+        params,
+        initial_priors_by_word=initial_priors,
+    )
     return {
         word_id: states.get(word_id) or {
             "word_id": word_id,
-            "p_learned": params.initial_mastery,
+            "p_learned": initial_priors.get(word_id, params.initial_mastery),
             "observation_count": 0,
             "correct_count": 0,
             "incorrect_count": 0,
@@ -299,7 +320,7 @@ def get_treatment_vocabulary_mastery(
             "last_item_id": None,
             "last_question_type": None,
         }
-        for word_id in word_ids
+        for word_id in requested_word_ids
     }
 
 
@@ -317,15 +338,34 @@ def _group_response_history(responses: Iterable[dict[str, Any]]) -> dict[str, li
     return grouped
 
 
-def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: BktConfig) -> dict[str, dict[str, Any]]:
+def _mastery_states_from_responses(
+    responses: Iterable[dict[str, Any]],
+    params: BktConfig,
+    *,
+    initial_priors_by_word: dict[str, float] | None = None,
+) -> dict[str, dict[str, Any]]:
     states: dict[str, dict[str, Any]] = {}
+    initial_priors_by_word = initial_priors_by_word or {}
     for word_id, history in _group_response_history(responses).items():
         # Format-aware replay: the typed pinyin round uses a near-zero guess
         # and higher slip than multiple choice, so a typed correct answer is
         # credited more and a typo penalised less. Round 3 is now a context
         # cloze MCQ (see bkt_assessment_resolver._ROUND_FACTS), so it uses the
         # standard multiple-choice rates like Round 1.
-        p_learned = replay_bkt_typed(((bool(row["correct"]), row.get("question_type")) for row in history), params)
+        # Directly tested placement words use the normal global BKT prior and
+        # their placement observations. A word first observed elsewhere may
+        # start from its chapter prior exactly once; replay then proceeds
+        # normally for all subsequent observations.
+        initial_mastery = (
+            params.initial_mastery
+            if any(is_placement_response(row) for row in history)
+            else initial_priors_by_word.get(word_id, params.initial_mastery)
+        )
+        p_learned = replay_bkt_typed(
+            ((bool(row["correct"]), row.get("question_type")) for row in history),
+            params,
+            initial_mastery=initial_mastery,
+        )
         last = history[-1]
         correct_count = sum(1 for row in history if row["correct"])
         states[word_id] = {
@@ -353,9 +393,22 @@ def mastery_trace_for_word(
     word, in order — for admin debugging (see routers/bkt_debug.py), not the
     student-facing summary (see get_vocabulary_mastery for that)."""
     history = _group_response_history(_ordered_responses(db, student_id)).get(word_id, [])
+    word_chapters = get_published_word_chapters(db, [word_id])
+    initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
+    initial_mastery = (
+        params.initial_mastery
+        if any(is_placement_response(row) for row in history)
+        else initial_priors.get(word_id, params.initial_mastery)
+    )
     pairs = [(bool(row["correct"]), row.get("question_type")) for row in history]
     return [
-        {"index": i + 1, "correct": pairs[i][0], "pLearned": replay_bkt_typed(pairs[: i + 1], params)}
+        {
+            "index": i + 1,
+            "correct": pairs[i][0],
+            "pLearned": replay_bkt_typed(
+                pairs[: i + 1], params, initial_mastery=initial_mastery,
+            ),
+        }
         for i in range(len(pairs))
     ]
 
@@ -369,7 +422,14 @@ def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConf
     """Rebuild one learner's cache entirely from the raw response ledger."""
     if acquire_lock:
         _lock_student_bkt(db, student_id)
-    states = _mastery_states_from_responses(_ordered_responses(db, student_id), params)
+    responses = _ordered_responses(db, student_id)
+    word_chapters = get_published_word_chapters(db, [row["word_id"] for row in responses])
+    initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
+    states = _mastery_states_from_responses(
+        responses,
+        params,
+        initial_priors_by_word=initial_priors,
+    )
 
     db.execute("DELETE FROM student_vocab_mastery WHERE student_id = %s", (student_id,))
     now = datetime.now(timezone.utc).isoformat()
@@ -631,12 +691,6 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
 
 def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, story_id: str | None = None) -> list[dict[str, Any]]:
     diagnostic_complete = _completed_diagnostic_quizzes(db, student_id, story_id=story_id, params=params) >= params.required_diagnostic_quizzes
-    # Always replay the ledger for this projection. The cache remains a useful
-    # rebuild artifact, but it predates the normalized evidence contract and
-    # cannot explain dimension-specific practice state on its own.
-    states = _mastery_states_from_responses(
-        _ordered_responses(db, student_id, story_id=story_id), params,
-    )
     known = _known_words(db, story_id=story_id)
     scope_filter, scope_params = _lesson_scope_filter(story_id)
     raw_words = db.execute(
@@ -656,6 +710,27 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
             "lessonId": row["lesson_id"],
             "lessonNumber": None,
         })
+
+    # Always replay the ledger for this projection. The cache remains a useful
+    # rebuild artifact, but it predates the normalized evidence contract and
+    # cannot explain dimension-specific practice state on its own.
+    word_chapters = {
+        word_id: word.get("lessonNumber")
+        for word_id, word in known.items()
+    }
+    word_chapters.update(
+        get_published_word_chapters(
+            db,
+            [word_id for word_id, chapter in word_chapters.items() if chapter is None],
+        )
+    )
+    initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
+    states = _mastery_states_from_responses(
+        _ordered_responses(db, student_id, story_id=story_id),
+        params,
+        initial_priors_by_word=initial_priors,
+    )
+    for row in raw_words:
         cached = states.get(row["word_id"])
         if cached is not None and row.get("round_types"):
             cached["round_types"] = sorted({value for value in row["round_types"] if value})
@@ -668,7 +743,7 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
     for word_id, word in known.items():
         state = states.get(word_id)
         observations = int(state["observation_count"]) if state else 0
-        p_learned = float(state["p_learned"]) if state else params.initial_mastery
+        p_learned = float(state["p_learned"]) if state else initial_priors.get(word_id, params.initial_mastery)
         vocabulary_state = build_vocabulary_state(
             history=list(state.get("history") or []) if state else [],
             p_learned=p_learned,
