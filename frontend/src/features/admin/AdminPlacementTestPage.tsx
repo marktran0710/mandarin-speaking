@@ -10,6 +10,13 @@ import {
 } from "../../shared/api/placement-test";
 import "./AdminPlacementTestPage.css";
 
+const SAMPLE_ROWS = [
+  ["C5-5-1-I1-W001", "1"],
+  ["C5-5-1-I1-W001", "2"],
+  ["C5-5-1-I1-W001", "3"],
+  ["C5-6-1-I2-W004", "1"],
+];
+
 function questionLabel(question: PlacementQuestion): string {
   if (question.questionType === "basic_meaning_mcq") return "Meaning MCQ";
   if (question.questionType === "character_to_pinyin_typing") return "Pinyin typing";
@@ -69,6 +76,16 @@ export default function AdminPlacementTestPage() {
     }
   };
 
+  const downloadSample = () => {
+    const csv = [["Word Key", "Round"], ...SAMPLE_ROWS].map((row) => row.join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([`${csv}\n`], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "placement-test-sample.csv";
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   return (
     <section className="admin-placement" aria-label="Placement Test">
       <div className="admin-placement__intro">
@@ -76,8 +93,8 @@ export default function AdminPlacementTestPage() {
           <span className="admin-eyebrow">Diagnostic assessment</span>
           <h2>Import question codes</h2>
           <p>
-            Upload one <code>Question ID</code> column from the canonical <code>vocabAssessment</code> bank.
-            The order in the file becomes the placement-test order; questions are resolved across every published story.
+            Upload two columns — <code>Word Key</code> and <code>Round</code> — from the canonical <code>vocabAssessment</code> bank.
+            Use round <code>1</code>, <code>2</code>, or <code>3</code>. The backend resolves the question ID across every published story.
           </p>
         </div>
         <div className="admin-placement__rules">
@@ -87,10 +104,10 @@ export default function AdminPlacementTestPage() {
 
       <section className="admin-placement__card" aria-labelledby="placement-upload-title">
         <div className="admin-placement__card-heading">
-          <div><span className="admin-eyebrow">Step 1</span><h3 id="placement-upload-title">Choose a question-code file</h3></div>
+          <div><span className="admin-eyebrow">Step 1</span><h3 id="placement-upload-title">Choose a Word Key + Round file</h3></div>
           <Icon name="upload" size={22} />
         </div>
-        <p className="admin-placement__hint">Header must be exactly <code>Question ID</code>. Example: <code>C5-5-1-I1-W001_EASY</code>.</p>
+        <p className="admin-placement__hint">Use exactly <code>Word Key,Round</code> with round values <code>1</code>, <code>2</code>, <code>3</code>. You may also use <code>Word Key,Question Type</code>.</p>
         <div className="admin-placement__upload-row">
           <label className="admin-placement__file">
             <span>{file?.name ?? "Choose CSV or XLSX"}</span>
@@ -100,6 +117,19 @@ export default function AdminPlacementTestPage() {
             <Icon name="eye" size={17} />{busy ? "Checking…" : "Preview file"}
           </button>
         </div>
+      </section>
+
+      <section className="admin-placement__sample" aria-labelledby="placement-sample-title">
+        <div className="admin-placement__sample-copy">
+          <span className="admin-eyebrow">Reference</span>
+          <h3 id="placement-sample-title">Sample placement test file</h3>
+          <p>Two columns are required. The row order becomes the default test order. No Story ID or Question ID is required.</p>
+        </div>
+        <div className="admin-placement__sample-file" aria-label="Sample CSV contents">
+          <div className="admin-placement__sample-row admin-placement__sample-row--header"><code>Word Key</code><code>Round</code></div>
+          {SAMPLE_ROWS.map(([wordKey, round]) => <div className="admin-placement__sample-row" key={`${wordKey}-${round}`}><code>{wordKey}</code><code>{round}</code></div>)}
+        </div>
+        <button type="button" className="admin-placement__button" onClick={downloadSample}><Icon name="download" size={17} />Download sample CSV</button>
       </section>
 
       {preview && (
@@ -114,8 +144,8 @@ export default function AdminPlacementTestPage() {
           {preview.valid && <>
             <p className="admin-placement__hint">This will replace the active blueprint. In-progress student attempts keep the question snapshot they started with.</p>
             <div className="admin-placement__table-wrap" tabIndex={0} role="region" aria-label="Placement question preview">
-              <table className="admin-placement__table"><caption className="admin-placement__sr-only">Placement questions in imported order</caption><thead><tr><th>Order</th><th>Question ID</th><th>Source story</th><th>Word</th><th>Type</th></tr></thead><tbody>
-                {preview.questions.map((question) => <tr key={question.questionId}><td>{question.position}</td><td><code>{question.questionId}</code></td><td>{question.sourceStoryTitle}</td><td lang="zh-Hant">{question.targetWord}</td><td>{questionLabel(question)}</td></tr>)}
+              <table className="admin-placement__table"><caption className="admin-placement__sr-only">Placement questions in imported order</caption><thead><tr><th>Order</th><th>Word Key</th><th>Round</th><th>Source story</th><th>Word</th><th>Type</th></tr></thead><tbody>
+                {preview.questions.map((question) => <tr key={question.questionId}><td>{question.position}</td><td><code>{question.sourceWordId}</code></td><td>{question.round}</td><td>{question.sourceStoryTitle}</td><td lang="zh-Hant">{question.targetWord}</td><td>{questionLabel(question)}</td></tr>)}
               </tbody></table>
             </div>
             <div className="admin-placement__confirm-row"><span>Current active revision: {preview.currentRevision ?? "none"}</span><button type="button" className="admin-placement__button admin-placement__button--primary" disabled={busy} onClick={() => void confirmImport()}><Icon name="check" size={17} />Confirm overwrite</button></div>

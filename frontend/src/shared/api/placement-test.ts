@@ -10,7 +10,8 @@ export interface PlacementQuestion {
   sourceStoryId: string;
   sourceStoryTitle: string;
   sourceWordId: string;
-  sourceLevel: "easy" | "medium" | "hard";
+  round: 1 | 2 | 3;
+  tier: "tier1" | "tier2" | "tier3";
   position: number;
   questionType: PlacementQuestionType;
   answerFormat: "single_choice" | "free_text";

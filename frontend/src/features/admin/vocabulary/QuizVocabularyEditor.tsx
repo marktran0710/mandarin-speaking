@@ -5,19 +5,13 @@ import type { StoredCustomStory } from "../../../services/api/stories-submission
 import {
   createQuizVocabularyWord,
   updateQuizVocabularyWord,
-  type QuizVocabularyLevel,
+  type QuizVocabularyRound,
   type QuizVocabularyQuestionDraft,
 } from "../../../services/api/vocabulary";
 import type { VocabularyEntry } from "./model";
 
-const LEVELS: QuizVocabularyLevel[] = ["Easy", "Medium", "Hard"];
-// Current production round contract (matches DIAGNOSTIC_ROUNDS on the
-// student quiz and import_question_bank_workbook.py - not the older
-// Easy/Medium/Hard-implies-shape assumption this editor used to make).
-// Only Say It (Medium) is typed free text; Know It and Use It are both
-// four-option MCQs.
-const ROUND_LABEL: Record<QuizVocabularyLevel, string> = { Easy: "Know It", Medium: "Say It", Hard: "Use It" };
-const isTypedLevel = (level: QuizVocabularyLevel) => level === "Medium";
+const ROUNDS: QuizVocabularyRound[] = [1, 2, 3];
+const isTypedRound = (round: QuizVocabularyRound) => round === 2;
 // Keep Unicode letters (including Chinese) while ignoring spacing and punctuation
 // for duplicate/accepted-answer checks.
 const normalizePrompt = (value: string) => value.normalize("NFKC").toLocaleLowerCase().replace(/[\s\p{P}\p{S}_]+/gu, "");
@@ -27,12 +21,12 @@ interface QuestionDraft extends QuizVocabularyQuestionDraft {
   acceptedAnswersText: string;
 }
 
-function emptyQuestion(level: QuizVocabularyLevel): QuestionDraft {
+function emptyQuestion(round: QuizVocabularyRound): QuestionDraft {
   return {
-    level,
+    round,
     prompt: "",
     options: [],
-    optionsText: isTypedLevel(level) ? "" : "\n\n\n",
+    optionsText: isTypedRound(round) ? "" : "\n\n\n",
     correctAnswer: "",
     acceptedAnswers: [],
     acceptedAnswersText: "",
@@ -41,11 +35,11 @@ function emptyQuestion(level: QuizVocabularyLevel): QuestionDraft {
 }
 
 function questionDrafts(entry: VocabularyEntry): QuestionDraft[] {
-  return LEVELS.map((level) => {
-    const question = entry.assessmentQuestions.find((candidate) => candidate.level.toLowerCase() === level.toLowerCase());
-    if (!question) return emptyQuestion(level);
+  return ROUNDS.map((round) => {
+    const question = entry.assessmentQuestions.find((candidate) => candidate.round === round);
+    if (!question) return emptyQuestion(round);
     return {
-      level,
+      round,
       prompt: question.prompt,
       options: question.options,
       optionsText: question.options.join("\n"),
@@ -98,9 +92,9 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
       return;
     }
     const drafts: QuizVocabularyQuestionDraft[] = questions.map((question) => ({
-      level: question.level,
+      round: question.round,
       prompt: question.prompt.trim(),
-      options: isTypedLevel(question.level) ? [] : lines(question.optionsText),
+      options: isTypedRound(question.round) ? [] : lines(question.optionsText),
       correctAnswer: question.correctAnswer.trim(),
       acceptedAnswers: lines(question.acceptedAnswersText),
       explanation: question.explanation.trim(),
@@ -114,8 +108,8 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
       setError("The three question prompts must be unique.");
       return;
     }
-    if (drafts.some((question) => !isTypedLevel(question.level) && (question.options.length !== 4 || new Set(question.options.map(normalizePrompt)).size !== 4))) {
-      setError("Know It and Use It questions need four unique options each.");
+    if (drafts.some((question) => !isTypedRound(question.round) && (question.options.length !== 4 || new Set(question.options.map(normalizePrompt)).size !== 4))) {
+      setError("Rounds 1 and 3 need four unique options each.");
       return;
     }
     if (drafts.some((question) => !question.acceptedAnswers.some((answer) => normalizePrompt(answer) === normalizePrompt(question.correctAnswer)))) {
@@ -155,13 +149,13 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
         <label>Part of speech<input value={pos} onChange={(event) => setPos(event.target.value)} required maxLength={50} /></label>
       </fieldset>
       <div className="av-question-edit-list">
-        {questions.map((question, index) => <fieldset className="av-question-edit" key={question.level} disabled={saving}>
-          <legend>{ROUND_LABEL[question.level]} ({question.level})</legend>
-          <label>{question.level} prompt<textarea aria-label={`${question.level} prompt`} value={question.prompt} onChange={(event) => updateQuestion(index, { prompt: event.target.value })} rows={2} required /></label>
-          {!isTypedLevel(question.level) && <label>{question.level} options (one per line)<textarea aria-label={`${question.level} options`} value={question.optionsText} onChange={(event) => updateQuestion(index, { optionsText: event.target.value })} rows={4} required /></label>}
-          <label>{question.level} correct answer<input aria-label={`${question.level} correct answer`} value={question.correctAnswer} onChange={(event) => updateQuestion(index, { correctAnswer: event.target.value })} required /></label>
-          <label>{question.level} accepted answers (one per line)<textarea aria-label={`${question.level} accepted answers`} value={question.acceptedAnswersText} onChange={(event) => updateQuestion(index, { acceptedAnswersText: event.target.value })} rows={2} required /></label>
-          <label>{question.level} explanation<textarea aria-label={`${question.level} explanation`} value={question.explanation} onChange={(event) => updateQuestion(index, { explanation: event.target.value })} rows={2} required /></label>
+        {questions.map((question, index) => <fieldset className="av-question-edit" key={question.round} disabled={saving}>
+          <legend>Round {question.round}</legend>
+          <label>Round {question.round} prompt<textarea aria-label={`Round ${question.round} prompt`} value={question.prompt} onChange={(event) => updateQuestion(index, { prompt: event.target.value })} rows={2} required /></label>
+          {!isTypedRound(question.round) && <label>Round {question.round} options (one per line)<textarea aria-label={`Round ${question.round} options`} value={question.optionsText} onChange={(event) => updateQuestion(index, { optionsText: event.target.value })} rows={4} required /></label>}
+          <label>Round {question.round} correct answer<input aria-label={`Round ${question.round} correct answer`} value={question.correctAnswer} onChange={(event) => updateQuestion(index, { correctAnswer: event.target.value })} required /></label>
+          <label>Round {question.round} accepted answers (one per line)<textarea aria-label={`Round ${question.round} accepted answers`} value={question.acceptedAnswersText} onChange={(event) => updateQuestion(index, { acceptedAnswersText: event.target.value })} rows={2} required /></label>
+          <label>Round {question.round} explanation<textarea aria-label={`Round ${question.round} explanation`} value={question.explanation} onChange={(event) => updateQuestion(index, { explanation: event.target.value })} rows={2} required /></label>
         </fieldset>)}
       </div>
       {error && <p className="av-error" role="alert">{error}</p>}

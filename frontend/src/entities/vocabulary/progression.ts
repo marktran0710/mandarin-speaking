@@ -12,7 +12,6 @@ import { topicHasQuiz, type QuizSourceTopic } from "./model";
 
 export type QuizTier = 1 | 2 | 3;
 export type TierMode = "tier1" | "tier2" | "tier3";
-export type DiagnosticRoundType = "know_it" | "say_it" | "use_it";
 export type DiagnosticKnowledgeDimension = "meaning" | "pinyin_production" | "contextual_recall";
 
 export interface TierConfig {
@@ -39,8 +38,7 @@ export interface DiagnosticRoundConfig {
   // only to look up the round's bank question (the bank is owned by the quiz
   // pipeline and keeps these labels). The round dimension itself is `mode`
   // (tier1/2/3); the stored quiz_level uses that round key, not this label.
-  bankLevel: "easy" | "medium" | "hard";
-  roundType: DiagnosticRoundType;
+  round: QuizTier;
   knowledgeDimension: DiagnosticKnowledgeDimension;
   questionKind: "basic_meaning_mcq" | "character_to_pinyin_typing" | "context_cloze_mcq";
 }
@@ -51,9 +49,9 @@ export interface DiagnosticRoundConfig {
 // grades against that level's published correctAnswer/acceptedAnswers; the
 // MCQ options are built separately (see buildDiagnosticRoundQuestions).
 export const DIAGNOSTIC_ROUNDS: Record<TierMode, DiagnosticRoundConfig> = {
-  tier1: { mode: "tier1", bankLevel: "easy", roundType: "know_it", knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
-  tier2: { mode: "tier2", bankLevel: "medium", roundType: "say_it", knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
-  tier3: { mode: "tier3", bankLevel: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "context_cloze_mcq" },
+  tier1: { mode: "tier1", round: 1, knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
+  tier2: { mode: "tier2", round: 2, knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
+  tier3: { mode: "tier3", round: 3, knowledgeDimension: "contextual_recall", questionKind: "context_cloze_mcq" },
 };
 
 export function tierConfigFromMode(mode: string | null | undefined): TierConfig | null {

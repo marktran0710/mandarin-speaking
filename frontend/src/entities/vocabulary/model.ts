@@ -1,4 +1,4 @@
-import type { VocabAssessmentQuestion, VocabQuizEntry } from "./types";
+import type { VocabAssessmentQuestion, VocabAssessmentRound, VocabQuizEntry } from "./types";
 
 export interface QuizSourceTopic {
   images?: string[];
@@ -10,9 +10,19 @@ export interface QuizSourceTopic {
   vocabAssessment?: VocabAssessmentQuestion[];
 }
 
-function normalizedLevel(value: unknown): VocabAssessmentQuestion["level"] | null {
-  const level = String(value ?? "").trim().toLowerCase();
-  return level === "easy" || level === "medium" || level === "hard" ? level : null;
+function normalizedRound(value: unknown, questionType: string): VocabAssessmentRound | null {
+  const parsed = Number(String(value ?? "").replace(/^round\s*/i, "").trim());
+  if (parsed === 1 || parsed === 2 || parsed === 3) return parsed;
+  // Published banks now use numeric rounds. Keep this read-only fallback so
+  // old story snapshots remain playable while they are being migrated.
+  const legacyRound = String(value ?? "").trim().toLocaleLowerCase();
+  if (legacyRound === "easy") return 1;
+  if (legacyRound === "medium") return 2;
+  if (legacyRound === "hard") return 3;
+  if (questionType === "basic_meaning_mcq") return 1;
+  if (questionType === "character_to_pinyin_typing") return 2;
+  if (questionType === "context_cloze_mcq") return 3;
+  return null;
 }
 
 function contextPrompts(questions: VocabAssessmentQuestion[], targetWord: string): string[] {
@@ -28,9 +38,17 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
   if (!Array.isArray(topic.vocabAssessment)) return [];
   const byWord = new Map<string, VocabAssessmentQuestion[]>();
   topic.vocabAssessment.forEach((rawQuestion) => {
-    const level = normalizedLevel(rawQuestion.level);
-    if (!level || !rawQuestion.wordId) return;
-    const question = { ...rawQuestion, level };
+    const round = normalizedRound(rawQuestion.round ?? rawQuestion.level, rawQuestion.questionType);
+    if (!round || !rawQuestion.wordId) return;
+    const legacyLevel = typeof rawQuestion.level === "string"
+      ? rawQuestion.level.toLocaleLowerCase() as "easy" | "medium" | "hard"
+      : undefined;
+    const question = {
+      ...rawQuestion,
+      round,
+      tier: `tier${round}` as const,
+      ...(legacyLevel ? { level: legacyLevel } : {}),
+    };
     const questions = byWord.get(question.wordId) ?? [];
     questions.push(question);
     byWord.set(question.wordId, questions);

@@ -12,9 +12,9 @@ const stories: StoredCustomStory[] = [
   { id: "s6", title: "運動", lessonNumber: 6, frames: [{ imageUrl: "", prompt: "", vocabulary: "游泳", vocabularyPinyin: "yóuyǒng", vocabularyTranslation: "swim", vocabularyPos: "V" }] },
 ];
 const quizAssessment = (wordId: string, targetWord: string, meaning: string): VocabAssessmentQuestion[] => [
-  { questionId: `${wordId}_EASY`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: `Easy prompt ${wordId}`, options: [meaning, "book", "door", "window"], correctAnswer: meaning, acceptedAnswers: [meaning], explanation: "Easy explanation" },
-  { questionId: `${wordId}_MEDIUM`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "medium", difficultyWeight: 2, questionType: "character_to_pinyin_typing", answerFormat: "free_text", prompt: `Medium prompt ${wordId}`, options: [], correctAnswer: "pinyin", acceptedAnswers: ["pinyin"], explanation: "Medium explanation" },
-  { questionId: `${wordId}_HARD`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "hard", difficultyWeight: 3, questionType: "context_cloze_mcq", answerFormat: "single_choice", prompt: `Hard prompt ${wordId}`, options: [targetWord, "書", "門", "窗戶"], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Hard explanation" },
+  { questionId: `${wordId}_R1`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, round: 1, tier: "tier1", questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: `Round 1 prompt ${wordId}`, options: [meaning, "book", "door", "window"], correctAnswer: meaning, acceptedAnswers: [meaning], explanation: "Round 1 explanation" },
+  { questionId: `${wordId}_R2`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, round: 2, tier: "tier2", questionType: "character_to_pinyin_typing", answerFormat: "free_text", prompt: `Round 2 prompt ${wordId}`, options: [], correctAnswer: "pinyin", acceptedAnswers: ["pinyin"], explanation: "Round 2 explanation" },
+  { questionId: `${wordId}_R3`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, round: 3, tier: "tier3", questionType: "context_cloze_mcq", answerFormat: "single_choice", prompt: `Round 3 prompt ${wordId}`, options: [targetWord, "書", "門", "窗戶"], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Round 3 explanation" },
 ];
 beforeEach(() => {
   vi.mocked(listVocabularyStories).mockReset().mockResolvedValue(structuredClone(stories));
@@ -60,9 +60,9 @@ describe("Admin vocabulary page", () => {
       ...stories[1], lessonSubOrder: 2,
       frames: [{ imageUrl: "", prompt: "", vocabulary: "材料用字", vocabularyPinyin: "cái liào", vocabularyTranslation: "material", vocabularyPos: "N" }],
       vocabAssessment: [
-        { questionId: "l6-1-easy", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
-        { questionId: "l6-1-medium", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
-        { questionId: "l6-1-hard", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
+        { questionId: "l6-1-R1", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", round: 1, tier: "tier1", questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
+        { questionId: "l6-1-R2", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", round: 2, tier: "tier2", questionType: "character_to_pinyin_typing", answerFormat: "free_text", prompt: "", options: [], correctAnswer: "yóuyǒng", acceptedAnswers: ["yóuyǒng"], explanation: "" },
+        { questionId: "l6-1-R3", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", round: 3, tier: "tier3", questionType: "context_cloze_mcq", answerFormat: "single_choice", prompt: "", options: ["游泳", "跑", "看", "吃"], correctAnswer: "游泳", acceptedAnswers: ["游泳"], explanation: "" },
       ],
     }]);
     const user = userEvent.setup();
@@ -88,24 +88,24 @@ describe("Admin vocabulary page", () => {
     await user.type(within(dialog).getByRole("textbox", { name: "Pinyin" }), "shafa");
     await user.type(within(dialog).getByRole("textbox", { name: "Meaning (English)" }), "sofa");
     await user.type(within(dialog).getByRole("textbox", { name: "Part of speech" }), "N");
-    for (const [level, prompt, options, answer] of [
-      ["Easy", "What does 沙發 mean?", "sofa\nbook\ndoor\nwindow", "sofa"],
-      ["Medium", "Type the pinyin", "", "shafa"],
-      ["Hard", "Complete: ___", "沙發\n床\n門\n窗戶", "沙發"],
+    for (const [round, prompt, options, answer] of [
+      ["Round 1", "What does 沙發 mean?", "sofa\nbook\ndoor\nwindow", "sofa"],
+      ["Round 2", "Type the pinyin", "", "shafa"],
+      ["Round 3", "Complete: ___", "沙發\n床\n門\n窗戶", "沙發"],
     ] as const) {
-      await user.type(within(dialog).getByRole("textbox", { name: `${level} prompt` }), prompt);
-      if (level !== "Medium") {
-        const optionsInput = within(dialog).getByRole("textbox", { name: `${level} options` });
+      await user.type(within(dialog).getByRole("textbox", { name: `${round} prompt` }), prompt);
+      if (round !== "Round 2") {
+        const optionsInput = within(dialog).getByRole("textbox", { name: `${round} options` });
         await user.clear(optionsInput);
         await user.type(optionsInput, options);
       }
-      await user.type(within(dialog).getByRole("textbox", { name: `${level} correct answer` }), answer);
-      await user.type(within(dialog).getByRole("textbox", { name: `${level} accepted answers` }), answer);
-      await user.type(within(dialog).getByRole("textbox", { name: `${level} explanation` }), `${level} explanation`);
+      await user.type(within(dialog).getByRole("textbox", { name: `${round} correct answer` }), answer);
+      await user.type(within(dialog).getByRole("textbox", { name: `${round} accepted answers` }), answer);
+      await user.type(within(dialog).getByRole("textbox", { name: `${round} explanation` }), `${round} explanation`);
     }
     await user.click(within(dialog).getByRole("button", { name: "Add word" }));
     await screen.findByText("Quiz vocabulary added.", { exact: true });
-    expect(createQuizVocabularyWord).toHaveBeenCalledWith("s5-create", expect.objectContaining({ targetWord: "沙發", questions: expect.arrayContaining([expect.objectContaining({ level: "Easy", correctAnswer: "sofa" }), expect.objectContaining({ level: "Hard", correctAnswer: "沙發" })]) }));
+    expect(createQuizVocabularyWord).toHaveBeenCalledWith("s5-create", expect.objectContaining({ targetWord: "沙發", questions: expect.arrayContaining([expect.objectContaining({ round: 1, correctAnswer: "sofa" }), expect.objectContaining({ round: 3, correctAnswer: "沙發" })]) }));
   }, 20000);
   it("updates the full quiz word and all round question data", async () => {
     const quizStory: StoredCustomStory = { ...stories[0], id: "s5-update", title: "Quiz room", vocabAssessment: quizAssessment("w1", "桌子", "table") };

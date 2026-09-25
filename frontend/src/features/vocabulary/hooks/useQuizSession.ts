@@ -43,7 +43,7 @@ type UseQuizSessionProps = {
   baseStoryId?: string;
   // Story text level. Stories are single-level now, so this is always "easy";
   // kept as a field only as the fallback response level when a word has no
-  // published bank question (see resultLevel below).
+  // published bank question (see the numeric round metadata below).
   level: "easy";
   studentId?: string;
   studentName?: string;
@@ -192,11 +192,11 @@ export function useQuizSession({
       setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
       saveLessonAttempt(studentScope, attempt.storyId, attempt);
       const completedEvent = mode === "tier1"
-        ? "know_it_completed"
+        ? "round1_completed"
         : mode === "tier2"
-          ? "say_it_completed"
+          ? "round2_completed"
           : mode === "tier3"
-            ? "use_it_completed"
+            ? "round3_completed"
             : mode === "weak_words"
               ? "personalized_completed"
               : mode === "challenge"
@@ -224,13 +224,12 @@ export function useQuizSession({
       !isRetryRound && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
     );
     const bktEligibilityErrors = isBktEligible ? [] : [
-      ...(diagnosticConfig && assessment && assessment.level !== diagnosticConfig.bankLevel ? ["ROUND_LEVEL_MISMATCH"] : []),
+      ...(diagnosticConfig && assessment && assessment.round !== undefined && assessment.round !== diagnosticConfig.round ? ["ROUND_MISMATCH"] : []),
       ...(!diagnosticMode ? ["NON_DIAGNOSTIC_MODE"] : []),
       ...(!bktType ? ["UNSUPPORTED_BKT_QUESTION_TYPE"] : []),
       ...(entry?.bktValidationStatus !== "APPROVED" ? ["UNAPPROVED_RESEARCH_ITEM"] : []),
     ];
-    const itemVersion = `${level}:v1`;
-    const resultLevel = assessment?.level ?? level;
+    const itemVersion = diagnosticConfig ? `round${diagnosticConfig.round}:v1` : `${level}:v1`;
     const itemId = assessment?.questionId
       ?? quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind, itemVersion);
     // Weak-words/practice questions have no assessment bank, but the entry
@@ -260,15 +259,16 @@ export function useQuizSession({
         : option === answer,
       timeMs: Date.now() - questionStartRef.current,
       itemId,
-      conceptId, questionKind: resultQuestionKind, level: resultLevel,
-      roundType: diagnosticConfig?.roundType,
+      conceptId, questionKind: resultQuestionKind, tier: diagnosticConfig?.mode,
+      ...(!diagnosticConfig ? { level } : {}),
+      round: diagnosticConfig?.round,
       knowledgeDimension: diagnosticConfig?.knowledgeDimension,
       activityType,
       baseStoryId: baseStoryId ?? storyId, itemVersion,
       isBktEligible,
       bktEligibilityErrors,
       diagnosticExposureId: diagnosticMode
-        ? `${baseStoryId ?? storyId ?? "unknown-story"}:${resultLevel}:${mode}:${itemId}`
+        ? `${baseStoryId ?? storyId ?? "unknown-story"}:round${diagnosticConfig?.round ?? mode}:${itemId}`
         : undefined,
       assistedResponse: false,
       bktValidationStatus: entry?.bktValidationStatus,
@@ -331,11 +331,11 @@ export function useQuizSession({
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
     const startedEvent = picked === "tier1"
-      ? "know_it_started"
+      ? "round1_started"
       : picked === "tier2"
-        ? "say_it_started"
+        ? "round2_started"
         : picked === "tier3"
-          ? "use_it_started"
+          ? "round3_started"
           : picked === "weak_words"
             ? "personalized_started"
             : picked === "challenge"

@@ -29,9 +29,7 @@ MIN_TYPE_DIVERSITY = 2
 BKT_DIAGNOSTIC_TYPES = frozenset({
     "translation", "reverse", "listening", "basic_meaning_mcq",
     "character_to_pinyin_typing", "contextual_productive_recall",
-    # Existing approved banks may still use these names; round metadata
-    # determines whether a new diagnostic exposure is valid.
-    "context_cloze_mcq", "productive_recall",
+    "context_cloze_mcq",
 })
 CEILING_ACCURACY = 0.95
 FLOOR_ACCURACY = 0.20
@@ -42,14 +40,14 @@ _SOURCE_OPTION_TYPES = frozenset({"reverse", "listening", "pinyin", "pos"})
 _APPROVED_STATUSES = frozenset({"approved", "APPROVED"})
 _SLOT_BY_MODE = {"tier1": "quiz_1", "tier2": "quiz_2", "tier3": "quiz_3"}
 _SLOT_BY_VALUE = {"1": "quiz_1", "2": "quiz_2", "3": "quiz_3"}
-_ROUND_BY_MODE = {"tier1": "know_it", "tier2": "say_it", "tier3": "use_it"}
+_ROUND_BY_MODE = {"tier1": "1", "tier2": "2", "tier3": "3"}
 # The round key stored in quiz_level now matches quiz_mode (tier1/2/3); the
 # separate difficulty label was retired.
 _LEVEL_BY_MODE = {"tier1": "tier1", "tier2": "tier2", "tier3": "tier3"}
 PRODUCTION_BKT_CONTRACT = {
-    "easy": {"round": "tier1", "question_type": "basic_meaning_mcq", "answer_format": "single_choice"},
-    "medium": {"round": "tier2", "question_type": "character_to_pinyin_typing", "answer_format": "free_text"},
-    "hard": {"round": "tier3", "question_type": "context_cloze_mcq", "answer_format": "single_choice"},
+    "1": {"round": "tier1", "question_type": "basic_meaning_mcq", "answer_format": "single_choice"},
+    "2": {"round": "tier2", "question_type": "character_to_pinyin_typing", "answer_format": "free_text"},
+    "3": {"round": "tier3", "question_type": "context_cloze_mcq", "answer_format": "single_choice"},
 }
 _OBVIOUS_BAD_OPTION = re.compile(r"^(?:a{3,}|n/?a|none|nil|\?{2,}|x{3,})$", re.I)
 
@@ -289,7 +287,7 @@ def _diagnostic_slot(question: Any) -> str | None:
         return _SLOT_BY_MODE[mode]
     # Do not infer that a generic easy tier is one of three diagnostic rounds.
     round_type = normalize_value(_field(question, "round_type", "roundType", default=""))
-    return {"know_it": "quiz_1", "say_it": "quiz_2", "use_it": "quiz_3"}.get(round_type)
+    return {"1": "quiz_1", "2": "quiz_2", "3": "quiz_3"}.get(round_type)
 
 
 def _word_label(word_id: str) -> str:
@@ -479,31 +477,43 @@ def validate_production_bkt_assessment(
             errors.append({"code": "PRODUCTION_ITEM_INVALID", "index": index})
             continue
         word_id = normalize_value(item.get("wordId") or item.get("word_id"))
-        level = normalize_value(item.get("level"))
+        level = normalize_value(item.get("round"))
+        if level.startswith("round "):
+            level = level.replace("round ", "", 1).strip()
         question_type = normalize_value(item.get("questionType") or item.get("question_type"))
         answer_format = normalize_value(item.get("answerFormat") or item.get("answer_format"))
         item_id = _text(item.get("questionId") or item.get("question_id") or f"item-{index}")
         if not word_id:
             errors.append({"code": "PRODUCTION_MISSING_WORD_ID", "itemId": item_id, "index": index})
             continue
+        if not _text(item.get("questionId") or item.get("question_id")):
+            errors.append({"code": "PRODUCTION_MISSING_QUESTION_ID", "wordId": word_id, "round": level})
+        if item_id.casefold().endswith(("_easy", "_medium", "_hard")):
+            errors.append({"code": "PRODUCTION_LEGACY_QUESTION_ID", "itemId": item_id, "wordId": word_id})
+        legacy_fields = [field for field in ("level", "difficultyWeight", "sourceQuestionId") if field in item]
+        if legacy_fields:
+            errors.append({"code": "PRODUCTION_LEGACY_FIELDS", "itemId": item_id, "fields": legacy_fields})
         if level not in PRODUCTION_BKT_CONTRACT:
-            errors.append({"code": "PRODUCTION_UNSUPPORTED_LEVEL", "itemId": item_id, "wordId": word_id, "level": level})
+            errors.append({"code": "PRODUCTION_UNSUPPORTED_ROUND", "itemId": item_id, "wordId": word_id, "round": level})
             continue
         contract = PRODUCTION_BKT_CONTRACT[level]
+        tier = normalize_value(item.get("tier"))
+        if tier and tier != contract["round"]:
+            errors.append({"code": "PRODUCTION_WRONG_TIER", "itemId": item_id, "wordId": word_id, "round": level, "expected": contract["round"], "actual": tier})
         round_identity = (word_id, level)
         if round_identity in seen_rounds:
-            errors.append({"code": "PRODUCTION_DUPLICATE_WORD_ROUND", "itemId": item_id, "wordId": word_id, "level": level})
+            errors.append({"code": "PRODUCTION_DUPLICATE_WORD_ROUND", "itemId": item_id, "wordId": word_id, "round": level})
         seen_rounds.add(round_identity)
         by_word[word_id].append((level, item))
         if question_type not in expected_types:
-            errors.append({"code": "PRODUCTION_UNSUPPORTED_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "level": level, "questionType": question_type})
+            errors.append({"code": "PRODUCTION_UNSUPPORTED_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "round": level, "questionType": question_type})
         elif question_type != contract["question_type"]:
-            errors.append({"code": "PRODUCTION_WRONG_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "level": level, "expected": contract["question_type"], "actual": question_type})
+            errors.append({"code": "PRODUCTION_WRONG_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "round": level, "expected": contract["question_type"], "actual": question_type})
         if answer_format != contract["answer_format"]:
-            errors.append({"code": "PRODUCTION_WRONG_ANSWER_FORMAT", "itemId": item_id, "wordId": word_id, "level": level, "expected": contract["answer_format"], "actual": answer_format})
+            errors.append({"code": "PRODUCTION_WRONG_ANSWER_FORMAT", "itemId": item_id, "wordId": word_id, "round": level, "expected": contract["answer_format"], "actual": answer_format})
         status = item.get("validationStatus", item.get("validation_status", item.get("approvalStatus", item.get("approval_status"))))
         if status is not None and normalize_value(status) not in {"approved", "ok"}:
-            errors.append({"code": "PRODUCTION_UNAPPROVED_ITEM", "itemId": item_id, "wordId": word_id, "level": level, "status": str(status)})
+            errors.append({"code": "PRODUCTION_UNAPPROVED_ITEM", "itemId": item_id, "wordId": word_id, "round": level, "status": str(status)})
 
     expected_levels = set(PRODUCTION_BKT_CONTRACT)
     for word_id, rows in sorted(by_word.items()):
@@ -629,18 +639,24 @@ def classify_bkt_response(
     kind = _question_type(result)
     if kind not in {normalize_value(value) for value in approved_types}:
         errors.append("UNSUPPORTED_BKT_QUESTION_TYPE")
-    level = normalize_value(_field(result, "level", default=""))
-    if level not in set(_LEVEL_BY_MODE.values()):
-        errors.append("NON_DIAGNOSTIC_LEVEL")
+    tier = normalize_value(_field(result, "tier", "level", default=""))
+    if tier not in set(_LEVEL_BY_MODE.values()):
+        errors.append("NON_DIAGNOSTIC_TIER")
     mode = normalize_value(_field(attempt, "mode", default="")) if attempt is not None else ""
     if mode not in _SLOT_BY_MODE:
         errors.append("NON_DIAGNOSTIC_MODE")
-    round_type = normalize_value(_field(result, "roundType", "round_type", default=""))
-    if round_type and _ROUND_BY_MODE.get(mode) != round_type:
-        errors.append("ROUND_TYPE_MISMATCH")
+    round_number = normalize_value(_field(result, "round", "round_type", default=""))
+    if not round_number:
+        # Read-only compatibility for pre-migration ledger/attempt payloads.
+        round_number = {"know_it": "1", "say_it": "2", "use_it": "3"}.get(
+            normalize_value(_field(result, "roundType", default="")),
+            "",
+        )
+    if round_number and _ROUND_BY_MODE.get(mode) != round_number:
+        errors.append("ROUND_MISMATCH")
     expected_level = _LEVEL_BY_MODE.get(mode)
-    if round_type and expected_level and level != expected_level:
-        errors.append("ROUND_LEVEL_MISMATCH")
+    if expected_level and tier and tier != expected_level:
+        errors.append("ROUND_TIER_MISMATCH")
     if _field(result, "assistedResponse", "assisted_response", default=False) is True:
         errors.append("ASSISTED_RESPONSE")
     if _field(result, "bktValidationStatus", "bkt_validation_status", default=None) != "APPROVED":

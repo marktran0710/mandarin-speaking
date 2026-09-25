@@ -170,10 +170,13 @@ class VocabQuizQuestionResult(BaseModel):
     itemId: Optional[str] = Field(default=None, max_length=256)
     conceptId: Optional[str] = Field(default=None, max_length=200)
     questionKind: Optional[str] = Field(default=None, max_length=40)
+    round: Optional[Literal[1, 2, 3]] = None
+    tier: Optional[Literal["tier1", "tier2", "tier3"]] = None
+    # Legacy read compatibility only. New clients send numeric round/tier.
     roundType: Optional[Literal["know_it", "say_it", "use_it"]] = None
     knowledgeDimension: Optional[Literal["meaning", "pinyin_production", "contextual_recall"]] = None
     activityType: Optional[Literal["diagnostic", "personalized_practice", "scheduled_maintenance", "challenge", "practice"]] = None
-    level: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
+    level: Optional[str] = None  # legacy attempt metadata; server resolver is authoritative
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     itemVersion: Optional[str] = Field(default=None, max_length=40)
     # Server-side BKT gate metadata.  These are deliberately optional for

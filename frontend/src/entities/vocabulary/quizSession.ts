@@ -1,5 +1,5 @@
 import { toPinyin } from "./api";
-import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type DiagnosticRoundType, type TierMode } from "./progression";
+import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type TierMode, type QuizTier } from "./progression";
 import { toneTrapVariants } from "../../utils/toneTraps";
 import { normalizeQuizExposure } from "./quizSessionPlanner";
 import type {
@@ -313,7 +313,7 @@ function buildPracticeQuestionOfKind(
   }
 }
 
-export interface WordRoundVariant { mode: TierMode; roundType: DiagnosticRoundType; question: VocabAssessmentQuestion; }
+export interface WordRoundVariant { mode: TierMode; round: QuizTier; question: VocabAssessmentQuestion; }
 export interface WordPracticeVariant { kind: QuizQuestionKind; question: VocabQuizQuestion; }
 
 /** Every question form a single word can appear as, for admin/teacher review:
@@ -331,7 +331,7 @@ export function buildWordQuestionVariants(
   const rounds = (["tier1", "tier2", "tier3"] as const)
     .map((mode): WordRoundVariant | null => {
       const question = buildDiagnosticRoundQuestions(allEntries, mode).find((q) => q.wordId === wordId);
-      return question ? { mode, roundType: DIAGNOSTIC_ROUNDS[mode].roundType, question } : null;
+      return question ? { mode, round: DIAGNOSTIC_ROUNDS[mode].round, question } : null;
     })
     .filter((value): value is WordRoundVariant => value !== null);
   const practice = PRACTICE_PREVIEW_KINDS

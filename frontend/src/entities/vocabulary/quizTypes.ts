@@ -93,7 +93,8 @@ export interface VocabQuizQuestionResult {
   itemId?: string;
   conceptId?: string;
   questionKind?: VocabQuizQuestionKind | VocabAssessmentQuestion["questionType"];
-  roundType?: "know_it" | "say_it" | "use_it";
+  round?: 1 | 2 | 3;
+  tier?: "tier1" | "tier2" | "tier3";
   knowledgeDimension?: "meaning" | "pinyin_production" | "contextual_recall";
   activityType?: "diagnostic" | "personalized_practice" | "scheduled_maintenance" | "challenge" | "practice";
   level?: "easy" | "medium" | "hard";

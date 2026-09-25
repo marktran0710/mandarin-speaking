@@ -23,10 +23,10 @@ def test_workbook_rounds_map_to_runtime_question_contract():
 
     assert sum(len(payload) for payload in payloads.values()) == 648
     sample = payloads["5-2"]
-    assert [(question["level"], question["questionType"], question["answerFormat"]) for question in sample[:3]] == [
-        ("easy", "basic_meaning_mcq", "single_choice"),
-        ("medium", "character_to_pinyin_typing", "free_text"),
-        ("hard", "context_cloze_mcq", "single_choice"),
+    assert [(question["round"], question["tier"], question["questionType"], question["answerFormat"]) for question in sample[:3]] == [
+        (1, "tier1", "basic_meaning_mcq", "single_choice"),
+        (2, "tier2", "character_to_pinyin_typing", "free_text"),
+        (3, "tier3", "context_cloze_mcq", "single_choice"),
     ]
     tv = [question for question in payloads["5-3"] if question["wordId"] == "C5-5-3-I2-W044"]
     assert all(question["targetWord"] == "電視(機)" for question in tv)

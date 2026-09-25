@@ -2,6 +2,7 @@ from scripts.export_quiz_questions import ALL_TIERS, build_question_rows
 
 
 def _question(level: str, question_type: str, prompt: str, answer: str, options: list[str]) -> dict:
+    round_number = {"easy": 1, "medium": 2, "hard": 3}[level]
     return {
         "questionId": f"word-{level}",
         "wordId": "word-1",
@@ -9,7 +10,8 @@ def _question(level: str, question_type: str, prompt: str, answer: str, options:
         "pinyin": "xue2xi2",
         "pos": "V",
         "simpleEnglishMeaning": "to learn",
-        "level": level,
+        "round": round_number,
+        "tier": f"tier{round_number}",
         "questionType": question_type,
         "prompt": prompt,
         "options": options,
@@ -36,7 +38,7 @@ def test_export_reads_only_canonical_assessment_rows():
     rows = build_question_rows([story], tiers=ALL_TIERS)
 
     assert len(rows) == 3
-    assert {row["tier"] for row in rows} == {"easy", "medium", "hard"}
+    assert {row["tier"] for row in rows} == {"tier1", "tier2", "tier3"}
     assert all(row["source"] == "vocab_assessment" for row in rows)
     assert rows[0]["frame_index"] == ""
     assert rows[0]["correct_answer"] == "to learn"

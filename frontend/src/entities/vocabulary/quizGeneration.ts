@@ -1,6 +1,6 @@
 import { toPinyin } from "./api";
 import { DIAGNOSTIC_ROUNDS, type TierMode } from "./progression";
-import type { VocabAssessmentLevel, VocabAssessmentQuestion, VocabQuizEntry } from "./types";
+import type { VocabAssessmentLevel, VocabAssessmentQuestion, VocabAssessmentRound, VocabQuizEntry } from "./types";
 import type { VocabQuizAssessmentQuestion } from "./quizTypes";
 import { CLOZE_BLANK, quizConceptId } from "./quizTypes";
 type StudentIconName = "star" | "stories";
@@ -61,7 +61,7 @@ export function buildAssessmentQuestions(
   const levels = level ? [level] : (["easy", "medium", "hard"] as const);
   return levels.flatMap((assessmentLevel) => shuffle(
     entries.flatMap((entry) => (entry.assessmentQuestions ?? [])
-      .filter((assessment) => assessment.level === assessmentLevel)
+      .filter((assessment) => assessmentRound(assessment) === roundForLegacyLevel(assessmentLevel))
       .map((assessment) => ({
         kind: "assessment" as const,
         word: assessment.targetWord,
@@ -77,13 +77,25 @@ export function buildAssessmentQuestions(
   ));
 }
 
-const ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND: Partial<Record<string, VocabAssessmentLevel>> = {
-  basic_meaning_mcq: "easy",
-  character_to_pinyin_typing: "medium",
-  context_cloze_mcq: "hard",
-  productive_recall: "hard",
-  contextual_productive_recall: "hard",
+const ASSESSMENT_ROUND_BY_DIAGNOSTIC_KIND: Partial<Record<string, VocabAssessmentRound>> = {
+  basic_meaning_mcq: 1,
+  character_to_pinyin_typing: 2,
+  context_cloze_mcq: 3,
 };
+
+function roundForQuestionType(questionType: string): VocabAssessmentRound | null {
+  return ASSESSMENT_ROUND_BY_DIAGNOSTIC_KIND[questionType] ?? null;
+}
+
+function roundForLegacyLevel(level: VocabAssessmentLevel): VocabAssessmentRound {
+  return level === "easy" ? 1 : level === "medium" ? 2 : 3;
+}
+
+function assessmentRound(assessment: VocabAssessmentQuestion): VocabAssessmentRound | null {
+  if (assessment.round) return assessment.round;
+  if (assessment.level) return roundForLegacyLevel(assessment.level);
+  return roundForQuestionType(assessment.questionType);
+}
 
 /** Build one published item per Bottom-K word without losing server order. */
 export function buildPersonalizedAssessmentQuestions(
@@ -92,18 +104,18 @@ export function buildPersonalizedAssessmentQuestions(
   return entries.flatMap((entry) => {
     const bank = entry.assessmentQuestions ?? [];
     if (!bank.length) return [];
-    const failedLevels = new Set(
+    const failedRounds = new Set(
       (entry.bktFailedQuestionKinds ?? [])
-        .map((kind) => ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND[kind])
-        .filter((level): level is VocabAssessmentLevel => Boolean(level)),
+        .map((kind) => ASSESSMENT_ROUND_BY_DIAGNOSTIC_KIND[kind])
+        .filter((round): round is VocabAssessmentRound => Boolean(round)),
     );
-    const seenLevels = new Set(
+    const seenRounds = new Set(
       (entry.bktSeenQuestionKinds ?? [])
-        .map((kind) => ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND[kind])
-        .filter((level): level is VocabAssessmentLevel => Boolean(level)),
+        .map((kind) => ASSESSMENT_ROUND_BY_DIAGNOSTIC_KIND[kind])
+        .filter((round): round is VocabAssessmentRound => Boolean(round)),
     );
-    const assessment = bank.find((candidate) => failedLevels.has(candidate.level))
-      ?? bank.find((candidate) => !seenLevels.has(candidate.level))
+    const assessment = bank.find((candidate) => failedRounds.has(assessmentRound(candidate) as VocabAssessmentRound))
+      ?? bank.find((candidate) => !seenRounds.has(assessmentRound(candidate) as VocabAssessmentRound))
       ?? bank[0];
     return [{
       kind: "assessment" as const,
@@ -172,7 +184,7 @@ function seededShuffle<T>(items: T[], seed: string): T[] {
 }
 
 function diagnosticQuestionId(entry: VocabQuizEntry, mode: TierMode): string {
-  return `${entry.wordId ?? quizConceptId(entry.word)}:${DIAGNOSTIC_ROUNDS[mode].roundType}:v1`;
+  return `${entry.wordId ?? quizConceptId(entry.word)}:round${DIAGNOSTIC_ROUNDS[mode].round}:v1`;
 }
 
 function vocabularyForms(word: string): string[] {
@@ -208,7 +220,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
   const translationPool = uniqueEntries.map((entry) => entry.translation).filter(Boolean);
   const clozeWordPool = uniqueEntries.map((entry) => vocabularyForms(entry.word)[0]).filter(Boolean);
   const questions = uniqueEntries.map((entry) => {
-    const source = entry.assessmentQuestions?.find((assessment) => assessment.level === config.bankLevel);
+    const source = entry.assessmentQuestions?.find((assessment) => assessmentRound(assessment) === config.round);
     const wordId = entry.wordId ?? quizConceptId(entry.word);
     if (mode === "tier1") {
       const correctAnswer = source?.correctAnswer || entry.translation;
@@ -219,9 +231,9 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       while (options.length < OPTION_COUNT) options.push(`meaning ${options.length + 1}`);
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
-        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 1 as const,
+        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, round: 1 as const, tier: "tier1" as const,
         questionType: config.questionKind, answerFormat: "single_choice" as const, prompt: source?.prompt || `What does ${entry.word} mean?`,
-        options: seededShuffle(options, `${wordId}:know_it:options`), correctAnswer,
+        options: seededShuffle(options, `${wordId}:round1:options`), correctAnswer,
         acceptedAnswers: source?.acceptedAnswers?.length ? source.acceptedAnswers : [correctAnswer],
         explanation: source?.explanation || `${entry.word} means ${entry.translation}.`,
         ...(source?.audioUrl || entry.audioUrl ? { audioUrl: source?.audioUrl || entry.audioUrl } : {}),
@@ -240,7 +252,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       ]));
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin,
-        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 2 as const,
+        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, round: 2 as const, tier: "tier2" as const,
         questionType: config.questionKind, answerFormat: "free_text" as const, prompt: `Type the pinyin for ${entry.word}.`, options: [],
         correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
         ...(source?.audioUrl || entry.audioUrl ? { audioUrl: source?.audioUrl || entry.audioUrl } : {}),
@@ -255,7 +267,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       ? source
       : undefined;
     const mcqSource = hardClozeSource ?? entry.assessmentQuestions?.find(
-      (assessment) => assessment.level === "medium" && assessment.questionType === "context_cloze_mcq",
+      (assessment) => assessmentRound(assessment) === 3 && assessment.questionType === "context_cloze_mcq",
     );
     const sourceCloze = hardClozeSource ? null : lessonCloze(entry);
     const correctAnswer = hardClozeSource?.correctAnswer || sourceCloze?.answer || source?.correctAnswer || vocabularyForms(entry.word)[0] || entry.word;
@@ -270,14 +282,15 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       : [correctAnswer, ...(mcqSource?.options ?? []).filter((option) => option !== mcqSource?.correctAnswer), ...otherWordForms];
     const options = Array.from(new Set([...sourceOptions, ...FILLER_CLOZE_WORDS])).slice(0, OPTION_COUNT);
     while (options.length < OPTION_COUNT) options.push(`詞${options.length + 1}`);
+    if (!options.includes(correctAnswer)) options[options.length - 1] = correctAnswer;
     return {
       questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
-      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 3 as const,
+      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, round: 3 as const, tier: "tier3" as const,
       questionType: config.questionKind, answerFormat: "single_choice" as const, prompt: hardClozeSource?.prompt || sourceCloze?.prompt || source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`,
-      options: seededShuffle(options, `${wordId}:use_it:options`), correctAnswer, acceptedAnswers,
+      options: seededShuffle(options, `${wordId}:round3:options`), correctAnswer, acceptedAnswers,
       explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
       ...(source?.audioUrl || entry.audioUrl ? { audioUrl: source?.audioUrl || entry.audioUrl } : {}),
     };
   });
-  return seededShuffle(questions, `${config.roundType}:question-order`);
+  return seededShuffle(questions, `round${config.round}:question-order`);
 }

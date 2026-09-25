@@ -1,8 +1,8 @@
-"""Import and validate a three-round vocabulary assessment CSV.
+"""Import and validate the canonical three-round vocabulary assessment bank.
 
-This module deliberately keeps assessment content separate from learning-model
-configuration. It validates one Easy/Medium/Hard observation per lesson word;
-the lesson decides the word count.
+The public bank contract is deliberately numeric and question-type based:
+each word has exactly one observation for rounds 1, 2, and 3. Difficulty
+labels are not part of the stored assessment shape.
 """
 
 from __future__ import annotations
@@ -24,52 +24,20 @@ except ImportError:  # pragma: no cover - keeps this pure module importable in m
     OpenCC = None  # type: ignore[assignment,misc]
 
 
-LEVELS = ("Easy", "Medium", "Hard")
-# Compatibility exports for older reports. Validation below is dynamic and
-# does not require these sample-course values.
+ROUNDS = (1, 2, 3)
 EXPECTED_WORD_COUNT = 15
-EXPECTED_QUESTION_COUNT = EXPECTED_WORD_COUNT * len(LEVELS)
-MCQ_LEVELS = frozenset({"Easy", "Medium"})
-QUESTION_TYPE_BY_LEVEL = {
-    "Easy": "basic_meaning_mcq",
-    "Medium": "context_cloze_mcq",
-    "Hard": "productive_recall",
+EXPECTED_QUESTION_COUNT = EXPECTED_WORD_COUNT * len(ROUNDS)
+QUESTION_TYPE_BY_ROUND = {
+    1: "basic_meaning_mcq",
+    2: "character_to_pinyin_typing",
+    3: "context_cloze_mcq",
 }
-# ``QUESTION_TYPE_BY_LEVEL`` is the ORIGINAL/legacy round shape. It is kept
-# only for historical banks that still use it (see
-# ``_VALID_QUESTION_SHAPES_BY_LEVEL`` below) - nothing writes new content
-# with it anymore. New/edited content must use the current production
-# workbook's shape instead, which is what the live student quiz
-# (frontend DIAGNOSTIC_ROUNDS) and import_question_bank_workbook.py both
-# already assume: Know It (Easy) = meaning MCQ, Say It (Medium) = pinyin
-# typing (free text, no options), Use It (Hard) = context-cloze MCQ.
-ROUND_TYPE_BY_LEVEL = {"Easy": "know_it", "Medium": "say_it", "Hard": "use_it"}
-CURRENT_QUESTION_TYPE_BY_LEVEL = {
-    "Easy": "basic_meaning_mcq",
-    "Medium": "character_to_pinyin_typing",
-    "Hard": "context_cloze_mcq",
-}
-CURRENT_ANSWER_FORMAT_BY_LEVEL = {
-    "Easy": "single_choice",
-    "Medium": "free_text",
-    "Hard": "single_choice",
-}
-# Keep the allowed question type and input mode together so a type cannot
-# silently move to an incompatible round or UI control.
-_VALID_QUESTION_SHAPES_BY_LEVEL = {
-    "Easy": frozenset({("basic_meaning_mcq", "single_choice")}),
-    "Medium": frozenset({
-        ("context_cloze_mcq", "single_choice"),  # legacy banks
-        ("character_to_pinyin_typing", "free_text"),  # current workbook
-    }),
-    "Hard": frozenset({
-        ("productive_recall", "free_text"),  # legacy banks
-        ("context_cloze_mcq", "single_choice"),  # current workbook
-    }),
-}
+ANSWER_FORMAT_BY_ROUND = {1: "single_choice", 2: "free_text", 3: "single_choice"}
+TIER_BY_ROUND = {1: "tier1", 2: "tier2", 3: "tier3"}
+SUPPORTED_QUESTION_TYPES = frozenset(QUESTION_TYPE_BY_ROUND.values())
 _REQUIRED_COLUMNS = frozenset({
     "word_id", "target_word", "pinyin", "pos", "simple_english_meaning",
-    "level", "difficulty_weight", "question_type", "answer_format", "prompt",
+    "round", "question_type", "answer_format", "prompt",
     "options_json", "correct_answer", "accepted_answers_json", "explanation",
 })
 _WHITESPACE_OR_PUNCTUATION = re.compile(r"[\s\W_]+", re.UNICODE)
@@ -90,8 +58,7 @@ class VocabularyQuestion:
     pinyin: str
     part_of_speech: str
     simple_english_meaning: str
-    level: str
-    difficulty_weight: int
+    round: int
     question_type: str
     answer_format: str
     prompt: str
@@ -103,7 +70,12 @@ class VocabularyQuestion:
 
     @property
     def question_id(self) -> str:
-        return f"{self.word_id}_{self.level.upper()}"
+        raw_id = self.raw.get("questionId") or self.raw.get("question_id") or self.raw.get("Question ID")
+        return str(raw_id).strip() if raw_id else f"{self.word_id}:round:{self.round}"
+
+    @property
+    def tier(self) -> str:
+        return TIER_BY_ROUND[self.round]
 
 
 @dataclass(frozen=True)
@@ -115,12 +87,12 @@ class VocabularyItem:
     simple_english_meaning: str
     observations: tuple[VocabularyQuestion, VocabularyQuestion, VocabularyQuestion]
 
-    def observation_for(self, level: str) -> VocabularyQuestion:
-        canonical_level = _canonical_level(level)
+    def observation_for(self, round_number: int | str) -> VocabularyQuestion:
+        canonical_round = _canonical_round(round_number)
         for observation in self.observations:
-            if observation.level == canonical_level:
+            if observation.round == canonical_round:
                 return observation
-        raise KeyError(f"{self.word_id} has no {canonical_level} observation")
+        raise KeyError(f"{self.word_id} has no round {canonical_round} observation")
 
 
 @dataclass(frozen=True)
@@ -131,12 +103,13 @@ class AssessmentValidationIssue:
     word_id: str | None = None
 
 
-def _canonical_level(value: str) -> str:
-    normalized = value.strip().casefold()
-    for level in LEVELS:
-        if normalized == level.casefold():
-            return level
-    return value.strip()
+def _canonical_round(value: int | str) -> int:
+    normalized = str(value).strip().casefold().replace("round", "").strip()
+    try:
+        round_number = int(normalized)
+    except ValueError:
+        return 0
+    return round_number if round_number in ROUNDS else 0
 
 
 def _parse_json_string_list(value: str, *, field: str, row_number: int) -> tuple[str, ...]:
@@ -153,18 +126,16 @@ def _question_from_row(row: Mapping[str, str], row_number: int) -> VocabularyQue
     missing = _REQUIRED_COLUMNS.difference(row)
     if missing:
         raise ValueError(f"CSV is missing required columns: {', '.join(sorted(missing))}")
-    try:
-        weight = int((row.get("difficulty_weight") or "").strip())
-    except ValueError as exc:
-        raise ValueError(f"row {row_number}: difficulty_weight must be an integer") from exc
+    round_number = _canonical_round(row.get("round") or "")
+    if round_number not in ROUNDS:
+        raise ValueError(f"row {row_number}: round must be 1, 2, or 3")
     return VocabularyQuestion(
         word_id=(row.get("word_id") or "").strip(),
         target_word=(row.get("target_word") or "").strip(),
         pinyin=(row.get("pinyin") or "").strip(),
         part_of_speech=(row.get("pos") or "").strip(),
         simple_english_meaning=(row.get("simple_english_meaning") or "").strip(),
-        level=_canonical_level(row.get("level") or ""),
-        difficulty_weight=weight,
+        round=round_number,
         question_type=(row.get("question_type") or "").strip(),
         answer_format=(row.get("answer_format") or "").strip(),
         prompt=(row.get("prompt") or "").strip(),
@@ -216,7 +187,7 @@ def build_vocabulary_items(questions: Iterable[VocabularyQuestion]) -> list[Voca
         by_word[question.word_id].append(question)
     items: list[VocabularyItem] = []
     for word_id, observations in by_word.items():
-        by_level = {observation.level: observation for observation in observations}
+        by_round = {observation.round: observation for observation in observations}
         first = observations[0]
         items.append(VocabularyItem(
             word_id=word_id,
@@ -224,7 +195,7 @@ def build_vocabulary_items(questions: Iterable[VocabularyQuestion]) -> list[Voca
             pinyin=first.pinyin,
             part_of_speech=first.part_of_speech,
             simple_english_meaning=first.simple_english_meaning,
-            observations=tuple(by_level[level] for level in LEVELS),  # type: ignore[arg-type]
+            observations=tuple(by_round[round_number] for round_number in ROUNDS),
         ))
     return items
 
@@ -254,24 +225,28 @@ def validate_assessment_payload(payload: object) -> list[AssessmentValidationIss
             continue
         options = row.get("options", [])
         accepted = row.get("acceptedAnswers", [])
+        legacy_fields = [field for field in ("level", "difficultyWeight", "sourceQuestionId") if field in row]
+        if legacy_fields:
+            issues.append(AssessmentValidationIssue(
+                "LEGACY_ASSESSMENT_FIELDS",
+                "Assessment questions must use round/tier and source questionId; remove " + ", ".join(legacy_fields) + ".",
+                str(row.get("questionId") or "") or None,
+                str(row.get("wordId") or "") or None,
+            ))
         if not isinstance(options, Sequence) or isinstance(options, (str, bytes)) or any(not isinstance(value, str) for value in options):
             issues.append(AssessmentValidationIssue("PAYLOAD_OPTIONS_INVALID", f"Question {index} options must be a list of strings."))
             options = []
         if not isinstance(accepted, Sequence) or isinstance(accepted, (str, bytes)) or any(not isinstance(value, str) for value in accepted):
             issues.append(AssessmentValidationIssue("PAYLOAD_ACCEPTED_ANSWERS_INVALID", f"Question {index} acceptedAnswers must be a list of strings."))
             accepted = []
-        try:
-            weight = int(row.get("difficultyWeight", 0))
-        except (TypeError, ValueError):
-            weight = 0
+        round_number = _canonical_round(row.get("round", ""))
         question = VocabularyQuestion(
             word_id=str(row.get("wordId", "")).strip(),
             target_word=str(row.get("targetWord", "")).strip(),
             pinyin=str(row.get("pinyin", "")).strip(),
             part_of_speech=str(row.get("pos", "")).strip(),
             simple_english_meaning=str(row.get("simpleEnglishMeaning", "")).strip(),
-            level=_canonical_level(str(row.get("level", ""))),
-            difficulty_weight=weight,
+            round=round_number,
             question_type=str(row.get("questionType", "")).strip(),
             answer_format=str(row.get("answerFormat", "")).strip(),
             prompt=str(row.get("prompt", "")).strip(),
@@ -281,14 +256,22 @@ def validate_assessment_payload(payload: object) -> list[AssessmentValidationIss
             explanation=str(row.get("explanation", "")).strip(),
             raw=row,
         )
-        expected_question_id = question.question_id
-        if row.get("questionId") != expected_question_id:
+        question_id = str(row.get("questionId") or "").strip()
+        if not question_id:
             issues.append(AssessmentValidationIssue(
                 "INVALID_QUESTION_ID",
-                f"questionId must be {expected_question_id}.",
-                str(row.get("questionId") or expected_question_id),
+                "questionId is required and must be the source bank question id.",
+                None,
                 question.word_id or None,
             ))
+        elif question_id.casefold().endswith(("_easy", "_medium", "_hard")):
+            issues.append(AssessmentValidationIssue(
+                "LEGACY_QUESTION_ID",
+                "questionId must not use an Easy/Medium/Hard suffix.",
+                question_id,
+                question.word_id or None,
+            ))
+        question = VocabularyQuestion(**{**question.__dict__, "raw": {**question.raw, "questionId": question_id}})
         questions.append(question)
     return issues + validate_vocab_assessment(questions)
 
@@ -368,9 +351,9 @@ def _contains_simplified_chinese(value: str) -> bool:
 
 
 def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[AssessmentValidationIssue]:
-    """Validate dynamic lesson coverage: each word has one of each level."""
+    """Validate dynamic lesson coverage: each word has one of each round."""
     issues: list[AssessmentValidationIssue] = []
-    expected_question_count = len({question.word_id for question in questions if question.word_id}) * len(LEVELS)
+    expected_question_count = len({question.word_id for question in questions if question.word_id}) * len(ROUNDS)
     if expected_question_count and len(questions) != expected_question_count:
         issues.append(AssessmentValidationIssue(
             "QUESTION_COUNT", f"Expected {expected_question_count} questions for the supplied words, found {len(questions)}."
@@ -383,25 +366,30 @@ def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[A
         if question_id in seen_ids:
             issues.append(AssessmentValidationIssue("DUPLICATE_QUESTION_ID", f"Duplicate question id {question_id}.", question_id, question.word_id))
         seen_ids.add(question_id)
-        if question.level not in LEVELS:
-            issues.append(AssessmentValidationIssue("INVALID_LEVEL", "Level must be Easy, Medium, or Hard.", question_id, question.word_id))
+        if question.round not in ROUNDS:
+            issues.append(AssessmentValidationIssue("INVALID_ROUND", "Round must be 1, 2, or 3.", question_id, question.word_id))
         if not all((question.word_id, question.target_word, question.pinyin, question.part_of_speech, question.simple_english_meaning, question.question_type, question.prompt, question.correct_answer, question.explanation)):
             issues.append(AssessmentValidationIssue("MISSING_REQUIRED_VALUE", "Question has an empty required value.", question_id, question.word_id))
-        if question.difficulty_weight != {"Easy": 1, "Medium": 2, "Hard": 3}.get(question.level):
-            issues.append(AssessmentValidationIssue("INVALID_DIFFICULTY_WEIGHT", "Difficulty weight must match its level.", question_id, question.word_id))
-        allowed_shapes = _VALID_QUESTION_SHAPES_BY_LEVEL.get(question.level, frozenset())
-        allowed_types = {question_type for question_type, _ in allowed_shapes}
-        if question.level in LEVELS and question.question_type not in allowed_types:
+        expected_type = QUESTION_TYPE_BY_ROUND.get(question.round)
+        expected_format = ANSWER_FORMAT_BY_ROUND.get(question.round)
+        if question.question_type not in SUPPORTED_QUESTION_TYPES:
             issues.append(AssessmentValidationIssue(
                 "INVALID_QUESTION_TYPE",
-                f"{question.level} observations do not support {question.question_type}.",
+                f"Unsupported question type {question.question_type}.",
                 question_id,
                 question.word_id,
             ))
-        elif question.level in LEVELS and (question.question_type, question.answer_format) not in allowed_shapes:
+        elif question.question_type != expected_type:
+            issues.append(AssessmentValidationIssue(
+                "INVALID_QUESTION_TYPE_FOR_ROUND",
+                f"Round {question.round} requires {expected_type}.",
+                question_id,
+                question.word_id,
+            ))
+        elif question.answer_format != expected_format:
             issues.append(AssessmentValidationIssue(
                 "INVALID_ANSWER_FORMAT",
-                f"{question.question_type} observations at {question.level} must use its supported answer format.",
+                f"Round {question.round} requires {expected_format}.",
                 question_id,
                 question.word_id,
             ))
@@ -422,16 +410,16 @@ def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[A
         elif question.answer_format == "free_text":
             if question.options:
                 issues.append(AssessmentValidationIssue(
-                    "HARD_HAS_OPTIONS" if question.level == "Hard" else "FREE_TEXT_HAS_OPTIONS",
+                    "FREE_TEXT_HAS_OPTIONS",
                     "Free-text questions must not expose options.",
                     question_id,
                     question.word_id,
                 ))
 
     for word_id, observations in by_word.items():
-        levels = [observation.level for observation in observations]
-        if set(levels) != set(LEVELS) or len(observations) != len(LEVELS):
-            issues.append(AssessmentValidationIssue("LEVEL_COVERAGE", "Each word must have exactly one Easy, Medium, and Hard observation.", word_id=word_id))
+        rounds = [observation.round for observation in observations]
+        if set(rounds) != set(ROUNDS) or len(observations) != len(ROUNDS):
+            issues.append(AssessmentValidationIssue("ROUND_COVERAGE", "Each word must have exactly one round 1, 2, and 3 observation.", word_id=word_id))
         first = observations[0] if observations else None
         if first and any((observation.target_word, observation.pinyin, observation.part_of_speech, observation.simple_english_meaning) != (first.target_word, first.pinyin, first.part_of_speech, first.simple_english_meaning) for observation in observations[1:]):
             issues.append(AssessmentValidationIssue("INCONSISTENT_WORD_METADATA", "Observations for one word must share vocabulary metadata.", word_id=word_id))

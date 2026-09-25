@@ -9,6 +9,7 @@ export interface VocabQuizSynonymCandidate {
 }
 
 export type VocabAssessmentLevel = "easy" | "medium" | "hard";
+export type VocabAssessmentRound = 1 | 2 | 3;
 
 export interface VocabAssessmentQuestion {
   questionId: string;
@@ -17,8 +18,11 @@ export interface VocabAssessmentQuestion {
   pinyin: string;
   pos: string;
   simpleEnglishMeaning: string;
-  level: VocabAssessmentLevel;
-  difficultyWeight: 1 | 2 | 3;
+  /** Canonical bank field. Legacy level/weight values are read-only compatibility fields. */
+  round?: VocabAssessmentRound;
+  tier?: "tier1" | "tier2" | "tier3";
+  level?: VocabAssessmentLevel;
+  difficultyWeight?: 1 | 2 | 3;
   questionType: "basic_meaning_mcq" | "context_cloze_mcq" | "productive_recall" | "character_to_pinyin_typing" | "contextual_productive_recall";
   answerFormat: "single_choice" | "free_text";
   prompt: string;

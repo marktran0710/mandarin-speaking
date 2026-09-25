@@ -73,11 +73,11 @@ def _placement_result(word: str, correct: bool, exposure: int) -> dict:
         # here) — NOT the story-text difficulty label ("easy"/PlacementTest's
         # own client-side field name); classify_bkt_response's
         # ROUND_LEVEL_MISMATCH check is strict about this.
-        "level": "tier1",
+        "tier": "tier1",
+        "round": 1,
         "mode": "tier1",
         "itemId": f"item-{word}-{exposure}",
         "questionKind": "basic_meaning_mcq",
-        "roundType": "know_it",
         "knowledgeDimension": "meaning",
         "activityType": "diagnostic",
         "isBktEligible": True,

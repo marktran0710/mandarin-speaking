@@ -203,6 +203,7 @@ def row_to_vocab_quiz_attempt(row: dict) -> dict:
         # Attempt-level fields are derived from the first new-format item;
         # legacy rows simply omit them.
         **({"baseStoryId": first_result["baseStoryId"]} if first_result.get("baseStoryId") else {}),
+        **({"tier": first_result["tier"]} if first_result.get("tier") else {}),
         **({"level": first_result["level"]} if first_result.get("level") else {}),
     }
 
@@ -260,6 +261,7 @@ STUDENT_OWNED_TABLES = (
     "student_vocab_srs_events",
     "vocab_quiz_attempts",
     "vocab_quiz_responses",
+    "placement_test_attempts",
 )
 
 

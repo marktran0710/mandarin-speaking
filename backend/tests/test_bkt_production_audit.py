@@ -7,23 +7,26 @@ from analytics.bkt_question_validation import (
 def _assessment():
     return [
         {
-            "questionId": "WORD_EASY",
+            "questionId": "Q0001",
             "wordId": "word-1",
-            "level": "easy",
+            "round": 1,
+            "tier": "tier1",
             "questionType": "basic_meaning_mcq",
             "answerFormat": "single_choice",
         },
         {
-            "questionId": "WORD_MEDIUM",
+            "questionId": "Q0002",
             "wordId": "word-1",
-            "level": "medium",
+            "round": 2,
+            "tier": "tier2",
             "questionType": "character_to_pinyin_typing",
             "answerFormat": "free_text",
         },
         {
-            "questionId": "WORD_HARD",
+            "questionId": "Q0003",
             "wordId": "word-1",
-            "level": "hard",
+            "round": 3,
+            "tier": "tier3",
             "questionType": "context_cloze_mcq",
             "answerFormat": "single_choice",
         },
@@ -64,9 +67,10 @@ def test_production_assessment_rejects_wrong_question_type_and_format():
 def test_production_assessment_rejects_unsupported_and_duplicate_items():
     assessment = _assessment()
     assessment.append({
-        "questionId": "WORD_MEDIUM_DUPLICATE",
+        "questionId": "Q0002-DUPLICATE",
         "wordId": "word-1",
-        "level": "medium",
+        "round": 2,
+        "tier": "tier2",
         "questionType": "unsupported_review_type",
         "answerFormat": "single_choice",
     })

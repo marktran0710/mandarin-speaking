@@ -14,14 +14,14 @@ from domain.vocabulary.assessment import normalize_answer, numeric_to_tone_marke
 # quiz bank's own difficulty label, so the bank stays untouched (see
 # ``_diagnostic_source``).
 _ROUND_FACTS = {
-    "tier1": ("tier1", "know_it", "meaning", "basic_meaning_mcq"),
-    "tier2": ("tier2", "say_it", "pinyin_production", "character_to_pinyin_typing"),
+    "tier1": ("tier1", 1, "meaning", "basic_meaning_mcq"),
+    "tier2": ("tier2", 2, "pinyin_production", "character_to_pinyin_typing"),
     # Round 3 is a multiple-choice context cloze, not free-text hanzi typing —
     # most students have no Chinese IME, so a bare text input made the round
     # unplayable. The question kind here must match bkt.py's TYPED_QUESTION_TYPES
     # membership: "context_cloze_mcq" is guessable (MCQ guess/slip), unlike the
     # old "contextual_productive_recall" typed rate this round used to get.
-    "tier3": ("tier3", "use_it", "contextual_recall", "context_cloze_mcq"),
+    "tier3": ("tier3", 3, "contextual_recall", "context_cloze_mcq"),
 }
 
 # The published quiz bank tags each assessment question with its own difficulty
@@ -29,15 +29,14 @@ _ROUND_FACTS = {
 # renamed here. We only need it to derive a round key for non-diagnostic
 # (weak-word) responses, whose quiz_level is metadata the diagnostic filter
 # ignores. Diagnostic responses never consult it.
-_BANK_LABEL_TO_ROUND = {"easy": "tier1", "medium": "tier2", "hard": "tier3"}
-
 _QUESTION_FACTS = {
-    "basic_meaning_mcq": ("tier1", "know_it", "meaning"),
-    "character_to_pinyin_typing": ("tier2", "say_it", "pinyin_production"),
-    "context_cloze_mcq": ("tier3", "use_it", "contextual_recall"),
-    "contextual_productive_recall": ("tier3", "use_it", "contextual_recall"),
-    "productive_recall": ("tier3", "use_it", "contextual_recall"),
+    "basic_meaning_mcq": ("tier1", 1, "meaning"),
+    "character_to_pinyin_typing": ("tier2", 2, "pinyin_production"),
+    "context_cloze_mcq": ("tier3", 3, "contextual_recall"),
 }
+
+_LEGACY_ROUND_BY_LEVEL = {"easy": 1, "medium": 2, "hard": 3}
+_LEGACY_TYPED_QUESTION_TYPES = {"productive_recall", "contextual_productive_recall"}
 
 ASSESSMENT_RESOLVER_VERSION = "authoritative-assessment-v1"
 
@@ -58,6 +57,31 @@ def _unresolved(submitted: dict[str, Any], reason: str) -> dict[str, Any]:
     }
 
 
+def _item_round(item: dict[str, Any]) -> int | None:
+    """Read the canonical round, with a read-only fallback for old banks."""
+    try:
+        round_number = int(item.get("round"))
+    except (TypeError, ValueError):
+        round_number = 0
+    if round_number in {1, 2, 3}:
+        return round_number
+    level = str(item.get("level") or "").strip().casefold()
+    if level in _LEGACY_ROUND_BY_LEVEL:
+        return _LEGACY_ROUND_BY_LEVEL[level]
+    question_type = str(item.get("questionType") or "").strip()
+    return next((round_number for _tier, round_number, _dimension, kind in _ROUND_FACTS.values() if kind == question_type), None)
+
+
+def _item_kind(item: dict[str, Any], round_number: int | None) -> str:
+    """Return the canonical kind used by BKT without rewriting old source data."""
+    question_type = str(item.get("questionType") or "").strip()
+    if question_type in _QUESTION_FACTS:
+        return question_type
+    if question_type in _LEGACY_TYPED_QUESTION_TYPES and round_number in {1, 2, 3}:
+        return _ROUND_FACTS[f"tier{round_number}"][3]
+    return question_type
+
+
 def _published_assessment(db: Any, story_id: str) -> tuple[str, list[dict[str, Any]]] | None:
     source_story_id = canonical_story_id(story_id) or story_id
     story = db.execute(
@@ -76,15 +100,18 @@ def _diagnostic_source(
     facts = _ROUND_FACTS.get(mode)
     if facts is None:
         return None
-    round_key, round_type, _dimension, _question_kind = facts
+    round_key, round_number, _dimension, _question_kind = facts
     for item in assessment:
-        # A word carries one bank question per round, discriminated by the
-        # bank's own difficulty label. We translate that label to our round key
-        # (tier1/2/3) rather than renaming the bank, which the quiz pipeline
-        # owns. quiz_level is then stored as the round key, never the label.
-        if _BANK_LABEL_TO_ROUND.get(str(item.get("level") or "").casefold()) != round_key:
+        # Canonical banks carry a numeric round. Old published snapshots may
+        # still carry a difficulty label; derive the round in memory only so
+        # historical attempts remain readable while migration catches up.
+        try:
+            item_round = _item_round(item)
+        except (TypeError, ValueError):
+            item_round = None
+        if item_round != round_number or _item_kind(item, item_round) != _question_kind:
             continue
-        expected_item_id = f"{item.get('wordId')}:{round_type}:v1"
+        expected_item_id = f"{item.get('wordId')}:round{round_number}:v1"
         # Imported banks expose ``questionId`` directly; the current student
         # flow uses a stable round-specific derivative of the same word id.
         if submitted_item_id in {str(item.get("questionId") or ""), expected_item_id}:
@@ -131,10 +158,15 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         item = next((row for row in assessment if row.get("questionId") == item_id), None)
         if item is None:
             return _unresolved(submitted, "UNKNOWN_PUBLISHED_ASSESSMENT_ITEM")
-        level = _BANK_LABEL_TO_ROUND.get(str(item.get("level") or "").casefold())
         question_kind = str(item.get("questionType") or "")
         derived_facts = _QUESTION_FACTS.get(question_kind)
-        round_type = derived_facts[1] if derived_facts else None
+        item_round = _item_round(item)
+        if derived_facts is None and question_kind in _LEGACY_TYPED_QUESTION_TYPES and item_round in {1, 2, 3}:
+            round_facts = _ROUND_FACTS[f"tier{item_round}"]
+            derived_facts = (round_facts[0], round_facts[1], round_facts[2])
+            question_kind = round_facts[3]
+        tier = derived_facts[0] if derived_facts else None
+        round_number = derived_facts[1] if derived_facts else None
         knowledge_dimension = derived_facts[2] if derived_facts else None
         activity_type = "personalized_practice" if mode == "weak_words" else "scheduled_maintenance"
         is_bkt_eligible = False
@@ -143,7 +175,7 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         source = _diagnostic_source(assessment, mode, item_id)
         if source is None:
             return _unresolved(submitted, "UNKNOWN_OR_STALE_DIAGNOSTIC_ITEM")
-        item, (level, round_type, knowledge_dimension, question_kind) = source
+        item, (tier, round_number, knowledge_dimension, question_kind) = source
         activity_type = "diagnostic"
         is_bkt_eligible = True
         eligibility_errors = []
@@ -176,12 +208,8 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
     elif mode in {"tier1", "weak_words", "maintenance_review"}:
         options = list(item.get("options") or [])
     elif mode == "tier3":
-        # `item` here is the round's hard-level bank row, which carries no
-        # options (it's the free-text productive_recall entry) — Round 3's
-        # actual MCQ choices are client-built from lesson + medium-level bank
-        # data (see model.ts's buildDiagnosticRoundQuestions). presentedOptions
-        # is harmless audit metadata, not authoritative for grading, so trust
-        # what was submitted rather than re-deriving the same construction here.
+        # Context choices are retained as audit metadata. Correctness still
+        # comes from the published answer fields, never from client options.
         options = [value for value in (submitted.get("presentedOptions") or []) if isinstance(value, str)]
     else:
         options = []
@@ -194,8 +222,8 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         "itemId": item_id,
         "questionKind": question_kind,
         "answerFormat": item.get("answerFormat"),
-        "level": level,
-        "roundType": round_type,
+        "round": round_number,
+        "tier": tier,
         "knowledgeDimension": knowledge_dimension,
         "activityType": activity_type,
         "correct": correct,

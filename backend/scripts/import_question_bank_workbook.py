@@ -22,14 +22,19 @@ from psycopg.types.json import Jsonb  # noqa: E402
 
 from db import connect_db  # noqa: E402
 from scripts.seed_quiz_assessments import find_story_for_part  # noqa: E402
-from domain.vocabulary.assessment import validate_assessment_payload  # noqa: E402
+from domain.vocabulary.assessment import (
+    ANSWER_FORMAT_BY_ROUND,
+    QUESTION_TYPE_BY_ROUND,
+    TIER_BY_ROUND,
+    validate_assessment_payload,
+)  # noqa: E402
 
 
 BANK_PATH = Path(__file__).resolve().parent / "data" / "quiz_assessments" / "modern-chinese-ch5-to-ch8-question-bank.csv"
 ROUNDS = {
-    "Round 1": ("easy", 1, "single_choice"),
-    "Round 2": ("medium", 2, "free_text"),
-    "Round 3": ("hard", 3, "single_choice"),
+    "Round 1": 1,
+    "Round 2": 2,
+    "Round 3": 3,
 }
 REQUIRED_COLUMNS = {
     "Question ID", "Word Key", "Source Type", "Chapter", "Section", "Item",
@@ -63,6 +68,8 @@ def validate_source_rows(rows: Iterable[dict[str, str]]) -> list[str]:
         if qid in seen_question_ids:
             issues.append(f"duplicate Question ID: {qid}")
         seen_question_ids.add(qid)
+        if qid.casefold().endswith(("_easy", "_medium", "_hard")):
+            issues.append(f"{qid}: Question ID must not use an Easy/Medium/Hard suffix")
         by_word[row["Word Key"]].append(row)
         section = row["Section"]
         if section not in {f"{chapter}-{part}" for chapter in range(5, 9) for part in range(1, 4)}:
@@ -71,15 +78,16 @@ def validate_source_rows(rows: Iterable[dict[str, str]]) -> list[str]:
         if round_info is None:
             issues.append(f"{qid}: unsupported round {row['Round']}")
             continue
-        level, _, answer_format = round_info
-        expected_type = {"easy": "basic_meaning_mcq", "medium": "character_to_pinyin_typing", "hard": "context_cloze_mcq"}[level]
+        round_number = round_info
+        answer_format = ANSWER_FORMAT_BY_ROUND[round_number]
+        expected_type = QUESTION_TYPE_BY_ROUND[round_number]
         if row["Question Type"] != expected_type:
             issues.append(f"{qid}: {row['Round']} uses {row['Question Type']}, expected {expected_type}")
         if row["Input Mode"] == "click" and answer_format != "single_choice":
             issues.append(f"{qid}: click input is not a single-choice question")
         if row["Input Mode"] == "free_text" and answer_format != "free_text":
             issues.append(f"{qid}: free-text input has the wrong answer format")
-        if level in {"easy", "hard"}:
+        if answer_format == "single_choice":
             options = [row[f"Option {letter}"] for letter in "ABCD"]
             if len(set(options)) != 4 or any(not option for option in options):
                 issues.append(f"{qid}: options must contain four distinct values")
@@ -95,7 +103,7 @@ def validate_source_rows(rows: Iterable[dict[str, str]]) -> list[str]:
             if not row[required].strip():
                 issues.append(f"{qid}: empty {required}")
     for word_id, word_rows in by_word.items():
-        if len(word_rows) != 3 or {row["Round"] for row in word_rows} != set(ROUNDS):
+        if len(word_rows) != 3 or {ROUNDS.get(row["Round"]) for row in word_rows} != set(ROUNDS.values()):
             issues.append(f"{word_id}: expected exactly one row for each round")
         for field in ("Chapter", "Section", "Item", "Traditional Chinese", "Pinyin", "POS", "English Meaning"):
             if len({row[field] for row in word_rows}) != 1:
@@ -104,20 +112,21 @@ def validate_source_rows(rows: Iterable[dict[str, str]]) -> list[str]:
 
 
 def _question(row: dict[str, str]) -> dict[str, Any]:
-    level, weight, answer_format = ROUNDS[row["Round"]]
+    round_number = ROUNDS[row["Round"]]
+    answer_format = ANSWER_FORMAT_BY_ROUND[round_number]
     question_type = row["Question Type"]
     options = [row[f"Option {letter}"] for letter in "ABCD"] if answer_format == "single_choice" else []
     accepted = _answers(row["Accepted Answers"]) if row["Accepted Answers"] else [row["Correct Answer"]]
     explanation = f"Correct answer: {row['Correct Answer']}."
     return {
-        "questionId": f"{row['Word Key']}_{level.upper()}",
+        "questionId": row["Question ID"],
         "wordId": row["Word Key"],
         "targetWord": row["Traditional Chinese"],
         "pinyin": row["Pinyin"],
         "pos": row["POS"],
         "simpleEnglishMeaning": row["English Meaning"],
-        "level": level,
-        "difficultyWeight": weight,
+        "round": round_number,
+        "tier": TIER_BY_ROUND[round_number],
         "questionType": question_type,
         "answerFormat": answer_format,
         "prompt": row["Prompt"],
@@ -125,9 +134,7 @@ def _question(row: dict[str, str]) -> dict[str, Any]:
         "correctAnswer": row["Correct Answer"],
         "acceptedAnswers": accepted,
         "explanation": explanation,
-        "sourceQuestionId": row["Question ID"],
         "sourceType": row.get("Source Type", ""),
-        "round": row["Round"],
     }
 
 
@@ -136,7 +143,7 @@ def build_payloads(rows: Iterable[dict[str, str]]) -> dict[str, list[dict[str, A
     for row in rows:
         payloads[row["Section"]].append(_question(row))
     for section, payload in payloads.items():
-        payload.sort(key=lambda question: (question["wordId"], question["difficultyWeight"]))
+        payload.sort(key=lambda question: (question["wordId"], question["round"]))
         issues = validate_assessment_payload(payload)
         if issues:
             rendered = "; ".join(f"{issue.code}: {issue.message}" for issue in issues[:8])

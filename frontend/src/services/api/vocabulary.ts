@@ -1,9 +1,9 @@
 import { ApiRequestAbortedError, ApiRequestTimeoutError, BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 import type { StoredCustomStory } from "./stories-submissions";
 
-export type QuizVocabularyLevel = "Easy" | "Medium" | "Hard";
+export type QuizVocabularyRound = 1 | 2 | 3;
 export interface QuizVocabularyQuestionDraft {
-  level: QuizVocabularyLevel;
+  round: QuizVocabularyRound;
   prompt: string;
   options: string[];
   correctAnswer: string;

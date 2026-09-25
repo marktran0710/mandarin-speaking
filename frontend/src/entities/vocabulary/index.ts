@@ -1,6 +1,7 @@
 export type {
   VocabAssessmentLevel,
   VocabAssessmentQuestion,
+  VocabAssessmentRound,
   VocabQuizClozeCandidate,
   VocabQuizEntry,
   VocabQuizQuestionKind,
@@ -31,7 +32,6 @@ export {
 export type {
   DiagnosticKnowledgeDimension,
   DiagnosticRoundConfig,
-  DiagnosticRoundType,
   QuizStarsSummary,
   QuizTier,
   TierConfig,

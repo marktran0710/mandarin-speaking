@@ -146,7 +146,7 @@ def response_rows_for_attempt(
             "attempt_id": attempt_id,
             "item_id": result.get("itemId") or f"{base_story_id or story_id}:{word_id}:{result.get('questionKind', 'unknown')}:v1",
             "question_type": result.get("questionKind") or "unknown",
-            "round_type": result.get("roundType") or result.get("round_type"),
+            "round_type": result.get("round") or result.get("roundType") or result.get("round_type"),
             "knowledge_dimension": result.get("knowledgeDimension") or result.get("knowledge_dimension"),
             "activity_type": result.get("activityType") or (
                 "personalized_practice" if quiz_mode == "weak_words"
@@ -172,7 +172,7 @@ def response_rows_for_attempt(
             "resolver_version": result.get("resolverVersion"),
             "occurred_at_utc": _parse_occurred_at_utc(result.get("answeredAt") or completed_at),
             "attempt_order": order,
-            "quiz_level": result.get("level") or level,
+            "quiz_level": result.get("tier") or result.get("level") or level,
             "quiz_mode": mode,
             "research_study_id": research_study_id,
         })
@@ -600,7 +600,7 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
         "roundPresence": {
             mode: {
                 "level": DIAGNOSTIC_LEVELS[index],
-                "roundType": ("know_it", "say_it", "use_it")[index],
+                "round": index + 1,
                 "observedWords": round_metrics.get(mode, {}).get("word_count", 0),
                 "observations": round_metrics.get(mode, {}).get("observation_count", 0),
                 "complete": known_count > 0 and _round_has_complete_run(round_metrics, mode, known_word_ids, known_count),
