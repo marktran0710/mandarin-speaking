@@ -31,9 +31,6 @@ interface QuizQuestionSurfaceProps {
   onPinyinChange: (value: string) => void;
   showingFeedback: boolean;
   lastResult?: VocabQuizQuestionResult;
-  hint?: string;
-  hintOpen: boolean;
-  onToggleHint: () => void;
   onSubmit: () => void;
   onNext: () => void;
 }
@@ -108,16 +105,10 @@ function Stimulus({
   question,
   presentation,
   lessonLabel,
-  hint,
-  hintOpen,
-  onToggleHint,
 }: {
   question: VocabQuizQuestion;
   presentation: ReturnType<typeof questionPresentation>;
   lessonLabel: string;
-  hint?: string;
-  hintOpen: boolean;
-  onToggleHint: () => void;
 }) {
   let stage: ReactNode;
   if (presentation.surface === "context") {
@@ -125,25 +116,25 @@ function Stimulus({
   } else {
     stage = <BilingualWord hanzi={question.word} pinyin={presentation.pinyin} size="hero" />;
   }
+  const heading = presentation.surface === "context"
+    ? "Choose the word that completes the sentence."
+    : presentation.prompt;
 
   return (
     <StudentSection variant="panel" className="sa-quiz__stimulus-card">
       <div className="sa-quiz__card-heading">
         <div>
           <span className="sa-quiz__section-kicker"><i /> {presentation.label}</span>
-          <h2 id="quiz-question-title">{presentation.prompt}</h2>
+          <h2 id="quiz-question-title">{heading}</h2>
         </div>
         <span className="sa-quiz__source-label">{lessonLabel}</span>
       </div>
       <div className={`sa-quiz__word-stage sa-quiz__word-stage--${presentation.surface}`}>{stage}</div>
-      <div className="sa-quiz__prompt-footer">
-        {presentation.audioUrl ? <StudentAudioControl audioUrl={presentation.audioUrl} label="Listen to model" showDuration /> : <span />}
-        {hint && (
-          <button type="button" className={`sa-quiz__hint-button ${hintOpen ? "is-open" : ""}`} onClick={onToggleHint} aria-expanded={hintOpen}>
-            <StudentIcon name="lightbulb" size={17} role="decorative" /> Context clue
-          </button>
-        )}
-      </div>
+      {presentation.audioUrl && (
+        <div className="sa-quiz__prompt-footer">
+          <StudentAudioControl audioUrl={presentation.audioUrl} label="Listen to model" showDuration />
+        </div>
+      )}
     </StudentSection>
   );
 }
@@ -159,9 +150,6 @@ export default function QuizQuestionSurface({
   onPinyinChange,
   showingFeedback,
   lastResult,
-  hint,
-  hintOpen,
-  onToggleHint,
   onSubmit,
   onNext,
 }: QuizQuestionSurfaceProps) {
@@ -194,9 +182,6 @@ export default function QuizQuestionSurface({
         question={question}
         presentation={presentation}
         lessonLabel={lessonLabel}
-        hint={hint}
-        hintOpen={hintOpen}
-        onToggleHint={onToggleHint}
       />
 
       <div className="sa-quiz__answer-section">

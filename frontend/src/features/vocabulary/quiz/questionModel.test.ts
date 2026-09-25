@@ -51,6 +51,7 @@ describe("quiz question presentation", () => {
     const question = assessmentQuestion(questionType, answerFormat, "Choose the correct answer.");
     const presentation = questionPresentation(question);
     expect(presentation.surface).toBe(surface);
+    if (surface === "context") expect(presentation.label).toBe("Sentence completion");
     if (surface === "pinyin") expect(presentation.pinyin).toBeUndefined();
   });
 

@@ -53,9 +53,6 @@ function SurfaceHarness({ question, onSubmit }: { question: VocabQuizQuestion; o
       pinyinDraft={pinyinDraft}
       onPinyinChange={setPinyinDraft}
       showingFeedback={false}
-      hint="Think about the action in this sentence."
-      hintOpen={false}
-      onToggleHint={vi.fn()}
       onSubmit={onSubmit}
       onNext={vi.fn()}
     />
@@ -104,6 +101,8 @@ describe("QuizQuestionSurface", () => {
 
     expect(screen.getByLabelText("Sentence completion prompt")).toBeInTheDocument();
     expect(screen.getByLabelText("missing word")).toHaveTextContent("____");
+    expect(screen.getByRole("heading", { name: "Choose the word that completes the sentence." })).toBeInTheDocument();
+    expect(screen.queryByText("Context clue")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Option 1: 電話" })).toBeInTheDocument();
   });
 });

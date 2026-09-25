@@ -14,9 +14,6 @@ interface QuizRailFlow {
 interface QuizRailProps {
   flow: QuizRailFlow;
   question: VocabQuizQuestion;
-  hint?: string;
-  hintOpen: boolean;
-  onToggleHint: () => void;
 }
 
 function resultAt(results: VocabQuizQuestionResult[], index: number) {
@@ -25,15 +22,11 @@ function resultAt(results: VocabQuizQuestionResult[], index: number) {
 
 function supportCopy(question: VocabQuizQuestion) {
   const surface = questionPresentation(question).surface;
+  if (surface === "context") return null;
   if (surface === "pinyin") return {
     title: "Tone guide",
     icon: "graphic_eq",
     copy: "Tone 1 stays level, tone 2 rises, tone 3 dips, and tone 4 falls.",
-  };
-  if (surface === "context") return {
-    title: "Read the whole sentence",
-    icon: "menu_book",
-    copy: "Use the words around the gap to decide which choice fits naturally.",
   };
   return {
     title: "Meaning anchor",
@@ -42,7 +35,7 @@ function supportCopy(question: VocabQuizQuestion) {
   };
 }
 
-export default function QuizRail({ flow, question, hint, hintOpen, onToggleHint }: QuizRailProps) {
+export default function QuizRail({ flow, question }: QuizRailProps) {
   const total = flow.questionLimit ?? flow.entries.length;
   const correct = flow.results.filter((result) => result.correct).length;
   const accuracy = flow.results.length > 0 ? `${Math.round((correct / flow.results.length) * 100)}%` : "—";
@@ -59,21 +52,13 @@ export default function QuizRail({ flow, question, hint, hintOpen, onToggleHint 
         </div>
       </StudentSection>
 
-      <StudentSection variant="tinted" className="sa-quiz__rail-card sa-quiz__taxonomy-card">
-        <div className="sa-quiz__rail-heading">
-          <span><StudentIcon name={support.icon} size={17} role="decorative" /> {support.title}</span>
-          <span className="sa-quiz__taxonomy-dot" aria-hidden="true" />
-        </div>
-        <p>{support.copy}</p>
-      </StudentSection>
-
-      {hint && (
-        <StudentSection variant="panel" className={`sa-quiz__rail-card sa-quiz__hint ${hintOpen ? "is-open" : ""}`}>
-          <button type="button" className="sa-quiz__hint-toggle" onClick={onToggleHint} aria-expanded={hintOpen}>
-            <span><StudentIcon name="tips_and_updates" size={18} role="decorative" /> Context clue</span>
-            <StudentIcon name={hintOpen ? "expand_less" : "expand_more"} size={18} role="decorative" />
-          </button>
-          {hintOpen && <p>{hint}</p>}
+      {support && (
+        <StudentSection variant="tinted" className="sa-quiz__rail-card sa-quiz__taxonomy-card">
+          <div className="sa-quiz__rail-heading">
+            <span><StudentIcon name={support.icon} size={17} role="decorative" /> {support.title}</span>
+            <span className="sa-quiz__taxonomy-dot" aria-hidden="true" />
+          </div>
+          <p>{support.copy}</p>
         </StudentSection>
       )}
 

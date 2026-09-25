@@ -208,12 +208,10 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   const flow = useVocabQuizFlow({ topic, onFinished, onStartPractice });
   const [draftAnswer, setDraftAnswer] = useState<string | null>(null);
   const [pinyinDraft, setPinyinDraft] = useState("");
-  const [hintOpen, setHintOpen] = useState(false);
 
   useEffect(() => {
     setDraftAnswer(null);
     setPinyinDraft("");
-    setHintOpen(false);
   }, [flow.index, flow.tierPos, flow.view, flow.question?.word]);
 
   const header = (
@@ -270,13 +268,10 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
             onPinyinChange={setPinyinDraft}
             showingFeedback={showingFeedback}
             lastResult={lastResult}
-            hint={assessment?.explanation}
-            hintOpen={hintOpen}
-            onToggleHint={() => setHintOpen((open) => !open)}
             onSubmit={submitAnswer}
             onNext={flow.next}
           />
-          <QuizRail flow={flow} question={question} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
+          <QuizRail flow={flow} question={question} />
         </div>
       ) : null}
     </StudentPage>

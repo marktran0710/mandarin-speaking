@@ -25,14 +25,14 @@ export interface QuestionPresentation {
 const QUESTION_TYPE_LABELS: Record<string, string> = {
   basic_meaning_mcq: "Meaning check",
   character_to_pinyin_typing: "Reading recall",
-  context_cloze_mcq: "Context clue",
+  context_cloze_mcq: "Sentence completion",
   productive_recall: "Active recall",
   contextual_productive_recall: "Context recall",
 };
 
 const QUESTION_KIND_LABELS: Record<VocabQuizQuestion["kind"], string> = {
   translation: "Meaning check",
-  cloze: "Context clue",
+  cloze: "Sentence completion",
   pinyin: "Reading recall",
   pos: "Word class",
   synonym: "Related meaning",
@@ -113,7 +113,11 @@ export function extractClozeSentence(
   prompt: string,
   fallbackSentence?: string,
 ): ClozeSentenceParts {
-  const source = (fallbackSentence || prompt)
+  const raw = (fallbackSentence || prompt).trim();
+  const markerIndex = raw.search(/CLOZE_BLANK|_{3,}|＿{2,}/u);
+  const prefix = markerIndex >= 0 ? raw.slice(0, markerIndex) : raw;
+  const colonIndex = markerIndex >= 0 ? prefix.lastIndexOf(":") : -1;
+  const source = (colonIndex >= 0 ? raw.slice(colonIndex + 1) : raw)
     .replace(/^.*?(?:sentence|句子)\s*:\s*/i, "")
     .trim();
   const match = source.match(/^(.*?)(CLOZE_BLANK|_{3,}|＿{2,})(.*)$/u);
