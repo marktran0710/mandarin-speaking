@@ -26,22 +26,45 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
   };
 
   return (
-    <div className="sa-page-container">
+    <div className="sa-page-container sa-page-container--vocab-preview">
       <StudentPageHeader
         eyebrowEn={`Study · ${lessonLabel} · Vocabulary Preview`}
         titleZh="生詞預習"
         titleEn={`${items.length} words`}
       />
 
-      <div className="sa-vocab-preview__grid">
-        {items.map((item) => (
+      <div className="sa-vocab-preview__grid" aria-label="Vocabulary preview">
+        {items.map((item, index) => (
           <StudentSection key={item.wordId} variant="panel" className="sa-vocab-preview__card">
-            <BilingualWord hanzi={item.word} pinyin={item.pinyin} gloss={item.meaning} size="inline" />
-            <StudentAudioControl
-              audioUrl={item.audioUrl}
-              label="Listen"
-              compact
-            />
+            <div className="sa-vocab-preview__card-top">
+              <span className="sa-vocab-preview__index" aria-label={`Word ${index + 1}`}>
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div className="sa-vocab-preview__audio">
+                <StudentAudioControl
+                  audioUrl={item.audioUrl}
+                  label="Listen"
+                />
+              </div>
+            </div>
+
+            <div className="sa-vocab-preview__word-stage">
+              <BilingualWord
+                hanzi={item.word}
+                pinyin={item.pinyin}
+                size="display"
+                className="sa-vocab-preview__word"
+              />
+            </div>
+
+            <div className="sa-vocab-preview__card-footer">
+              <span
+                className="sa-vocab-preview__meaning"
+                title={item.meaning ?? "Meaning not available"}
+              >
+                {item.meaning ?? "Meaning not available"}
+              </span>
+            </div>
           </StudentSection>
         ))}
       </div>
