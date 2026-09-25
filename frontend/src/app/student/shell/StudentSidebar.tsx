@@ -21,10 +21,8 @@ interface StudentSidebarProps {
   activeSection: StudentTopSection;
   activePhase?: StudentPhase | null;
   /** The active topic has no teacher-authored conversationTurns — hide the
-   * Conversation phase nav item rather than linking to a dead completion
-   * stub (StudentApp falls back to that stub when this phase has nothing
-   * to render). */
-  hasConversation?: boolean;
+  */
+  /** Conversation is always visible in the lesson phase navigation. */
   quizStars?: number;
   maxQuizStars?: number;
   /** The furthest phase this lesson attempt has actually reached — phases
@@ -49,7 +47,6 @@ export default function StudentSidebar({
   studentName,
   activeSection,
   activePhase,
-  hasConversation = true,
   quizStars = 0,
   maxQuizStars = 0,
   furthestPhase,
@@ -60,7 +57,6 @@ export default function StudentSidebar({
   onNavigatePhase,
   onLogout,
 }: StudentSidebarProps) {
-  const visiblePhaseNav = PHASE_NAV.filter((phase) => phase.id !== "conversation" || hasConversation);
   const furthestIndex = PHASE_ORDER.indexOf(furthestPhase ?? activePhase ?? PHASE_ORDER[0]);
 
   return (
@@ -125,7 +121,7 @@ export default function StudentSidebar({
         {activeSection === "study" && activePhase && onNavigatePhase && (
           <nav className="sa-sidebar__nav sa-sidebar__phase-nav" aria-label="Lesson phase">
             <p className="sa-sidebar__nav-label"><span lang="zh-Hant">課程階段</span> · Pedagogical Phase</p>
-            {visiblePhaseNav.map((phase) => {
+            {PHASE_NAV.map((phase) => {
               const starLocked = phase.id === "story-speaking" && !speakingUnlocked;
               const practiceOpen = practiceChoicesUnlocked && (phase.id === "story-speaking"
                 ? speakingUnlocked

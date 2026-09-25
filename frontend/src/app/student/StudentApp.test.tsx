@@ -181,6 +181,7 @@ describe("StudentApp", () => {
     expect(screen.getByRole("button", { name: /Vocab Quiz/ })).toBeDisabled();
     const phaseNav = screen.getByRole("navigation", { name: "Lesson phase" });
     expect(within(phaseNav).getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
+    expect(within(phaseNav).getByRole("button", { name: /Conversation/ })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));

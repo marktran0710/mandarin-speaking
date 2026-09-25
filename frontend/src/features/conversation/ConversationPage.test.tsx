@@ -146,6 +146,18 @@ describe("ConversationPage", () => {
     sessionStorage.clear();
   });
 
+  it("keeps the page usable when a lesson has no authored conversation turns", () => {
+    const onBack = vi.fn();
+    render(
+      <ConversationPage topic={makeTopic()} turns={[]} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={onBack} />,
+    );
+
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(/Conversation content is not ready yet/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Study" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
   it("walks system -> student -> feedback -> summary, saving progress and finishing on the last turn", async () => {
     const startRecording = vi.fn().mockResolvedValueOnce(makeRecorderResult());
     vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ startRecording }));

@@ -112,8 +112,12 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   };
 
   const conversationTurns = activeTopic ? normalizeConversationTurns(activeTopic.conversationTurns) : null;
-  const conversationAvailable = Boolean(conversationTurns) && (activeProgression?.conversationAvailable ?? true);
-  const availableConversationTurns = conversationAvailable ? conversationTurns : null;
+  // Conversation is a first-class lesson phase, like Story Speaking. Keep it
+  // visible even when a story has not received teacher-authored turns yet;
+  // ConversationPage renders a useful empty state for that case instead of
+  // silently routing the learner to Submit.
+  const conversationContentAvailable = Boolean(conversationTurns) && (activeProgression?.conversationAvailable ?? true);
+  const availableConversationTurns = conversationContentAvailable ? (conversationTurns ?? []) : [];
 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
   if (section === "study" && !activeTopic) {
@@ -139,7 +143,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const activeStoryId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
   const activeStars = activeProgression?.quizStars ?? (activeStoryId ? loadLocalStars(activeStoryId) : 0);
   const speakingUnlocked = activeTopic ? (!topicHasQuiz(activeTopic) || activeStars >= 3) : false;
-  const conversationUnlocked = conversationAvailable && speakingUnlocked;
+  const conversationUnlocked = speakingUnlocked;
 
   let body: React.ReactNode;
 
@@ -162,7 +166,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyQuizPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        hasConversation={conversationAvailable}
+        hasConversation
         onFinished={() => advancePhase("story-speaking")}
         onStartPractice={(practice) => {
           setCompletedPractice(practice === "conversation" ? "conversation" : "speaking");
@@ -192,7 +196,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         }}
       />
     );
-  } else if (phase === "conversation" && availableConversationTurns) {
+  } else if (phase === "conversation") {
     body = (
       <ConversationPage
         topic={activeTopic}
@@ -211,7 +215,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <SubmitStoryPage
         topic={activeTopic}
         sceneCount={activeTopic.images.length}
-        hasConversation={conversationAvailable}
+        hasConversation={conversationContentAvailable}
         completedPractice={completedPractice}
         onSubmit={handleSubmitStory}
       />
@@ -226,7 +230,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <CompletionPage
         topic={activeTopic}
         sceneCount={activeTopic.images.length}
-        hasConversation={conversationAvailable}
+        hasConversation={conversationContentAvailable}
         quizStars={topicHasQuiz(activeTopic) ? activeStars : null}
         overallCompleted={overallCompleted}
         overallTotal={topics.length}
@@ -243,7 +247,6 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       studentName={studentName}
       activeSection={section}
       activePhase={activeTopic ? phase : null}
-      hasConversation={conversationAvailable}
       quizStars={totalQuizStars}
       maxQuizStars={maxQuizStars}
       furthestPhase={furthestPhase}

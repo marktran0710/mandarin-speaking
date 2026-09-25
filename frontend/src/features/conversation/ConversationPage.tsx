@@ -3,6 +3,7 @@ import type { Topic } from "@entities/topic";
 import type { SceneSubmission } from "../../services/database";
 import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
+import StudentButton from "@shared/ui/student/StudentButton";
 import ConversationHistoryTurn from "./ConversationHistoryTurn";
 import InterlocutorTurn from "./InterlocutorTurn";
 import StudentTurn from "./StudentTurn";
@@ -19,6 +20,46 @@ interface ConversationPageProps {
   onBack: () => void;
 }
 export default function ConversationPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
+  if (turns.length === 0) {
+    return <ConversationEmptyPage topic={topic} onBack={onBack} />;
+  }
+
+  return (
+    <ConversationSessionPage
+      topic={topic}
+      turns={turns}
+      onAddRecord={onAddRecord}
+      onSceneSubmission={onSceneSubmission}
+      onDone={onDone}
+      onBack={onBack}
+    />
+  );
+}
+
+function ConversationEmptyPage({ topic, onBack }: Pick<ConversationPageProps, "topic" | "onBack">) {
+  const header = (
+    <StudentPageHeader
+      eyebrowZh="對話練習"
+      eyebrowEn="Conversation Practice"
+      titleZh={topic.name}
+      titleEn={topic.description || "Practice the dialogue"}
+      onBack={onBack}
+    />
+  );
+
+  return (
+    <StudentPage
+      layout="task"
+      header={header}
+      state="empty"
+      emptyTitle={<><span lang="zh-Hant">對話內容尚未準備</span> · Conversation content is not ready yet</>}
+      emptyText="This lesson is ready for Conversation Practice, but its dialogue lines have not been added yet."
+      emptyAction={<StudentButton variant="secondary" onClick={onBack}>Back to Study</StudentButton>}
+    />
+  );
+}
+
+function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
   const session = useConversationSession({ topic, turns, onAddRecord, onSceneSubmission, onDone });
   const { state, currentTurn, historyTurns, exchange } = session;
   const progress = exchange.total > 0 ? Math.min(100, (exchange.current / exchange.total) * 100) : 0;

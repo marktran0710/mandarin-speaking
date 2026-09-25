@@ -3,13 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import StudentSidebar from "./StudentSidebar";
 
 describe("StudentSidebar", () => {
-  it("hides the Conversation phase nav item when hasConversation is false", () => {
+  it("keeps Conversation visible as a first-class lesson phase", () => {
     render(
       <StudentSidebar
         studentName="Student One"
         activeSection="study"
         activePhase="story-speaking"
-        hasConversation={false}
         onNavigateSection={vi.fn()}
         onNavigatePhase={vi.fn()}
         onLogout={vi.fn()}
@@ -17,22 +16,6 @@ describe("StudentSidebar", () => {
     );
 
     expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Conversation/ })).not.toBeInTheDocument();
-  });
-
-  it("shows the Conversation phase nav item when hasConversation is true", () => {
-    render(
-      <StudentSidebar
-        studentName="Student One"
-        activeSection="study"
-        activePhase="story-speaking"
-        hasConversation
-        onNavigateSection={vi.fn()}
-        onNavigatePhase={vi.fn()}
-        onLogout={vi.fn()}
-      />,
-    );
-
     expect(screen.getByRole("button", { name: /Conversation/ })).toBeInTheDocument();
   });
 

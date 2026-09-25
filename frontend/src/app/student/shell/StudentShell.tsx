@@ -7,7 +7,6 @@ interface StudentShellProps {
   studentName: string;
   activeSection: StudentTopSection;
   activePhase?: StudentPhase | null;
-  hasConversation?: boolean;
   quizStars?: number;
   maxQuizStars?: number;
   furthestPhase?: StudentPhase | null;
@@ -29,7 +28,6 @@ export default function StudentShell({
   studentName,
   activeSection,
   activePhase,
-  hasConversation,
   quizStars,
   maxQuizStars,
   furthestPhase,
@@ -52,7 +50,6 @@ export default function StudentShell({
           studentName={studentName}
           activeSection={activeSection}
           activePhase={activePhase}
-          hasConversation={hasConversation}
           quizStars={quizStars}
           maxQuizStars={maxQuizStars}
           furthestPhase={furthestPhase}
