@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { NewAudioRecord } from "../../components/story-recorder/StoryRecorder";
 import type { Topic } from "../../components/content/topic-selector/types";
-import { buildSceneReferenceCurves } from "../../components/story-recorder/StoryRecorder";
+import { buildSceneReferenceCurves, type PraatMetrics } from "../../components/story-recorder/StoryRecorder";
 import { saveSpeakingProgress, type SceneSubmission } from "../../services/database";
 import {
   analyzeSpeakingResult,
@@ -17,8 +17,10 @@ import StudentSection from "../primitives/StudentSection";
 import StudentButton from "../primitives/StudentButton";
 import StudentAudioControl from "../primitives/StudentAudioControl";
 import BilingualWord from "../primitives/BilingualWord";
-import StudentInlineFeedback, { type WordChip } from "../primitives/StudentInlineFeedback";
+import StudentInlineFeedback from "../primitives/StudentInlineFeedback";
 import StudentIcon from "../primitives/StudentIcon";
+import { mapWordProsodyToAlignment } from "../feedback/wordAlignment";
+import { normalizeSpeechModel } from "../feedback/recordingModel";
 import "../primitives/layout.css";
 import "./StorySpeakingPage.css";
 
@@ -64,6 +66,7 @@ export default function StorySpeakingPage({
   const [lastAnalysis, setLastAnalysis] = useState<SpeakingResultAnalysis | null>(null);
   const [lastGates, setLastGates] = useState<{ masteryPassed: boolean; contentPassed: boolean } | null>(null);
   const [lastPitch, setLastPitch] = useState<{ contour: Array<[number, number]>; detectedTone: number } | null>(null);
+  const [lastWordProsody, setLastWordProsody] = useState<PraatMetrics["word_prosody"]>(undefined);
   const [attempts, setAttempts] = useState(0);
   const [feedbackStep, setFeedbackStep] = useState<FeedbackStep>("overview");
   const [selfEvalSaved, setSelfEvalSaved] = useState(false);
@@ -119,6 +122,7 @@ export default function StorySpeakingPage({
       contour: result.metrics.pitch_contour ?? [],
       detectedTone: result.metrics.detected_tone ?? 0,
     });
+    setLastWordProsody(result.metrics.word_prosody);
     setLastAnalysis(
       analyzeSpeakingResult({
         modelSentence: targetText,
@@ -134,7 +138,7 @@ export default function StorySpeakingPage({
       timestamp: new Date().toLocaleString(),
       duration: Math.max(1, recorder.recordingDuration),
       transcription: submission.transcription,
-      model: "webspeech",
+      model: normalizeSpeechModel(result.metrics.transcription_model),
       topicId: topic.id,
       imageUrl: selectedImage,
       imageIndex: selectedImageIndex,
@@ -203,6 +207,7 @@ export default function StorySpeakingPage({
     setLastAnalysis(null);
     setLastGates(null);
     setLastPitch(null);
+    setLastWordProsody(undefined);
     setStage("recording");
     if (selectedImageIndex + 1 < topic.images.length) {
       onImageIndexChange(selectedImageIndex + 1);
@@ -236,15 +241,7 @@ export default function StorySpeakingPage({
   // Word-level chips: every scored syllable, marked attention when it's
   // one of the real weak/failed words analyzeSpeakingResult already found —
   // never a re-derived threshold of our own.
-  const weakTokens = lastAnalysis
-    ? new Set([...lastAnalysis.weakItems.map((w) => w.token), ...lastAnalysis.failedWords.map((w) => w.token)])
-    : new Set<string>();
-  const wordChips: WordChip[] | undefined = lastSubmission?.transcription
-    ? Array.from(new Set(lastSubmission.transcription.split(/\s+/).filter(Boolean))).map((token) => ({
-        hanzi: token,
-        ok: !weakTokens.has(token),
-      }))
-    : undefined;
+  const wordChips = mapWordProsodyToAlignment(lastWordProsody);
 
   return (
     <div className="sa-page-container">
@@ -316,11 +313,11 @@ export default function StorySpeakingPage({
 
                   <StudentInlineFeedback
                     meaningOk={lastAnalysis.accepted}
-                    pronunciationOk={weakTokens.size === 0}
-                    pronunciationNote={lastAnalysis.weakItems[0]?.token ?? lastAnalysis.failedWords[0]?.token}
+                    pronunciationOk={lastGates?.masteryPassed ?? false}
+                    pronunciationNote={lastAnalysis.legacyPracticeWords[0]?.token ?? lastAnalysis.weakItems[0]?.token ?? lastAnalysis.failedWords[0]?.token}
                     coachText={
                       lastAnalysis.showCorrective
-                        ? lastAnalysis.corrective?.hint || lastAnalysis.corrective?.correct_version
+                        ? lastAnalysis.corrective?.hint || undefined
                         : undefined
                     }
                     wordChips={wordChips}

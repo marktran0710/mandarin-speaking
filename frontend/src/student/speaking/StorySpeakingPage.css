@@ -4,7 +4,7 @@
   gap: var(--sa-space-sm);
 }
 .sa-speaking__feedback-step {
-  padding: 4px var(--sa-space-md);
+  padding: var(--sa-space-xs) var(--sa-space-md);
   border-radius: var(--sa-radius-full);
   font-family: var(--sa-font-label);
   font-size: var(--sa-text-label-sm);
@@ -202,7 +202,7 @@
 }
 .sa-self-eval-row__options {
   display: flex;
-  gap: 4px;
+  gap: var(--sa-space-xs);
   background: var(--sa-surface-container-low);
   padding: 3px;
   border-radius: var(--sa-radius);

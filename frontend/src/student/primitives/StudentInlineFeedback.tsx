@@ -1,21 +1,17 @@
 import { useId, useState } from "react";
 import StudentIcon from "./StudentIcon";
 import StudentButton from "./StudentButton";
+import type { WordAlignmentItem, WordAlignmentStatus } from "../feedback/wordAlignment";
 import "./StudentInlineFeedback.css";
 
-export interface WordChip {
-  hanzi: string;
-  pinyin?: string;
-  ok: boolean;
-  note?: string;
-}
+export type { WordAlignmentItem as WordChip, WordAlignmentStatus } from "../feedback/wordAlignment";
 
 interface StudentInlineFeedbackProps {
   meaningOk: boolean;
   pronunciationOk: boolean;
   pronunciationNote?: string;
   coachText?: string;
-  wordChips?: WordChip[];
+  wordChips?: WordAlignmentItem[];
   detailsContent?: React.ReactNode;
   onRecordAgain?: () => void;
   onContinue?: () => void;
@@ -65,9 +61,19 @@ export default function StudentInlineFeedback({
       {wordChips && wordChips.length > 0 && (
         <div className="sa-word-chips" aria-label="Word-level pronunciation result">
           {wordChips.map((chip, i) => (
-            <span key={`${chip.hanzi}-${i}`} className={`sa-word-chip ${chip.ok ? "is-ok" : "is-attention"}`}>
-              <span lang="zh-Hant" className="sa-word-chip__hanzi">{chip.hanzi}</span>
-              <StudentIcon name={chip.ok ? "check" : "change_history"} size={13} role="decorative" />
+            <span
+              key={`${chip.key}-${i}`}
+              className={`sa-word-chip sa-word-chip--${chip.status.toLowerCase()}`}
+              aria-label={`${chip.hanzi}${chip.pinyin ? `, ${chip.pinyin}` : ""}: ${wordStatusLabel(chip.status)}${chip.note ? `. ${chip.note}` : ""}`}
+              title={chip.note}
+            >
+              <span className="sa-word-chip__reading">
+                {chip.pinyin && <span className="sa-word-chip__pinyin">{chip.pinyin}</span>}
+                <span lang="zh-Hant" className="sa-word-chip__hanzi">{chip.hanzi}</span>
+              </span>
+              <StudentIcon name={wordStatusIcon(chip.status)} size={13} role="decorative" />
+              <span className="sa-word-chip__status">{wordStatusLabel(chip.status)}</span>
+              {chip.note && <span className="sa-word-chip__note">{chip.note}</span>}
             </span>
           ))}
         </div>
@@ -76,7 +82,10 @@ export default function StudentInlineFeedback({
       {coachText && (
         <div className="sa-ai-coach">
           <StudentIcon name="school" size={16} role="meaningful" label="AI coaching note" />
-          <p>{coachText}</p>
+          <div>
+            <span className="sa-ai-coach__label">AI Coach Note</span>
+            <p>{coachText}</p>
+          </div>
         </div>
       )}
 
@@ -112,4 +121,24 @@ export default function StudentInlineFeedback({
       )}
     </div>
   );
+}
+
+function wordStatusLabel(status: WordAlignmentStatus): string {
+  switch (status) {
+    case "CORRECT": return "Correct";
+    case "UNCERTAIN": return "Uncertain";
+    case "INCORRECT": return "Pronunciation needs attention";
+    case "INVALID_AUDIO": return "Could not evaluate";
+    case "NEUTRAL": return "Neutral tone — not separately scored";
+  }
+}
+
+function wordStatusIcon(status: WordAlignmentStatus): string {
+  switch (status) {
+    case "CORRECT": return "check";
+    case "UNCERTAIN": return "help";
+    case "INCORRECT": return "priority_high";
+    case "INVALID_AUDIO": return "mic_off";
+    case "NEUTRAL": return "horizontal_rule";
+  }
 }

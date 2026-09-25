@@ -1,8 +1,8 @@
 .sa-audio-control {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px var(--sa-space-md);
+  gap: var(--sa-space-sm);
+  padding: var(--sa-space-sm) var(--sa-space-md);
   border-radius: var(--sa-radius);
   border: 1px solid var(--sa-outline-variant);
   background: var(--sa-surface-container-lowest);
@@ -28,7 +28,7 @@
 .sa-audio-control:disabled:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline-variant); }
 
 .sa-audio-control.is-compact {
-  padding: 4px var(--sa-space-sm);
+  padding: var(--sa-space-xs) var(--sa-space-sm);
   min-height: 28px;
   font-size: var(--sa-text-label-sm);
   border-radius: var(--sa-radius-sm);

@@ -47,6 +47,7 @@ function recorderMock(overrides: Partial<ReturnType<typeof useSpeakingRecorder>>
 function makeRecorderResult(overrides: Partial<SpeakingAnalysisResult> = {}): SpeakingAnalysisResult {
   return {
     metrics: {
+      transcription_model: "auto:groq",
       transcription: "你好",
       pitch_contour: [],
       detected_tone: 0,
@@ -197,6 +198,7 @@ describe("StorySpeakingPage", () => {
     await screen.findByText("再見");
 
     expect(onAddRecord).toHaveBeenCalledTimes(1);
+    expect(onAddRecord.mock.calls[0][0]).toMatchObject({ model: "groq" });
     expect(onImageIndexChange).toHaveBeenCalledWith(1);
     expect(onDone).not.toHaveBeenCalled();
     expect(saveSpeakingProgress).toHaveBeenCalledTimes(1);
