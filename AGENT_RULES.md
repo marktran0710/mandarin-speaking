@@ -2562,4 +2562,34 @@ Less duplicated
 Closer to the target architecture
 ```
 
+---
+
+# 73. Student Mode Page Rules
+
+From the 2026-09 Student Mode UI unification (`shared/ui/student/StudentPage.tsx`). Applies to every screen rendered inside `StudentShell`.
+
+**LAYOUT-1** Every student screen uses `StudentPage` with one layout (`hub` / `task` / `stage`). Do not roll a page's own top-level container.
+
+**LAYOUT-2** Same content left edge on every page — `.sa-page-container`'s `--sa-gutter-desktop`/`--sa-gutter` (24px desktop, 16px mobile). Enforced by `frontend/e2e/student-layout.spec.ts`.
+
+**LAYOUT-3** No outer bordered/backgrounded card around a whole page (`hub` in particular — Study's old card is gone).
+
+**HEAD-1** Exactly one `<h1>` per page, via `StudentPageHeader`, reached through `StudentPage`'s `header` slot.
+
+**HEAD-2** One eyebrow/header markup pattern (`StudentPageHeader`); `eyebrowZh` and `eyebrowEn` are both required — bilingual labels per D2, Chinese primary + English secondary, joined by " · ", everywhere a label is user-facing chrome (nav, eyebrow, in-page labels). No English-only label.
+
+**ACTION-1** One primary action per state, in the footer action bar (`StudentPage`'s `actions` prop), on the right; its label names its destination. A screen with several genuinely different choices (e.g. a mode picker) is not a single "next step" and may keep its own in-content buttons instead of forcing them into one footer primary — do not distort an existing multi-choice UI to satisfy this rule.
+
+**ACTION-2** Primary = solid `--sa-primary` / `--sa-on-primary` (`StudentButton` `variant="primary"`). The light `--sa-primary-container` fill is for a selected/active state only, never the primary action.
+
+**STATE-1** No screen renders empty: `StudentPage`'s `state` is `"loading" | "empty" | "error" | "ready"`; `"empty"` takes `emptyTitle`/`emptyText`/`emptyAction` (a next step), `"error"` takes `errorText`.
+
+**DATA-1** No number on screen without a real data source. Hide a stat/widget entirely rather than show a fabricated or zeroed placeholder (e.g. the sidebar Stars card hides itself when `maxQuizStars === 0`).
+
+**AFFORD-1** Anything that looks like a button is a button (real `<button>`/`StudentButton`, hoverable, clickable). A status indicator (e.g. a lesson's phase chips) has no border/button styling — no `border`, no `cursor:pointer`, no hover state — so it never reads as interactive when it isn't.
+
+**CSS-1** Student UI is unaffected by legacy CSS: legacy stylesheets (`styles/index.css`, `shared-ui.css`) load inside `@layer legacy` on the student entrypoint only; student component CSS stays unlayered so it always outranks legacy rules regardless of import order. Do not wrap new student CSS in `@layer student` — unlayered already wins. Do not add this layering to the teacher/admin entrypoints unless they also gain a competing unlayered design system.
+
+**THEME-1** Offer a theme toggle only when every `--sa-*` colour token has a dark value defined. `shared/styles/student-tokens.css` has none today, so Student Mode has no dark-mode toggle.
+
 without unnecessarily increasing the scope of the task.
