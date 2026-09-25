@@ -79,11 +79,6 @@ export default function StudyPage({ topics, statusByStoryId, onOpenTopic }: Stud
             <span className="sa-study__hub-muted" lang="zh-Hant">研讀</span>
           </h1>
         </div>
-        <div className="sa-study__hub-summary" aria-label="Study summary">
-          <span><StudentIcon name="bolt" size={16} role="decorative" /> 3/wk</span>
-          <span><StudentIcon name="local_fire_department" size={16} role="decorative" /> 5d</span>
-          <span><StudentIcon name="track_changes" size={16} role="decorative" /> 94%</span>
-        </div>
       </header>
 
       {groups.length === 0 ? (
@@ -96,7 +91,6 @@ export default function StudyPage({ topics, statusByStoryId, onOpenTopic }: Stud
           <div className="sa-study__catalogue">
             <div className="sa-study__catalogue-head">
               <h2>課程目錄 <span>{totalUnits} 課元</span></h2>
-              <span className="sa-study__level-badge">HSK 2</span>
             </div>
 
             {groups.map((group) => {

@@ -383,6 +383,20 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
     setHintOpen(false);
   }, [flow.index, flow.tierPos, flow.view, flow.question?.word]);
 
+  if (flow.entries.length === 0) {
+    return (
+      <div className="sa-page-container sa-page-container--narrow">
+        <StudentSection variant="panel" className="sa-quiz__empty">
+          <StudentIcon name="quiz" size={22} role="decorative" />
+          <p><span lang="zh-Hant">本課沒有測驗</span> · No quiz for this lesson</p>
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}>
+            <span lang="zh-Hant">前往口語練習</span> · Continue to Story Speaking
+          </StudentButton>
+        </StudentSection>
+      </div>
+    );
+  }
+
   if (flow.view === "loading") return <div className="sa-page-container sa-page-container--narrow"><p className="sa-quiz__loading" role="status">Loading practice options…</p></div>;
 
   const question = flow.question;

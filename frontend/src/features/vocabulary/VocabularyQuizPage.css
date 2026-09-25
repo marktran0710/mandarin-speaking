@@ -245,6 +245,9 @@
 .sa-quiz__result-copy { max-width: 420px; margin: 0; color: var(--sa-on-surface-variant); font: var(--sa-text-body-md)/var(--sa-leading-body-md) var(--sa-font-body); }
 .sa-quiz__loading { margin: 0; color: var(--sa-outline); font-family: var(--sa-font-label); }
 
+.sa-quiz__empty { display: flex; flex-direction: column; align-items: center; gap: var(--sa-space-md); padding: var(--sa-space-xl); text-align: center; color: var(--sa-outline); }
+.sa-quiz__empty p { margin: 0; color: var(--sa-on-surface-variant); font-family: var(--sa-font-label); }
+
 @media (max-width: 900px) {
   .sa-page-container--quiz { padding-top: var(--sa-space-lg); }
   .sa-quiz__header { grid-template-columns: 1fr; align-items: start; }

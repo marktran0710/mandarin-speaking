@@ -18,6 +18,7 @@
 
 .sa-page-header__title {
   margin: 0;
+  text-align: start;
   font-family: var(--sa-font-headline);
   font-size: var(--sa-text-headline-lg);
   line-height: var(--sa-leading-headline-lg);

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Topic } from "@entities/topic";
-import { speakingVocabularyItems } from "@entities/vocabulary";
+import { speakingVocabularyItems, topicHasQuiz } from "@entities/vocabulary";
 import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
@@ -19,6 +19,7 @@ interface VocabularyPreviewPageProps {
 
 export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeaking }: VocabularyPreviewPageProps) {
   const items = useMemo(() => speakingVocabularyItems(topic), [topic]);
+  const hasQuiz = topicHasQuiz(topic);
 
   const handleStartSpeaking = () => {
     markPhaseSeen(topicStoryId(topic), "vocab");
@@ -71,7 +72,9 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
 
       <div className="sa-vocab-preview__footer">
         <StudentButton variant="primary" size="lg" iconTrailing="arrow_forward" onClick={handleStartSpeaking}>
-          Start Speaking
+          {hasQuiz
+            ? <><span lang="zh-Hant">開始測驗</span> · Start quiz</>
+            : <><span lang="zh-Hant">開始口說練習</span> · Start speaking</>}
         </StudentButton>
       </div>
     </div>

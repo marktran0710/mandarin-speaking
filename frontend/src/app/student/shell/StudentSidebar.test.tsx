@@ -72,7 +72,7 @@ describe("StudentSidebar", () => {
     expect(fill.style.width).toBe("50%");
   });
 
-  it("defaults quizStars/maxQuizStars to a zero-width, 0/0 track when omitted", () => {
+  it("hides the Stars card entirely when maxQuizStars is 0 (omitted), rather than showing a fake 0/0", () => {
     render(
       <StudentSidebar
         studentName="Student One"
@@ -82,9 +82,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const starsSection = screen.getByLabelText("Learning stars");
-    const fill = starsSection.querySelector(".sa-sidebar__stars-track span") as HTMLElement;
-    expect(fill.style.width).toBe("0%");
+    expect(screen.queryByLabelText("Learning stars")).not.toBeInTheDocument();
   });
 
   it("locks phase-nav items beyond furthestPhase and never calls onNavigatePhase for them", () => {

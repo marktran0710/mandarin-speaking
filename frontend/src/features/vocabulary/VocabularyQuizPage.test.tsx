@@ -21,6 +21,25 @@ function makeTopic(overrides: Partial<Topic> = {}): Topic {
     skillFocus: "conversation",
     images: [],
     vocabulary: {},
+    vocabAssessment: [
+      {
+        questionId: "call-1-q1",
+        wordId: "call-1",
+        targetWord: "打電話",
+        pinyin: "da3 dian4 hua4",
+        pos: "V",
+        simpleEnglishMeaning: "to make a phone call",
+        level: "easy",
+        difficultyWeight: 1,
+        questionType: "basic_meaning_mcq",
+        answerFormat: "single_choice",
+        prompt: "What does 打電話 mean?",
+        options: ["to make a phone call", "to eat"],
+        correctAnswer: "to make a phone call",
+        acceptedAnswers: ["to make a phone call"],
+        explanation: "",
+      },
+    ],
     ...overrides,
   };
 }
@@ -139,5 +158,14 @@ describe("VocabularyQuizPage", () => {
     // Retrying re-starts the SAME tier fresh, never the next one.
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     expect(onFinished).not.toHaveBeenCalled();
+  });
+
+  it("shows the shared empty state (never a blank screen) and finishes straight through when the lesson has no quiz", () => {
+    const onFinished = vi.fn();
+    render(<VocabularyQuizPage topic={makeTopic({ vocabAssessment: [] })} lessonLabel="Lesson" onFinished={onFinished} />);
+
+    expect(screen.getByText(/No quiz for this lesson/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Continue to Story Speaking/i }));
+    expect(onFinished).toHaveBeenCalledTimes(1);
   });
 });

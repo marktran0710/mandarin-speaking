@@ -102,18 +102,20 @@ export default function StudentSidebar({
           </button>
         </nav>
 
-        <section className="sa-sidebar__stars" aria-label="Learning stars">
-          <div className="sa-sidebar__stars-head">
-            <span className="sa-sidebar__stars-label">
-              <StudentIcon name="star" size={18} role="decorative" filled />
-              Stars
-            </span>
-            <span><strong>{quizStars}</strong> / {maxQuizStars}</span>
-          </div>
-          <div className="sa-sidebar__stars-track" aria-hidden="true">
-            <span style={{ width: `${maxQuizStars > 0 ? (quizStars / maxQuizStars) * 100 : 0}%` }} />
-          </div>
-        </section>
+        {maxQuizStars > 0 && (
+          <section className="sa-sidebar__stars" aria-label="Learning stars">
+            <div className="sa-sidebar__stars-head">
+              <span className="sa-sidebar__stars-label">
+                <StudentIcon name="star" size={18} role="decorative" filled />
+                Stars
+              </span>
+              <span><strong>{quizStars}</strong> / {maxQuizStars}</span>
+            </div>
+            <div className="sa-sidebar__stars-track" aria-hidden="true">
+              <span style={{ width: `${(quizStars / maxQuizStars) * 100}%` }} />
+            </div>
+          </section>
+        )}
 
         {activeSection === "study" && activePhase && onNavigatePhase && (
           <nav className="sa-sidebar__nav sa-sidebar__phase-nav" aria-label="Lesson phase">
