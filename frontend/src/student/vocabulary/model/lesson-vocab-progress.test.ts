@@ -4,7 +4,7 @@ import {
   nextLearningStage,
   saveLessonProgressSnapshot,
 } from "./lesson-vocab-progress";
-import type { VocabPriorityReviewWord, VocabQuizAttempt } from "../../services/api/quiz-analytics";
+import type { VocabPriorityReviewWord, VocabQuizAttempt } from "../../../services/api/quiz-analytics";
 
 const entries = [
   { wordId: "w1", word: "錢包", translation: "wallet" },

@@ -40,7 +40,7 @@ export interface CustomStoryFrame {
   vocabularyTranslation?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
-  listenAudioSource?: "teacher" | "tts";
+  listenAudioSource?: "teacher";
   listenScript?: string;
   // Model-voice reference audio, one per word in this tier's own vocabulary
   // list, these

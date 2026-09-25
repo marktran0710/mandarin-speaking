@@ -15,7 +15,7 @@ import {
 import { getStudentId } from "../../utils/studentSession";
 import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "../studyProgressFlags";
-import { useSpeakingRecorder } from "../speaking/useSpeakingRecorder";
+import { useSpeakingRecorder } from "../speaking/hooks/useSpeakingRecorder";
 import StudentButton from "../primitives/StudentButton";
 import StudentAudioControl from "../primitives/StudentAudioControl";
 import StudentInlineFeedback, { type WordChip } from "../primitives/StudentInlineFeedback";
@@ -26,11 +26,14 @@ interface ConversationPageProps {
   topic: Topic;
   turns: ConversationTurn[];
   onAddRecord: (record: NewAudioRecord) => Promise<string | undefined> | void;
+  /** Every turn's latest submission, forwarded to StudentApp so it can
+   * assemble the final story submission once the student turns work in. */
+  onSceneSubmission: (key: string, submission: SceneSubmission) => void;
   onDone: () => void;
   onBack: () => void;
 }
 
-export default function ConversationPage({ topic, turns, onAddRecord, onDone, onBack }: ConversationPageProps) {
+export default function ConversationPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
   const [state, setState] = useState<ConversationState>(
     () => createConversationState(turns) ?? { turnIndex: 0, step: "summary" },
   );
@@ -111,26 +114,28 @@ export default function ConversationPage({ topic, turns, onAddRecord, onDone, on
       audioUrl: result.audioUrl,
     });
 
+    const coverage = result.metrics.ai_feedback?.vocabulary_coverage;
+    const submission: SceneSubmission = {
+      sceneIndex: 0,
+      imageUrl: topic.images[0] ?? "",
+      transcription: (result.metrics.transcription || "").trim(),
+      vocabUsed: coverage?.used ?? [],
+      vocabMissing: coverage?.missing ?? [],
+      vocabScore: coverage?.score ?? 0,
+      toneAccuracy: Math.round(result.metrics.tone_accuracy ?? 0),
+      pronScore: Math.round(result.metrics.tone_accuracy ?? 0),
+      fluencyScore: Math.round(result.metrics.fluency_score ?? 0),
+      audioUrl: result.audioUrl,
+      conversationId: conversationIdRef.current,
+      turnId: currentTurn.id,
+      turnIndex: state.turnIndex,
+      baseStoryId: topic.sourceStory?.id ?? topic.id,
+      difficultyLevel: topic.difficultyLevel ?? "easy",
+      promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${currentTurn.id}`,
+    };
+    onSceneSubmission(`conversation:${state.turnIndex}`, submission);
+
     if (studentId) {
-      const coverage = result.metrics.ai_feedback?.vocabulary_coverage;
-      const submission: SceneSubmission = {
-        sceneIndex: 0,
-        imageUrl: topic.images[0] ?? "",
-        transcription: (result.metrics.transcription || "").trim(),
-        vocabUsed: coverage?.used ?? [],
-        vocabMissing: coverage?.missing ?? [],
-        vocabScore: coverage?.score ?? 0,
-        toneAccuracy: Math.round(result.metrics.tone_accuracy ?? 0),
-        pronScore: Math.round(result.metrics.tone_accuracy ?? 0),
-        fluencyScore: Math.round(result.metrics.fluency_score ?? 0),
-        audioUrl: result.audioUrl,
-        conversationId: conversationIdRef.current,
-        turnId: currentTurn.id,
-        turnIndex: state.turnIndex,
-        baseStoryId: topic.sourceStory?.id ?? topic.id,
-        difficultyLevel: topic.difficultyLevel ?? "easy",
-        promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${currentTurn.id}`,
-      };
       try {
         await saveSpeakingProgress({
           studentId,
@@ -213,7 +218,7 @@ export default function ConversationPage({ topic, turns, onAddRecord, onDone, on
             <span className="sa-bubble-row__who">Character</span>
             <div className="sa-bubble">
               <BilingualWord hanzi={currentTurn.text} pinyin={currentTurn.pinyin} gloss={currentTurn.translation} size="inline" />
-              <StudentAudioControl audioUrl={currentTurn.audioUrl} fallbackText={currentTurn.text} label="Listen" />
+              <StudentAudioControl audioUrl={currentTurn.audioUrl} label="Listen" />
               <StudentButton variant="subtle" size="sm" onClick={handleListen}>
                 Continue
               </StudentButton>

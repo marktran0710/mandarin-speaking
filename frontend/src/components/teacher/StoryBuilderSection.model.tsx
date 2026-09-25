@@ -123,7 +123,7 @@ export function createCustomStory(
       if (draft.listenAudioUrls.easy[index]?.trim())
         frame.listenAudioUrl = draft.listenAudioUrls.easy[index].trim();
       if (draft.listenAudioSources.easy[index]?.trim())
-        frame.listenAudioSource = draft.listenAudioSources.easy[index] as "teacher" | "tts";
+        frame.listenAudioSource = draft.listenAudioSources.easy[index] as "teacher";
       if (draft.listenScripts.easy[index]?.trim())
         frame.listenScript = draft.listenScripts.easy[index].trim();
       return frame;

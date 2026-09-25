@@ -2,26 +2,25 @@ import { useState } from "react";
 import type { NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import type { Topic } from "../components/content/topic-selector/types";
 import { normalizeConversationTurns } from "../components/story-recorder/StoryRecorder";
-import {
-  groupTopicsByLesson,
-  isLessonGroupUnlocked,
-  isStoryFinished,
-  isStoryUnlockedInLesson,
-  topicStoryId,
-} from "../utils/lessonGroups";
+import { canUseDatabase, createStorySubmission, type SceneSubmission } from "../services/database";
+import { computeStudyRowStatuses, nextTopicInSequence, topicStoryId } from "../utils/lessonGroups";
+import { computeQuizStarsSummary, loadLocalStars } from "../utils/quizTiers";
 import { topicHasQuiz } from "../utils/topicQuiz";
-import { loadLocalStars } from "../utils/quizTiers";
+import { getStudentId } from "../utils/studentSession";
+import { getVocabularyGateState } from "../utils/vocabularyProgression";
 import { loadPhaseFlags } from "./studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
-import type { StudentPhase, StudentTopSection } from "./shell/StudentSidebar";
+import { PHASE_ORDER, type StudentPhase, type StudentTopSection } from "./shell/StudentSidebar";
 import StudyPage, { type StudyTopicStatus } from "./study/StudyPage";
 import VocabularyPreviewPage from "./vocabulary/VocabularyPreviewPage";
 import VocabularyQuizPage from "./vocabulary/VocabularyQuizPage";
 import StorySpeakingPage from "./speaking/StorySpeakingPage";
 import ConversationPage from "./conversation/ConversationPage";
+import SubmitStoryPage from "./submit/SubmitStoryPage";
+import CompletionPage from "./completion/CompletionPage";
 import ProgressPage from "./progress/ProgressPage";
 import PlacementStubPage from "./placement/PlacementStubPage";
-import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
+import { loadSubmittedStoryIds, markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 
 interface StudentAppProps {
   studentName: string;
@@ -41,53 +40,87 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const [section, setSection] = useState<StudentTopSection>("study");
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
   const [phase, setPhase] = useState<StudentPhase>("vocab-preview");
+  // The furthest phase this lesson attempt has actually reached — gates the
+  // sidebar's phase-nav so a student can't jump ahead of work they haven't
+  // done (e.g. straight to Story Speaking with 0 quiz stars). Only ever
+  // moves forward; see advancePhase.
+  const [furthestPhase, setFurthestPhase] = useState<StudentPhase>("vocab-preview");
   const [sceneIndex, setSceneIndex] = useState(0);
+  // Every scene/turn's latest submission for the topic currently in
+  // progress, keyed so a re-recorded attempt replaces its own entry rather
+  // than duplicating it — assembled into one StorySubmission when the
+  // student turns work in on the Submit screen.
+  const [sceneSubmissions, setSceneSubmissions] = useState<Record<string, SceneSubmission>>({});
 
   const openTopic = (topic: Topic) => {
     setActiveTopic(topic);
     setSceneIndex(0);
+    setSceneSubmissions({});
     setPhase("vocab-preview");
+    setFurthestPhase("vocab-preview");
   };
 
   const backToStudy = () => {
     setActiveTopic(null);
   };
 
+  // The only path that should ever move `phase` forward on its own (a
+  // page's onDone/onFinished callback deciding its own work is actually
+  // done) — bumps the watermark alongside it, never backward.
+  const advancePhase = (next: StudentPhase) => {
+    setPhase(next);
+    setFurthestPhase((prev) => (PHASE_ORDER.indexOf(next) > PHASE_ORDER.indexOf(prev) ? next : prev));
+  };
+
+  const handleSceneSubmission = (key: string, submission: SceneSubmission) => {
+    setSceneSubmissions((prev) => ({ ...prev, [key]: submission }));
+  };
+
+  // The one deliberate "hand it in" gesture (SubmitStoryPage) — only once
+  // this resolves does completion actually record: a real backend failure
+  // leaves the student on that screen to retry rather than silently
+  // advancing past an unsubmitted story.
+  const handleSubmitStory = async () => {
+    if (!activeTopic) return;
+    if (canUseDatabase()) {
+      await createStorySubmission({
+        id: `submission-${Date.now()}`,
+        storyId: activeTopic.id,
+        storyTitle: activeTopic.name,
+        studentName,
+        studentId: getStudentId(),
+        submittedAt: new Date().toISOString(),
+        scenes: Object.values(sceneSubmissions),
+      });
+    }
+    markStoryLevelSubmitted(topicStoryId(activeTopic));
+    advancePhase("completion");
+  };
+
   const conversationTurns = activeTopic ? normalizeConversationTurns(activeTopic.conversationTurns) : null;
 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
   if (section === "study" && !activeTopic) {
-    const submitted = loadSubmittedStoryIds();
-    const groups = groupTopicsByLesson(topics);
-    let currentTopicFound = false;
-    groups.forEach((group, groupIndex) => {
-      const groupUnlocked = isLessonGroupUnlocked(groups, groupIndex, submitted);
-      group.topics.forEach((topic, topicIndex) => {
-        const id = topicStoryId(topic);
-        const finished = isStoryFinished(topic, submitted);
-        const unlocked = groupUnlocked && isStoryUnlockedInLesson(group, topicIndex, submitted);
-        const status = finished
-          ? "completed"
-          : !unlocked
-            ? "locked"
-            : !currentTopicFound
-              ? "in-progress"
-              : "not-started";
-        if (status === "in-progress") currentTopicFound = true;
-        statusByStoryId[id] = {
-          status,
-          ...(status === "in-progress" ? { phases: loadPhaseFlags(id) } : {}),
-        };
-      });
-    });
+    const rowStatuses = computeStudyRowStatuses(topics, loadSubmittedStoryIds());
+    for (const [id, status] of Object.entries(rowStatuses)) {
+      statusByStoryId[id] = {
+        status,
+        ...(status === "in-progress" ? { phases: loadPhaseFlags(id) } : {}),
+      };
+    }
   }
 
   // Not memoized: stars change via localStorage writes (quiz completion)
   // that don't change the `topics` prop, so a [topics]-keyed memo would
   // go stale.
-  const quizStoryTopics = topics.filter((t) => topicHasQuiz(t));
-  const totalQuizStars = quizStoryTopics.reduce((sum, t) => sum + loadLocalStars(t.id), 0);
-  const maxQuizStars = quizStoryTopics.length * 3;
+  const { quizStars: totalQuizStars, maxQuizStars } = computeQuizStarsSummary(topics);
+
+  // coreRoundsCompleted (not the sibling speakingUnlocked field) is the
+  // right read here: speakingUnlocked is a bare practiceUnlocked(stars)
+  // with no topicHasQuiz check, so a quiz-less topic — which never earns
+  // stars — would show as permanently locked; coreRoundsCompleted already
+  // exempts that case the same way isStoryFinished does.
+  const speakingUnlocked = activeTopic ? getVocabularyGateState(activeTopic).coreRoundsCompleted : false;
 
   let body: React.ReactNode;
 
@@ -102,7 +135,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyPreviewPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        onStartSpeaking={() => setPhase("vocab-quiz")}
+        onStartSpeaking={() => advancePhase("vocab-quiz")}
       />
     );
   } else if (phase === "vocab-quiz") {
@@ -110,7 +143,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyQuizPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        onFinished={() => setPhase("story-speaking")}
+        onFinished={() => advancePhase("story-speaking")}
       />
     );
   } else if (phase === "story-speaking") {
@@ -120,7 +153,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         selectedImageIndex={sceneIndex}
         onImageIndexChange={setSceneIndex}
         onAddRecord={onAddRecord}
-        onDone={() => setPhase(conversationTurns ? "conversation" : "completion")}
+        onSceneSubmission={handleSceneSubmission}
+        onDone={() => advancePhase(conversationTurns ? "conversation" : "submit")}
       />
     );
   } else if (phase === "conversation" && conversationTurns) {
@@ -129,18 +163,39 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         topic={activeTopic}
         turns={conversationTurns}
         onAddRecord={onAddRecord}
-        onDone={() => setPhase("completion")}
+        onSceneSubmission={handleSceneSubmission}
+        onDone={() => advancePhase("submit")}
         onBack={backToStudy}
       />
     );
-  } else {
-    // Completion screen design is pending the user's own addition to
-    // .superdesign/design-system.md — this stub keeps the phase reachable
-    // without inventing a visual for it.
+  } else if (phase === "submit") {
     body = (
-      <div className="sa-page-container">
-        <p>Lesson complete. (Completion screen design pending.)</p>
-      </div>
+      <SubmitStoryPage
+        topic={activeTopic}
+        sceneCount={activeTopic.images.length}
+        hasConversation={Boolean(conversationTurns)}
+        onSubmit={handleSubmitStory}
+      />
+    );
+  } else {
+    const submittedIds = loadSubmittedStoryIds();
+    const rowStatuses = computeStudyRowStatuses(topics, submittedIds);
+    const overallCompleted = Object.values(rowStatuses).filter((status) => status === "completed").length;
+    const nextTopic = nextTopicInSequence(topics, activeTopic);
+    const nextTopicUnlocked = nextTopic ? rowStatuses[topicStoryId(nextTopic)] !== "locked" : false;
+    body = (
+      <CompletionPage
+        topic={activeTopic}
+        sceneCount={activeTopic.images.length}
+        hasConversation={Boolean(conversationTurns)}
+        quizStars={topicHasQuiz(activeTopic) ? loadLocalStars(activeTopic.id) : null}
+        overallCompleted={overallCompleted}
+        overallTotal={topics.length}
+        nextTopic={nextTopic}
+        nextTopicUnlocked={nextTopicUnlocked}
+        onStartNext={openTopic}
+        onBackToStudy={backToStudy}
+      />
     );
   }
 
@@ -152,11 +207,21 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       hasConversation={Boolean(conversationTurns)}
       quizStars={totalQuizStars}
       maxQuizStars={maxQuizStars}
+      furthestPhase={furthestPhase}
+      speakingUnlocked={speakingUnlocked}
       onNavigateSection={(next) => {
         setSection(next);
         if (next === "study") setActiveTopic(null);
       }}
-      onNavigatePhase={activeTopic ? setPhase : undefined}
+      onNavigatePhase={
+        activeTopic
+          ? (next) => {
+              const reachable = PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
+              const starBlocked = next === "story-speaking" && !speakingUnlocked;
+              if (reachable && !starBlocked) setPhase(next);
+            }
+          : undefined
+      }
       onLogout={onLogout}
     >
       {body}

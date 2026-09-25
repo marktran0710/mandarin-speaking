@@ -119,21 +119,47 @@ export interface VocabularyImportSection {
   error?: string;
   newWords: number;
   updatedWords: number;
+  removedWords: number;
+  preservedAudio: number;
+  missingAudio: number;
   questionCount: number;
   issues: string[];
 }
 export interface VocabularyImportPreview {
+  mode: "replace_lesson";
   rows: number;
   rowIssues: string[];
   sections: VocabularyImportSection[];
+  newWords: number;
+  updatedWords: number;
+  removedWords: number;
+  preservedAudio: number;
+  missingAudio: number;
 }
 export interface VocabularyImportResult {
-  published: Array<{ section: string; storyId: string; storyTitle: string; questionCount: number }>;
+  mode: "replace_lesson";
+  published: Array<{
+    section: string;
+    storyId: string;
+    storyTitle: string;
+    questionCount: number;
+    newWords: number;
+    updatedWords: number;
+    removedWords: number;
+    preservedAudio: number;
+    missingAudio: number;
+  }>;
+  newWords: number;
+  updatedWords: number;
+  removedWords: number;
+  preservedAudio: number;
+  missingAudio: number;
 }
 
 async function postVocabularyImport<T>(path: string, file: File): Promise<T> {
   const body = new FormData();
   body.append("file", file);
+  body.append("mode", "replace_lesson");
   const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/vocabulary-import/${path}`, { method: "POST", body }, 1);
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
@@ -147,10 +173,28 @@ export function previewVocabularyImport(file: File): Promise<VocabularyImportPre
   return postVocabularyImport<VocabularyImportPreview>("preview", file);
 }
 
-/** Re-validates the file from scratch server-side and, only if it still
- * passes, upserts by wordId into each matched story's quiz bank. */
+/** Re-validates the file from scratch server-side and replaces each matched
+ * lesson's canonical quiz bank by Word Key. */
 export function confirmVocabularyImport(file: File): Promise<VocabularyImportResult> {
   return postVocabularyImport<VocabularyImportResult>("confirm", file);
+}
+
+export async function downloadVocabularyImportTemplate(): Promise<Blob> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/vocabulary-import/template`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+    throw new Error(typeof payload?.detail === "string" ? payload.detail : "Could not download the import template.");
+  }
+  return response.blob();
+}
+
+export async function downloadVocabularyAudioSample(): Promise<Blob> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/vocabulary-audio-import/template`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+    throw new Error(typeof payload?.detail === "string" ? payload.detail : "Could not download the audio sample ZIP.");
+  }
+  return response.blob();
 }
 
 export interface VocabularyAudioMatch {
@@ -172,6 +216,7 @@ export interface VocabularyAudioImportResult {
   files: number;
   updated: number;
   unmatched: string[];
+  unmatchedAudio: string[];
   stories: string[];
 }
 

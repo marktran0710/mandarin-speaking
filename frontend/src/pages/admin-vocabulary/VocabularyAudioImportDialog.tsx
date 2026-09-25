@@ -3,6 +3,7 @@ import Modal from "../../shared/ui/Modal";
 import Icon from "../../shared/ui/Icon";
 import {
   confirmVocabularyAudioImport,
+  downloadVocabularyAudioSample,
   previewVocabularyAudioImport,
   type VocabularyAudioImportPreview,
   type VocabularyAudioImportResult,
@@ -17,6 +18,7 @@ export default function VocabularyAudioImportDialog({ onClose, onImported }: {
   const [result, setResult] = useState<VocabularyAudioImportResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [sampleLoading, setSampleLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,18 +62,56 @@ export default function VocabularyAudioImportDialog({ onClose, onImported }: {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const downloadSample = async () => {
+    setSampleLoading(true);
+    setError("");
+    try {
+      const blob = await downloadVocabularyAudioSample();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "vocabulary-audio-sample.zip";
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not download the audio sample ZIP.");
+    } finally {
+      setSampleLoading(false);
+    }
+  };
+
   return (
     <Modal open title="Import vocabulary audio" onClose={onClose}>
       <div className="av-import av-audio-import">
         <p className="av-editor-help">
           Upload a ZIP with one audio file per canonical <strong>Word Key</strong>. Name each file exactly like its Word Key,
           for example <code>C5-5-1-I1-W001.mp3</code>. Supported formats: MP3, WAV, M4A, WEBM and OGG. This attaches the
-          same model audio to all three question rounds for that word; it does not import student recordings.
+          same model audio to all three question rounds for that word; it does not import student recordings. Re-uploading
+          a Word Key replaces its old model audio and removes the old stored file.
         </p>
         <div className="av-audio-import-rule" role="note">
           <Icon name="info" size={18} />
           <span>Unmatched files are left out and shown in the preview. Nothing is written until you confirm.</span>
         </div>
+
+        <details className="av-import-template av-audio-sample">
+          <summary>Download the sample audio ZIP</summary>
+          <p className="av-import-template-copy">
+            This is a mapping-only sample, not a production Mandarin recording. The filename is the contract:
+            <code>C5-5-1-I1-W001.mp3</code> maps to the same <strong>Word Key</strong> in all three question rounds.
+            Do not use Question ID, Chinese text, pinyin, lesson names or round suffixes such as <code>_r1</code>.
+          </p>
+          <pre className="av-audio-sample-tree" aria-label="Sample audio ZIP contents">vocabulary-audio-sample.zip{`\n`}└── C5-5-1-I1-W001.mp3</pre>
+          <button
+            type="button"
+            className="av-button av-template-download"
+            onClick={() => void downloadSample()}
+            disabled={sampleLoading}
+          >
+            <Icon name="download" size={18} />
+            {sampleLoading ? "Preparing sample..." : "Download sample audio ZIP"}
+          </button>
+        </details>
 
         <input
           ref={fileInputRef}
@@ -114,7 +154,7 @@ export default function VocabularyAudioImportDialog({ onClose, onImported }: {
         {result && (
           <div className="av-import-result" role="status">
             <p><strong>Audio imported.</strong> {result.updated} vocabulary word{result.updated === 1 ? "" : "s"} updated.</p>
-            {result.unmatched.length > 0 && <p>{result.unmatched.length} unmatched file{result.unmatched.length === 1 ? "" : "s"} were skipped.</p>}
+            {result.unmatchedAudio.length > 0 && <p>{result.unmatchedAudio.length} unmatched file{result.unmatchedAudio.length === 1 ? "" : "s"} were skipped.</p>}
           </div>
         )}
 

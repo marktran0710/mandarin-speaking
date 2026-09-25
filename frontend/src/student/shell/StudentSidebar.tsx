@@ -3,14 +3,19 @@ import useColorMode from "../../hooks/useColorMode";
 import "./StudentSidebar.css";
 
 export type StudentTopSection = "study" | "progress" | "placement";
-export type StudentPhase = "vocab-preview" | "vocab-quiz" | "story-speaking" | "conversation" | "completion";
+export type StudentPhase = "vocab-preview" | "vocab-quiz" | "story-speaking" | "conversation" | "submit" | "completion";
 
 const PHASE_NAV: Array<{ id: StudentPhase; label: string }> = [
   { id: "vocab-preview", label: "Vocab Preview" },
   { id: "vocab-quiz", label: "Vocab Quiz" },
   { id: "story-speaking", label: "Story Speaking" },
   { id: "conversation", label: "Conversation" },
+  { id: "submit", label: "Submit" },
 ];
+
+/** "completion" has no nav button but is a real reachable StudentPhase —
+ * appended so watermark comparisons below never miss it. */
+export const PHASE_ORDER: StudentPhase[] = [...PHASE_NAV.map((phase) => phase.id), "completion"];
 
 interface StudentSidebarProps {
   studentName: string;
@@ -23,6 +28,16 @@ interface StudentSidebarProps {
   hasConversation?: boolean;
   quizStars?: number;
   maxQuizStars?: number;
+  /** The furthest phase this lesson attempt has actually reached — phases
+   * beyond it are locked (defaults to `activePhase`, so a sidebar rendered
+   * without this prop only ever treats the phase it's currently showing as
+   * reached, never unlocking ahead of it). */
+  furthestPhase?: StudentPhase | null;
+  /** Whether the vocab-quiz 3★ gate has been cleared for the active topic —
+   * gates the "story-speaking" item specifically, independent of the
+   * furthest-phase watermark (defaults to true so callers that omit it see
+   * unchanged behavior). */
+  speakingUnlocked?: boolean;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -35,12 +50,15 @@ export default function StudentSidebar({
   hasConversation = true,
   quizStars = 0,
   maxQuizStars = 0,
+  furthestPhase,
+  speakingUnlocked = true,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
 }: StudentSidebarProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const visiblePhaseNav = PHASE_NAV.filter((phase) => phase.id !== "conversation" || hasConversation);
+  const furthestIndex = PHASE_ORDER.indexOf(furthestPhase ?? activePhase ?? PHASE_ORDER[0]);
 
   return (
     <aside className="sa-sidebar">
@@ -102,18 +120,28 @@ export default function StudentSidebar({
         {activeSection === "study" && activePhase && onNavigatePhase && (
           <nav className="sa-sidebar__nav sa-sidebar__phase-nav" aria-label="Lesson phase">
             <p className="sa-sidebar__nav-label">Pedagogical Phase</p>
-            {visiblePhaseNav.map((phase) => (
-              <button
-                key={phase.id}
-                type="button"
-                className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""}`}
-                aria-current={activePhase === phase.id ? "page" : undefined}
-                onClick={() => onNavigatePhase(phase.id)}
-              >
-                <span className="sa-sidebar__phase-dot" aria-hidden="true" />
-                {phase.label}
-              </button>
-            ))}
+            {visiblePhaseNav.map((phase) => {
+              const starLocked = phase.id === "story-speaking" && !speakingUnlocked;
+              const locked = PHASE_ORDER.indexOf(phase.id) > furthestIndex || starLocked;
+              return (
+                <button
+                  key={phase.id}
+                  type="button"
+                  className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""} ${locked ? "is-locked" : ""}`}
+                  aria-current={activePhase === phase.id ? "page" : undefined}
+                  disabled={locked}
+                  title={locked ? (starLocked ? "Earn 3⭐ to unlock" : "Complete the previous step first") : undefined}
+                  onClick={() => onNavigatePhase(phase.id)}
+                >
+                  {locked ? (
+                    <StudentIcon name="lock" size={14} role="decorative" />
+                  ) : (
+                    <span className="sa-sidebar__phase-dot" aria-hidden="true" />
+                  )}
+                  {phase.label}
+                </button>
+              );
+            })}
           </nav>
         )}
       </div>

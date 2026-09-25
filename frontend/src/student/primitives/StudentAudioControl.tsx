@@ -4,21 +4,23 @@ import "./StudentAudioControl.css";
 
 interface StudentAudioControlProps {
   audioUrl?: string;
-  fallbackText?: string;
   label: string;
   compact?: boolean;
 }
 
 /**
- * Plays a real recorded/model clip when audioUrl exists; falls back to
- * speechSynthesis for a word/sentence when it doesn't (never silent, never
- * fake — matches the same fallback the legacy vocabulary preview used).
+ * Plays only a real recorded/imported model clip. Missing audio is explicit
+ * so content owners can identify records that still need an audio update.
  */
-export default function StudentAudioControl({ audioUrl, fallbackText, label, compact = false }: StudentAudioControlProps) {
+export default function StudentAudioControl({ audioUrl, label, compact = false }: StudentAudioControlProps) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const available = Boolean(audioUrl?.trim());
+  const displayLabel = available ? label : "Audio not available";
 
   const handlePlay = () => {
+    if (!audioUrl?.trim()) return;
+
     if (audioUrl) {
       if (!audioRef.current) {
         audioRef.current = new Audio(audioUrl);
@@ -26,15 +28,6 @@ export default function StudentAudioControl({ audioUrl, fallbackText, label, com
       }
       setPlaying(true);
       void audioRef.current.play().catch(() => setPlaying(false));
-      return;
-    }
-    if (fallbackText && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(fallbackText);
-      utter.lang = "zh-TW";
-      utter.onend = () => setPlaying(false);
-      setPlaying(true);
-      window.speechSynthesis.speak(utter);
     }
   };
 
@@ -43,10 +36,12 @@ export default function StudentAudioControl({ audioUrl, fallbackText, label, com
       type="button"
       className={`sa-audio-control ${compact ? "is-compact" : ""}`}
       onClick={handlePlay}
-      aria-pressed={playing}
+      disabled={!available}
+      aria-label={displayLabel}
+      aria-pressed={available ? playing : undefined}
     >
       <StudentIcon name={playing ? "graphic_eq" : "play_arrow"} size={compact ? 15 : 18} role="decorative" />
-      <span>{label}</span>
+      <span>{displayLabel}</span>
     </button>
   );
 }

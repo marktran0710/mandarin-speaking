@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import VocabularyAudioImportDialog from "./VocabularyAudioImportDialog";
 import {
   confirmVocabularyAudioImport,
+  downloadVocabularyAudioSample,
   previewVocabularyAudioImport,
   type VocabularyAudioImportPreview,
 } from "../../services/api/vocabulary";
@@ -11,6 +12,7 @@ import {
 vi.mock("../../services/api/vocabulary", () => ({
   previewVocabularyAudioImport: vi.fn(),
   confirmVocabularyAudioImport: vi.fn(),
+  downloadVocabularyAudioSample: vi.fn(),
 }));
 
 const cleanPreview: VocabularyAudioImportPreview = {
@@ -23,9 +25,19 @@ const cleanPreview: VocabularyAudioImportPreview = {
 beforeEach(() => {
   vi.mocked(previewVocabularyAudioImport).mockReset().mockResolvedValue(cleanPreview);
   vi.mocked(confirmVocabularyAudioImport).mockReset();
+  vi.mocked(downloadVocabularyAudioSample).mockReset().mockResolvedValue(new Blob(["zip"]));
 });
 
 describe("VocabularyAudioImportDialog", () => {
+  it("offers the Word Key mapping sample ZIP", async () => {
+    const user = userEvent.setup();
+    render(<VocabularyAudioImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
+    expect(screen.getByText(/mapping-only sample/)).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "PRE" && element.textContent?.includes("C5-5-1-I1-W001.mp3") === true)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Download sample audio ZIP" }));
+    await waitFor(() => expect(downloadVocabularyAudioSample).toHaveBeenCalledTimes(1));
+  });
+
   it("explains the Word Key ZIP convention and previews matches", async () => {
     const user = userEvent.setup();
     render(<VocabularyAudioImportDialog onClose={vi.fn()} onImported={vi.fn()} />);
@@ -38,7 +50,7 @@ describe("VocabularyAudioImportDialog", () => {
   });
 
   it("confirms the ZIP and reports the number of updated words", async () => {
-    vi.mocked(confirmVocabularyAudioImport).mockResolvedValue({ files: 1, updated: 1, unmatched: [], stories: ["Lesson 5-1"] });
+    vi.mocked(confirmVocabularyAudioImport).mockResolvedValue({ files: 1, updated: 1, unmatched: [], unmatchedAudio: [], stories: ["Lesson 5-1"] });
     const onImported = vi.fn();
     const user = userEvent.setup();
     render(<VocabularyAudioImportDialog onClose={vi.fn()} onImported={onImported} />);

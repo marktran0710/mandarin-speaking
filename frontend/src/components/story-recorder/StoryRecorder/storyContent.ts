@@ -33,7 +33,7 @@ export interface Topic {
   vocabularyTranslation?: Record<number, string[]>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
-  listenAudioSources?: Record<number, "teacher" | "tts">;
+  listenAudioSources?: Record<number, "teacher">;
   listenScripts?: Record<number, string>;
   vocabularyAudioUrls?: Record<number, (string | null)[]>;
   vocabularyReferenceCurves?: Record<number, number[][]>;

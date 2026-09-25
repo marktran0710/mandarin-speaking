@@ -22,7 +22,7 @@ export function storyToTopic(
   const vocabularyTranslation: Record<number, string[]> = {};
   const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
-  const listenAudioSources: Record<number, "teacher" | "tts"> = {};
+  const listenAudioSources: Record<number, "teacher"> = {};
   const listenScripts: Record<number, string> = {};
   const vocabularyAudioUrls: Record<number, (string | null)[]> = {};
   const vocabularyReferenceCurves: Record<number, number[][]> = {};
@@ -49,10 +49,14 @@ export function storyToTopic(
     if (suggestedAnswer) suggestedAnswers[index] = suggestedAnswer;
 
     const suffix = TIER_SUFFIX[difficultyLevel];
+    const listenAudioSource = frame[`listenAudioSource${suffix}` as keyof CustomStoryFrame] as "teacher" | undefined;
     const listenAudioUrl = (tierText(frame, "listenAudioUrl", difficultyLevel) || "").trim();
-    if (listenAudioUrl) listenAudioUrls[index] = resolveImageUrl(listenAudioUrl);
-    const listenAudioSource = frame[`listenAudioSource${suffix}` as keyof CustomStoryFrame] as "teacher" | "tts" | undefined;
-    if (listenAudioSource === "teacher" || listenAudioSource === "tts") listenAudioSources[index] = listenAudioSource;
+    // Legacy generated references are not student-playable. Do not expose them to the
+    // student app; only explicitly uploaded teacher recordings are playable.
+    if (listenAudioUrl && (listenAudioSource === undefined || listenAudioSource === "teacher")) {
+      listenAudioUrls[index] = resolveImageUrl(listenAudioUrl);
+    }
+    if (listenAudioSource === "teacher") listenAudioSources[index] = listenAudioSource;
     const listenScript = (tierText(frame, "listenScript", difficultyLevel) || "").trim();
     if (listenScript) listenScripts[index] = listenScript;
 

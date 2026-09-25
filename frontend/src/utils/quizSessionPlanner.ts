@@ -39,7 +39,6 @@ const ALL_KINDS: QuizQuestionKind[] = [
   "pos",
   "synonym",
   "reverse",
-  "listening",
 ];
 
 /** Normal form used only for cross-question comparisons. */

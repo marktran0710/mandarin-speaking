@@ -70,7 +70,7 @@ class CustomStoryFrameRequest(BaseModel):
     phrasesTranslation: Optional[str] = None
     suggestedAnswer: Optional[str] = None
     listenAudioUrl: Optional[str] = None
-    listenAudioSource: Optional[str] = None
+    listenAudioSource: Optional[Literal["teacher"]] = None
     listenScript: Optional[str] = None
     vocabularyAudioUrls: Optional[str] = None
     vocabularyReferenceCurves: Optional[str] = None
@@ -259,20 +259,6 @@ class TeacherUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=100)
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
-
-
-class GenerateModelVoiceRequest(BaseModel):
-    frameIndex: int
-    tier: str = "easy"
-
-
-class GenerateModelVoiceBulkRequest(BaseModel):
-    tiers: List[str] = ["easy"]
-
-
-class TTSRequest(BaseModel):
-    text: str
-    voice: str = ""
 
 
 class RecordingQualityMetrics(BaseModel):

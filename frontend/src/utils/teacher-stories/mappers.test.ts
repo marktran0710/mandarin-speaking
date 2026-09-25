@@ -46,4 +46,19 @@ describe("storyToTopic canonical mapping", () => {
     ];
     expect(storyToTopic({ ...story, conversationTurns: conversation }).conversationTurns).toEqual(conversation);
   });
+
+  it("does not expose legacy generated TTS audio to students", () => {
+    const legacyStory = {
+      ...story,
+      frames: [{
+        ...story.frames[0],
+        listenAudioUrl: "/uploads/story_audio/legacy-model.wav",
+        listenAudioSource: "tts",
+      }],
+    } as unknown as CustomTeacherStory;
+
+    const topic = storyToTopic(legacyStory);
+    expect(topic.listenAudioUrls).toBeUndefined();
+    expect(topic.listenAudioSources).toBeUndefined();
+  });
 });

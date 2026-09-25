@@ -100,19 +100,19 @@ describe("App — student data must be ready before a student route renders", ()
     ).toBeInTheDocument();
   });
 
-  it("mounts listen and retell inside the shared student frame and page body", async () => {
-    const api = await import("../services/database");
-    vi.spyOn(api, "listAudioRecords").mockResolvedValue([]);
+  it("mounts the shared Student Mode shell for the legacy listen-retell route", async () => {
+    // listen-retell has no page of its own any more (StudentApp replaced
+    // every legacy per-page student route, see STUDENT_MODE_PAGES in
+    // App.tsx) — the old data-student-template/"Listen & Retell" heading
+    // assertions this test used to make no longer exist.
     signInAsStudent();
     window.history.pushState({}, "", "/listen-retell");
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: /Listen & Retell/ })).toBeInTheDocument();
-    const shell = document.querySelector('[data-student-template="activity"]');
-    expect(shell).toHaveAttribute("data-student-page", "listen-retell");
-    expect(shell?.querySelector('[data-student-body="stage"]')).toBeInTheDocument();
-    expect(shell?.closest("main")).toHaveAttribute("id", "student-workspace-panel");
+    expect(
+      await screen.findByRole("navigation", { name: "Learning areas" }),
+    ).toBeInTheDocument();
 
     window.history.pushState({}, "", "/");
   });

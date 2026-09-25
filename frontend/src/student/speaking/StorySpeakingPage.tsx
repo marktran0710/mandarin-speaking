@@ -10,7 +10,7 @@ import {
 import { getStudentId } from "../../utils/studentSession";
 import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "../studyProgressFlags";
-import { useSpeakingRecorder } from "./useSpeakingRecorder";
+import { useSpeakingRecorder } from "./hooks/useSpeakingRecorder";
 import PitchChart from "../../components/pitch/PitchChart";
 import StudentPageHeader from "../primitives/StudentPageHeader";
 import StudentSection from "../primitives/StudentSection";
@@ -41,6 +41,11 @@ interface StorySpeakingPageProps {
   selectedImageIndex: number;
   onImageIndexChange: (index: number) => void;
   onAddRecord: (record: NewAudioRecord) => Promise<string | undefined> | void;
+  /** Every scene's latest submission, forwarded to StudentApp so it can
+   * assemble the final story submission once the student turns work in.
+   * Keyed so a re-recorded scene replaces its own entry rather than
+   * duplicating it. */
+  onSceneSubmission: (key: string, submission: SceneSubmission) => void;
   onDone: () => void;
 }
 
@@ -49,6 +54,7 @@ export default function StorySpeakingPage({
   selectedImageIndex,
   onImageIndexChange,
   onAddRecord,
+  onSceneSubmission,
   onDone,
 }: StorySpeakingPageProps) {
   const [stage, setStage] = useState<Stage>("recording");
@@ -107,6 +113,7 @@ export default function StorySpeakingPage({
       promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${selectedImageIndex}`,
     };
     setLastSubmission(submission);
+    onSceneSubmission(`speaking:${selectedImageIndex}`, submission);
     setLastGates({ masteryPassed: result.masteryPassed, contentPassed: result.contentPassed });
     setLastPitch({
       contour: result.metrics.pitch_contour ?? [],
@@ -266,7 +273,7 @@ export default function StorySpeakingPage({
           <StudentSection variant="tinted" className="sa-speaking__target">
             <p className="sa-speaking__target-label">Target</p>
             <BilingualWord hanzi={targetText} size="display" toneHighlight />
-            <StudentAudioControl fallbackText={targetText} label="Model" />
+            <StudentAudioControl audioUrl={topic.listenAudioUrls?.[selectedImageIndex]} label="Model" />
           </StudentSection>
 
           {stage === "recording" && (

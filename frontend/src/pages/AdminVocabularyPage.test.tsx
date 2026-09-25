@@ -31,7 +31,7 @@ describe("Admin vocabulary page", () => {
     expect(await screen.findByRole("heading", { name: "Vocabulary and questions use one source" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Import vocabulary + questions" }));
     expect(screen.getByRole("dialog", { name: "Import vocabulary + questions" })).toBeInTheDocument();
-    expect(screen.getByText("View and download the standard template")).toBeInTheDocument();
+    expect(screen.getByText("Download the standard XLSX template")).toBeInTheDocument();
   });
 
   it("includes stories without lesson metadata in the unassigned filter", async () => {
@@ -186,6 +186,8 @@ describe("Admin vocabulary page", () => {
     render(<AdminVocabularyPage />);
     await user.click(await screen.findByRole("button", { name: "View quiz questions for 桌子" }));
     const dialog = screen.getByRole("dialog", { name: "Quiz questions: 桌子" });
+    expect(within(dialog).getByRole("button", { name: "Audio not available" })).toBeDisabled();
+    expect(within(dialog).getByText("Audio not available — import a clip to enable playback.")).toBeInTheDocument();
     expect(within(dialog).getByText(/No generated questions yet/)).toBeInTheDocument();
   });
 

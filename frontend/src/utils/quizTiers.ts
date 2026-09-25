@@ -8,6 +8,7 @@
 
 import { getCachedResearchContext } from "./researchContext";
 import { getStudentScopeKey, isAdminSession } from "./studentSession";
+import { topicHasQuiz, type QuizSourceTopic } from "./topicQuiz";
 
 export type QuizTier = 1 | 2 | 3;
 export type TierMode = "tier1" | "tier2" | "tier3";
@@ -217,4 +218,20 @@ export function recordLocalStars(storyId: string, stars: QuizTier) {
   } catch {
     /* storage unavailable — stars just won't persist on this device */
   }
+}
+
+export interface QuizStarsSummary {
+  quizStars: number;
+  maxQuizStars: number;
+}
+
+/** Sidebar Stars widget total: sum of best-ever stars across every story
+ * that actually runs a quiz (stories with no glossed vocabulary have no
+ * quiz and so contribute no stars either way). Reads localStorage directly
+ * on every call — deliberately not memoizable on `topics`, since stars
+ * change via quiz completion writes that never touch the topics list. */
+export function computeQuizStarsSummary(topics: (QuizSourceTopic & { id: string })[]): QuizStarsSummary {
+  const quizStoryTopics = topics.filter((topic) => topicHasQuiz(topic));
+  const quizStars = quizStoryTopics.reduce((sum, topic) => sum + loadLocalStars(topic.id), 0);
+  return { quizStars, maxQuizStars: quizStoryTopics.length * 3 };
 }

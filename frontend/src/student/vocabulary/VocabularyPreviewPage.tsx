@@ -39,7 +39,6 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
             <BilingualWord hanzi={item.word} pinyin={item.pinyin} gloss={item.meaning} size="inline" />
             <StudentAudioControl
               audioUrl={item.audioUrl}
-              fallbackText={item.word}
               label="Listen"
               compact
             />

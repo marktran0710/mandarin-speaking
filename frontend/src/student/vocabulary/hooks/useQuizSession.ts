@@ -8,8 +8,8 @@ import {
   starsFromAttempts,
   type QuizTier,
   type TierMode,
-} from "../../utils/quizTiers";
-import { planQuizSession } from "../../utils/quizSessionPlanner";
+} from "../../../utils/quizTiers";
+import { planQuizSession } from "../../../utils/quizSessionPlanner";
 import {
   canUseDatabase,
   getVocabQuizReviewQueue,
@@ -18,7 +18,7 @@ import {
   recordVocabQuizResponse,
   type ReviewQueueItem,
   type VocabPriorityReviewWord,
-} from "../../services/database";
+} from "../../../services/database";
 import {
   TIMER_TICK_MS,
   assessmentAnswerIsCorrect,
@@ -26,7 +26,6 @@ import {
   buildDiagnosticRoundQuestions,
   buildPersonalizedAssessmentQuestions,
   buildQuizQuestion,
-  canUseSpeechSynthesis,
   quizConceptId,
   quizItemId,
   shuffle,
@@ -36,18 +35,18 @@ import {
   type VocabQuizQuestion,
   type VocabQuizQuestionResult,
   type VocabQuizSummary,
-} from "./model";
-import { getStudentScopeKey } from "../../utils/studentSession";
-import { getResearchReviewSession, postResearchPracticeSession } from "../../services/api/vocabulary-research";
-import { getCachedResearchContext } from "../../utils/researchContext";
+} from "../../../components/story-vocab-quiz/model";
+import { getStudentScopeKey } from "../../../utils/studentSession";
+import { getResearchReviewSession, postResearchPracticeSession } from "../../../services/api/vocabulary-research";
+import { getCachedResearchContext } from "../../../utils/researchContext";
 import {
   buildLessonVocabularyProgress,
   loadLessonProgressSnapshot,
   saveLessonAttempt,
   type LessonVocabularyProgress,
-} from "./lesson-vocab-progress";
-import type { VocabPriorityReviewResponse, VocabQuizAttempt } from "../../services/api/quiz-analytics";
-import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventName } from "../../utils/measurement";
+} from "../model/lesson-vocab-progress";
+import type { VocabPriorityReviewResponse, VocabQuizAttempt } from "../../../services/api/quiz-analytics";
+import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventName } from "../../../utils/measurement";
 
 export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
 
@@ -377,7 +376,7 @@ export function useQuizSession({
     const diagnosticConfig = diagnosticMode && assessment ? DIAGNOSTIC_ROUNDS[mode] : null;
     const bktType = diagnosticConfig && assessment
       ? assessment.questionType === diagnosticConfig.questionKind
-      : question.kind === "translation" || question.kind === "reverse" || question.kind === "listening";
+      : question.kind === "translation" || question.kind === "reverse";
     const isBktEligible = Boolean(
       !isRetryRound && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
     );
@@ -474,14 +473,6 @@ export function useQuizSession({
     setIndex(index + 1);
   };
 
-  const speakWord = (text: string) => {
-    if (!canUseSpeechSynthesis()) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "zh-TW";
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  };
-
   useEffect(() => {
     if (timeLimitMs === null || screen !== "quiz" || selected) return;
     const tick = window.setInterval(() => {
@@ -492,11 +483,6 @@ export function useQuizSession({
     return () => window.clearInterval(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLimitMs, screen, selected, index]);
-
-  useEffect(() => {
-    if (screen === "quiz" && question?.kind === "listening" && !selected) speakWord(question.correctWord);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, index, question?.kind]);
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
@@ -613,7 +599,7 @@ export function useQuizSession({
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
+    chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
     startResearchPractice, researchDueEntries, startResearchReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };

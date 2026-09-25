@@ -126,7 +126,7 @@ def _question(row: dict[str, str]) -> dict[str, Any]:
         "acceptedAnswers": accepted,
         "explanation": explanation,
         "sourceQuestionId": row["Question ID"],
-        "sourceType": row["Source Type"],
+        "sourceType": row.get("Source Type", ""),
         "round": row["Round"],
     }
 

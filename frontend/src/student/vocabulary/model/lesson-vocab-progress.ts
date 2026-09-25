@@ -1,5 +1,5 @@
-import type { VocabPriorityReviewResponse, VocabPriorityReviewWord, VocabQuizAttempt } from "../../services/api/quiz-analytics";
-import type { VocabQuizEntry, VocabQuizSummary } from "./model";
+import type { VocabPriorityReviewResponse, VocabPriorityReviewWord, VocabQuizAttempt } from "../../../services/api/quiz-analytics";
+import type { VocabQuizEntry, VocabQuizSummary } from "../../../components/story-vocab-quiz/model";
 
 export type LearnerVocabularyStatus = "strong" | "developing" | "needs_practice";
 

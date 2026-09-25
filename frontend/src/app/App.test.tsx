@@ -130,6 +130,31 @@ describe("App role flows", () => {
     vi.unstubAllGlobals();
   });
 
+  it("moves from the public landing page into the learner workspace", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: "student-app-flow",
+        name: "App Flow Student",
+        createdAt: "2026-08-22T00:00:00.000Z",
+        status: "active",
+      }),
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: /Start Learning/ }));
+    await user.type(screen.getByLabelText(/Student name/), "App Flow Student");
+    await user.type(screen.getByLabelText(/Password/), "123456");
+    await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
+
+    expect(await screen.findByText("App Flow Student", { selector: ".sa-sidebar__identity-name" })).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
+
   it.skip("lets a student enter the learning app with the default profile", async () => {
     const user = userEvent.setup();
     render(<App />);

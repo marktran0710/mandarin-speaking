@@ -194,7 +194,7 @@ export default function StudyPage({ topics, statusByStoryId, onOpenTopic }: Stud
                       <strong lang="zh-Hant">{word.word}</strong>
                     </div>
                     <span className="sa-study__word-audio">
-                      <StudentAudioControl audioUrl={word.audioUrl} fallbackText={word.word} label="Listen" compact />
+                      <StudentAudioControl audioUrl={word.audioUrl} label="Listen" compact />
                     </span>
                   </div>
                 )) : <p className="sa-study__rail-empty">Vocabulary will appear here after the lesson is loaded.</p>}

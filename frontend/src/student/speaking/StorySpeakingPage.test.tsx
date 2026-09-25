@@ -6,9 +6,9 @@ import type { SpeakingResultAnalysis } from "../../components/speaking-flow-card
 import { analyzeSpeakingResult } from "../../components/speaking-flow-card/SpeakingResultsFlow.analysis";
 import { saveSpeakingProgress } from "../../services/database";
 import StorySpeakingPage from "./StorySpeakingPage";
-import { useSpeakingRecorder, type SpeakingAnalysisResult } from "./useSpeakingRecorder";
+import { useSpeakingRecorder, type SpeakingAnalysisResult } from "./hooks/useSpeakingRecorder";
 
-vi.mock("./useSpeakingRecorder", () => ({ useSpeakingRecorder: vi.fn() }));
+vi.mock("./hooks/useSpeakingRecorder", () => ({ useSpeakingRecorder: vi.fn() }));
 vi.mock("../../components/speaking-flow-card/SpeakingResultsFlow.analysis", () => ({ analyzeSpeakingResult: vi.fn() }));
 vi.mock("../../services/database", () => ({ saveSpeakingProgress: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../../utils/studentSession", () => ({
@@ -131,6 +131,7 @@ function Harness({
         setSceneIndex(i);
       }}
       onAddRecord={onAddRecord}
+      onSceneSubmission={vi.fn()}
       onDone={onDone}
     />
   );
@@ -154,6 +155,7 @@ describe("StorySpeakingPage", () => {
         selectedImageIndex={0}
         onImageIndexChange={vi.fn()}
         onAddRecord={vi.fn()}
+        onSceneSubmission={vi.fn()}
         onDone={vi.fn()}
       />,
     );
@@ -190,6 +192,9 @@ describe("StorySpeakingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
     await screen.findByText("Meaning accurate");
     fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
+    // Advancing runs an async saveSpeakingProgress before the scene state
+    // updates — wait for scene 1's target text to confirm it landed.
+    await screen.findByText("再見");
 
     expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(onImageIndexChange).toHaveBeenCalledWith(1);
@@ -201,7 +206,8 @@ describe("StorySpeakingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
     await screen.findByText("Meaning needs another look");
     fireEvent.click(screen.getByRole("button", { name: "See Fix" }));
-    expect(screen.getByText("wrong tone on 再")).toBeInTheDocument();
+    // Overview's forward button also runs the async self-eval persist path.
+    await screen.findByText("wrong tone on 再");
     fireEvent.click(screen.getByRole("button", { name: "See Practice" }));
     expect(screen.getByText("再")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finish" }));

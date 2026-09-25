@@ -726,20 +726,16 @@ type KindWeights = Array<[QuizQuestionKind, number]>;
 const LEGACY_KIND_WEIGHTS: KindWeights = [["translation", 50], ["pinyin", 20], ["cloze", 15], ["pos", 5], ["synonym", 10]];
 const TIER_KIND_WEIGHTS: Record<TierMode, KindWeights> = {
   tier1: [["translation", 50], ["pinyin", 20], ["reverse", 30]],
-  tier2: [["translation", 25], ["pinyin", 15], ["reverse", 15], ["cloze", 15], ["synonym", 10], ["listening", 20]],
-  tier3: [["translation", 15], ["pinyin", 15], ["reverse", 15], ["cloze", 15], ["synonym", 10], ["pos", 10], ["listening", 20]],
+  tier2: [["translation", 25], ["pinyin", 15], ["reverse", 15], ["cloze", 15], ["synonym", 10]],
+  tier3: [["translation", 15], ["pinyin", 15], ["reverse", 15], ["cloze", 15], ["synonym", 10], ["pos", 10]],
 };
-
-export function canUseSpeechSynthesis(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
-}
 
 function isKindAvailable(kind: QuizQuestionKind, entry: VocabQuizEntry, allEntries: VocabQuizEntry[]): boolean {
   switch (kind) {
     case "translation": return true;
     case "pinyin": return Boolean(entry.pinyin || toPinyin(entry.word));
     case "reverse": return allEntries.length >= 2;
-    case "listening": return canUseSpeechSynthesis() && allEntries.length >= 2;
+    case "listening": return false;
     case "cloze": return Boolean(entry.aiCloze?.length);
     case "pos": return Boolean(entry.pos);
     case "synonym": return Boolean(entry.aiSynonym?.length);
@@ -806,7 +802,7 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizTranslat
 // can draw for a word (the three graded rounds are handled separately, via
 // buildDiagnosticRoundQuestions). "assessment" is omitted — it's a wrapper for
 // the round questions, not a standalone kind.
-const PRACTICE_PREVIEW_KINDS: QuizQuestionKind[] = ["translation", "cloze", "pinyin", "pos", "synonym", "reverse", "listening"];
+const PRACTICE_PREVIEW_KINDS: QuizQuestionKind[] = ["translation", "cloze", "pinyin", "pos", "synonym", "reverse"];
 
 function buildPracticeQuestionOfKind(
   kind: QuizQuestionKind,

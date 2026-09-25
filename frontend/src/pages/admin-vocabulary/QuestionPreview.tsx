@@ -138,10 +138,10 @@ export default function QuestionPreview({ entry, story, onClose }: {
               <strong lang="zh-Hant">{entry.word}</strong>
               <span>{entry.pinyin || "Pinyin unavailable"}</span>
             </div>
-            <StudentAudioControl audioUrl={audioUrl} fallbackText={entry.word} label="Listen to word" />
+            <StudentAudioControl audioUrl={audioUrl} label="Listen to word" />
           </div>
           <p className="av-qpreview-audio-status">
-            {audioUrl ? "Imported model audio" : "No imported clip yet; using your browser's Chinese voice."}
+            {audioUrl ? "Imported model audio" : "Audio not available — import a clip to enable playback."}
           </p>
         </div>
         <p className="av-qpreview-lead">

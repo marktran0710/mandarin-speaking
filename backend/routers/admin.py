@@ -8,7 +8,7 @@ account (no admin roster/table), so the JWT subject is a fixed constant.
 import os
 import hmac
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel
 
 import security.auth as auth
@@ -21,9 +21,14 @@ from db import (
 )
 from services.vocabulary_audio_import import (
     apply_vocabulary_audio_import,
+    build_vocabulary_audio_sample,
     preview_vocabulary_audio_import,
 )
-from services.vocabulary_import import apply_vocabulary_import, preview_vocabulary_import
+from services.vocabulary_import import (
+    apply_vocabulary_import,
+    build_vocabulary_import_template,
+    preview_vocabulary_import,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -118,6 +123,7 @@ def get_content_bank(
 @router.post("/vocabulary-import/preview")
 async def preview_vocabulary_import_upload(
     file: UploadFile = File(...),
+    mode: str = Form(...),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
     """Read-only: parse and validate an uploaded question-bank CSV/XLSX,
@@ -125,7 +131,7 @@ async def preview_vocabulary_import_upload(
     content = await file.read()
     try:
         with connect_db() as db:
-            return preview_vocabulary_import(db, content, filename=file.filename or "")
+            return preview_vocabulary_import(db, content, filename=file.filename or "", mode=mode)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -133,17 +139,30 @@ async def preview_vocabulary_import_upload(
 @router.post("/vocabulary-import/confirm")
 async def confirm_vocabulary_import_upload(
     file: UploadFile = File(...),
+    mode: str = Form(...),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
-    """Re-validates the file from scratch and, only if it still passes,
-    upserts each section's words into its matched story's vocab_assessment
-    by wordId. Never trusts a client-held preview result."""
+    """Re-validates the file from scratch and replaces each matched lesson's
+    canonical vocab_assessment by Word Key. Never trusts a client-held preview
+    result."""
     content = await file.read()
     try:
         with connect_db() as db:
-            return apply_vocabulary_import(db, content, filename=file.filename or "")
+            return apply_vocabulary_import(db, content, filename=file.filename or "", mode=mode)
     except (ValueError, LookupError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/vocabulary-import/template")
+def download_vocabulary_import_template(
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Download the self-documenting canonical vocabulary XLSX template."""
+    return Response(
+        content=build_vocabulary_import_template(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="vocabulary-import-template.xlsx"'},
+    )
 
 
 @router.post("/vocabulary-audio-import/preview")
@@ -158,6 +177,18 @@ async def preview_vocabulary_audio_import_upload(
             return preview_vocabulary_audio_import(db, content)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/vocabulary-audio-import/template")
+def download_vocabulary_audio_template(
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Download a mapping-only ZIP showing the exact Word Key filename contract."""
+    return Response(
+        content=build_vocabulary_audio_sample(),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="vocabulary-audio-sample.zip"'},
+    )
 
 
 @router.post("/vocabulary-audio-import/confirm")

@@ -123,3 +123,24 @@
   gap: var(--sa-space-md);
   padding-top: var(--sa-space-xs);
 }
+
+.sa-quiz__round-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sa-space-md);
+  padding: var(--sa-space-xl);
+  text-align: center;
+}
+.sa-quiz__round-result-score {
+  margin: 0;
+  font-family: var(--sa-font-body);
+  font-size: var(--sa-text-character-display);
+  color: var(--sa-on-surface);
+}
+.sa-quiz__round-result-gap {
+  margin: 0;
+  font-family: var(--sa-font-label);
+  font-size: var(--sa-text-body-sm);
+  color: var(--sa-outline);
+}

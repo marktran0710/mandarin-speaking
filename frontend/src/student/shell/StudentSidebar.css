@@ -168,6 +168,8 @@
 .sa-sidebar__phase-item.is-active { font-weight: 700; }
 .sa-sidebar__phase-dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: var(--sa-radius-full); background: var(--sa-outline-variant); }
 .sa-sidebar__phase-item.is-active .sa-sidebar__phase-dot { background: var(--sa-primary); }
+.sa-sidebar__phase-item.is-locked { color: var(--sa-outline); cursor: not-allowed; }
+.sa-sidebar__phase-item.is-locked:hover { background: none; }
 
 .sa-sidebar__footer {
   display: grid;

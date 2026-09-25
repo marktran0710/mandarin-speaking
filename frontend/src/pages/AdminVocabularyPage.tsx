@@ -94,6 +94,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
       <dl className="av-import-guide-rules">
         <div><dt>File</dt><dd>CSV or XLSX</dd></div>
         <div><dt>One word</dt><dd>3 round rows</dd></div>
+        <div><dt>Audio</dt><dd>ZIP by Word Key</dd></div>
         <div><dt>Write step</dt><dd>Preview, then confirm</dd></div>
       </dl>
     </section>
@@ -143,12 +144,13 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
         <div className="av-table-wrap" tabIndex={0} role="region" aria-label="Vocabulary table">
           <table className="av-table">
             <caption className="av-sr-only">Canonical vocabulary entries and their speaking lesson placement.</caption>
-            <colgroup><col className="av-col-word" /><col className="av-col-meaning" /><col className="av-col-speaking" /><col className="av-col-actions" /></colgroup>
-            <thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Lesson placement</th><th scope="col"><span className="av-sr-only">Actions</span></th></tr></thead>
+            <colgroup><col className="av-col-word" /><col className="av-col-meaning" /><col className="av-col-speaking" /><col className="av-col-audio" /><col className="av-col-actions" /></colgroup>
+            <thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Lesson placement</th><th scope="col">Audio</th><th scope="col"><span className="av-sr-only">Actions</span></th></tr></thead>
             <tbody>{visible.map((entry, index) => {
               const displayNumber = String(currentPage * PAGE_SIZE + index + 1).padStart(2, "0");
               const placement = entry.source === "quiz-assessment" ? "Quiz bank" : entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`;
               const lessonCode = entry.lessonNumber ? `${entry.lessonNumber}-${entry.lessonSubOrder ?? 1}` : "Unassigned";
+              const hasAudio = entry.assessmentQuestions.some(question => Boolean(question.audioUrl?.trim()));
               return <tr key={entry.id}>
                 <td data-label="Word" className="av-table-word">
                   <div className="av-word-heading"><span className="av-row-number" aria-hidden="true">{displayNumber}</span><strong lang="zh-Hant">{entry.word}</strong></div>
@@ -161,6 +163,10 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
                 <td data-label="Lesson placement" className="av-table-speaking">
                   <span className="av-table-primary" lang="zh-Hant">{entry.storyTitle}</span>
                   <small className="av-speaking-meta"><span>{lessonCode}</span><span aria-hidden="true"> / </span><span className="av-placement-chip">{placement}</span></small>
+                </td>
+                <td data-label="Audio" className={`av-table-audio${hasAudio ? "" : " is-missing"}`}>
+                  <Icon name={hasAudio ? "volume" : "info"} size={18} />
+                  <span>{hasAudio ? "Available" : "Audio not available"}</span>
                 </td>
                 <td data-label="Actions" className="av-row-actions">
                   <button type="button" className="av-icon-button" title={`View quiz questions for ${entry.word}`} aria-label={`View quiz questions for ${entry.word}`} onClick={() => { setPreviewing(entry); setMessage(""); }}><Icon name="eye" size={19} /></button>

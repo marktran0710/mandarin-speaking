@@ -17,6 +17,15 @@
 .sa-audio-control .sa-icon { color: var(--sa-primary); }
 .sa-audio-control:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline); }
 .sa-audio-control[aria-pressed="true"] { border-color: var(--sa-primary); color: var(--sa-primary); }
+.sa-audio-control:disabled {
+  background: var(--sa-surface-container-low);
+  border-color: var(--sa-outline-variant);
+  color: var(--sa-on-surface-variant);
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+.sa-audio-control:disabled .sa-icon { color: var(--sa-on-surface-variant); }
+.sa-audio-control:disabled:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline-variant); }
 
 .sa-audio-control.is-compact {
   padding: 4px var(--sa-space-sm);
