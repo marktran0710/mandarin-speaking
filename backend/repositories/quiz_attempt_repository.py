@@ -9,6 +9,7 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
+from domain.vocabulary.story_scope import story_scope_ids
 from repositories.database import row_to_vocab_quiz_attempt
 
 
@@ -30,8 +31,8 @@ def list_attempts(
     query = f"SELECT {columns} FROM vocab_quiz_attempts WHERE 1=1"
     params: list = []
     if story_id:
-        query += " AND story_id = %s"
-        params.append(story_id)
+        query += " AND story_id = ANY(%s)"
+        params.append(story_scope_ids(story_id))
     if student_name:
         query += " AND student_name = %s"
         params.append(student_name)

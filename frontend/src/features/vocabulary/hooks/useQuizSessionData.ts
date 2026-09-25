@@ -10,6 +10,8 @@ import {
   canUseDatabase,
   getVocabQuizReviewQueue,
   getVocabQuizWeakWords,
+  createVocabQuizAttempt,
+  getVocabularyProgression,
   listVocabQuizAttempts,
   type ReviewQueueItem,
   type VocabPriorityReviewWord,
@@ -42,7 +44,9 @@ export function useQuizSessionData({
   studentName,
   quizIdRef,
 }: QuizSessionDataProps) {
-  const [stars, setStars] = useState<0 | QuizTier>(() => storyId ? loadLocalStars(storyId) : 0);
+  const canonicalStoryId = baseStoryId ?? storyId;
+  const [stars, setStars] = useState<0 | QuizTier>(() => canonicalStoryId ? loadLocalStars(canonicalStoryId) : 0);
+  const [serverProgression, setServerProgression] = useState<import("../../../services/api/quiz-analytics").VocabularyProgression | null>(null);
   const studentScope = studentId || studentName || getStudentScopeKey();
   const [attempts, setAttempts] = useState<VocabQuizAttempt[]>(() => (
     storyId ? loadLessonProgressSnapshot(studentScope, baseStoryId ?? storyId).attempts ?? [] : []
@@ -80,43 +84,70 @@ export function useQuizSessionData({
       return;
     }
     let cancelled = false;
-    listVocabQuizAttempts(storyId, { studentId, studentName })
-      .then((serverAttempts) => {
-        if (!cancelled) {
-          // Once an approved assessment bank is attached to the story, old
-          // draft-material attempts must not mark the new CSV rounds as
-          // complete. Those attempts are intentionally excluded from BKT by
-          // the server as well, so using them for stars creates the misleading
-          // "all rounds complete, no weak words" state.
-          const progressAttempts = hasApprovedMaterial
-            ? serverAttempts.filter((attempt) =>
-              Boolean(
-                attempt.questionResults?.length &&
-                attempt.questionResults.every(
-                  (result) => result.bktValidationStatus === "APPROVED",
-                ),
-              ),
-            )
-            : serverAttempts;
-          const derived = starsFromAttempts(progressAttempts);
-          // Keep the local mirror in sync with the database-derived result,
-          // so the picker and recorder agree after a learner returns on this
-          // device (including after completing a quiz elsewhere).
-          if (derived !== 0) recordLocalStars(storyId, derived);
-          // A successful database read is authoritative for this student and
-          // story. Do not keep a stale local max here: it can mark all rounds
-          // complete even when this learner has no passed round on the server.
-          setStars(derived);
-          setAttempts((localAttempts) => {
-            const serverIds = new Set(serverAttempts.map((attempt) => attempt.id));
-            return [...serverAttempts, ...localAttempts.filter((attempt) => !serverIds.has(attempt.id))];
-          });
+    const loadAuthoritativeProgress = async () => {
+      let serverAttempts: VocabQuizAttempt[];
+      try {
+        serverAttempts = await listVocabQuizAttempts(canonicalStoryId, { studentId, studentName });
+      } catch {
+        // The server could not be read: localStorage is the deliberately
+        // limited offline fallback. It is never merged after a successful
+        // server read unless the attempt is first validated by POST.
+        if (!cancelled) setStarsReady(true);
+        return;
+      }
+
+      // Migrate completed rounds left in the old local mirror. A POST is the
+      // validation boundary; a local record is not considered authoritative
+      // merely because it has a passing client-side score.
+      const serverIds = new Set(serverAttempts.map((attempt) => attempt.id));
+      const localAttempts = loadLessonProgressSnapshot(studentScope, canonicalStoryId ?? storyId).attempts ?? [];
+      const pending = localAttempts.filter((attempt) => !serverIds.has(attempt.id));
+      if (pending.length > 0) {
+        const synced = await Promise.allSettled(pending.map((attempt) => createVocabQuizAttempt({
+          ...attempt,
+          storyId: canonicalStoryId ?? attempt.storyId,
+          baseStoryId: canonicalStoryId ?? attempt.baseStoryId,
+          studentId,
+        })));
+        if (synced.some((result) => result.status === "fulfilled")) {
+          try {
+            serverAttempts = await listVocabQuizAttempts(canonicalStoryId, { studentId, studentName });
+          } catch {
+            // Keep the original successful read as the source of truth if the
+            // refresh after migration is unavailable.
+          }
         }
-      })
-      .catch(() => { /* localStorage stars still apply */ })
-      .finally(() => { if (!cancelled) setStarsReady(true); });
+      }
+
+      let derived: 0 | QuizTier;
+      let progression: import("../../../services/api/quiz-analytics").VocabularyProgression | null = null;
+      if (studentId && canonicalStoryId) {
+        try {
+          progression = await getVocabularyProgression(canonicalStoryId, studentId);
+          derived = progression.quizStars;
+        } catch {
+          const progressAttempts = hasApprovedMaterial
+            ? serverAttempts.filter((attempt) => Boolean(attempt.questionResults?.length && attempt.questionResults.every((result) => result.bktValidationStatus === "APPROVED")))
+            : serverAttempts;
+          derived = starsFromAttempts(progressAttempts);
+        }
+      } else {
+        const progressAttempts = hasApprovedMaterial
+          ? serverAttempts.filter((attempt) => Boolean(attempt.questionResults?.length && attempt.questionResults.every((result) => result.bktValidationStatus === "APPROVED")))
+          : serverAttempts;
+        derived = starsFromAttempts(progressAttempts);
+      }
+
+      if (!cancelled) {
+        if (derived !== 0 && canonicalStoryId) recordLocalStars(canonicalStoryId, derived);
+        setServerProgression(progression);
+        setStars(derived);
+        setAttempts(serverAttempts);
+      }
+    };
+    loadAuthoritativeProgress().finally(() => { if (!cancelled) setStarsReady(true); });
     return () => { cancelled = true; };
-  }, [hasApprovedMaterial, storyId, studentId, studentName]);
+  }, [canonicalStoryId, hasApprovedMaterial, storyId, studentId, studentName, studentScope]);
 
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
   // Legacy flat weak-word list — a fallback for payloads that return only word
@@ -213,6 +244,7 @@ export function useQuizSessionData({
 
   return {
     stars,
+    serverProgression,
     setStars,
     attempts,
     setAttempts,

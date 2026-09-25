@@ -9,6 +9,7 @@ import {
 import { planQuizSession } from "@entities/vocabulary";
 import {
   canUseDatabase,
+  createVocabQuizAttempt,
   recordVocabQuizResponse,
   type VocabPriorityReviewWord,
 } from "../../../services/database";
@@ -162,14 +163,14 @@ export function useQuizSession({
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
   const timeLimitMs = effectiveTimeLimitMs(mode);
 
-  const finish = (finalResults: VocabQuizQuestionResult[]) => {
+  const finish = async (finalResults: VocabQuizQuestionResult[]) => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     const correctCount = finalResults.filter((result) => result.correct).length;
     if (!isRetryRound) {
       const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
       if (earned !== null) {
-        if (storyId) recordLocalStars(storyId, earned);
+        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
         setStars((current) => earned > current ? earned : current);
       }
       const summary: VocabQuizSummary = {
@@ -189,6 +190,16 @@ export function useQuizSession({
         totalTimeMs: summary.totalTimeMs,
         questionResults: summary.questionResults,
       };
+      if (canUseDatabase() && studentId) {
+        try {
+          // A completed attempt is the server completion boundary. Await it
+          // before exposing the tier result so a refresh cannot race the save.
+          await createVocabQuizAttempt(attempt);
+        } catch {
+          // The local snapshot remains a recoverable migration queue. It will
+          // be POST-validated the next time progression is read.
+        }
+      }
       setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
       saveLessonAttempt(studentScope, attempt.storyId, attempt);
       const completedEvent = mode === "tier1"
@@ -311,7 +322,7 @@ export function useQuizSession({
 
   const next = () => {
     setSelected(null);
-    if (isLast) return finish(results);
+    if (isLast) return void finish(results);
     questionStartRef.current = Date.now();
     setIndex(index + 1);
   };

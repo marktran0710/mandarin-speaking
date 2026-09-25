@@ -24,6 +24,8 @@ interface VocabularyQuizPageProps {
   topic: Topic;
   lessonLabel: string;
   onFinished: () => void;
+  onStartPractice?: (practice: "story-speaking" | "conversation") => void;
+  hasConversation?: boolean;
 }
 
 const QUESTION_TYPE_LABELS: Record<string, string> = {
@@ -353,9 +355,9 @@ function QuizQuestion({
   );
 }
 
-function ResultView({ flow, isLastTier }: { flow: ReturnType<typeof useVocabQuizFlow>; isLastTier: boolean }) {
+function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<typeof useVocabQuizFlow>; isLastTier: boolean; hasConversation: boolean }) {
   if (flow.view === "round-result" && flow.roundResult) {
-    return <div className="sa-quiz__result-layout"><StudentSection variant="panel" className="sa-quiz__result-card"><StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}>{flow.roundResult.passed ? "Passed" : "Not quite"}</StudentStatusPill><p className="sa-quiz__result-eyebrow">{ROUND_LABEL[flow.roundResult.tier]} complete</p><p className="sa-quiz__result-score">{flow.roundResult.correctCount} <span>/ {flow.roundResult.totalQuestions}</span></p><p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? "The speaking gate is ready for you." : "The next round is now unlocked." : `${flow.roundResult.starGap ?? 1} more correct answer${flow.roundResult.starGap === 1 ? "" : "s"} needed to pass this round.`}</p>{flow.roundResult.passed ? <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}>{isLastTier ? "Finish quiz" : "Continue"}</StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}>Try again</StudentButton>}</StudentSection></div>;
+    return <div className="sa-quiz__result-layout"><StudentSection variant="panel" className="sa-quiz__result-card"><StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}>{flow.roundResult.passed ? "Passed" : "Not quite"}</StudentStatusPill><p className="sa-quiz__result-eyebrow">{ROUND_LABEL[flow.roundResult.tier]} complete</p><p className="sa-quiz__result-score">{flow.roundResult.correctCount} <span>/ {flow.roundResult.totalQuestions}</span></p><p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? "Your vocabulary gate is open. Choose one practice path to continue." : "The next round is now unlocked." : `${flow.roundResult.starGap ?? 1} more correct answer${flow.roundResult.starGap === 1 ? "" : "s"} needed to pass this round.`}</p>{flow.roundResult.passed ? isLastTier ? <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path"><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}>Story Speaking</StudentButton>{hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}>Conversation Practice</StudentButton>}</div> : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}>Continue</StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}>Try again</StudentButton>}</StudentSection></div>;
   }
   if (flow.view === "practice-result" && flow.practiceResult) {
     return <div className="sa-quiz__result-layout"><StudentSection variant="panel" className="sa-quiz__result-card"><StudentStatusPill tone="success">Practice complete</StudentStatusPill><p className="sa-quiz__result-eyebrow">{flow.practiceResult.mode === "maintenance_review" ? "Review today" : "Weak words"}</p><p className="sa-quiz__result-score">{flow.practiceResult.correctCount} <span>/ {flow.practiceResult.totalQuestions}</span></p><p className="sa-quiz__result-copy">Your practice result has been saved to your learning record.</p><StudentButton variant="primary" iconTrailing="arrow_back" onClick={flow.returnToModes}>Back to practice options</StudentButton></StudentSection></div>;
@@ -363,8 +365,8 @@ function ResultView({ flow, isLastTier }: { flow: ReturnType<typeof useVocabQuiz
   return null;
 }
 
-export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: VocabularyQuizPageProps) {
-  const flow = useVocabQuizFlow({ topic, onFinished });
+export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onStartPractice, hasConversation = false }: VocabularyQuizPageProps) {
+  const flow = useVocabQuizFlow({ topic, onFinished, onStartPractice });
   const [pinyinDraft, setPinyinDraft] = useState("");
   const [hintOpen, setHintOpen] = useState(false);
 
@@ -413,7 +415,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished }: V
   return (
     <StudentPage layout="task" wide header={header}>
       <QuizStatusBar flow={flow} question={question} />
-      {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} /> : question ? (
+      {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} hasConversation={hasConversation} /> : question ? (
         <div className="sa-quiz__workspace">
           <QuizQuestion flow={flow} question={question} entry={entry} lessonLabel={lessonLabel} pinyinDraft={pinyinDraft} setPinyinDraft={setPinyinDraft} showingFeedback={showingFeedback} lastResult={lastResult} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />
           <QuizRail flow={flow} hint={assessment?.explanation} hintOpen={hintOpen} onToggleHint={() => setHintOpen((open) => !open)} />

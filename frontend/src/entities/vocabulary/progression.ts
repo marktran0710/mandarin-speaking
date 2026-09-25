@@ -230,6 +230,6 @@ export interface QuizStarsSummary {
  * change via quiz completion writes that never touch the topics list. */
 export function computeQuizStarsSummary(topics: (QuizSourceTopic & { id: string })[]): QuizStarsSummary {
   const quizStoryTopics = topics.filter((topic) => topicHasQuiz(topic));
-  const quizStars = quizStoryTopics.reduce((sum, topic) => sum + loadLocalStars(topic.id), 0);
+  const quizStars = quizStoryTopics.reduce((sum, topic) => sum + loadLocalStars((topic as { sourceStory?: { id?: string } }).sourceStory?.id ?? topic.id), 0);
   return { quizStars, maxQuizStars: quizStoryTopics.length * 3 };
 }

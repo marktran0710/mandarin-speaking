@@ -41,9 +41,9 @@ function attempt(mode: VocabQuizAttempt["mode"], correctCount: number): VocabQui
 
 function roundPresence(tier1: boolean, tier2: boolean, tier3: boolean) {
   return {
-    tier1: { level: "tier1" as const, roundType: "know_it" as const, observedWords: 3, observations: 3, complete: tier1 },
-    tier2: { level: "tier2" as const, roundType: "say_it" as const, observedWords: 3, observations: 3, complete: tier2 },
-    tier3: { level: "tier3" as const, roundType: "use_it" as const, observedWords: 3, observations: 3, complete: tier3 },
+    tier1: { level: "tier1" as const, round: 1 as const, roundType: "know_it" as const, observedWords: 3, observations: 3, complete: tier1 },
+    tier2: { level: "tier2" as const, round: 2 as const, roundType: "say_it" as const, observedWords: 3, observations: 3, complete: tier2 },
+    tier3: { level: "tier3" as const, round: 3 as const, roundType: "use_it" as const, observedWords: 3, observations: 3, complete: tier3 },
   };
 }
 

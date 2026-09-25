@@ -108,7 +108,7 @@ describe("VocabularyQuizPage", () => {
     vi.mocked(useQuizSession).mockImplementation(useFakeQuizSession as unknown as typeof useQuizSession);
   });
 
-  it("runs tier1 -> tier2 -> tier3 in sequence and only finishes after tier 3's Finish click", () => {
+  it("runs tier1 -> tier2 -> tier3 in sequence and only finishes after tier 3's practice choice", () => {
     const onFinished = vi.fn();
     render(<VocabularyQuizPage topic={makeTopic()} lessonLabel="Lesson" onFinished={onFinished} />);
     fireEvent.click(screen.getByRole("button", { name: "Start Know It" }));
@@ -130,11 +130,11 @@ describe("VocabularyQuizPage", () => {
     expect(onFinished).not.toHaveBeenCalled();
     expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").quiz).not.toBe(true);
 
-    // Tier 3: only its Finish click (after a passed round-result) finishes the quiz.
+    // Tier 3: only its practice choice (after a passed round-result) finishes the quiz.
     expect(screen.getByText("word-tier3")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Finish/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Story Speaking" }));
 
     expect(onFinished).toHaveBeenCalledTimes(1);
     expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").quiz).toBe(true);

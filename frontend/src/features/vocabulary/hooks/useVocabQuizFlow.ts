@@ -11,6 +11,7 @@ import { useQuizSession } from "./useQuizSession";
 interface UseVocabQuizFlowArgs {
   topic: Topic;
   onFinished: () => void;
+  onStartPractice?: (practice: "story-speaking" | "conversation") => void;
 }
 
 export interface PracticeResult {
@@ -23,7 +24,7 @@ export type VocabQuizFlowView = "loading" | "mode-select" | "quiz" | "round-resu
 
 /** Production quiz navigation: diagnostic BKT rounds plus server-selected
  * weak-word practice and due SM-2 maintenance review. */
-export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
+export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVocabQuizFlowArgs) {
   const entries = useMemo(() => topicQuizEntries(topic), [topic]);
   const session = useQuizSession({
     entries,
@@ -77,9 +78,19 @@ export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
       setTierPos(nextPos);
       session.startTier(TIER_SEQUENCE[nextPos]);
     } else {
-      markPhaseSeen(topicStoryId(topic), "quiz");
-      onFinished();
+      finishQuiz();
     }
+  };
+
+  const finishQuiz = () => {
+    markPhaseSeen(topicStoryId(topic), "quiz");
+    onFinished();
+  };
+
+  const choosePractice = (practice: "story-speaking" | "conversation") => {
+    markPhaseSeen(topicStoryId(topic), "quiz");
+    if (onStartPractice) onStartPractice(practice);
+    else onFinished();
   };
 
   const startWeakWords = () => {
@@ -120,6 +131,8 @@ export function useVocabQuizFlow({ topic, onFinished }: UseVocabQuizFlowArgs) {
     mode: session.mode,
     retry,
     continueToNext,
+    finishQuiz,
+    choosePractice,
     startTier,
     startWeakWords,
     startDueReview,

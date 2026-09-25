@@ -14,9 +14,13 @@ vi.mock("../../utils/studentSession", () => ({
 }));
 
 vi.mock("../../features/vocabulary/VocabularyQuizPage", () => ({
-  default: ({ onFinished }: { onFinished: () => void }) => (
+  default: ({ onFinished, onStartPractice }: { onFinished: () => void; onStartPractice?: (practice: "story-speaking" | "conversation") => void }) => (
     <div data-testid="quiz-mock">
       <button onClick={onFinished}>Finish Quiz</button>
+      {onStartPractice && <>
+        <button onClick={() => onStartPractice("story-speaking")}>Choose Story Speaking</button>
+        <button onClick={() => onStartPractice("conversation")}>Choose Conversation</button>
+      </>}
     </div>
   ),
 }));
@@ -143,14 +147,13 @@ describe("StudentApp", () => {
     expect(JSON.parse(localStorage.getItem("storyLevelProgress:student-1") ?? "{}").s1).toBe(true);
   });
 
-  it("routes speaking-done to the mocked Conversation page when the topic has conversationTurns", () => {
+  it("lets a three-star quiz choose Conversation directly, without forcing Story Speaking first", () => {
     const withConversation = makeTopic({ id: "s3", lessonSubOrder: 1, conversationTurns });
     render(<StudentApp studentName="Student One" topics={[withConversation]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
     fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
-    fireEvent.click(screen.getByRole("button", { name: "Finish Speaking" }));
+    fireEvent.click(screen.getByRole("button", { name: "Choose Conversation" }));
 
     expect(screen.getByTestId("conversation-mock")).toBeInTheDocument();
   });
@@ -173,20 +176,20 @@ describe("StudentApp", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
-    // Freshly opened: only Vocab Preview (the phase we're actually on) is reachable.
+    // Freshly opened: quiz-complete stars make both practice choices reachable.
     expect(screen.getByRole("button", { name: /Vocab Preview/ })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Vocab Quiz/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeDisabled();
+    const phaseNav = screen.getByRole("navigation", { name: "Lesson phase" });
+    expect(within(phaseNav).getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
     expect(screen.getByRole("button", { name: /Vocab Quiz/ })).not.toBeDisabled();
-    // Watermark hasn't reached Story Speaking yet, regardless of stars already earned.
-    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeDisabled();
+    expect(within(phaseNav).getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
     // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
-    expect(screen.getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
+    expect(within(phaseNav).getByRole("button", { name: /Story Speaking/ })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     // Clicking a still-locked item is a no-op — the rendered body is unchanged.

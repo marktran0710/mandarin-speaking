@@ -21,6 +21,7 @@ from analytics.learner_model.bkt.core import (
 )
 from analytics.learner_model.bkt.question_validation import classify_bkt_response
 from analytics.learner_model.vocabulary_state import build_vocabulary_state
+from domain.vocabulary.story_scope import canonical_story_id, story_scope_ids
 
 
 DIAGNOSTIC_MODES = ("tier1", "tier2", "tier3")
@@ -40,36 +41,6 @@ _RESPONSE_FINGERPRINT_FIELDS = (
 
 def normalize_word_id(value: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", value).strip().split())
-
-
-def canonical_story_id(story_id: str | None) -> str | None:
-    """Return the source story id behind a teacher/topic tier id."""
-    if not story_id:
-        return None
-    value = str(story_id).strip()
-    if value.startswith("teacher-"):
-        value = value[len("teacher-"):]
-    for suffix in ("-medium", "-hard"):
-        if value.endswith(suffix):
-            value = value[: -len(suffix)]
-            break
-    return value or None
-
-
-def story_scope_ids(story_id: str | None) -> list[str]:
-    """All legacy/current ids that represent one story's learning scope."""
-    if not story_id:
-        return []
-    canonical = canonical_story_id(story_id)
-    if not canonical:
-        return [str(story_id)]
-    return sorted({
-        str(story_id),
-        canonical,
-        f"teacher-{canonical}",
-        f"teacher-{canonical}-medium",
-        f"teacher-{canonical}-hard",
-    })
 
 
 def _lesson_scope_filter(story_id: str | None) -> tuple[str, list[Any]]:

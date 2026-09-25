@@ -87,6 +87,6 @@ export function getVocabularyGateState(
     policy,
     topic,
     loadSubmittedStoryIds(),
-    (t) => loadLocalStars(t.id),
+    (t) => loadLocalStars(t.sourceStory?.id ?? t.id),
   );
 }

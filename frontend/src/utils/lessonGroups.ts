@@ -106,7 +106,7 @@ export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
  * localStorage. */
 export type StarsForTopic = (topic: Topic) => number;
 
-const localStarsForTopic: StarsForTopic = (topic) => loadLocalStars(topic.id);
+const localStarsForTopic: StarsForTopic = (topic) => loadLocalStars(topic.sourceStory?.id ?? topic.id);
 
 /** A story is finished when it's been submitted (at any tier) AND its quiz
  * ladder reached ⭐⭐⭐ — all three tiers passed. Stories that run no quiz at all (no

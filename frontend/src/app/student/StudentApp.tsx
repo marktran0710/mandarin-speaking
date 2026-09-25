@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { NewAudioRecord } from "../../components/story-recorder/StoryRecorder";
 import type { Topic } from "@entities/topic";
 import { normalizeConversationTurns } from "../../components/story-recorder/StoryRecorder";
 import { canUseDatabase, createStorySubmission, type SceneSubmission } from "../../services/database";
+import { getVocabularyProgression, type VocabularyProgression } from "../../services/api/quiz-analytics";
 import { computeStudyRowStatuses, nextTopicInSequence, topicStoryId } from "../../utils/lessonGroups";
 import { computeQuizStarsSummary, loadLocalStars, topicHasQuiz } from "@entities/vocabulary";
 import { getStudentId } from "../../utils/studentSession";
-import { getVocabularyGateState } from "../../utils/vocabularyProgression";
 import { loadPhaseFlags } from "@shared/lib/studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
 import { PHASE_ORDER, type StudentPhase, type StudentTopSection } from "./shell/StudentSidebar";
@@ -50,11 +50,14 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // than duplicating it — assembled into one StorySubmission when the
   // student turns work in on the Submit screen.
   const [sceneSubmissions, setSceneSubmissions] = useState<Record<string, SceneSubmission>>({});
+  const [completedPractice, setCompletedPractice] = useState<"speaking" | "conversation">("speaking");
+  const [activeProgression, setActiveProgression] = useState<VocabularyProgression | null>(null);
 
   const openTopic = (topic: Topic) => {
     setActiveTopic(topic);
     setSceneIndex(0);
     setSceneSubmissions({});
+    setCompletedPractice("speaking");
     setPhase("vocab-preview");
     setFurthestPhase("vocab-preview");
   };
@@ -62,6 +65,18 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const backToStudy = () => {
     setActiveTopic(null);
   };
+
+  useEffect(() => {
+    setActiveProgression(null);
+    const studentId = getStudentId();
+    const storyId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
+    if (!activeTopic || !studentId || !storyId || !canUseDatabase()) return;
+    let cancelled = false;
+    getVocabularyProgression(storyId, studentId)
+      .then((progression) => { if (!cancelled) setActiveProgression(progression); })
+      .catch(() => { /* local mirror remains the offline fallback */ });
+    return () => { cancelled = true; };
+  }, [activeTopic]);
 
   // The only path that should ever move `phase` forward on its own (a
   // page's onDone/onFinished callback deciding its own work is actually
@@ -97,6 +112,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   };
 
   const conversationTurns = activeTopic ? normalizeConversationTurns(activeTopic.conversationTurns) : null;
+  const conversationAvailable = Boolean(conversationTurns) && (activeProgression?.conversationAvailable ?? true);
+  const availableConversationTurns = conversationAvailable ? conversationTurns : null;
 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
   if (section === "study" && !activeTopic) {
@@ -119,7 +136,10 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // with no topicHasQuiz check, so a quiz-less topic — which never earns
   // stars — would show as permanently locked; coreRoundsCompleted already
   // exempts that case the same way isStoryFinished does.
-  const speakingUnlocked = activeTopic ? getVocabularyGateState(activeTopic).coreRoundsCompleted : false;
+  const activeStoryId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
+  const activeStars = activeProgression?.quizStars ?? (activeStoryId ? loadLocalStars(activeStoryId) : 0);
+  const speakingUnlocked = activeTopic ? (!topicHasQuiz(activeTopic) || activeStars >= 3) : false;
+  const conversationUnlocked = conversationAvailable && speakingUnlocked;
 
   let body: React.ReactNode;
 
@@ -142,7 +162,20 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyQuizPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
+        hasConversation={conversationAvailable}
         onFinished={() => advancePhase("story-speaking")}
+        onStartPractice={(practice) => {
+          setCompletedPractice(practice === "conversation" ? "conversation" : "speaking");
+          setActiveProgression(null);
+          const studentId = getStudentId();
+          const storyId = activeTopic.sourceStory?.id ?? activeTopic.id;
+          if (studentId && canUseDatabase()) {
+            getVocabularyProgression(storyId, studentId)
+              .then(setActiveProgression)
+              .catch(() => { /* local star mirror is the fallback */ });
+          }
+          advancePhase(practice);
+        }}
       />
     );
   } else if (phase === "story-speaking") {
@@ -153,17 +186,23 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         onImageIndexChange={setSceneIndex}
         onAddRecord={onAddRecord}
         onSceneSubmission={handleSceneSubmission}
-        onDone={() => advancePhase(conversationTurns ? "conversation" : "submit")}
+        onDone={() => {
+          setCompletedPractice("speaking");
+          advancePhase("submit");
+        }}
       />
     );
-  } else if (phase === "conversation" && conversationTurns) {
+  } else if (phase === "conversation" && availableConversationTurns) {
     body = (
       <ConversationPage
         topic={activeTopic}
-        turns={conversationTurns}
+        turns={availableConversationTurns}
         onAddRecord={onAddRecord}
         onSceneSubmission={handleSceneSubmission}
-        onDone={() => advancePhase("submit")}
+        onDone={() => {
+          setCompletedPractice("conversation");
+          advancePhase("submit");
+        }}
         onBack={backToStudy}
       />
     );
@@ -172,7 +211,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <SubmitStoryPage
         topic={activeTopic}
         sceneCount={activeTopic.images.length}
-        hasConversation={Boolean(conversationTurns)}
+        hasConversation={conversationAvailable}
+        completedPractice={completedPractice}
         onSubmit={handleSubmitStory}
       />
     );
@@ -186,8 +226,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <CompletionPage
         topic={activeTopic}
         sceneCount={activeTopic.images.length}
-        hasConversation={Boolean(conversationTurns)}
-        quizStars={topicHasQuiz(activeTopic) ? loadLocalStars(activeTopic.id) : null}
+        hasConversation={conversationAvailable}
+        quizStars={topicHasQuiz(activeTopic) ? activeStars : null}
         overallCompleted={overallCompleted}
         overallTotal={topics.length}
         nextTopic={nextTopic}
@@ -203,11 +243,13 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       studentName={studentName}
       activeSection={section}
       activePhase={activeTopic ? phase : null}
-      hasConversation={Boolean(conversationTurns)}
+      hasConversation={conversationAvailable}
       quizStars={totalQuizStars}
       maxQuizStars={maxQuizStars}
       furthestPhase={furthestPhase}
       speakingUnlocked={speakingUnlocked}
+      conversationUnlocked={conversationUnlocked}
+      practiceChoicesUnlocked={speakingUnlocked}
       onNavigateSection={(next) => {
         setSection(next);
         if (next === "study") setActiveTopic(null);
@@ -215,7 +257,14 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       onNavigatePhase={
         activeTopic
           ? (next) => {
-              const reachable = PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
+              const practiceReachable = next === "story-speaking"
+                ? speakingUnlocked
+                : next === "conversation"
+                  ? conversationUnlocked
+                  : false;
+              const reachable = next === "story-speaking" || next === "conversation"
+                ? practiceReachable
+                : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
               const starBlocked = next === "story-speaking" && !speakingUnlocked;
               if (reachable && !starBlocked) setPhase(next);
             }

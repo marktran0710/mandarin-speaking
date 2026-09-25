@@ -37,6 +37,9 @@ interface StudentSidebarProps {
    * furthest-phase watermark (defaults to true so callers that omit it see
    * unchanged behavior). */
   speakingUnlocked?: boolean;
+  conversationUnlocked?: boolean;
+  /** Allows either practice to be selected directly after the quiz gate. */
+  practiceChoicesUnlocked?: boolean;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -51,6 +54,8 @@ export default function StudentSidebar({
   maxQuizStars = 0,
   furthestPhase,
   speakingUnlocked = true,
+  conversationUnlocked = false,
+  practiceChoicesUnlocked = false,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
@@ -122,7 +127,10 @@ export default function StudentSidebar({
             <p className="sa-sidebar__nav-label"><span lang="zh-Hant">課程階段</span> · Pedagogical Phase</p>
             {visiblePhaseNav.map((phase) => {
               const starLocked = phase.id === "story-speaking" && !speakingUnlocked;
-              const locked = PHASE_ORDER.indexOf(phase.id) > furthestIndex || starLocked;
+              const practiceOpen = practiceChoicesUnlocked && (phase.id === "story-speaking"
+                ? speakingUnlocked
+                : phase.id === "conversation" && conversationUnlocked);
+              const locked = (!practiceOpen && PHASE_ORDER.indexOf(phase.id) > furthestIndex) || starLocked;
               return (
                 <button
                   key={phase.id}

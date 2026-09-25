@@ -13,6 +13,7 @@ interface SubmitStoryPageProps {
   topic: Topic;
   sceneCount: number;
   hasConversation: boolean;
+  completedPractice?: "speaking" | "conversation";
   onSubmit: () => Promise<void>;
 }
 
@@ -24,7 +25,7 @@ interface SubmitStoryPageProps {
  * markStoryLevelSubmitted work and advances the phase once it resolves;
  * this component only owns the button's pending/error state.
  */
-export default function SubmitStoryPage({ topic, sceneCount, hasConversation, onSubmit }: SubmitStoryPageProps) {
+export default function SubmitStoryPage({ topic, sceneCount, hasConversation, completedPractice = "speaking", onSubmit }: SubmitStoryPageProps) {
   const [state, setState] = useState<SubmitState>("idle");
 
   const handleSubmit = async () => {
@@ -49,11 +50,11 @@ export default function SubmitStoryPage({ topic, sceneCount, hasConversation, on
         <p className="sa-submit__topic" lang="zh-Hant">{topic.name}</p>
 
         <ul className="sa-submit__checklist">
-          <li className="sa-submit__check-item is-done">
+          {completedPractice === "speaking" && <li className="sa-submit__check-item is-done">
             <StudentIcon name="check_circle" size={18} role="decorative" filled />
             <span>{sceneCount} / {sceneCount} 幕已完成 · Scenes spoken</span>
-          </li>
-          {hasConversation && (
+          </li>}
+          {completedPractice === "conversation" && hasConversation && (
             <li className="sa-submit__check-item is-done">
               <StudentIcon name="check_circle" size={18} role="decorative" filled />
               <span>對話已完成 · Conversation finished</span>

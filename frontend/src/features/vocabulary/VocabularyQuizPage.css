@@ -202,6 +202,7 @@
 .sa-quiz__result-score { margin: 0; color: var(--sa-on-surface); font: 500 var(--sa-text-character-display)/var(--sa-leading-character-display) var(--sa-font-headline); }
 .sa-quiz__result-score span { color: var(--sa-outline); font: var(--sa-text-body-lg)/var(--sa-leading-body-lg) var(--sa-font-label); }
 .sa-quiz__result-copy { max-width: 420px; margin: 0; color: var(--sa-on-surface-variant); font: var(--sa-text-body-md)/var(--sa-leading-body-md) var(--sa-font-body); }
+.sa-quiz__practice-choice { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sa-space-sm); }
 
 @media (max-width: 900px) {
   .sa-quiz__mode-layout,
