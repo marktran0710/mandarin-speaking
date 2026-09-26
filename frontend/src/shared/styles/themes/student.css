@@ -75,6 +75,43 @@
   --shadow-soft: 0 8px 24px rgba(23, 50, 75, 0.08);
   --motion-fast: 160ms ease;
   --sidebar-width: 16rem;
+
+  /*
+   * Student Mode still mounts a few shared and homepage components that use
+   * the original clay/seal token names. Keep those components inside the
+   * same semantic palette until each one can be migrated to a `--color-*`
+   * token. Scoping the bridge to `.student-app` keeps the teacher and admin
+   * surfaces on their existing theme while making the public homepage,
+   * navigation, and student shell read as one product.
+   */
+  --clay-canvas: var(--color-canvas);
+  --clay-surface-soft: var(--color-surface-soft);
+  --clay-surface-card: var(--color-surface);
+  --clay-surface-strong: var(--color-sky-strong);
+  --clay-ink: var(--color-ink);
+  --clay-body: var(--color-muted);
+  --clay-muted: var(--color-muted);
+  --clay-hairline: var(--color-border);
+  --clay-hairline-soft: color-mix(in srgb, var(--color-border) 68%, var(--color-surface));
+  --clay-on-seal: var(--color-on-primary);
+  --clay-on-accent: var(--color-on-primary);
+  --clay-error: var(--color-error);
+  --clay-error-deep: var(--color-error);
+  --clay-error-soft: var(--color-error-soft);
+  --clay-primary: var(--color-primary);
+  --clay-primary-active: var(--color-ink);
+  --clay-primary-disabled: var(--color-primary-container);
+  --seal: var(--color-primary);
+  --seal-deep: var(--color-ink);
+  --seal-soft: var(--color-primary-container);
+  --jade: var(--color-success);
+  --jade-deep: var(--color-success-ink);
+  --jade-soft: var(--color-success-container);
+  --gold: var(--color-peach);
+  --gold-deep: var(--color-peach-ink);
+  --gold-soft: var(--color-peach);
+  --tone1-deep: var(--color-primary);
+
   font-family: var(--font-ui);
   background: var(--color-canvas);
   color: var(--color-ink);
