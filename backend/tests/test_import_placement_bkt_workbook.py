@@ -1,12 +1,20 @@
 from copy import deepcopy
+from datetime import datetime, timezone
 
 import openpyxl
 import pytest
 
+import db
+from analytics.learner_model.bkt.mastery import upsert_raw_responses
 from scripts.import_placement_bkt_workbook import (
     EXPECTED_HEADERS,
+    ImportConflictError,
+    _existing_state,
     _response_snapshot_matches,
+    apply_import,
     build_import_plan,
+    delete_previous_import,
+    previous_import_counts,
     read_workbook,
 )
 
@@ -186,3 +194,60 @@ def test_read_workbook_requires_exact_headers_and_keeps_numeric_time(tmp_path):
     rows = read_workbook(path)
     assert rows[0]["time_ms"] == 3402
     assert rows[0]["selected_answer"] == "to be free"
+
+
+def _real_response(student_id: str) -> dict:
+    return {
+        "student_id": student_id, "word_id": "word-1", "word": "自由", "lesson_id": "canonical-story-5-1",
+        "quiz_id": "real-quiz", "attempt_id": "real-quiz", "item_id": "Q0016",
+        "question_type": "basic_meaning_mcq", "selected_answer": "to be free", "correct_answer": "to be free",
+        "presented_options": ["to be free", "here", "chair", "window"], "question_prompt": "What does 自由 mean?",
+        "answered_at": "2026-09-01T00:00:00+00:00", "bkt_eligible": True,
+        "diagnostic_exposure_id": "real-quiz:Q0016", "bkt_eligibility_errors": [], "correct": True,
+        "response_time_ms": 1000, "occurred_at": "2026-09-01T00:00:00+00:00",
+        "occurred_at_utc": datetime(2026, 9, 1, tzinfo=timezone.utc), "evidence_origin": "real",
+        "resolver_version": "vocab-quiz-v1", "attempt_order": 0, "quiz_level": "tier1", "quiz_mode": "tier1",
+        "round_type": "1", "knowledge_dimension": "meaning", "activity_type": "diagnostic",
+        "research_study_id": None,
+    }
+
+
+def test_replace_reimports_after_blueprint_change_and_keeps_real_evidence(admin_client):
+    def plan_for(blueprint):
+        return build_import_plan(
+            _rows(), blueprint, imported_at="2026-09-25T00:00:00+00:00",
+            expected_student_ids=("SIM001", "SIM002"),
+        )
+
+    first = plan_for(_blueprint())
+    with db.connect_db() as conn:
+        apply_import(conn, first)
+        upsert_raw_responses(conn, [_real_response("SIM001")])
+
+    # The admin re-uploads the blueprint with the two questions swapped.
+    changed = _blueprint()
+    changed["revision"] = 10
+    changed["questions"][0]["position"], changed["questions"][1]["position"] = 2, 1
+    second = plan_for(changed)
+    with db.connect_db() as conn:
+        with pytest.raises(ImportConflictError, match="question snapshot differs"):
+            _existing_state(conn, second)
+
+    with db.connect_db() as conn:
+        assert previous_import_counts(conn, second) == {"attempts": 2, "responses": 4}
+        assert delete_previous_import(conn, second) == {"attempts": 2, "responses": 4}
+        apply_import(conn, second)
+
+    with db.connect_db() as conn:
+        revisions = conn.execute(
+            "SELECT DISTINCT blueprint_revision FROM placement_test_attempts WHERE student_id = ANY(%s)",
+            (["SIM001", "SIM002"],),
+        ).fetchall()
+        origins = conn.execute(
+            "SELECT evidence_origin, count(*) AS n FROM vocab_quiz_responses "
+            "WHERE student_id = ANY(%s) GROUP BY evidence_origin ORDER BY evidence_origin",
+            (["SIM001", "SIM002"],),
+        ).fetchall()
+        assert _existing_state(conn, second)["skip_sessions"] == {"PLACEMENT-SIM001-V1", "PLACEMENT-SIM002-V1"}
+    assert [row["blueprint_revision"] for row in revisions] == [10]
+    assert [(row["evidence_origin"], row["n"]) for row in origins] == [("real", 1), ("synthetic", 4)]
