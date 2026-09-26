@@ -272,6 +272,10 @@ export default function App() {
         activeRole === "student" || currentPage === "home" || currentPage === "student-login"
           ? " student-app"
           : ""
+      }${
+        activeRole === "student" && STUDENT_MODE_PAGES.includes(currentPage)
+          ? " student-shell-app"
+          : ""
       }`}
     >
       {/* The student workspace carries its own left rail (StudentSidebar),

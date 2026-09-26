@@ -75,6 +75,7 @@ describe("App — student data must be ready before a student route renders", ()
     expect(
       screen.getByRole("navigation", { name: "Learning areas" }),
     ).toBeInTheDocument();
+    expect(document.querySelector(".app-container")).toHaveClass("student-shell-app");
     expect(api.listCustomStories).toHaveBeenCalledTimes(1);
     expect(api.listAudioRecords).not.toHaveBeenCalled();
     expect(api.listHelpRequests).not.toHaveBeenCalled();

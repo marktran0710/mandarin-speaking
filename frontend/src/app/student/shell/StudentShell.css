@@ -38,6 +38,18 @@
   display: none;
 }
 
+/* On desktop the learning shell owns the only content scrollbar through
+   #sa-main. Keep the app container at the viewport height so the document
+   itself cannot add a second scrollbar underneath it. Mobile intentionally
+   returns to normal document flow below, where #sa-main exposes overflow. */
+@media (min-width: 901px) {
+  .app-container.student-shell-app {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 @media (max-width: 900px) {
   .sa-shell {
     display: block;
