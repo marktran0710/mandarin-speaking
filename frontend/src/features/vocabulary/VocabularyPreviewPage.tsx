@@ -69,7 +69,13 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
   }
 
   return (
-    <StudentPage layout="task" wide header={header} actions={{ primary: primaryAction }}>
+    <StudentPage
+      layout="task"
+      wide
+      className="sa-vocab-preview-page"
+      header={header}
+      actions={{ primary: primaryAction }}
+    >
       <div
         className={`sa-vocab-preview__grid${hasPagination ? " is-paginated" : ""}`}
         aria-label="Vocabulary preview"

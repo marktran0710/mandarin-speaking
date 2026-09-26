@@ -154,13 +154,19 @@
 }
 
 .sa-vocab-preview__pager {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   margin-top: var(--space-4);
-  padding-top: var(--space-3);
+  padding: var(--space-3) 0 max(var(--space-3), env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-canvas) 94%, transparent);
+  box-shadow: 0 -8px 18px color-mix(in srgb, var(--color-ink) 6%, transparent);
+  backdrop-filter: blur(10px);
 }
 .sa-vocab-preview__pager-status {
   color: var(--color-muted);
@@ -168,6 +174,17 @@
   font-size: var(--font-size-small);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+@media (min-width: 901px) {
+  .sa-vocab-preview-page { min-height: 100%; }
+  .sa-vocab-preview-page .sa-page__body {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+  .sa-vocab-preview-page .sa-vocab-preview__pager { margin-top: auto; }
 }
 
 @media (max-width: 560px) {
