@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -6,11 +8,105 @@ import pytest
 
 from scripts.learning_engine_verification.runner import CheckResult, write_report
 from scripts.verify_learning_engine import (
+    FOCUSED_TEST_TIMEOUT_SECONDS,
     _analyze_voice_entry,
+    _db_checks,
     _safe_url,
     _voice_checks,
     _voice_technical_result,
 )
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_documented_direct_entrypoint_imports_backend_packages(tmp_path):
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(BACKEND_ROOT / 'scripts' / 'verify_learning_engine.py'),
+            '--engine',
+            'voice',
+            '--provider',
+            'groq',
+            '--output-dir',
+            str(tmp_path),
+        ],
+        cwd=BACKEND_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 2, result.stdout + result.stderr
+    reports = list(tmp_path.glob('learning-engine-voice-*.json'))
+    assert len(reports) == 1
+    assert json.loads(reports[0].read_text(encoding='utf-8'))['summary']['BLOCKED'] == 1
+
+
+def test_bkt_mastery_authorization_subprocess_exits_cleanly():
+    result = subprocess.run(
+        [
+            sys.executable,
+            '-m',
+            'pytest',
+            '-q',
+            'tests/test_bkt_mastery_api.py::test_student_cannot_read_another_students_mastery',
+        ],
+        cwd=BACKEND_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_focused_suite_timeout_is_fail_and_database_is_still_dropped():
+    algorithm = CheckResult('algorithm', 'PASS', 1, 1)
+    migration = subprocess.CompletedProcess(['alembic'], 0, '', '')
+    timeout = subprocess.TimeoutExpired(
+        ['pytest'],
+        FOCUSED_TEST_TIMEOUT_SECONDS,
+        output='partial test output',
+    )
+
+    with (
+        patch('scripts.verify_learning_engine._algorithm_checks', return_value=[algorithm]),
+        patch('scripts.verify_learning_engine._db_url', return_value='postgresql://user:secret@localhost/source'),
+        patch('scripts.verify_learning_engine._create_database') as create_database,
+        patch('scripts.verify_learning_engine._drop_database') as drop_database,
+        patch('scripts.verify_learning_engine._run', side_effect=[migration, timeout]),
+    ):
+        results = _db_checks('bkt', keep=False)
+
+    assert create_database.call_count == 1
+    assert drop_database.call_count == 1
+    focused = next(result for result in results if result.name == 'bkt focused pytest')
+    assert focused.status == 'FAIL'
+    assert focused.actual == 'timeout'
+    assert 'partial test output' in (focused.detail or '')
+    assert results[0] is algorithm
+
+
+def test_cleanup_failure_keeps_prior_results_in_report():
+    algorithm = CheckResult('algorithm', 'PASS', 1, 1)
+    completed = subprocess.CompletedProcess(['command'], 0, '', '')
+
+    with (
+        patch('scripts.verify_learning_engine._algorithm_checks', return_value=[algorithm]),
+        patch('scripts.verify_learning_engine._db_url', return_value='postgresql://user:secret@localhost/source'),
+        patch('scripts.verify_learning_engine._create_database'),
+        patch('scripts.verify_learning_engine._drop_database', side_effect=RuntimeError('cleanup failed')),
+        patch('scripts.verify_learning_engine._run', side_effect=[completed, completed]),
+    ):
+        results = _db_checks('sm2', keep=False)
+
+    assert [(result.name, result.status) for result in results] == [
+        ('algorithm', 'PASS'),
+        ('sm2 focused pytest', 'PASS'),
+        ('sm2 database cleanup', 'FAIL'),
+    ]
 
 def test_safe_url_replaces_database_without_exposing_credentials():
     value = _safe_url('postgresql://user:secret@localhost:5432/app?sslmode=require', 'mandarin_verify_x')

@@ -541,7 +541,8 @@ def test_unapproved_diagnostic_response_does_not_enter_bkt_mastery(logged_in_stu
 
 def test_student_cannot_read_another_students_mastery(logged_in_student):
     client, student = logged_in_student
-    other_client, other = login_new_client(__import__("contextlib").ExitStack(), "Other", "student")
-    assert other["id"] != student["id"]
-    response = client.get(f"/api/students/{other['id']}/weak-words")
-    assert response.status_code == 403
+    with __import__("contextlib").ExitStack() as stack:
+        _other_client, other = login_new_client(stack, "Other", "student")
+        assert other["id"] != student["id"]
+        response = client.get(f"/api/students/{other['id']}/weak-words")
+        assert response.status_code == 403

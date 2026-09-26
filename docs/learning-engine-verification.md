@@ -19,7 +19,9 @@ report to `backend/verification_reports` (or the directory passed with
 `--output-dir`). Reports contain expected values, actual values and one of
 `PASS`, `FAIL`, or `BLOCKED`; they never contain credentials. Exit codes are
 0 for all pass, 1 for a failure, and 2 when an external prerequisite is
-blocked.
+blocked. Migration and focused-test subprocesses have hard time limits; a
+timeout is reported as `FAIL`, and the runner still attempts to drop its
+temporary database.
 
 For voice acceptance, use recordings made by a real Mandarin speaker. The
 directory must contain a `manifest.json` like this:
