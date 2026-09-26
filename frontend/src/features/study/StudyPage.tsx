@@ -160,17 +160,6 @@ export default function StudyPage({
   return (
     <StudentPage layout="hub" header={header} rail={rail}>
       <div className="study-hero-wide">{heroCard}</div>
-      <div className="study-catalogue-head">
-        <div>
-          <span className="study-kicker">課程目錄 · Course catalogue</span>
-          <h2>
-            你的學習路線 <small>Your path</small>
-          </h2>
-        </div>
-        <span className="study-total">
-          {completed} / {topics.length} 課完成 · complete
-        </span>
-      </div>
       {groups.map((group) => (
         <section className="study-group" key={group.lessonNumber ?? "other"}>
           <div className="study-group-label">

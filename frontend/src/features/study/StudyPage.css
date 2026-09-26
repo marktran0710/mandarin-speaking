@@ -77,25 +77,6 @@
   color: var(--color-muted);
   font-size: var(--font-size-small);
 }
-.study-catalogue-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  margin-bottom: var(--space-5);
-}
-.study-catalogue-head h2 {
-  margin: var(--space-1) 0 0;
-  font: 500 var(--font-size-headline) var(--font-hanzi);
-  color: var(--color-ink);
-}
-.study-catalogue-head h2 small {
-  font: 400 var(--font-size-small) var(--font-ui);
-  color: var(--color-muted);
-}
-.study-total {
-  color: var(--color-muted);
-  font-size: var(--font-size-small);
-}
 .study-group + .study-group {
   margin-top: var(--space-7);
 }
@@ -235,11 +216,6 @@
   border-radius: inherit;
 }
 @media (max-width: 640px) {
-  .study-catalogue-head {
-    align-items: start;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
   .study-row {
     grid-template-columns: 24px minmax(0, 1fr);
     padding: var(--space-3);
