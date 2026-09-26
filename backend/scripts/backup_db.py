@@ -10,9 +10,10 @@ Usage (from backend/):
     python -m scripts.backup_db --url "$RENDER_DATABASE_URL"
 
 Windows has no pg_dump on PATH, so by default both commands run through the
-`mandarin-postgres` container, which ships the matching PostgreSQL 17 client
-tools and can reach remote databases just as well as the local one. A host
-pg_dump/psql is used instead when one is installed.
+`mandarin-speaking-dev-db-1` container (docker-compose.dev.yml's db service),
+which ships the matching PostgreSQL 17 client tools and can reach remote
+databases just as well as the local one. A host pg_dump/psql is used instead
+when one is installed.
 
 This replaces `mandarin_stories.db` as the project's backup: that file stopped
 being current the moment the app moved to PostgreSQL, and
@@ -33,7 +34,7 @@ import psycopg  # noqa: E402
 DEFAULT_URL = os.getenv(
     "DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin"
 )
-DEFAULT_CONTAINER = os.getenv("PG_CONTAINER", "mandarin-postgres")
+DEFAULT_CONTAINER = os.getenv("PG_CONTAINER", "mandarin-speaking-dev-db-1")
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # --clean --if-exists      restorable over a database that still has tables
@@ -86,7 +87,7 @@ def default_output_path(url: str, directory: str | None = None) -> str:
 # The port Postgres listens on inside its own container, regardless of
 # whatever host port docker-compose maps it to (this machine remaps it to
 # 5433 because another project's postgres already holds 5432 - see
-# docker-compose.yml). A `docker exec` runs inside the container's own
+# docker-compose.dev.yml). A `docker exec` runs inside the container's own
 # network namespace, where that host-side remapping does not exist.
 CONTAINER_INTERNAL_PORT = 5432
 

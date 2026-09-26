@@ -5,7 +5,7 @@ started writing to PostgreSQL, and `export_teacher_materials.py` only covers
 custom_stories. This suite covers the real thing: every table, restorable.
 
 The command-shape tests matter because Windows has no pg_dump on PATH — the
-script has to reach the client tools inside the `mandarin-postgres`
+script has to reach the client tools inside the `mandarin-speaking-dev-db-1`
 container, and a wrong argv fails only at backup time, which is exactly when
 nobody is watching.
 """
@@ -37,7 +37,7 @@ def test_dump_command_uses_the_container_when_the_host_has_no_pg_dump(monkeypatc
 def test_dump_command_rewrites_the_port_for_the_container_but_not_the_host_binary(monkeypatch):
     """A docker-exec'd pg_dump connects from inside the container's own
     network namespace, where only the container-internal port (5432) is
-    reachable — the host-side remapping (e.g. 5433, see docker-compose.yml)
+    reachable — the host-side remapping (e.g. 5433, see docker-compose.dev.yml)
     does not exist there. A host pg_dump binary, by contrast, must keep the
     original host-mapped port."""
     remapped_url = "postgresql://mandarin:mandarin@127.0.0.1:5433/mandarin_test"
