@@ -44,6 +44,10 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // done (e.g. straight to Story Speaking with 0 quiz stars). Only ever
   // moves forward; see advancePhase.
   const [furthestPhase, setFurthestPhase] = useState<StudentPhase>("vocab-preview");
+  // The route watermark reaches Vocab Quiz as soon as the preview action is
+  // clicked. Keep a separate completion gate so practice cannot be opened
+  // while that quiz is still in progress.
+  const [quizCompleted, setQuizCompleted] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
   // Every scene/turn's latest submission for the topic currently in
   // progress, keyed so a re-recorded attempt replaces its own entry rather
@@ -60,6 +64,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     setCompletedPractice("speaking");
     setPhase("vocab-preview");
     setFurthestPhase("vocab-preview");
+    setQuizCompleted(false);
   };
 
   const backToStudy = () => {
@@ -150,8 +155,18 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // exempts that case the same way isStoryFinished does.
   const activeStoryId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
   const activeStars = activeProgression?.quizStars ?? (activeStoryId ? loadLocalStars(activeStoryId) : 0);
-  const speakingUnlocked = activeTopic ? (!topicHasQuiz(activeTopic) || activeStars >= 3) : false;
-  const conversationUnlocked = speakingUnlocked && conversationContentAvailable;
+  const practiceChoicesUnlocked = activeTopic
+    ? (!topicHasQuiz(activeTopic) || quizCompleted)
+    : false;
+  const speakingUnlocked = activeTopic
+    ? practiceChoicesUnlocked && (!topicHasQuiz(activeTopic) || activeStars >= 3)
+    : false;
+  const conversationUnlocked = practiceChoicesUnlocked && conversationContentAvailable;
+
+  const finishVocabularyQuiz = () => {
+    setQuizCompleted(true);
+    advancePhase("story-speaking");
+  };
 
   let body: React.ReactNode;
 
@@ -175,8 +190,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         topic={activeTopic}
         lessonLabel={activeTopic.name}
         hasConversation={conversationContentAvailable}
-        onFinished={() => advancePhase("story-speaking")}
+        onFinished={finishVocabularyQuiz}
         onStartPractice={(practice) => {
+          setQuizCompleted(true);
           setCompletedPractice(practice === "conversation" ? "conversation" : "speaking");
           setActiveProgression(null);
           const studentId = getStudentId();
@@ -261,7 +277,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       furthestPhase={furthestPhase}
       speakingUnlocked={speakingUnlocked}
       conversationUnlocked={conversationUnlocked}
-      practiceChoicesUnlocked={speakingUnlocked}
+      practiceChoicesUnlocked={practiceChoicesUnlocked}
       onNavigateSection={(next) => {
         setSection(next);
         if (next === "study") setActiveTopic(null);
@@ -275,10 +291,15 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
                   ? conversationUnlocked
                   : false;
               const reachable = next === "story-speaking" || next === "conversation"
-                ? practiceReachable
+                ? practiceChoicesUnlocked && practiceReachable
                 : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
               const starBlocked = next === "story-speaking" && !speakingUnlocked;
-              if (reachable && !starBlocked) setPhase(next);
+              if (reachable && !starBlocked) {
+                if (next === "story-speaking" || next === "conversation") {
+                  setCompletedPractice(next === "conversation" ? "conversation" : "speaking");
+                }
+                setPhase(next);
+              }
             }
           : undefined
       }

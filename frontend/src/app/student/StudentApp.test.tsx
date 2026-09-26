@@ -292,7 +292,8 @@ describe("StudentApp", () => {
       ).getByRole("button", { name: /繼續/ }),
     );
 
-    // Freshly opened: quiz-complete stars make both practice choices reachable.
+    // Freshly opened: preview is the only reachable phase. Stars do not skip
+    // the required vocabulary quiz.
     expect(
       screen.getByRole("button", { name: /Vocab Preview/ }),
     ).not.toBeDisabled();
@@ -300,10 +301,10 @@ describe("StudentApp", () => {
     const phaseNav = screen.getByRole("navigation", { name: "Lesson phase" });
     expect(
       within(phaseNav).getByRole("button", { name: /Story Speaking/ }),
-    ).not.toBeDisabled();
+    ).toBeDisabled();
     expect(
       within(phaseNav).getByRole("button", { name: /Conversation/ }),
-    ).not.toBeDisabled();
+    ).toBeDisabled();
     expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
@@ -312,18 +313,51 @@ describe("StudentApp", () => {
     ).not.toBeDisabled();
     expect(
       within(phaseNav).getByRole("button", { name: /Story Speaking/ }),
-    ).not.toBeDisabled();
+    ).toBeDisabled();
+    expect(
+      within(phaseNav).getByRole("button", { name: /Conversation/ }),
+    ).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
     // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
     expect(
       within(phaseNav).getByRole("button", { name: /Story Speaking/ }),
     ).not.toBeDisabled();
+    expect(
+      within(phaseNav).getByRole("button", { name: /Conversation/ }),
+    ).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
 
-    // Clicking a still-locked item is a no-op — the rendered body is unchanged.
-    fireEvent.click(screen.getByRole("button", { name: /Submit/ }));
-    expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
+    // Completing either practice branch is the point at which Submit opens.
+    fireEvent.click(screen.getByRole("button", { name: "Finish Speaking" }));
+    expect(
+      within(phaseNav).getByRole("button", { name: /Submit/ }),
+    ).not.toBeDisabled();
+  });
+
+  it("records the practice branch chosen from the unlocked sidebar before Submit", () => {
+    const s1 = makeTopic({ id: "s1", conversationTurns });
+    recordLocalStars("s1", 3);
+    render(
+      <StudentApp
+        studentName="Student One"
+        topics={[s1]}
+        onAddRecord={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      within(
+        screen.getAllByRole("article")[0],
+      ).getByRole("button", { name: /Continue/ }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
+    fireEvent.click(screen.getByRole("button", { name: /Conversation/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Finish Conversation" }));
+
+    expect(screen.getByText(/Conversation finished/)).toBeInTheDocument();
   });
 
   it("makes Placement a real, reachable section (not disabled) alongside Progress", () => {

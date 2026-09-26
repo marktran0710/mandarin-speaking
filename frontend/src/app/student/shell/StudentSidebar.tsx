@@ -72,6 +72,7 @@ export default function StudentSidebar({
   const furthestIndex = PHASE_ORDER.indexOf(
     furthestPhase ?? activePhase ?? PHASE_ORDER[0],
   );
+  const quizReached = furthestIndex >= PHASE_ORDER.indexOf("vocab-quiz");
 
   return (
     <aside className="sa-sidebar">
@@ -163,6 +164,7 @@ export default function StudentSidebar({
               const starLocked =
                 phase.id === "story-speaking" && !speakingUnlocked;
               const practiceOpen =
+                quizReached &&
                 practiceChoicesUnlocked &&
                 (phase.id === "story-speaking"
                   ? speakingUnlocked
