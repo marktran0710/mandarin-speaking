@@ -114,7 +114,8 @@
   color: var(--color-muted);
 }
 .study-list {
-  overflow: hidden;
+  display: grid;
+  gap: var(--space-3);
 }
 .study-row {
   display: grid;
@@ -123,11 +124,9 @@
   gap: var(--space-4);
   min-height: 78px;
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-}
-.study-row:last-child {
-  border-bottom: 0;
 }
 .study-row.is-current {
   border-left: 4px solid var(--color-primary);

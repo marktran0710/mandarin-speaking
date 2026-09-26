@@ -186,7 +186,7 @@ export default function StudyPage({
               · {group.topics.length} units
             </span>
           </div>
-          <StudentSection variant="panel" className="study-list">
+          <StudentSection variant="flat" className="study-list">
             {group.topics.map((topic, index) => {
               const entry = statusByStoryId[topicStoryId(topic)] ?? {
                 status: "not-started" as LessonRowStatus,
