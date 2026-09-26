@@ -45,4 +45,22 @@ describe("Study hero selection", () => {
     expect(screen.getByText(/課程完成/)).toBeInTheDocument();
     expect(screen.getByText("你已完成所有課程")).toBeInTheDocument();
   });
+
+  it("uses the current lesson's first image in the study hero", () => {
+    const current = {
+      ...topic("current", 1),
+      images: ["/lessons/current-first.jpg", "/lessons/current-second.jpg"],
+    };
+    render(
+      <StudyPage
+        topics={[current]}
+        statusByStoryId={{ current: { status: "in-progress" } }}
+        onOpenTopic={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: /lesson scene/i }),
+    ).toHaveAttribute("src", "/lessons/current-first.jpg");
+  });
 });

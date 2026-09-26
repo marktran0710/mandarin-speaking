@@ -58,6 +58,7 @@ export default function StudyPage({
     ? Math.round((completed / topics.length) * 100)
     : 0;
   const heroStatus = hero && statusByStoryId[topicStoryId(hero)];
+  const heroImage = hero?.images?.[0];
   const words = useMemo(
     () => (hero ? speakingVocabularyItems(hero).slice(0, 5) : []),
     [hero],
@@ -94,7 +95,8 @@ export default function StudyPage({
         )}
       </span>
       {hero ? (
-        <>
+        <div className="study-hero-card__layout">
+          <div className="study-hero-card__copy">
           <h2 lang="zh-Hant">{hero.name}</h2>
           {hero.description &&
             hero.description !== "Teacher published activity" && (
@@ -115,7 +117,17 @@ export default function StudyPage({
               </>
             )}
           </StudentButton>
-        </>
+          </div>
+          {heroImage && (
+            <div className="study-hero-card__media">
+              <img
+                src={heroImage}
+                alt={`${hero.name} lesson scene`}
+                loading="lazy"
+              />
+            </div>
+          )}
+        </div>
       ) : (
         <>
           <h2>你已完成所有課程</h2>

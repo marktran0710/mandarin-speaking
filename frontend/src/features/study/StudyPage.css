@@ -8,6 +8,30 @@
   background: linear-gradient(135deg, var(--color-sky), var(--color-mint));
   border: 0;
 }
+.study-hero-card__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  gap: var(--space-8);
+  align-items: center;
+}
+.study-hero-card__copy {
+  min-width: 0;
+}
+.study-hero-card__media {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+.study-hero-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .study-kicker {
   display: block;
   color: var(--color-primary);
@@ -212,6 +236,10 @@
   border-radius: inherit;
 }
 @media (max-width: 640px) {
+  .study-hero-card__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
   .study-row {
     grid-template-columns: 24px minmax(0, 1fr);
     padding: var(--space-3);
