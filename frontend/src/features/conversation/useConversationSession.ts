@@ -19,6 +19,7 @@ import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import { useSpeakingRecorder, type SpeakingAnalysisResult } from "../speaking/hooks/useSpeakingRecorder";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
+import type { SelfEvalLevel } from "@entities/speech";
 
 interface UseConversationSessionArgs {
   topic: Topic;
@@ -35,10 +36,17 @@ export interface ConversationSession {
   lastAnalysis: SpeakingResultAnalysis | null;
   lastResult: SpeakingAnalysisResult | null;
   lastRecognizedText: string;
+  lastSubmission: SceneSubmission | null;
+  selfEvalMeaning: SelfEvalLevel | null;
+  selfEvalPronunciation: SelfEvalLevel | null;
   recorder: ReturnType<typeof useSpeakingRecorder>;
   exchange: { current: number; total: number };
   handleListen: () => void;
   handleRecord: () => Promise<void>;
+  handleUpload: (file: File) => Promise<void>;
+  submitSelfEvaluation: (skip: boolean) => Promise<void>;
+  setSelfEvalMeaning: (value: SelfEvalLevel) => void;
+  setSelfEvalPronunciation: (value: SelfEvalLevel) => void;
   recordAgain: () => void;
   nextTurn: () => void;
 }
@@ -56,6 +64,11 @@ export function useConversationSession({
   const [lastAnalysis, setLastAnalysis] = useState<SpeakingResultAnalysis | null>(null);
   const [lastResult, setLastResult] = useState<SpeakingAnalysisResult | null>(null);
   const [lastRecognizedText, setLastRecognizedText] = useState("");
+  const [lastSubmission, setLastSubmission] = useState<SceneSubmission | null>(null);
+  const [selfEvalMeaning, setSelfEvalMeaning] = useState<SelfEvalLevel | null>(null);
+  const [selfEvalPronunciation, setSelfEvalPronunciation] = useState<SelfEvalLevel | null>(null);
+  const [selfEvalSaved, setSelfEvalSaved] = useState(false);
+  const selfEvalCommitRef = useRef(false);
   const conversationIdRef = useRef(`conv-${topic.id}-${Date.now()}`);
   const studentId = getStudentId();
   const baseStoryId = topic.sourceStory?.id ?? topic.id;
@@ -81,12 +94,6 @@ export function useConversationSession({
   };
 
   useEffect(() => {
-    if (state.step === "selfEval") dispatch({ type: "selfEvaluationSkipped" });
-    // Conversation Practice has no separate learner self-evaluation step.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.step]);
-
-  useEffect(() => {
     if (state.step === "summary") {
       markPhaseSeen(topicStoryId(topic), "conversation");
       onDone();
@@ -96,9 +103,8 @@ export function useConversationSession({
 
   const handleListen = () => dispatch({ type: "systemAudioCompleted" });
 
-  const handleRecord = async () => {
+  const handleAnalysisResult = async (result: SpeakingAnalysisResult | null) => {
     if (!currentTurn) return;
-    const result = await recorder.startRecording();
     if (!result) return;
 
     const transcription = (result.metrics.transcription || "").trim();
@@ -130,6 +136,11 @@ export function useConversationSession({
       difficultyLevel: topic.difficultyLevel ?? "easy",
       promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${currentTurn.id}`,
     };
+    setLastSubmission(submission);
+    setSelfEvalMeaning(null);
+    setSelfEvalPronunciation(null);
+    setSelfEvalSaved(false);
+    selfEvalCommitRef.current = false;
 
     await onAddRecord({
       id: `audio-${Date.now()}`,
@@ -151,40 +162,71 @@ export function useConversationSession({
       audioUrl: result.audioUrl,
     });
 
-    onSceneSubmission(`conversation:${state.turnIndex}`, submission);
+    dispatch({ type: "studentRecordingCompleted", recordingId: currentTurn.id });
+  };
 
-    if (studentId) {
-      try {
-        await saveSpeakingProgress({
-          studentId,
-          topicId: topic.id,
-          sceneIndex: currentTurn.sceneIndex ?? 0,
-          attempts: 1,
-          bestTone: submission.toneAccuracy,
-          bestFluency: submission.fluencyScore ?? 0,
-          masteryPassed: result.masteryPassed,
-          contentPassed: result.contentPassed,
-          clearedWords: submission.vocabUsed,
-          conversationId: conversationIdRef.current,
-          turnId: currentTurn.id,
-          turnIndex: state.turnIndex,
-          latestResult: submission,
-          baseStoryId: submission.baseStoryId,
-          difficultyLevel: submission.difficultyLevel,
-          promptId: submission.promptId,
-        });
-      } catch {
-        // Feedback remains usable when progress persistence is unavailable.
+  const handleRecord = async () => {
+    await handleAnalysisResult(await recorder.startRecording());
+  };
+
+  const handleUpload = async (file: File) => {
+    await handleAnalysisResult(await recorder.uploadRecording(file));
+  };
+
+  const submitSelfEvaluation = async (skip: boolean) => {
+    if (selfEvalCommitRef.current) return;
+    selfEvalCommitRef.current = true;
+    if (!selfEvalSaved && lastSubmission) {
+      const finalSubmission: SceneSubmission = skip
+        ? lastSubmission
+        : {
+            ...lastSubmission,
+            selfEvalContent: selfEvalMeaning ?? undefined,
+            selfEvalPronunciation: selfEvalPronunciation ?? undefined,
+          };
+      setLastSubmission(finalSubmission);
+      setSelfEvalSaved(true);
+      onSceneSubmission(`conversation:${state.turnIndex}`, finalSubmission);
+      dispatch(skip ? { type: "selfEvaluationSkipped" } : { type: "selfEvaluationSubmitted" });
+      if (studentId) {
+        try {
+          await saveSpeakingProgress({
+            studentId,
+            topicId: topic.id,
+            sceneIndex: currentTurn?.sceneIndex ?? 0,
+            attempts: 1,
+            bestTone: finalSubmission.toneAccuracy,
+            bestFluency: finalSubmission.fluencyScore ?? 0,
+            masteryPassed: lastResult?.masteryPassed ?? false,
+            contentPassed: lastResult?.contentPassed ?? false,
+            clearedWords: finalSubmission.vocabUsed,
+            conversationId: conversationIdRef.current,
+            turnId: currentTurn?.id,
+            turnIndex: state.turnIndex,
+            latestResult: finalSubmission,
+            baseStoryId: finalSubmission.baseStoryId,
+            difficultyLevel: finalSubmission.difficultyLevel,
+            promptId: finalSubmission.promptId,
+          });
+        } catch {
+          // Feedback remains usable when progress persistence is unavailable.
+        }
       }
     }
-
-    dispatch({ type: "studentRecordingCompleted", recordingId: currentTurn.id });
+    if (!lastSubmission) {
+      dispatch(skip ? { type: "selfEvaluationSkipped" } : { type: "selfEvaluationSubmitted" });
+    }
   };
 
   const recordAgain = () => {
     setLastAnalysis(null);
     setLastResult(null);
     setLastRecognizedText("");
+    setLastSubmission(null);
+    setSelfEvalMeaning(null);
+    setSelfEvalPronunciation(null);
+    setSelfEvalSaved(false);
+    selfEvalCommitRef.current = false;
     setState((previous) => ({ ...previous, step: "student" }));
   };
 
@@ -192,6 +234,11 @@ export function useConversationSession({
     setLastAnalysis(null);
     setLastResult(null);
     setLastRecognizedText("");
+    setLastSubmission(null);
+    setSelfEvalMeaning(null);
+    setSelfEvalPronunciation(null);
+    setSelfEvalSaved(false);
+    selfEvalCommitRef.current = false;
     dispatch({ type: "feedbackCompleted" });
   };
 
@@ -218,10 +265,17 @@ export function useConversationSession({
     lastAnalysis,
     lastResult,
     lastRecognizedText,
+    lastSubmission,
+    selfEvalMeaning,
+    selfEvalPronunciation,
     recorder,
     exchange,
     handleListen,
     handleRecord,
+    handleUpload,
+    submitSelfEvaluation,
+    setSelfEvalMeaning,
+    setSelfEvalPronunciation,
     recordAgain,
     nextTurn,
   };

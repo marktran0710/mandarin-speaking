@@ -13,6 +13,10 @@ interface PraatTimelineProps {
    * Defaults to true for usages that compare a student's attempt against a
    * target (StoryRecorder, word/phrase drills). */
   showReferenceOverlay?: boolean;
+  /** Keep empty/partial analyses honest: callers showing a diagnostic result
+   * can disable proportional placeholder word spans when no measured timing
+   * exists. */
+  useFallbackWordSegments?: boolean;
 }
 interface WaveformState {
   duration: number;
@@ -25,6 +29,7 @@ export default function PraatTimeline({
   wordProsody = [],
   transcription = "",
   showReferenceOverlay = true,
+  useFallbackWordSegments = true,
 }: PraatTimelineProps) {
   const [waveform, setWaveform] = useState<WaveformState | null>(null);
   const [decodeFailed, setDecodeFailed] = useState(false);
@@ -97,8 +102,10 @@ export default function PraatTimeline({
     () =>
       wordProsody.length > 0
         ? wordProsody
-        : fallbackWordSegments(transcription, timelineDuration),
-    [timelineDuration, transcription, wordProsody],
+        : useFallbackWordSegments
+          ? fallbackWordSegments(transcription, timelineDuration)
+          : [],
+    [timelineDuration, transcription, useFallbackWordSegments, wordProsody],
   );
 
   const pitchPath = useMemo(

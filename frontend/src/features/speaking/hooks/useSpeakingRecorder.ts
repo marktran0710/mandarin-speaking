@@ -64,8 +64,8 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
 
   useEffect(() => () => { clearTimers(); stopStream(); }, [clearTimers, stopStream]);
 
-  const analyzeRecording = useCallback(async (audioBlob: Blob, nextAttemptNumber: number) => {
-    if (analysisInFlightRef.current) return;
+  const analyzeRecording = useCallback(async (audioBlob: Blob, nextAttemptNumber: number): Promise<SpeakingAnalysisResult | null> => {
+    if (analysisInFlightRef.current) return null;
     analysisInFlightRef.current = true;
     setIsAnalyzing(true);
     setError(null);
@@ -172,6 +172,17 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
     });
   }, [analyzeRecording, attemptNumber, finishRecording, isAnalyzing, isRecording, stopStream]);
 
+  const uploadRecording = useCallback((file: File): Promise<SpeakingAnalysisResult | null> => {
+    if (isRecording || isAnalyzing) return Promise.resolve(null);
+    const hasAudioType = file.type.startsWith("audio/");
+    const hasAudioExtension = /\.(aac|flac|m4a|mp3|ogg|wav|webm)$/i.test(file.name);
+    if (!hasAudioType && !hasAudioExtension) {
+      setError("Choose an audio file to analyse.");
+      return Promise.resolve(null);
+    }
+    return analyzeRecording(file, attemptNumber + 1);
+  }, [analyzeRecording, attemptNumber, isAnalyzing, isRecording]);
+
   return {
     isRecording,
     isAnalyzing,
@@ -180,5 +191,6 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
     attemptNumber,
     startRecording,
     stopRecording: finishRecording,
+    uploadRecording,
   };
 }

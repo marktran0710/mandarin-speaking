@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { NewAudioRecord } from "../../components/story-recorder/StoryRecorder";
 import type { Topic } from "@entities/topic";
-import { buildSceneReferenceCurves, type PraatMetrics } from "../../components/story-recorder/StoryRecorder";
+import { buildSceneReferenceCurves } from "../../components/story-recorder/StoryRecorder";
 import { saveSpeakingProgress, type SceneSubmission } from "../../services/database";
 import {
   analyzeSpeakingResult,
@@ -11,25 +11,22 @@ import { getStudentId } from "../../utils/studentSession";
 import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import { useSpeakingRecorder } from "./hooks/useSpeakingRecorder";
-import PitchChart from "../../components/pitch/PitchChart";
 import StudentPage, { type StudentPageActions } from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
+import StudentAudioUpload from "@shared/ui/student/StudentAudioUpload";
 import BilingualWord from "@shared/ui/student/BilingualWord";
-import StudentInlineFeedback from "@shared/ui/student/StudentInlineFeedback";
 import StudentIcon from "@shared/ui/student/StudentIcon";
-import { mapWordProsodyToAlignment } from "@entities/speech/wordAlignment";
+import { SpeechResultReview, SpeechSelfEvaluation, type SelfEvalLevel } from "@entities/speech";
+import type { SpeakingAnalysisResult } from "./hooks/useSpeakingRecorder";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
 import "./StorySpeakingPage.css";
 
-// Self-evaluation is shown merged into the Feedback card's Overview step
-// (matching the confirmed mockup) rather than as its own stage — the
-// student sees the AI verdict and reports their own impression in the same
-// screen, instead of being asked to guess blind first.
-type Stage = "recording" | "feedback";
-type SelfEvalLevel = "good" | "ok" | "bad";
+// Self-evaluation is a deliberate stage between analysis and the feedback
+// result, so the learner reports their impression before seeing the verdict.
+type Stage = "recording" | "selfEval" | "feedback";
 type FeedbackStep = "overview" | "fix" | "practice";
 
 const FEEDBACK_STEP_LABEL: Record<FeedbackStep, string> = {
@@ -63,14 +60,13 @@ export default function StorySpeakingPage({
   const [selfEvalMeaning, setSelfEvalMeaning] = useState<SelfEvalLevel | null>(null);
   const [selfEvalPronunciation, setSelfEvalPronunciation] = useState<SelfEvalLevel | null>(null);
   const [lastSubmission, setLastSubmission] = useState<SceneSubmission | null>(null);
+  const [lastResult, setLastResult] = useState<SpeakingAnalysisResult | null>(null);
   const [lastAnalysis, setLastAnalysis] = useState<SpeakingResultAnalysis | null>(null);
   const [lastGates, setLastGates] = useState<{ masteryPassed: boolean; contentPassed: boolean } | null>(null);
-  const [lastPitch, setLastPitch] = useState<{ contour: Array<[number, number]>; detectedTone: number } | null>(null);
-  const [lastFeedbackProvenance, setLastFeedbackProvenance] = useState<PraatMetrics["feedback_provenance"]>(undefined);
-  const [lastWordProsody, setLastWordProsody] = useState<PraatMetrics["word_prosody"]>(undefined);
   const [attempts, setAttempts] = useState(0);
   const [feedbackStep, setFeedbackStep] = useState<FeedbackStep>("overview");
   const [selfEvalSaved, setSelfEvalSaved] = useState(false);
+  const selfEvalCommitRef = useRef(false);
 
   const targetText = topic.suggestedAnswers?.[selectedImageIndex]?.trim()
     || topic.prompts?.[selectedImageIndex]?.trim()
@@ -93,8 +89,7 @@ export default function StorySpeakingPage({
     attemptNumber,
   }));
 
-  const handleRecord = async () => {
-    const result = await recorder.startRecording();
+  const handleAnalysisResult = async (result: Awaited<ReturnType<typeof recorder.startRecording>>) => {
     if (!result) return;
     const nextAttempt = attempts + 1;
     setAttempts(nextAttempt);
@@ -121,14 +116,8 @@ export default function StorySpeakingPage({
       promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${selectedImageIndex}`,
     };
     setLastSubmission(submission);
-    onSceneSubmission(`speaking:${selectedImageIndex}`, submission);
+    setLastResult(result);
     setLastGates({ masteryPassed: result.masteryPassed, contentPassed: result.contentPassed });
-    setLastPitch({
-      contour: result.metrics.pitch_contour ?? [],
-      detectedTone: result.metrics.detected_tone ?? 0,
-    });
-    setLastFeedbackProvenance(result.metrics.feedback_provenance);
-    setLastWordProsody(result.metrics.word_prosody);
     setLastAnalysis(
       analyzeSpeakingResult({
         modelSentence: targetText,
@@ -157,13 +146,25 @@ export default function StorySpeakingPage({
 
     setFeedbackStep("overview");
     setSelfEvalSaved(false);
-    setStage("feedback");
+    selfEvalCommitRef.current = false;
+    setSelfEvalMeaning(null);
+    setSelfEvalPronunciation(null);
+    setStage("selfEval");
   };
 
-  // Called from the Overview step's Continue/Skip — "Continue" persists
-  // whatever self-eval was picked (partial is fine), "Skip" advances
-  // without recording one this attempt. Runs at most once per attempt.
+  const handleRecord = async () => {
+    await handleAnalysisResult(await recorder.startRecording());
+  };
+
+  const handleUpload = async (file: File) => {
+    await handleAnalysisResult(await recorder.uploadRecording(file));
+  };
+
+  // Save self-evaluation before revealing the result. Skipping still keeps
+  // the attempt, but leaves both self-evaluation fields empty.
   const persistSelfEvalAndAdvance = async (save: boolean) => {
+    if (selfEvalCommitRef.current) return;
+    selfEvalCommitRef.current = true;
     if (!selfEvalSaved && lastSubmission) {
       const finalSubmission: SceneSubmission = save
         ? {
@@ -174,6 +175,8 @@ export default function StorySpeakingPage({
         : lastSubmission;
       setLastSubmission(finalSubmission);
       setSelfEvalSaved(true);
+      onSceneSubmission(`speaking:${selectedImageIndex}`, finalSubmission);
+      setStage("feedback");
       if (studentId) {
         try {
           await saveSpeakingProgress({
@@ -197,24 +200,25 @@ export default function StorySpeakingPage({
         }
       }
     }
-    advanceFeedback();
+    if (!lastSubmission) setStage("feedback");
   };
 
   const recordAgain = () => {
     setSelfEvalMeaning(null);
     setSelfEvalPronunciation(null);
+    selfEvalCommitRef.current = false;
+    setLastResult(null);
     setStage("recording");
   };
 
   const goNextScene = () => {
     setSelfEvalMeaning(null);
     setSelfEvalPronunciation(null);
+    selfEvalCommitRef.current = false;
     setLastSubmission(null);
+    setLastResult(null);
     setLastAnalysis(null);
     setLastGates(null);
-    setLastPitch(null);
-    setLastFeedbackProvenance(undefined);
-    setLastWordProsody(undefined);
     setStage("recording");
     if (selectedImageIndex + 1 < topic.images.length) {
       onImageIndexChange(selectedImageIndex + 1);
@@ -226,7 +230,7 @@ export default function StorySpeakingPage({
 
   // Old SpeakingResultsFlow logic: after the verdict, walk Fix (script/
   // vocab correction) then Practice (per-word drill) when the attempt
-  // actually needs them (analysis.steps already decided that) — never
+  // actually needs them (analysis.steps already decided that) ??never
   // both unconditionally, never invented beyond what analyzeSpeakingResult
   // found. "selfEval" is excluded here since this page already ran its own
   // self-evaluation step earlier, unconditionally, per the approved design.
@@ -246,10 +250,8 @@ export default function StorySpeakingPage({
   };
 
   // Word-level chips: every scored syllable, marked attention when it's
-  // one of the real weak/failed words analyzeSpeakingResult already found —
+  // one of the real weak/failed words analyzeSpeakingResult already found ??
   // never a re-derived threshold of our own.
-  const wordChips = mapWordProsodyToAlignment(lastWordProsody);
-
   const continueLabel = isLastFeedbackStep ? nextSceneLabel : `See ${FEEDBACK_STEP_LABEL[feedbackSteps[feedbackStepIndex + 1]]}`;
   const recordAgainButton = (
     <StudentButton variant="secondary" icon="replay" onClick={recordAgain}>
@@ -258,19 +260,18 @@ export default function StorySpeakingPage({
   );
 
   let actions: StudentPageActions | undefined;
-  if (stage === "feedback" && lastAnalysis) {
+  if (stage === "selfEval" && lastResult) {
+    actions = undefined;
+  } else if (stage === "feedback" && lastAnalysis) {
     if (feedbackStep === "overview") {
       actions = {
         secondary: (
           <>
             {recordAgainButton}
-            <StudentButton variant="subtle" onClick={() => persistSelfEvalAndAdvance(false)}>
-              Skip
-            </StudentButton>
           </>
         ),
         primary: (
-          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => persistSelfEvalAndAdvance(true)}>
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
             {continueLabel}
           </StudentButton>
         ),
@@ -301,8 +302,8 @@ export default function StorySpeakingPage({
       layout="stage"
       header={
         <StudentPageHeader
-          eyebrowZh={`口語練習 · 場景 ${selectedImageIndex + 1} / ${topic.images.length}`}
-          eyebrowEn={`Story Speaking · Scene ${selectedImageIndex + 1} / ${topic.images.length}`}
+          eyebrowZh={`???蝺渡? 繚 ?湔 ${selectedImageIndex + 1} / ${topic.images.length}`}
+          eyebrowEn={`Story Speaking 繚 Scene ${selectedImageIndex + 1} / ${topic.images.length}`}
           titleZh={topic.name}
           titleEn="Look, listen, and speak the target sentence"
         />
@@ -314,7 +315,7 @@ export default function StorySpeakingPage({
           ) : (
             <div className="sa-speaking__media-empty">
               <StudentIcon name="image" size={28} role="decorative" />
-              <p><span lang="zh-Hant">本場景沒有圖片</span> · No image for this scene</p>
+              <p><span lang="zh-Hant">No image</span> · No image for this scene</p>
             </div>
           )}
         </StudentSection>
@@ -323,9 +324,9 @@ export default function StorySpeakingPage({
     >
       <div className="sa-speaking__workflow">
         <div className="sa-speaking__stage-tracker">
-          {(["recording", "feedback"] as Stage[]).map((s) => (
-            <span key={s} className={`sa-speaking__stage ${stage === s ? "is-current" : stage === "feedback" && s === "recording" ? "is-done" : ""}`}>
-              {s === "recording" ? "Recording" : "Feedback"}
+          {(["recording", "selfEval", "feedback"] as Stage[]).map((s) => (
+            <span key={s} className={`sa-speaking__stage ${stage === s ? "is-current" : ((stage === "selfEval" || stage === "feedback") && s === "recording") || (stage === "feedback" && s === "selfEval") ? "is-done" : ""}`}>
+              {s === "recording" ? "Recording" : s === "selfEval" ? "Self-evaluation" : "Feedback"}
             </span>
           ))}
         </div>
@@ -339,19 +340,41 @@ export default function StorySpeakingPage({
         {stage === "recording" && (
           <StudentSection variant="panel" className="sa-speaking__action">
             {recorder.error && <p className="sa-speaking__error">{recorder.error}</p>}
-            <StudentButton
-              variant={recorder.isRecording ? "danger" : "primary"}
-              size="lg"
-              icon={recorder.isRecording ? "stop" : "mic"}
-              disabled={recorder.isAnalyzing}
-              onClick={recorder.isRecording ? recorder.stopRecording : handleRecord}
-            >
-              {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
-            </StudentButton>
+            <div className="sa-speaking__record-actions">
+              <StudentButton
+                variant={recorder.isRecording ? "danger" : "primary"}
+                size="lg"
+                icon={recorder.isRecording ? "stop" : "mic"}
+                disabled={recorder.isAnalyzing}
+                onClick={recorder.isRecording ? recorder.stopRecording : handleRecord}
+              >
+                {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
+              </StudentButton>
+              <StudentAudioUpload
+                label="Upload recording"
+                disabled={recorder.isRecording || recorder.isAnalyzing}
+                onSelect={handleUpload}
+              />
+            </div>
           </StudentSection>
         )}
 
-        {stage === "feedback" && lastAnalysis && (
+        {stage === "selfEval" && lastResult && (
+          <SpeechSelfEvaluation
+            targetText={targetText}
+            modelAudioUrl={topic.listenAudioUrls?.[selectedImageIndex]}
+            audioBlob={lastResult.audioBlob}
+            meaning={selfEvalMeaning}
+            pronunciation={selfEvalPronunciation}
+            onMeaningChange={setSelfEvalMeaning}
+            onPronunciationChange={setSelfEvalPronunciation}
+            onContinue={() => persistSelfEvalAndAdvance(true)}
+            onSkip={() => persistSelfEvalAndAdvance(false)}
+            onRecordAgain={recordAgain}
+          />
+        )}
+
+        {stage === "feedback" && lastAnalysis && lastResult && (
           <>
             {feedbackSteps.length > 1 && (
               <div className="sa-speaking__feedback-steps" role="tablist" aria-label="Feedback steps">
@@ -367,41 +390,15 @@ export default function StorySpeakingPage({
             )}
 
             {feedbackStep === "overview" && (
-              <StudentSection variant="panel" className="sa-speaking__overview">
-                {lastFeedbackProvenance && (
-                  <p className="sa-speaking__feedback-source" role="status">
-                    Coach: {lastFeedbackProvenance.executed_provider}
-                    {lastFeedbackProvenance.fallback_used ? " fallback" : ""}
-                    {lastFeedbackProvenance.pronunciation_source === "praat_acoustic_measurements"
-                      ? " · pronunciation grounded in Praat"
-                      : " · local pronunciation guidance"}
-                  </p>
-                )}
-                <div className="sa-speaking__self-eval">
-                  <p className="sa-speaking__self-eval-title">How did you do?</p>
-                  <SelfEvalRow label="Meaning" value={selfEvalMeaning} onChange={setSelfEvalMeaning} />
-                  <SelfEvalRow label="Pronunciation" value={selfEvalPronunciation} onChange={setSelfEvalPronunciation} />
-                </div>
-
-                <StudentInlineFeedback
-                  meaningOk={lastAnalysis.accepted}
-                  pronunciationOk={lastGates?.masteryPassed ?? false}
-                  pronunciationNote={lastAnalysis.legacyPracticeWords[0]?.token ?? lastAnalysis.weakItems[0]?.token ?? lastAnalysis.failedWords[0]?.token}
-                  coachText={
-                    lastAnalysis.showCorrective
-                      ? lastAnalysis.corrective?.hint || undefined
-                      : undefined
-                  }
-                  wordChips={wordChips}
-                  detailsContent={
-                    lastPitch && lastPitch.contour.length > 0 ? (
-                      <PitchChart pitchContour={lastPitch.contour} detectedTone={lastPitch.detectedTone} />
-                    ) : (
-                      <p className="sa-speaking__no-pitch">No pitch data captured for this attempt.</p>
-                    )
-                  }
-                />
-              </StudentSection>
+              <SpeechResultReview
+                targetScript={targetText}
+                transcript={lastResult.metrics.transcription}
+                metrics={lastResult.metrics}
+                audioBlob={lastResult.audioBlob}
+                audioUrl={lastResult.audioUrl}
+                meaningPassed={lastAnalysis.accepted}
+                pronunciationPassed={lastGates?.masteryPassed ?? false}
+              />
             )}
 
             {feedbackStep === "fix" && (
@@ -444,39 +441,5 @@ export default function StorySpeakingPage({
         )}
       </div>
     </StudentPage>
-  );
-}
-
-function SelfEvalRow({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: SelfEvalLevel | null;
-  onChange: (level: SelfEvalLevel) => void;
-}) {
-  const options: { level: SelfEvalLevel; text: string }[] = [
-    { level: "good", text: "Good" },
-    { level: "ok", text: "OK" },
-    { level: "bad", text: "Needs work" },
-  ];
-  return (
-    <div className="sa-self-eval-row">
-      <span className="sa-self-eval-row__label">{label}</span>
-      <div className="sa-self-eval-row__options" role="group" aria-label={label}>
-        {options.map((opt) => (
-          <button
-            key={opt.level}
-            type="button"
-            className={`sa-self-eval-row__option ${value === opt.level ? "is-selected" : ""}`}
-            aria-pressed={value === opt.level}
-            onClick={() => onChange(opt.level)}
-          >
-            {opt.text}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }

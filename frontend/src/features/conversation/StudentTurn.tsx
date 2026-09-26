@@ -1,6 +1,7 @@
 import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder";
 import type { ConversationSession } from "./useConversationSession";
 import StudentButton from "@shared/ui/student/StudentButton";
+import StudentAudioUpload from "@shared/ui/student/StudentAudioUpload";
 import BilingualWord from "@shared/ui/student/BilingualWord";
 
 interface StudentTurnProps {
@@ -21,14 +22,21 @@ export default function StudentTurn({ turn, session }: StudentTurnProps) {
           size="display"
         />
         {recorder.error && <p className="sa-conversation__error" role="alert">{recorder.error}</p>}
-        <StudentButton
-          variant={recorder.isRecording ? "danger" : "primary"}
-          icon={recorder.isRecording ? "stop" : "mic"}
-          disabled={recorder.isAnalyzing}
-          onClick={recorder.isRecording ? recorder.stopRecording : session.handleRecord}
-        >
-          {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
-        </StudentButton>
+        <div className="sa-conversation__record-actions">
+          <StudentButton
+            variant={recorder.isRecording ? "danger" : "primary"}
+            icon={recorder.isRecording ? "stop" : "mic"}
+            disabled={recorder.isAnalyzing}
+            onClick={recorder.isRecording ? recorder.stopRecording : session.handleRecord}
+          >
+            {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
+          </StudentButton>
+          <StudentAudioUpload
+            label="Upload recording"
+            disabled={recorder.isRecording || recorder.isAnalyzing}
+            onSelect={session.handleUpload}
+          />
+        </div>
       </div>
     </section>
   );

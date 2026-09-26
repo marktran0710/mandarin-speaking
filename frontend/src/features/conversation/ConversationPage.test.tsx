@@ -43,6 +43,7 @@ function recorderMock(overrides: Partial<ReturnType<typeof useSpeakingRecorder>>
     attemptNumber: 0,
     startRecording: vi.fn(),
     stopRecording: vi.fn(),
+    uploadRecording: vi.fn(),
     ...overrides,
   };
 }
@@ -173,11 +174,16 @@ describe("ConversationPage", () => {
     expect(screen.getByText("你好嗎？")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    // Student turn: selfEval is auto-skipped, Record triggers analysis.
+    // Student turn: analysis opens the self-evaluation step first.
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("Meaning accurate");
-    expect(screen.getByText("w\u01d2")).toBeInTheDocument();
-    expect(screen.getByText("Keep this word clear.")).toBeInTheDocument();
+    await screen.findByText("How did you do?");
+    expect(screen.queryByText("Meaning: clear")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
+    const firstWord = screen.getByRole("button", { name: /我: Correct/ });
+    expect(firstWord).toBeInTheDocument();
+    fireEvent.click(firstWord);
+    expect(screen.getByText(/Keep this word clear/)).toBeInTheDocument();
     expect(screen.getByText("Uncertain")).toBeInTheDocument();
     expect(screen.getByText("Verified recording")).toBeInTheDocument();
     expect(onAddRecord).toHaveBeenCalledTimes(1);
@@ -206,6 +212,34 @@ describe("ConversationPage", () => {
     expect(stopRecording).toHaveBeenCalledTimes(1);
   });
 
+  it("analyses an uploaded recording for the current response", async () => {
+    const uploadRecording = vi.fn().mockResolvedValue(makeRecorderResult());
+    vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ uploadRecording }));
+    vi.mocked(analyzeSpeakingResult).mockReturnValueOnce(makeAnalysis({ accepted: true }));
+    const onAddRecord = vi.fn();
+
+    render(
+      <ConversationPage
+        topic={makeTopic()}
+        turns={turns}
+        onAddRecord={onAddRecord}
+        onSceneSubmission={vi.fn()}
+        onDone={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    const file = new File(["uploaded audio"], "reply.mp3", { type: "audio/mpeg" });
+    fireEvent.change(screen.getByLabelText("Upload recording"), { target: { files: [file] } });
+
+    await screen.findByText("How did you do?");
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
+    expect(uploadRecording).toHaveBeenCalledWith(file);
+    expect(onAddRecord).toHaveBeenCalledTimes(1);
+  });
+
   it("Record again returns to the student recording step", async () => {
     const startRecording = vi.fn().mockResolvedValueOnce(makeRecorderResult());
     vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ startRecording }));
@@ -216,7 +250,9 @@ describe("ConversationPage", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("Meaning needs another look");
+    await screen.findByText("How did you do?");
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
 
     fireEvent.click(screen.getByRole("button", { name: "Record again" }));
 
@@ -234,7 +270,9 @@ describe("ConversationPage", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("Meaning accurate");
+    await screen.findByText("How did you do?");
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
 
     expect(screen.queryByText("Verified recording")).not.toBeInTheDocument();
   });

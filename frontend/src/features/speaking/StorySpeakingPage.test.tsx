@@ -40,6 +40,7 @@ function recorderMock(overrides: Partial<ReturnType<typeof useSpeakingRecorder>>
     attemptNumber: 0,
     startRecording: vi.fn(),
     stopRecording: vi.fn(),
+    uploadRecording: vi.fn(),
     ...overrides,
   };
 }
@@ -165,6 +166,34 @@ describe("StorySpeakingPage", () => {
     expect(stopRecording).toHaveBeenCalledTimes(1);
   });
 
+  it("analyses an uploaded recording through the same feedback flow", async () => {
+    const uploadRecording = vi.fn().mockResolvedValue(makeRecorderResult());
+    vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ uploadRecording }));
+    vi.mocked(analyzeSpeakingResult).mockReturnValue(makeAnalysis());
+    const onAddRecord = vi.fn();
+
+    render(
+      <StorySpeakingPage
+        topic={makeTopic()}
+        selectedImageIndex={0}
+        onImageIndexChange={vi.fn()}
+        onAddRecord={onAddRecord}
+        onSceneSubmission={vi.fn()}
+        onDone={vi.fn()}
+      />,
+    );
+
+    const file = new File(["uploaded audio"], "practice.wav", { type: "audio/wav" });
+    fireEvent.change(screen.getByLabelText("Upload recording"), { target: { files: [file] } });
+
+    await screen.findByText("How did you do?");
+    expect(screen.queryByText("Your result")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
+    expect(uploadRecording).toHaveBeenCalledWith(file);
+    expect(onAddRecord).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the executed feedback provider and Praat grounding", async () => {
     const startRecording = vi.fn().mockResolvedValue(
       makeRecorderResult({
@@ -197,11 +226,9 @@ describe("StorySpeakingPage", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    expect(
-      await screen.findByText(
-        "Coach: gemini fallback · pronunciation grounded in Praat",
-      ),
-    ).toBeInTheDocument();
+    await screen.findByText("How did you do?");
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    expect(await screen.findByText("AI Coach")).toBeInTheDocument();
   });
 
   it("walks a clean scene straight to the next scene, then Fix/Practice before finishing the last scene", async () => {
@@ -230,7 +257,9 @@ describe("StorySpeakingPage", () => {
 
     // Scene 0: clean attempt — Overview is the only step, Continue advances the scene.
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("Meaning accurate");
+    await screen.findByText("How did you do?");
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
     fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
     // Advancing runs an async saveSpeakingProgress before the scene state
     // updates — wait for scene 1's target text to confirm it landed.
@@ -245,7 +274,9 @@ describe("StorySpeakingPage", () => {
 
     // Scene 1 (last scene): needs Fix then Practice before Finish is reachable.
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("Meaning needs another look");
+    await screen.findByText("How did you do?");
+    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
+    await screen.findByText("Your result");
     fireEvent.click(screen.getByRole("button", { name: "See Fix" }));
     // Overview's forward button also runs the async self-eval persist path.
     await screen.findByText("wrong tone on 再");

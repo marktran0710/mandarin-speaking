@@ -32,3 +32,6 @@ export {
   splitTeacherScriptIntoPhrases,
 } from "./scriptAlignment";
 export type { ProsodyToken, ScriptChunkScore } from "./scriptAlignment";
+export { default as SpeechSelfEvaluation } from "./SpeechSelfEvaluation";
+export type { SelfEvalLevel } from "./SpeechSelfEvaluation";
+export { default as SpeechResultReview } from "./SpeechResultReview";

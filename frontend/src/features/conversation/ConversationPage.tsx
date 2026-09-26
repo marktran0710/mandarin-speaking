@@ -9,6 +9,7 @@ import InterlocutorTurn from "./InterlocutorTurn";
 import StudentTurn from "./StudentTurn";
 import TurnFeedback from "./TurnFeedback";
 import { useConversationSession } from "./useConversationSession";
+import { SpeechSelfEvaluation } from "@entities/speech";
 import "./ConversationPage.css";
 
 interface ConversationPageProps {
@@ -104,6 +105,26 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
 
             {currentTurn && state.step === "student" && (
               <StudentTurn turn={currentTurn} session={session} />
+            )}
+
+            {currentTurn && state.step === "selfEval" && session.lastResult && (
+              <div className="sa-bubble-row is-student is-current">
+                <span className="sa-bubble-row__who"><span lang="zh-Hant">雿???</span> · Your response</span>
+                <SpeechSelfEvaluation
+                  targetText={currentTurn.targetText || currentTurn.text}
+                  pinyin={currentTurn.pinyin}
+                  translation={currentTurn.translation}
+                  modelAudioUrl={currentTurn.targetAudioUrl || currentTurn.audioUrl}
+                  audioBlob={session.lastResult.audioBlob}
+                  meaning={session.selfEvalMeaning}
+                  pronunciation={session.selfEvalPronunciation}
+                  onMeaningChange={session.setSelfEvalMeaning}
+                  onPronunciationChange={session.setSelfEvalPronunciation}
+                  onContinue={() => session.submitSelfEvaluation(false)}
+                  onSkip={() => session.submitSelfEvaluation(true)}
+                  onRecordAgain={session.recordAgain}
+                />
+              </div>
             )}
 
             {currentTurn && state.step === "feedback" && (
