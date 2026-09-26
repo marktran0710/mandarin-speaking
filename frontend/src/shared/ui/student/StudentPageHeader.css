@@ -3,7 +3,9 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-6);
-  margin-bottom: var(--space-6);
+  /* StudentPage owns vertical rhythm with its flex gap. Keeping the header
+     margin at zero avoids doubling the space before the page body. */
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 

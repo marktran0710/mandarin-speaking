@@ -77,9 +77,6 @@
   color: var(--color-muted);
   font-size: var(--font-size-small);
 }
-.study-group + .study-group {
-  margin-top: var(--space-7);
-}
 .study-group-label {
   display: flex;
   align-items: baseline;

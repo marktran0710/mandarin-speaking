@@ -53,6 +53,11 @@
 }
 .sa-page--hub .sa-page__hub-main,
 .sa-page--hub .sa-page__hub-rail { min-width: 0; }
+.sa-page--hub .sa-page__hub-main {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
 .sa-page--hub .sa-page__hub-rail { display: grid; align-content: start; gap: var(--space-6); }
 
 @media (max-width: 1100px) {

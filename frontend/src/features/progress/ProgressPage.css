@@ -1,7 +1,6 @@
 .sa-progress__list {
   display: grid;
   gap: var(--space-3);
-  margin-bottom: var(--space-6);
   background: transparent;
 }
 .sa-progress__row {
