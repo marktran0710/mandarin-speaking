@@ -11,7 +11,8 @@
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--space-12) var(--space-6);
+  --sa-page-block-padding: var(--space-12);
+  padding: var(--sa-page-block-padding) var(--space-6);
 }
 
 .sa-page-container--narrow {
@@ -20,6 +21,7 @@
 
 @media (max-width: 900px) {
   .sa-page-container {
-    padding: var(--space-4) var(--space-4);
+    --sa-page-block-padding: var(--space-4);
+    padding: var(--sa-page-block-padding) var(--space-4);
   }
 }
