@@ -40,8 +40,33 @@ function StoryLibraryItem({ story, ...actions }) {
   </article>;
 }
 
+function BulkAudioUpload({ onBulkUploadAudio, isBulkUploadingAudio }) {
+  return <div className="teacher-audio-batch-upload custom-story-bulk-audio">
+    <div>
+      <strong>Bulk upload audio for saved stories</strong>
+      <p>Name each file "lesson-story-scene", e.g. "5-1-01.mp3" = Lesson 5, story 1, scene 1. Pick every recording for lesson 5-8 (or any lessons) at once and each file is matched to its story automatically.</p>
+    </div>
+    <label className="teacher-file-upload teacher-file-upload-batch">
+      {isBulkUploadingAudio ? "Uploading..." : "Choose audio files"}
+      <input
+        type="file"
+        accept="audio/*"
+        multiple
+        disabled={isBulkUploadingAudio}
+        aria-label="Bulk upload audio for saved stories"
+        onChange={(event) => {
+          const files = event.target.files;
+          event.currentTarget.value = "";
+          if (files?.length) onBulkUploadAudio(files);
+        }}
+      />
+    </label>
+  </div>;
+}
+
 export default function StoryBuilderLibrary({ customStories, filteredCustomStories, lessonNumbersInUse, hasStoriesWithoutLesson,
-  lessonFilter, onLessonFilterChange, importError, importNotice, onImport, onTogglePublish, onEdit, onExport, onDelete }) {
+  lessonFilter, onLessonFilterChange, importError, importNotice, onImport, onTogglePublish, onEdit, onExport, onDelete,
+  onBulkUploadAudio, bulkAudioNotice, bulkAudioError, isBulkUploadingAudio }) {
   return <div className="custom-story-library" aria-label="Saved custom stories"><div className="custom-story-library-header"><h3>Admin Story Library</h3>
     {(lessonNumbersInUse.length > 0 || hasStoriesWithoutLesson) && <select className="custom-story-lesson-filter" aria-label="Filter stories by lesson" value={lessonFilter} onChange={(event) => onLessonFilterChange(event.target.value)}>
       <option value="all">All lessons</option>{lessonNumbersInUse.map((lessonNumber) => <option key={lessonNumber} value={String(lessonNumber)}>Lesson {lessonNumber}</option>)}{hasStoriesWithoutLesson && <option value="others">Others</option>}
@@ -49,6 +74,8 @@ export default function StoryBuilderLibrary({ customStories, filteredCustomStori
     <label className="btn-import-custom-story">Import story<input type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) onImport(file); }} /></label>
   </div>
   {importError && <div className="teacher-form-alert" role="alert">{importError}</div>}{importNotice && <div className="teacher-form-success" role="status">{importNotice}</div>}
+  {onBulkUploadAudio && <BulkAudioUpload onBulkUploadAudio={onBulkUploadAudio} isBulkUploadingAudio={isBulkUploadingAudio} />}
+  {bulkAudioError && <div className="teacher-form-alert" role="alert">{bulkAudioError}</div>}{bulkAudioNotice && <div className="teacher-form-success" role="status">{bulkAudioNotice}</div>}
   {filteredCustomStories.length === 0 ? <div className="teacher-empty-panel"><strong>{customStories.length === 0 ? "No custom stories yet" : "No stories for this lesson"}</strong><p>{customStories.length === 0 ? "Add image links and prompts to prepare a reusable classroom speaking activity." : "Try a different lesson filter."}</p></div> :
     <div className="custom-story-list">{filteredCustomStories.map((story) => <StoryLibraryItem key={story.id} story={story} onTogglePublish={onTogglePublish} onEdit={onEdit} onExport={onExport} onDelete={onDelete} />)}</div>}
   </div>;

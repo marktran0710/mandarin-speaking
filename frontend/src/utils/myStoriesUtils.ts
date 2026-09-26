@@ -237,6 +237,28 @@ export function getImageUploadError(file: File): string {
   return "";
 }
 
+export interface LessonAudioFilenameMatch {
+  lessonNumber: number;
+  lessonSubOrder: number;
+  sceneIndex: number;
+}
+
+/** Parses a filename like "5-1-01.mp3" (or "L5_1_s01.m4a") into the lesson
+ * number, the story's lessonSubOrder, and a 1-based scene index, by reading
+ * the first three integers found. Used by the multi-story bulk audio upload
+ * so a teacher can name files instead of opening each story one at a time. */
+export function parseLessonAudioFilename(filename: string): LessonAudioFilenameMatch | null {
+  // Strip the extension first -- "mp3"/"m4a" etc. contain digits that would
+  // otherwise be misread as the scene number (e.g. "5-01.mp3" has only two
+  // real numbers, not three).
+  const withoutExtension = filename.replace(/\.[^./\\]+$/, "");
+  const numbers = (withoutExtension.match(/\d+/g) || []).map(Number);
+  if (numbers.length < 3) return null;
+  const [lessonNumber, lessonSubOrder, sceneIndex] = numbers;
+  if (!lessonNumber || !lessonSubOrder || !sceneIndex) return null;
+  return { lessonNumber, lessonSubOrder, sceneIndex };
+}
+
 export function getAudioUploadError(file: File): string {
   if (!file.type.startsWith("audio/")) {
     return "Please upload an audio file.";

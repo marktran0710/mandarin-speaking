@@ -966,6 +966,10 @@
   margin: 0 auto 0 0;
 }
 
+.custom-story-bulk-audio {
+  margin-bottom: 14px;
+}
+
 .custom-story-lesson-filter {
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);

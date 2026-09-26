@@ -34,6 +34,7 @@ import { createCustomStory, storyToDraft } from "./model";
 import StoryBuilderForm from "./form";
 import StoryBuilderLibrary from "./library";
 import { useStoryBuilderFrameActions } from "./frameActions";
+import { useBulkAudioUpload } from "./bulkAudioUpload";
 export type { CustomStoryValidationErrors } from "./modelHelpers";
 export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: () => void }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
@@ -185,6 +186,9 @@ export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: (
     updateDraftFrame,
     setValidationErrors,
   });
+
+  const { handleBulkUploadAudio, bulkAudioNotice, bulkAudioError, isBulkUploadingAudio } =
+    useBulkAudioUpload(customStories, setCustomStories);
 
   const handleSaveCustomStory = async () => {
     const errors = validateCustomStoryDraft(customDraft, customStories, editingStoryId);
@@ -424,6 +428,10 @@ export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: (
           onEdit={handleEditCustomStory}
           onExport={handleExportStory}
           onDelete={handleDeleteCustomStory}
+          onBulkUploadAudio={handleBulkUploadAudio}
+          bulkAudioNotice={bulkAudioNotice}
+          bulkAudioError={bulkAudioError}
+          isBulkUploadingAudio={isBulkUploadingAudio}
         />
       </div>
     </section>
