@@ -350,32 +350,35 @@ h2 {
   min-height: 60vh;
   display: grid;
   place-items: center;
-  padding: var(--space-2xl) var(--space-lg);
+  padding: var(--space-8) var(--space-6);
+  background: var(--color-canvas);
 }
 
 .app-loading-card {
   max-width: 420px;
   text-align: center;
-  padding: var(--space-2xl) var(--space-lg);
-  background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-8) var(--space-6);
+  background: linear-gradient(135deg, var(--color-sky), var(--color-mint));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
 }
 
 .app-loading-icon {
   width: 40px;
   height: 40px;
-  margin: 0 auto var(--space-md);
-  border: 3px solid var(--clay-hairline);
-  border-top-color: var(--seal);
+  margin: 0 auto var(--space-4);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: app-loading-spin 0.8s linear infinite;
 }
 
 .app-loading-card h2 {
-  color: var(--clay-ink);
-  font-size: 18px;
+  color: var(--color-ink);
+  font-family: var(--font-hanzi);
+  font-size: var(--font-size-title);
+  font-weight: 500;
   margin: 0;
 }
 
