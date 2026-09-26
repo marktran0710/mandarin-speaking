@@ -13,6 +13,9 @@
   display: flex;
   min-height: 100dvh;
   height: 100dvh;
+  /* Keep the Student canvas opaque so the legacy app container cannot show
+     through the shell as a second (cream) page background. */
+  background: var(--color-canvas);
 }
 
 .sa-shell__main {
@@ -24,6 +27,7 @@
   height: 100%;
   overflow: auto;
   padding-left: var(--sidebar-width);
+  background: var(--color-canvas);
 }
 
 .sa-shell__mobile-bar {
