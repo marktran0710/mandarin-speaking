@@ -19,6 +19,15 @@ const PHASE_NAV: Array<{ id: StudentPhase; labelZh: string; labelEn: string }> =
     { id: "submit", labelZh: "提交", labelEn: "Submit" },
   ];
 
+const PHASE_PINYIN: Record<StudentPhase, string> = {
+  "vocab-preview": "shēngcí yùxí",
+  "vocab-quiz": "cíhuì liànxí",
+  "story-speaking": "kǒuyǔ liànxí",
+  conversation: "duìhuà liànxí",
+  submit: "tíjiāo",
+  completion: "wánchéng",
+};
+
 /** "completion" has no nav button but is a real reachable StudentPhase —
  * appended so watermark comparisons below never miss it. */
 export const PHASE_ORDER: StudentPhase[] = [
@@ -91,6 +100,7 @@ export default function StudentSidebar({
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "study" ? "is-active" : ""}`}
             aria-current={activeSection === "study" ? "page" : undefined}
+            title="kèchéng"
             onClick={() => onNavigateSection("study")}
           >
             <span className="sa-sidebar__nav-item-main">
@@ -104,6 +114,7 @@ export default function StudentSidebar({
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "progress" ? "is-active" : ""}`}
             aria-current={activeSection === "progress" ? "page" : undefined}
+            title="jìndù"
             onClick={() => onNavigateSection("progress")}
           >
             <span className="sa-sidebar__nav-item-main">
@@ -117,6 +128,7 @@ export default function StudentSidebar({
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "placement" ? "is-active" : ""}`}
             aria-current={activeSection === "placement" ? "page" : undefined}
+            title="rùmén cèyàn"
             onClick={() => onNavigateSection("placement")}
           >
             <span className="sa-sidebar__nav-item-main">
@@ -197,7 +209,7 @@ export default function StudentSidebar({
                       aria-hidden="true"
                     />
                   )}
-                  <span>
+                  <span title={PHASE_PINYIN[phase.id]}>
                     <span lang="zh-Hant">{phase.labelZh}</span> ·{" "}
                     {phase.labelEn}
                   </span>

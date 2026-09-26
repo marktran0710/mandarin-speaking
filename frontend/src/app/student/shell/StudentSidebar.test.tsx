@@ -3,6 +3,24 @@ import { describe, expect, it, vi } from "vitest";
 import StudentSidebar from "./StudentSidebar";
 
 describe("StudentSidebar", () => {
+  it("provides pinyin tooltips for static navigation labels", () => {
+    render(
+      <StudentSidebar
+        studentName="Student One"
+        activeSection="study"
+        activePhase="story-speaking"
+        onNavigateSection={vi.fn()}
+        onNavigatePhase={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Lessons/ })).toHaveAttribute("title", "kèchéng");
+    expect(screen.getByRole("button", { name: /Progress/ })).toHaveAttribute("title", "jìndù");
+    expect(screen.getByRole("button", { name: /Placement/ })).toHaveAttribute("title", "rùmén cèyàn");
+    expect(screen.getByTitle("kǒuyǔ liànxí")).toBeInTheDocument();
+  });
+
   it("keeps Conversation visible as a first-class lesson phase", () => {
     render(
       <StudentSidebar
