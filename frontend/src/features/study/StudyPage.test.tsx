@@ -1,51 +1,48 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
 import type { Topic } from "@entities/topic";
-import StudyPage from "./StudyPage";
-
-function topic(id: string, name: string, lessonSubOrder: number): Topic {
+import StudyPage, { selectStudyHeroTopic } from "./StudyPage";
+function topic(id: string, order: number): Topic {
   return {
     id,
-    name,
-    description: "rì cháng huì huà",
+    name: id,
+    description: "",
     skillFocus: "conversation",
     images: [],
     vocabulary: {},
-    lessonNumber: 5,
-    lessonSubOrder,
+    lessonNumber: 1,
+    lessonSubOrder: order,
   };
 }
+describe("Study hero selection", () => {
+  it("chooses the first active story, then the first available story", () => {
+    const topics = [topic("one", 1), topic("two", 2), topic("three", 3)];
+    expect(
+      selectStudyHeroTopic(topics, {
+        one: { status: "completed" },
+        two: { status: "in-progress" },
+        three: { status: "not-started" },
+      }),
+    ).toBe(topics[1]);
+    expect(
+      selectStudyHeroTopic(topics, {
+        one: { status: "completed" },
+        two: { status: "completed" },
+        three: { status: "not-started" },
+      }),
+    ).toBe(topics[2]);
+  });
 
-describe("StudyPage", () => {
-  it("renders the study hub layout and keeps lesson actions usable", () => {
-    const onOpenTopic = vi.fn();
-    const topics = [
-      topic("s1", "我們去喝下午茶", 1),
-      topic("s2", "週末有什麼安排？", 2),
-      topic("s3", "我的房間", 3),
-      topic("s4", "週末去買東西", 4),
-    ];
-
+  it("shows a completed summary when no topic is available", () => {
+    const topics = [topic("one", 1)];
     render(
       <StudyPage
         topics={topics}
-        statusByStoryId={{
-          s1: { status: "completed" },
-          s2: { status: "in-progress" },
-          s3: { status: "not-started" },
-          s4: { status: "locked" },
-        }}
-        onOpenTopic={onOpenTopic}
+        statusByStoryId={{ one: { status: "completed" } }}
+        onOpenTopic={() => undefined}
       />,
     );
-
-    expect(screen.getByRole("heading", { name: /第5課.*日常會話/ })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /課程目錄/ })).toHaveTextContent("4 課元");
-    expect(screen.getByText("重點生詞")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "繼續" })).toBeInTheDocument();
-    expect(screen.getByText("未開啟")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "預覽" }));
-    expect(onOpenTopic).toHaveBeenCalledWith(topics[2]);
+    expect(screen.getByText(/課程完成/)).toBeInTheDocument();
+    expect(screen.getByText("你已完成所有課程")).toBeInTheDocument();
   });
 });

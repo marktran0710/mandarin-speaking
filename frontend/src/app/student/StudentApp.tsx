@@ -134,6 +134,14 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // that don't change the `topics` prop, so a [topics]-keyed memo would
   // go stale.
   const { quizStars: totalQuizStars, maxQuizStars } = computeQuizStarsSummary(topics);
+  const currentLessonTitle = !activeTopic
+    ? (() => {
+        const current = Object.entries(statusByStoryId).find(([, entry]) => entry.status === "in-progress")
+          ?? Object.entries(statusByStoryId).find(([, entry]) => entry.status === "not-started");
+        const topic = current ? topics.find((candidate) => topicStoryId(candidate) === current[0]) : undefined;
+        return topic?.name;
+      })()
+    : activeTopic.name;
 
   // coreRoundsCompleted (not the sibling speakingUnlocked field) is the
   // right read here: speakingUnlocked is a bare practiceUnlocked(stars)
@@ -245,6 +253,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   return (
     <StudentShell
       studentName={studentName}
+      currentLessonTitle={currentLessonTitle}
       activeSection={section}
       activePhase={activeTopic ? phase : null}
       quizStars={totalQuizStars}

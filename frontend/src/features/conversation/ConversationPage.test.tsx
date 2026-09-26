@@ -154,7 +154,7 @@ describe("ConversationPage", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(screen.getByText(/Conversation content is not ready yet/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Back to Study" }));
+    fireEvent.click(screen.getByRole("button", { name: /返回學習.*Back to Study/ }));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 

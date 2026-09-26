@@ -1,7 +1,7 @@
 .sa-vocab-preview__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sa-space-md);
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -10,15 +10,15 @@
   min-width: 0;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--sa-space-md);
-  padding: var(--sa-space-md);
-  box-shadow: var(--sa-shadow-sm);
-  transition: border-color var(--sa-motion-fast), box-shadow var(--sa-motion-fast);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-soft);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .sa-vocab-preview__card:hover {
-  border-color: var(--sa-primary);
-  box-shadow: var(--sa-shadow-md);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-soft);
 }
 
 .sa-vocab-preview__card-top,
@@ -27,13 +27,13 @@
   align-items: flex-start;
   justify-content: space-between;
   min-width: 0;
-  gap: var(--sa-space-sm);
+  gap: var(--space-2);
 }
 
 .sa-vocab-preview__index {
-  color: var(--sa-outline);
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-caption);
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -45,8 +45,8 @@
 }
 
 .sa-vocab-preview__audio .sa-audio-control {
-  min-width: calc(var(--sa-space-xl) + var(--sa-space-md));
-  min-height: calc(var(--sa-space-xl) + var(--sa-space-md));
+  min-width: calc(var(--space-8) + var(--space-4));
+  min-height: calc(var(--space-8) + var(--space-4));
   justify-content: center;
   padding: 0;
   border-color: transparent;
@@ -64,8 +64,8 @@
 }
 
 .sa-vocab-preview__audio .sa-audio-control:hover {
-  border-color: var(--sa-outline-variant);
-  background: var(--sa-surface-container-low);
+  border-color: var(--color-border);
+  background: var(--color-surface-soft);
 }
 
 .sa-vocab-preview__word-stage {
@@ -73,7 +73,7 @@
   min-width: 0;
   flex: 1;
   place-items: center;
-  padding: var(--sa-space-sm) 0;
+  padding: var(--space-2) 0;
   text-align: center;
 }
 
@@ -85,17 +85,17 @@
 
 .sa-vocab-preview__card-footer {
   align-items: center;
-  padding-top: var(--sa-space-sm);
-  border-top: 1px solid var(--sa-outline-variant);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
 }
 
 .sa-vocab-preview__meaning {
   min-width: 0;
   overflow: hidden;
-  color: var(--sa-on-surface-variant);
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-body-sm);
-  line-height: var(--sa-leading-body-sm);
+  color: var(--color-ink-variant);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  line-height: var(--font-size-body);
   overflow-wrap: anywhere;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -110,5 +110,28 @@
 }
 
 @media (max-width: 420px) {
-  .sa-vocab-preview__card { padding: var(--sa-space-sm); }
+  .sa-vocab-preview__card { padding: var(--space-2); }
+}
+
+/* Student mode refresh: bright, calm study surfaces with generous touch targets. */
+.sa-vocab-preview__grid { gap: 16px; }
+.sa-vocab-preview__card {
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, transparent);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+.sa-vocab-preview__card:hover,
+.sa-vocab-preview__card:focus-within { border-color: var(--color-primary); box-shadow: 0 12px 28px color-mix(in srgb, var(--color-primary) 14%, transparent); }
+.sa-vocab-preview__word-stage { min-height: 132px; padding: 18px 8px; border-radius: 14px; background: var(--color-sky); }
+.sa-vocab-preview__card:nth-child(3n + 2) .sa-vocab-preview__word-stage { background: var(--color-mint); }
+.sa-vocab-preview__card:nth-child(3n) .sa-vocab-preview__word-stage { background: var(--color-peach); }
+.sa-vocab-preview__meaning { color: var(--color-muted); }
+.sa-vocab-preview__audio .sa-audio-control { min-width: 44px; min-height: 44px; border-radius: 999px; color: var(--color-primary); }
+.sa-vocab-preview__audio .sa-audio-control:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 32%, transparent); outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  .sa-vocab-preview__grid { grid-template-columns: 1fr; }
+  .sa-vocab-preview__card { padding: 16px; }
 }

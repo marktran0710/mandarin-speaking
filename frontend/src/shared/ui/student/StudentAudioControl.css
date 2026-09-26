@@ -1,35 +1,35 @@
 .sa-audio-control {
   display: inline-flex;
   align-items: center;
-  gap: var(--sa-space-sm);
-  padding: var(--sa-space-sm) var(--sa-space-md);
-  border-radius: var(--sa-radius);
-  border: 1px solid var(--sa-outline-variant);
-  background: var(--sa-surface-container-lowest);
-  color: var(--sa-on-surface);
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-label-md);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
   font-weight: 600;
   cursor: pointer;
   min-height: 36px;
-  transition: background-color var(--sa-motion-fast), border-color var(--sa-motion-fast);
+  transition: background-color var(--motion-fast), border-color var(--motion-fast);
 }
-.sa-audio-control .sa-icon { color: var(--sa-primary); }
-.sa-audio-control:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline); }
-.sa-audio-control[aria-pressed="true"] { border-color: var(--sa-primary); color: var(--sa-primary); }
+.sa-audio-control .sa-icon { color: var(--color-primary); }
+.sa-audio-control:hover { background: var(--color-surface-soft); border-color: var(--color-muted); }
+.sa-audio-control[aria-pressed="true"] { border-color: var(--color-primary); color: var(--color-primary); }
 .sa-audio-control:disabled {
-  background: var(--sa-surface-container-low);
-  border-color: var(--sa-outline-variant);
-  color: var(--sa-on-surface-variant);
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-muted);
   cursor: not-allowed;
   opacity: 0.78;
 }
-.sa-audio-control:disabled .sa-icon { color: var(--sa-on-surface-variant); }
-.sa-audio-control:disabled:hover { background: var(--sa-surface-container-low); border-color: var(--sa-outline-variant); }
+.sa-audio-control:disabled .sa-icon { color: var(--color-muted); }
+.sa-audio-control:disabled:hover { background: var(--color-surface-soft); border-color: var(--color-border); }
 
 .sa-audio-control.is-compact {
-  padding: var(--sa-space-xs) var(--sa-space-sm);
+  padding: var(--space-1) var(--space-2);
   min-height: 28px;
-  font-size: var(--sa-text-label-sm);
-  border-radius: var(--sa-radius-sm);
+  font-size: var(--font-size-caption);
+  border-radius: var(--radius-sm);
 }

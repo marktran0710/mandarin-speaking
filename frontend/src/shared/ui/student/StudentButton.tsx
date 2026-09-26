@@ -17,7 +17,7 @@ interface StudentButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 /**
  * The only four button variants for Student Mode (DESIGN.md). Default height
  * is 44px (a real touch target, not the 34px in the mockup's dense desktop
- * chrome) — "sm" is for dense inline row actions only, never a page's
+ * chrome) ??"sm" is for dense inline row actions only, never a page's
  * primary action.
  */
 const StudentButton = forwardRef<HTMLButtonElement, StudentButtonProps>(

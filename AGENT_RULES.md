@@ -1,5 +1,17 @@
 # Agent Coding Rules
 
+## 0. Documentation Sources
+
+Before planning or implementing a change, the agent MUST read the relevant source-of-truth documentation:
+
+- `docs/backend-architecture.md` and `docs/BACKEND_ARCHITECTURE_PLAN.md` for backend structure and migration direction.
+- `docs/learning-engine.md` for learning-engine behavior and boundaries.
+- `docs/CANONICAL_CONTENT_MIGRATION.md` for canonical-content migration work.
+- `docs/system-design-speaking-practice-quizzes-overall-report.docx` when the task concerns the speaking-practice quiz system design.
+- `frontend/ARCHITECTURE.md` for frontend structure, boundaries, and conventions.
+
+Use the documentation together with the current code. If documentation and implementation disagree, identify and resolve the discrepancy explicitly before proceeding.
+
 ## 1. Core Development Philosophy
 
 Use this development direction:
@@ -15,7 +27,7 @@ Before modifying code:
 
 1. Understand the existing architecture.
 2. Audit whether the existing architecture is still appropriate.
-3. Compare it against the target architecture defined in this document.
+3. Compare it against the target architecture defined in `frontend/ARCHITECTURE.md` for frontend work and this document for backend work.
 4. Identify the feature boundary.
 5. Trace the full data flow.
 6. Identify reusable primitives already available.
@@ -121,7 +133,7 @@ BKTMasteryService
 
 # 3. Mandatory Current Architecture Audit
 
-Before implementing any medium or large feature, the agent MUST review the current architecture and compare it against the architecture rules defined in this document.
+Before implementing any medium or large feature, the agent MUST review the current architecture and compare frontend work against `frontend/ARCHITECTURE.md` and backend work against this document.
 
 Do not assume the current structure already follows these rules.
 
@@ -145,18 +157,7 @@ Inspect at minimum:
 
 ## Frontend
 
-- Page structure
-- Feature boundaries
-- Shared components
-- Hooks
-- State ownership
-- API/service layer
-- CSS architecture
-- Design tokens
-- Shared layout primitives
-- Existing naming conventions
-- Existing responsive behavior
-- Existing loading/error/empty patterns
+- Use `frontend/ARCHITECTURE.md` as the source of truth for frontend layers, boundaries, naming, imports, styles, and migration direction.
 
 ## Backend
 
@@ -707,38 +708,9 @@ Do not create meaningless wrappers only to reduce line count.
 
 ---
 
-# 16. Frontend Component Hierarchy
+# 16. Frontend Architecture Source of Truth
 
-Use this hierarchy where appropriate:
-
-```text
-Page
-└── Feature Container
-    ├── Section
-    │   ├── Component
-    │   └── Component
-    └── Section
-        └── Component
-```
-
-Example:
-
-```text
-VocabularyPracticePage
-└── VocabularyPracticeFlow
-    ├── PracticeHeader
-    ├── QuestionStage
-    │   ├── QuestionPrompt
-    │   ├── AnswerOptions
-    │   └── FeedbackMessage
-    └── PracticeFooter
-        ├── ProgressIndicator
-        └── ContinueButton
-```
-
-Pages should mainly coordinate features.
-
-Pages should not contain the complete feature implementation.
+Frontend layers, feature boundaries, component placement, naming, imports, and file layout are defined in [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md). Read it before creating or moving frontend code; do not duplicate those rules here.
 
 ---
 
@@ -829,56 +801,9 @@ Examples:
 
 ---
 
-# 19. Frontend Styling Rules
+# 19. Frontend Styling Source of Truth
 
-Do not create new visual rules before checking existing styles.
-
-Search in this order:
-
-```text
-Design Tokens
-↓
-Shared Primitives
-↓
-Shared Layout Classes
-↓
-Feature-Specific Styles
-↓
-New Styles
-```
-
-Reuse existing:
-
-- Spacing scale
-- Font sizes
-- Line heights
-- Radius
-- Shadows
-- Borders
-- Button styles
-- Card styles
-- Form controls
-- Breakpoints
-- Typography rules
-- Layout primitives
-
-Avoid random values such as:
-
-```css
-margin-top: 13px;
-border-radius: 11px;
-font-size: 17px;
-```
-
-unless explicitly required.
-
-Prefer tokens:
-
-```css
-gap: var(--space-3);
-padding: var(--space-4);
-border-radius: var(--radius-md);
-```
+Frontend token, theme, primitive, and feature-style placement rules are defined in [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md). Do not create a second styling system.
 
 ---
 
@@ -990,37 +915,9 @@ If variants become structurally different, separate them.
 
 ---
 
-# 23. Feature Folders Should Be Cohesive
+# 23. Feature Folder Source of Truth
 
-Recommended frontend structure:
-
-```text
-src/
-├── app/
-├── components/
-│   └── shared/
-├── features/
-│   ├── speaking/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   ├── types.ts
-│   │   └── index.ts
-│   │
-│   ├── vocabulary/
-│   ├── placement/
-│   └── study/
-│
-├── services/
-├── styles/
-├── types/
-└── utils/
-```
-
-Do not move every component into a global `components/` directory.
-
-Feature-specific code should remain close to the feature.
+Feature folders and the rule for promoting code into `entities/` or `shared/` are defined in [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md).
 
 ---
 
@@ -1863,23 +1760,9 @@ Do not sacrifice architecture clarity for clever code.
 
 # 48. Target Full-Stack Architecture
 
-The project should gradually move toward a structure like:
+The frontend target structure is defined in [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md). The backend should gradually move toward:
 
 ```text
-frontend/
-├── app/
-├── features/
-│   ├── placement/
-│   ├── vocabulary/
-│   ├── speaking/
-│   └── study/
-├── components/
-│   └── shared/
-├── design-system/
-├── services/
-├── types/
-└── utils/
-
 backend/
 ├── api/
 ├── services/
@@ -1906,44 +1789,9 @@ This is:
 
 ---
 
-# 49. Frontend Target Responsibility Model
+# 49. Frontend Responsibility Model
 
-Preferred direction:
-
-```text
-Page
-↓
-Feature Container
-↓
-Hook / Controller
-↓
-Frontend Service
-↓
-API Contract
-```
-
-Presentation:
-
-```text
-Shared Primitive
-↓
-Feature Component
-↓
-Feature Container
-```
-
-Avoid:
-
-```text
-Page
-├── API fetch
-├── business logic
-├── algorithm
-├── navigation
-├── responsive decisions
-├── state machine
-└── 500 lines JSX
-```
+Frontend responsibility boundaries and import direction are defined in [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md).
 
 ---
 
@@ -2274,82 +2122,9 @@ Do not use clickable `div` elements when a button is appropriate.
 
 ---
 
-# 62. Avoid Premature Shared Abstractions
+# 62. Frontend Boundary Source of Truth
 
-Do not move code into `shared/` simply because two components currently look similar.
-
-Promote to shared only when:
-
-```text
-The responsibility is genuinely shared
-The API is stable enough
-The abstraction reduces duplication
-The abstraction does not introduce many flags
-```
-
-Two similar-looking components are not automatically one abstraction.
-
----
-
-# 63. Feature-Specific First, Shared When Proven
-
-For uncertain abstractions:
-
-```text
-Feature-specific implementation
-↓
-Second real use case appears
-↓
-Compare responsibilities
-↓
-Extract stable shared primitive
-```
-
-Do not design speculative abstractions for hypothetical future features.
-
----
-
-# 64. No Hidden Cross-Feature Coupling
-
-Feature A should not depend on internal implementation details of Feature B.
-
-Bad:
-
-```text
-Vocabulary imports Speaking internal component
-```
-
-unless that component is intentionally promoted to shared.
-
-Prefer:
-
-```text
-shared primitive
-↑            ↑
-Vocabulary   Speaking
-```
-
----
-
-# 65. Keep Dependency Direction Clear
-
-Preferred dependency direction:
-
-```text
-App
-↓
-Features
-↓
-Shared UI / Services
-↓
-Domain Contracts
-```
-
-Domain logic should not depend on React.
-
-Repositories should not determine UI structure.
-
-UI should not own domain rules.
+Shared promotion, cross-feature coupling, dependency direction, and frontend responsibility boundaries are defined in [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md).
 
 ---
 
@@ -2570,17 +2345,17 @@ From the 2026-09 Student Mode UI unification (`shared/ui/student/StudentPage.tsx
 
 **LAYOUT-1** Every student screen uses `StudentPage` with one layout (`hub` / `task` / `stage`). Do not roll a page's own top-level container.
 
-**LAYOUT-2** Same content left edge on every page — `.sa-page-container`'s `--sa-gutter-desktop`/`--sa-gutter` (24px desktop, 16px mobile). Enforced by `frontend/e2e/student-layout.spec.ts`.
+**LAYOUT-2** Same content left edge on every page — `.sa-page-container` uses the student theme's semantic spacing tokens (24px desktop, 16px mobile). Enforced by `frontend/e2e/student-layout.spec.ts`.
 
 **LAYOUT-3** No outer bordered/backgrounded card around a whole page (`hub` in particular — Study's old card is gone).
 
 **HEAD-1** Exactly one `<h1>` per page, via `StudentPageHeader`, reached through `StudentPage`'s `header` slot.
 
-**HEAD-2** One eyebrow/header markup pattern (`StudentPageHeader`); `eyebrowZh` and `eyebrowEn` are both required — bilingual labels per D2, Chinese primary + English secondary, joined by " · ", everywhere a label is user-facing chrome (nav, eyebrow, in-page labels). No English-only label.
+**HEAD-2** One header markup pattern (`StudentPageHeader`). Omit the optional eyebrow when it would repeat the title; when an eyebrow is shown, provide both `eyebrowZh` and `eyebrowEn`. User-facing chrome remains bilingual, Chinese primary with English secondary. A page has one Chinese-primary H1 with its English subtitle.
 
-**ACTION-1** One primary action per state, in the footer action bar (`StudentPage`'s `actions` prop), on the right; its label names its destination. A screen with several genuinely different choices (e.g. a mode picker) is not a single "next step" and may keep its own in-content buttons instead of forcing them into one footer primary — do not distort an existing multi-choice UI to satisfy this rule.
+**ACTION-1** One primary action per state; its label names the action or destination. Use `StudentPage`'s footer action bar when it remains close to the relevant content. On short, focused tasks such as the Placement introduction or a question, place that single action inside the task panel beside its controls. A screen with several genuinely different choices (e.g. a mode picker) may keep its in-content buttons.
 
-**ACTION-2** Primary = solid `--sa-primary` / `--sa-on-primary` (`StudentButton` `variant="primary"`). The light `--sa-primary-container` fill is for a selected/active state only, never the primary action.
+**ACTION-2** Primary = solid `--color-primary` / `--color-on-primary` (`StudentButton` `variant="primary"`). The light `--color-sky` fill is for a selected/active state only, never the primary action.
 
 **STATE-1** No screen renders empty: `StudentPage`'s `state` is `"loading" | "empty" | "error" | "ready"`; `"empty"` takes `emptyTitle`/`emptyText`/`emptyAction` (a next step), `"error"` takes `errorText`.
 
@@ -2590,6 +2365,6 @@ From the 2026-09 Student Mode UI unification (`shared/ui/student/StudentPage.tsx
 
 **CSS-1** Student UI is unaffected by legacy CSS: legacy stylesheets (`styles/index.css`, `shared-ui.css`) load inside `@layer legacy` on the student entrypoint only; student component CSS stays unlayered so it always outranks legacy rules regardless of import order. Do not wrap new student CSS in `@layer student` — unlayered already wins. Do not add this layering to the teacher/admin entrypoints unless they also gain a competing unlayered design system.
 
-**THEME-1** Offer a theme toggle only when every `--sa-*` colour token has a dark value defined. `shared/styles/student-tokens.css` has none today, so Student Mode has no dark-mode toggle.
+**THEME-1** Student Mode uses semantic `--color-*`, `--space-*`, `--radius-*`, and `--font-*` tokens from `shared/styles/themes/student.css`. Offer a theme toggle only when every semantic colour role has a dark value defined; the current student theme is light-only.
 
 without unnecessarily increasing the scope of the task.

@@ -1,5 +1,8 @@
 import { useState, type ReactNode } from "react";
-import StudentSidebar, { type StudentPhase, type StudentTopSection } from "./StudentSidebar";
+import StudentSidebar, {
+  type StudentPhase,
+  type StudentTopSection,
+} from "./StudentSidebar";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import "./StudentShell.css";
 
@@ -13,6 +16,7 @@ interface StudentShellProps {
   speakingUnlocked?: boolean;
   conversationUnlocked?: boolean;
   practiceChoicesUnlocked?: boolean;
+  currentLessonTitle?: string;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -34,6 +38,7 @@ export default function StudentShell({
   speakingUnlocked,
   conversationUnlocked,
   practiceChoicesUnlocked,
+  currentLessonTitle,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
@@ -43,7 +48,9 @@ export default function StudentShell({
 
   return (
     <div className="student-app sa-shell">
-      <a href="#sa-main" className="sa-skip-link">Skip to learning content</a>
+      <a href="#sa-main" className="sa-skip-link">
+        Skip to learning content
+      </a>
 
       <div className={`sa-shell__sidebar-wrap ${mobileOpen ? "is-open" : ""}`}>
         <StudentSidebar
@@ -56,6 +63,7 @@ export default function StudentShell({
           speakingUnlocked={speakingUnlocked}
           conversationUnlocked={conversationUnlocked}
           practiceChoicesUnlocked={practiceChoicesUnlocked}
+          currentLessonTitle={currentLessonTitle}
           onNavigateSection={(section) => {
             onNavigateSection(section);
             setMobileOpen(false);
@@ -86,9 +94,16 @@ export default function StudentShell({
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
         >
-          <StudentIcon name="menu" size={22} role="meaningful" label="Open menu" />
+          <StudentIcon
+            name="menu"
+            size={22}
+            role="meaningful"
+            label="Open menu"
+          />
         </button>
-        <span className="sa-shell__mobile-brand" lang="zh-Hant">慢慢中文</span>
+        <span className="sa-shell__mobile-brand" lang="zh-Hant">
+          慢慢中文
+        </span>
       </header>
 
       <main id="sa-main" className="sa-shell__main" tabIndex={-1}>

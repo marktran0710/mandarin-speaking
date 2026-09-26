@@ -5,8 +5,8 @@ import "./StudentPageHeader.css";
 interface StudentPageHeaderProps {
   /** Chinese primary + English secondary on every label (D2) — both required,
    * no English-only eyebrow. */
-  eyebrowZh: string;
-  eyebrowEn: string;
+  eyebrowZh?: string;
+  eyebrowEn?: string;
   titleZh: string;
   titleEn: string;
   aside?: ReactNode;
@@ -16,19 +16,32 @@ interface StudentPageHeaderProps {
   onBack?: () => void;
 }
 
-export default function StudentPageHeader({ eyebrowZh, eyebrowEn, titleZh, titleEn, aside, onBack }: StudentPageHeaderProps) {
+export default function StudentPageHeader({
+  eyebrowZh,
+  eyebrowEn,
+  titleZh,
+  titleEn,
+  aside,
+  onBack,
+}: StudentPageHeaderProps) {
   return (
     <header className="sa-page-header">
       <div className="sa-page-header__copy">
         {onBack && (
-          <button type="button" className="sa-page-header__back" onClick={onBack}>
+          <button
+            type="button"
+            className="sa-page-header__back"
+            onClick={onBack}
+          >
             <StudentIcon name="arrow_back" size={18} role="decorative" />
-            <span><span lang="zh-Hant">返回</span> · Back to Study</span>
+            <span>
+              <span lang="zh-Hant">返回</span> · Back to Study
+            </span>
           </button>
         )}
-        <p className="sa-page-header__eyebrow">
+        {(eyebrowZh || eyebrowEn) && <p className="sa-page-header__eyebrow">
           <span lang="zh-Hant">{eyebrowZh}</span> · {eyebrowEn}
-        </p>
+        </p>}
         <h1 className="sa-page-header__title">
           <span lang="zh-Hant">{titleZh}</span>
         </h1>

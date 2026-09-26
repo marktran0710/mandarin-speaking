@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentButton from "@shared/ui/student/StudentButton";
-import StudentPage, { type StudentPageActions } from "@shared/ui/student/StudentPage";
+import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill, { type StudentStatusTone } from "@shared/ui/student/StudentStatusPill";
@@ -146,6 +146,12 @@ function PlacementAssessmentPage() {
   const displayedQuestions = useMemo(() => randomize ? shuffleQuestions(questions) : questions, [questions, randomize]);
   const question = displayedQuestions[index];
 
+  const loadBlueprint = () => {
+    setStatus("loading");
+    setError("");
+    void getPlacementBlueprint().then((data) => { setBlueprint(data); setQuestions(data.questions); setStatus("ready"); }).catch((reason) => { setError(reason instanceof Error ? reason.message : "Could not load the placement test."); setStatus("error"); });
+  };
+
   useEffect(() => {
     let active = true;
     void getPlacementBlueprint().then((data) => {
@@ -242,9 +248,7 @@ function PlacementAssessmentPage() {
       <StudentPage
         layout="task"
         header={placementHeader(<StudentStatusPill tone="danger">Unavailable</StudentStatusPill>)}
-        state="error"
-        errorText={error}
-      />
+      ><StudentSection variant="panel" className="sa-placement__result"><StudentIcon name="error" size={30} role="decorative" /><p className="sa-placement__result-kicker">入門測驗 · Placement</p><h2>測驗暫時無法載入</h2><p>請檢查網路連線後再試一次。 The placement test could not be loaded. Please try again.</p><p className="sa-placement__error" role="alert">{error}</p><StudentButton variant="primary" onClick={loadBlueprint}>重試 · Try again</StudentButton></StudentSection></StudentPage>
     );
   }
   if (!blueprint?.configured || blueprint.questionCount === 0) {
@@ -254,7 +258,7 @@ function PlacementAssessmentPage() {
         header={placementHeader(<StudentStatusPill tone="neutral">Not available</StudentStatusPill>)}
         state="empty"
         emptyTitle={<><span lang="zh-Hant">入門測驗尚未設定</span> · Placement test not available</>}
-        emptyText={<><span lang="zh-Hant">你的老師尚未設定入門測驗。</span> Your teacher has not configured a placement assessment yet.</>}
+        emptyText={<><span lang="zh-Hant">目前沒有可進行的測驗。請先回到課程繼續學習。</span> No assessment is available yet. Return to your course to keep learning.</>}
       />
     );
   }
@@ -278,28 +282,20 @@ function PlacementAssessmentPage() {
   const progress = displayedQuestions.length ? ((index + 1) / displayedQuestions.length) * 100 : 0;
   const isLastQuestion = index + 1 === displayedQuestions.length;
 
-  let actions: StudentPageActions | undefined;
-  if (status === "ready") {
-    actions = { primary: <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => void start()}>Start placement test</StudentButton> };
-  } else if (status === "answering" && activeQuestion) {
-    actions = {
-      primary: isLastQuestion
-        ? <StudentButton variant="primary" disabled={!selected.trim()} onClick={() => void finish()}>Finish test</StudentButton>
-        : <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={!selected.trim()} onClick={next}>Next question</StudentButton>,
-    };
-  }
+  const questionAction = isLastQuestion
+    ? <StudentButton variant="primary" disabled={!selected.trim()} onClick={() => void finish()}>完成測驗 · Finish</StudentButton>
+    : <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={!selected.trim()} onClick={next}>下一題 · Next</StudentButton>;
 
   return (
     <StudentPage
       layout="task"
-      header={placementHeader(<StudentStatusPill tone="info">Question {index + 1} / {displayedQuestions.length}</StudentStatusPill>)}
-      actions={actions}
+      header={placementHeader(status === "answering" ? <StudentStatusPill tone="info">Question {index + 1} / {displayedQuestions.length}</StudentStatusPill> : undefined)}
     >
-      {status === "ready" && <StudentSection variant="panel" className="sa-placement__start"><div><p className="sa-placement__kicker">A short diagnostic</p><h2>Show what you already know.</h2><p>This placement test uses {blueprint.questionCount} vocabulary questions from your published course material. It updates your learning record after you submit.</p></div><label className="sa-placement__randomize"><input type="checkbox" checked={randomize} onChange={(event) => setRandomize(event.target.checked)} /> Randomize display order</label></StudentSection>}
+      {status === "ready" && <StudentSection variant="panel" className="sa-placement__start"><div><p className="sa-placement__kicker">入門測驗 · A short diagnostic</p><h2>看看你已經會什麼。</h2><p>本測驗使用已發布課程中的 {blueprint.questionCount} 個詞彙題。提交後，系統會更新你的學習紀錄。 This test uses {blueprint.questionCount} vocabulary questions from your published course material and updates your learning record after you submit.</p></div><div className="sa-placement__start-controls"><label className="sa-placement__randomize"><input type="checkbox" checked={randomize} onChange={(event) => setRandomize(event.target.checked)} /> 隨機排列題目 · Randomize display order</label><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => void start()}>開始測驗 · Start test</StudentButton></div></StudentSection>}
       {(status === "starting" || status === "submitting") && <StudentSection variant="panel" className="sa-placement__start"><p role="status">{status === "starting" ? "Starting your assessment…" : "Saving your answers…"}</p></StudentSection>}
       {status === "answering" && activeQuestion && <div className="sa-placement">
         <div className="sa-placement__progress" role="progressbar" aria-label="Placement progress" aria-valuemin={0} aria-valuemax={displayedQuestions.length} aria-valuenow={index + 1}><span style={{ width: `${progress}%` }} /></div>
-        <StudentSection variant="panel" className="sa-placement__question"><div className="sa-placement__question-meta"><span>{labelFor(activeQuestion)}</span><small>{activeQuestion.sourceStoryTitle}</small></div><p className="sa-placement__question-prompt">{activeQuestion.prompt || (activeQuestion.questionType === "character_to_pinyin_typing" ? `Type the pinyin for ${activeQuestion.targetWord}.` : "Choose the best answer.")}</p><h2 lang="zh-Hant">{activeQuestion.targetWord}</h2>{activeQuestion.questionType === "character_to_pinyin_typing" ? <label className="sa-placement__input">Pinyin with tones<input autoFocus value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="e.g. nǐ hǎo or ni3 hao3" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) { if (isLastQuestion) void finish(); else next(); } }} /></label> : <div className="sa-placement__options" role="group" aria-label="Answer options">{activeQuestion.options.map((option, optionIndex) => <button key={option} type="button" className={`sa-placement__option${selected === option ? " is-selected" : ""}`} onClick={() => saveCurrentAnswer(option)}><span>{optionIndex + 1}</span>{option}</button>)}</div>}{error && <p role="alert" className="sa-placement__error">{error}</p>}</StudentSection>
+        <StudentSection variant="panel" className="sa-placement__question"><div className="sa-placement__question-meta"><span>{labelFor(activeQuestion)}</span><small>{activeQuestion.sourceStoryTitle}</small></div><p className="sa-placement__question-prompt">{activeQuestion.prompt || (activeQuestion.questionType === "character_to_pinyin_typing" ? `Type the pinyin for ${activeQuestion.targetWord}.` : "Choose the best answer.")}</p><h2 lang="zh-Hant">{activeQuestion.targetWord}</h2>{activeQuestion.questionType === "character_to_pinyin_typing" ? <label className="sa-placement__input">Pinyin with tones<input autoFocus value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="e.g. nǐ hǎo or ni3 hao3" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) { if (isLastQuestion) void finish(); else next(); } }} /></label> : <div className="sa-placement__options" role="group" aria-label="Answer options">{activeQuestion.options.map((option, optionIndex) => <button key={option} type="button" className={`sa-placement__option${selected === option ? " is-selected" : ""}`} onClick={() => saveCurrentAnswer(option)}><span>{optionIndex + 1}</span>{option}</button>)}</div>}<div className="sa-placement__question-footer">{error && <p role="alert" className="sa-placement__error">{error}</p>}{questionAction}</div></StudentSection>
       </div>}
     </StudentPage>
   );

@@ -3,11 +3,11 @@
   left: -9999px;
   top: 0;
   z-index: 100;
-  padding: var(--sa-space-sm) var(--sa-space-md);
-  background: var(--sa-primary);
-  color: var(--sa-on-primary);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
-.sa-skip-link:focus { left: var(--sa-space-md); top: var(--sa-space-md); }
+.sa-skip-link:focus { left: var(--space-4); top: var(--space-4); }
 
 .sa-shell {
   display: flex;
@@ -23,7 +23,7 @@
   min-height: 0;
   height: 100%;
   overflow: auto;
-  padding-left: var(--sa-sidebar-width);
+  padding-left: var(--sidebar-width);
 }
 
 .sa-shell__mobile-bar {
@@ -53,15 +53,15 @@
   .sa-shell__mobile-bar {
     display: flex;
     align-items: center;
-    gap: var(--sa-space-md);
+    gap: var(--space-4);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     height: 56px;
-    padding: 0 var(--sa-space-md);
-    background: var(--sa-surface-container-lowest);
-    border-bottom: 1px solid var(--sa-surface-container-highest);
+    padding: 0 var(--space-4);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
     z-index: 60;
   }
 
@@ -73,22 +73,22 @@
     justify-content: center;
     border: none;
     background: transparent;
-    color: var(--sa-on-surface);
+    color: var(--color-ink);
     cursor: pointer;
-    border-radius: var(--sa-radius);
+    border-radius: var(--radius-control);
   }
 
   .sa-shell__mobile-brand {
-    font-family: var(--sa-font-headline);
-    font-size: var(--sa-text-headline-sm);
-    color: var(--sa-on-surface);
+    font-family: var(--font-hanzi);
+    font-size: var(--font-size-title-sm);
+    color: var(--color-ink);
   }
 
   .sa-shell__sidebar-wrap.is-open {
     /* StudentSidebar.css handles the transform; this wrapper just forwards
        the class so StudentSidebar doesn't need to know about the shell. */
   }
-  .sa-shell__sidebar-wrap.is-open .sa-sidebar { transform: translateX(0); box-shadow: var(--sa-shadow-md); }
+  .sa-shell__sidebar-wrap.is-open .sa-sidebar { transform: translateX(0); box-shadow: var(--shadow-soft); }
 
   .sa-shell__backdrop {
     display: block;

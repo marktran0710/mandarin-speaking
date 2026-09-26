@@ -103,7 +103,7 @@ async function openMobileSidebarIfNeeded(page: Page, isMobile: boolean) {
 }
 
 async function openFirstLesson(page: Page) {
-  const currentRow = page.locator(".sa-study__row.is-current").first();
+  const currentRow = page.locator(".study-row.is-current").first();
   await expect(currentRow, "expected at least one unlocked/current lesson row").toBeVisible({ timeout: 15000 });
   await currentRow.getByRole("button").click();
   await page.waitForSelector(".sa-page--task", { timeout: 15000 });

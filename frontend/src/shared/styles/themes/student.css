@@ -1,0 +1,104 @@
+﻿.student-app {
+  --color-canvas: #f6fbff;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f0f7fb;
+  --color-sky: #e8f4fc;
+  --color-sky-strong: #d9eaf5;
+  --color-mint: #ddf4e8;
+  --color-peach: #ffe8dd;
+  --color-ink: #17324b;
+  --color-muted: #476078;
+  --color-border: #c8dbe6;
+  --color-primary: #214f70;
+  --color-on-primary: #ffffff;
+  --color-success: #216553;
+  --color-success-ink: #164b3d;
+  --color-peach-ink: #a34f34;
+  --color-error: #a34f34;
+  --color-error-soft: #ffe8dd;
+  --color-error-container: #ffe8dd;
+  --color-focus: #214f70;
+  --color-ink-variant: #294a63;
+  --color-on-primary-container: #17324b;
+  --color-peach-ink-container: #a34f34;
+  --color-primary-container: #d9eaf5;
+  --color-primary-fixed: #d9eaf5;
+  --color-sky-highest: #c8dbe6;
+  --color-sky-strongest: #b7d0df;
+  --color-success-container: #ddf4e8;
+  --color-primary-fixed-dim: #8eb6d0;
+  --color-on-primary-fixed: #17324b;
+  --color-on-primary-fixed-variant: #214f70;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --radius-sm: 0.375rem;
+  --radius-control: 0.75rem;
+  --radius-control-md: 0.875rem;
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
+  --radius-control-full: var(--radius-pill);
+  --font-hanzi: "Noto Serif TC", Georgia, serif;
+  --font-ui: "Source Sans 3", "Noto Sans TC", system-ui, sans-serif;
+  --font-latin: "Source Sans 3", system-ui, sans-serif;
+  --font-size-display: 2rem;
+  --font-size-display-sm: 1.75rem;
+  --font-size-title: 1.5rem;
+  --font-size-headline: 1.375rem;
+  --font-size-body: 1rem;
+  --font-size-small: 0.875rem;
+  --font-size-title-sm: 1.2rem;
+  --font-size-body-lg: 1.0625rem;
+  --font-size-caption: 0.75rem;
+  --font-size-pinyin: 0.6875rem;
+  --font-size-character-hero: 3rem;
+  --font-size-character-display: 1.75rem;
+  --font-size-character-inline: 1.125rem;
+  --font-size-hanzi-inline: 1.125rem;
+  --leading-display: 1.25;
+  --leading-title: 1.3;
+  --leading-title-sm: 1.35;
+  --leading-body-lg: 1.65;
+  --leading-body: 1.55;
+  --leading-small: 1.5;
+  --leading-character-hero: 1.2;
+  --leading-character-display: 1.3;
+  --leading-character-inline: 1.4;
+  --content-max: 1320px;
+  --shadow-soft: 0 8px 24px rgba(23, 50, 75, 0.08);
+  --motion-fast: 160ms ease;
+  --sidebar-width: 16rem;
+  font-family: var(--font-ui);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+.student-app *,
+.student-app *::before,
+.student-app *::after {
+  box-sizing: border-box;
+}
+.student-app :focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.student-app button,
+.student-app a,
+.student-app input:not([type="checkbox"]):not([type="radio"]),
+.student-app select {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-app *,
+  .student-app *::before,
+  .student-app *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

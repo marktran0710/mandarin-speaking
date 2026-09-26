@@ -13,3 +13,17 @@
   .login-page.student { padding: var(--space-md) var(--space-sm) var(--space-xl); }
   .login-page.student .login-card { padding: var(--space-md); }
 }
+
+.login-page.student { background: var(--color-canvas); color: var(--color-ink); }
+.login-page.student .login-card { border-color: color-mix(in srgb, var(--color-primary) 16%, transparent); border-radius: 22px; background: var(--color-surface); box-shadow: 0 16px 40px color-mix(in srgb, var(--color-ink) 10%, transparent); }
+.login-page.student .login-kicker { color: var(--color-muted); }
+.login-page.student .login-card h1 { color: var(--color-ink); }
+.login-page.student .login-description { color: var(--color-muted); }
+.login-page.student .login-trail-dot { background: var(--color-sky); color: var(--color-primary); }
+.login-page.student .login-trail li.is-done .login-trail-dot { background: var(--color-mint); color: var(--color-success); }
+.login-page.student .login-form input { border-color: color-mix(in srgb, var(--color-primary) 24%, transparent); background: var(--color-canvas); color: var(--color-ink); }
+.login-page.student .login-form input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent); }
+.login-page.student .login-submit { background: var(--color-primary); color: var(--color-surface); }
+.login-page.student .login-submit:hover:not(:disabled) { background: var(--color-ink); }
+.login-page.student .login-submit:focus-visible,
+.login-page.student .login-password-toggle:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 36%, transparent); outline-offset: 3px; }

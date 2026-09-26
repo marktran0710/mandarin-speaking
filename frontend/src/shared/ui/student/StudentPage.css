@@ -1,11 +1,11 @@
-/* StudentPage — one shell, three layouts (LAYOUT-1). No 100vh/100dvh here:
+/* StudentPage ??one shell, three layouts (LAYOUT-1). No 100vh/100dvh here:
    the shell (#sa-main) owns height and scrolling; this component only lays
    out content within it. */
 
 .sa-page {
   display: flex;
   flex-direction: column;
-  gap: var(--sa-space-lg);
+  gap: var(--space-6);
 }
 
 .sa-page__body {
@@ -14,9 +14,9 @@
 
 .sa-page__status {
   margin: 0;
-  padding: var(--sa-space-xl) 0;
-  color: var(--sa-outline);
-  font-family: var(--sa-font-label);
+  padding: var(--space-8) 0;
+  color: var(--color-muted);
+  font-family: var(--font-ui);
   text-align: center;
 }
 
@@ -24,36 +24,36 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sa-space-md);
-  padding: var(--sa-space-xl);
+  gap: var(--space-4);
+  padding: var(--space-8);
   text-align: center;
-  color: var(--sa-outline);
+  color: var(--color-muted);
 }
 .sa-page__state-card h2 {
   margin: 0;
-  color: var(--sa-on-surface);
-  font-family: var(--sa-font-headline);
-  font-size: var(--sa-text-headline-sm);
+  color: var(--color-ink);
+  font-family: var(--font-hanzi);
+  font-size: var(--font-size-title-sm);
   font-weight: 500;
 }
 .sa-page__state-card p {
   margin: 0;
-  color: var(--sa-on-surface-variant);
-  font-family: var(--sa-font-label);
+  color: var(--color-muted);
+  font-family: var(--font-ui);
 }
 
 /* hub: two columns, no outer card (LAYOUT-3) */
 .sa-page--hub .sa-page__hub-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-  gap: var(--sa-space-lg);
+  gap: var(--space-6);
 }
 .sa-page--hub .sa-page__hub-grid--single {
   grid-template-columns: minmax(0, 1fr);
 }
 .sa-page--hub .sa-page__hub-main,
 .sa-page--hub .sa-page__hub-rail { min-width: 0; }
-.sa-page--hub .sa-page__hub-rail { display: grid; align-content: start; gap: var(--sa-space-lg); }
+.sa-page--hub .sa-page__hub-rail { display: grid; align-content: start; gap: var(--space-6); }
 
 @media (max-width: 1100px) {
   .sa-page--hub .sa-page__hub-grid { grid-template-columns: minmax(0, 1fr); }
@@ -71,7 +71,7 @@
 .sa-page--stage .sa-page__stage-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--sa-space-lg);
+  gap: var(--space-6);
   align-items: start;
 }
 .sa-page--stage .sa-page__stage-media,
@@ -89,14 +89,14 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--sa-space-md);
-  padding-top: var(--sa-space-lg);
-  border-top: 1px solid var(--sa-outline-variant);
+  gap: var(--space-4);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
 }
 .sa-page__actions-secondary {
   margin-right: auto;
   display: flex;
-  gap: var(--sa-space-sm);
+  gap: var(--space-2);
 }
 
 @media (max-width: 640px) {

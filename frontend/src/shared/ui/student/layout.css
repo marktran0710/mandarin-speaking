@@ -1,17 +1,17 @@
-/* Shared page-container rhythm — one formula so every Study/Progress/
+/* Shared page-container rhythm ??one formula so every Study/Progress/
    Assessment page lines up the same way (mirrors --content-max/
    --content-gutter convention used elsewhere in the app, scoped here). */
 .sa-page-container {
   /* #sa-main (StudentShell) is a column flex container, so a child with
      auto side-margins would shrink to its own content width and get
-     centered at THAT width instead of sharing one width across pages —
+     centered at THAT width instead of sharing one width across pages ??
      each page's h1 would then land at a different x (LAYOUT-2). width:100%
      keeps every page container the same width (still capped by max-width
      and centered only once the viewport actually exceeds it). */
   width: 100%;
-  max-width: var(--sa-content-max);
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--sa-margin-desktop) var(--sa-gutter-desktop);
+  padding: var(--space-12) var(--space-6);
 }
 
 .sa-page-container--narrow {
@@ -20,6 +20,6 @@
 
 @media (max-width: 900px) {
   .sa-page-container {
-    padding: var(--sa-margin) var(--sa-gutter);
+    padding: var(--space-4) var(--space-4);
   }
 }

@@ -53,8 +53,8 @@ function ConversationEmptyPage({ topic, onBack }: Pick<ConversationPageProps, "t
       header={header}
       state="empty"
       emptyTitle={<><span lang="zh-Hant">對話內容尚未準備</span> · Conversation content is not ready yet</>}
-      emptyText="This lesson is ready for Conversation Practice, but its dialogue lines have not been added yet."
-      emptyAction={<StudentButton variant="secondary" onClick={onBack}>Back to Study</StudentButton>}
+      emptyText={<><span lang="zh-Hant">請先回到學習頁，完成其他可用活動。</span> Return to Study and continue with another available activity.</>}
+      emptyAction={<StudentButton variant="secondary" onClick={onBack}>返回學習 · Back to Study</StudentButton>}
     />
   );
 }

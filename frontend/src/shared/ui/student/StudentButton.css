@@ -2,15 +2,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sa-space-sm);
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-label-md);
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
   font-weight: 600;
   letter-spacing: 0.02em;
-  border-radius: var(--sa-radius);
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color var(--sa-motion-fast), border-color var(--sa-motion-fast), color var(--sa-motion-fast);
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
   white-space: nowrap;
 }
 
@@ -19,54 +19,54 @@
   opacity: 0.5;
 }
 
-/* Sizes — default is a real 44px touch target; sm is for dense inline row
+/* Sizes ??default is a real 44px touch target; sm is for dense inline row
    actions (e.g. a lesson-row "Review" link) that sit beside plenty of other
    spacing, never a page's one primary action. */
-.sa-button--sm { height: 34px; padding: 0 var(--sa-space-md); font-size: var(--sa-text-label-sm); }
-.sa-button--default { height: 44px; padding: 0 var(--sa-space-lg); }
-.sa-button--lg { height: 50px; padding: 0 var(--sa-space-xl); font-size: var(--sa-text-body-md); }
+.sa-button--sm { height: 34px; padding: 0 var(--space-4); font-size: var(--font-size-caption); }
+.sa-button--default { height: 44px; padding: 0 var(--space-6); }
+.sa-button--lg { height: 50px; padding: 0 var(--space-8); font-size: var(--font-size-body); }
 
-/* Primary — solid fill (ACTION-2). The light --sa-primary-container fill is
+/* Primary ??solid fill (ACTION-2). The light --color-sky-strong fill is
    reserved for a selected/active state, never the primary action itself. */
 .sa-button--primary {
-  background: var(--sa-primary);
-  color: var(--sa-on-primary);
-  border-color: var(--sa-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
 }
-.sa-button--primary:hover:not(:disabled) { background: var(--sa-primary-fixed-dim); color: var(--sa-on-primary-fixed); border-color: var(--sa-primary-fixed-dim); }
-.sa-button--primary:active:not(:disabled) { background: var(--sa-inverse-primary); color: var(--sa-inverse-surface); border-color: var(--sa-inverse-primary); }
+.sa-button--primary:hover:not(:disabled) { background: var(--color-primary-fixed-dim); color: var(--color-on-primary-fixed); border-color: var(--color-primary-fixed-dim); }
+.sa-button--primary:active:not(:disabled) { background: var(--color-sky-strong); color: var(--color-ink); border-color: var(--color-sky-strong); }
 
 /* Secondary */
 .sa-button--secondary {
-  background: var(--sa-surface-container-lowest);
-  color: var(--sa-on-surface);
-  border-color: var(--sa-outline-variant);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-border);
 }
 .sa-button--secondary:hover:not(:disabled) {
-  background: var(--sa-surface-container-low);
-  border-color: var(--sa-outline);
+  background: var(--color-surface-soft);
+  border-color: var(--color-muted);
 }
 
 /* Subtle */
 .sa-button--subtle {
   background: transparent;
-  color: var(--sa-on-surface-variant);
+  color: var(--color-muted);
   border-color: transparent;
 }
 .sa-button--subtle:hover:not(:disabled) {
-  background: var(--sa-surface-container-low);
-  color: var(--sa-on-surface);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
 }
 
 /* Danger */
 .sa-button--danger {
-  background: var(--sa-surface-container-lowest);
-  color: var(--sa-outline);
-  border-color: var(--sa-error-container);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  border-color: var(--color-error-soft);
 }
 .sa-button--danger:hover:not(:disabled) {
-  background: var(--sa-error-container);
-  color: var(--sa-on-error-container);
+  background: var(--color-error-soft);
+  color: var(--color-peach-ink);
 }
 
 .sa-button__label { line-height: 1; }

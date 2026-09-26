@@ -1,5 +1,25 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import type { PlacementBlueprint, PlacementAttempt } from "@shared/api/placement-test";
+
+const { blueprint, attempt } = vi.hoisted(() => {
+  const blueprint: PlacementBlueprint = {
+  configured: true,
+  revision: 1,
+  questionCount: 2,
+  questions: [
+    { questionId: "q1", sourceStoryId: "s1", sourceStoryTitle: "Daily", sourceWordId: "w1", round: 1, tier: "tier1", position: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", targetWord: "茶", prompt: "Choose", options: ["tea", "rice"] },
+    { questionId: "q2", sourceStoryId: "s1", sourceStoryTitle: "Daily", sourceWordId: "w2", round: 1, tier: "tier1", position: 2, questionType: "basic_meaning_mcq", answerFormat: "single_choice", targetWord: "水", prompt: "Choose", options: ["water", "fire"] },
+  ],
+  };
+  const attempt: PlacementAttempt = { attemptId: "a1", revision: 1, totalQuestions: 2, questions: blueprint.questions };
+  return { blueprint, attempt };
+});
+vi.mock("@shared/api/placement-test", async () => {
+  const actual = await vi.importActual<typeof import("@shared/api/placement-test")>("@shared/api/placement-test");
+  return { ...actual, getPlacementBlueprint: vi.fn().mockResolvedValue(blueprint), startPlacementAttempt: vi.fn().mockResolvedValue(attempt) };
+});
 import PlacementPage from "./PlacementPage";
 import { unavailablePlacementSession } from "./placementSession";
 
@@ -17,5 +37,15 @@ describe("PlacementPage", () => {
 
   it("keeps the default adapter at the unavailable contract boundary", () => {
     expect(unavailablePlacementSession()).toEqual({ status: "unavailable" });
+  });
+
+  it("keeps the question counter out of the ready state and shows it after starting", async () => {
+    const user = userEvent.setup();
+    render(<PlacementPage />);
+
+    await screen.findByText(/開始測驗|Start test|Start placement test/);
+    expect(screen.queryByText("Question 1 / 2")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Start test|Start placement test/ }));
+    await waitFor(() => expect(screen.getByText("Question 1 / 2")).toBeInTheDocument());
   });
 });

@@ -16,7 +16,7 @@ interface StudentInlineFeedbackProps {
   onRecordAgain?: () => void;
   onContinue?: () => void;
   continueLabel?: string;
-  /** Overrides the built-in Record again/Continue row — used when a caller
+  /** Overrides the built-in Record again/Continue row ??used when a caller
    * has intermediate steps (e.g. Story Speaking's Fix/Practice) between
    * this verdict and the final action. */
   footer?: React.ReactNode;
@@ -24,8 +24,8 @@ interface StudentInlineFeedbackProps {
 
 /**
  * Shared feedback drawer for Story Speaking and Conversation Practice. Maps
- * the real SpeakingResultAnalysis (from SpeakingResultsFlow.analysis.ts) —
- * accepted/corrective/weakItems/practiceTargets — down to this simple
+ * the real SpeakingResultAnalysis (from SpeakingResultsFlow.analysis.ts) ??
+ * accepted/corrective/weakItems/practiceTargets ??down to this simple
  * meaning/pronunciation/word-chip vocabulary; the feature container does
  * that mapping, this component only renders it. Never color-only: every
  * verdict pairs a symbol with its color.
@@ -129,7 +129,7 @@ function wordStatusLabel(status: WordAlignmentStatus): string {
     case "UNCERTAIN": return "Uncertain";
     case "INCORRECT": return "Pronunciation needs attention";
     case "INVALID_AUDIO": return "Could not evaluate";
-    case "NEUTRAL": return "Neutral tone — not separately scored";
+    case "NEUTRAL": return "Neutral tone ??not separately scored";
   }
 }
 

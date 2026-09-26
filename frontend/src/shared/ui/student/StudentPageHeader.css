@@ -2,31 +2,31 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--sa-space-lg);
-  margin-bottom: var(--sa-space-lg);
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 
 .sa-page-header__back {
   display: inline-flex;
   align-items: center;
-  gap: var(--sa-space-sm);
-  margin: 0 0 var(--sa-space-sm) calc(var(--sa-space-sm) * -1);
-  padding: var(--sa-space-xs) var(--sa-space-sm);
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2) calc(var(--space-2) * -1);
+  padding: var(--space-1) var(--space-2);
   border: 0;
   background: transparent;
-  color: var(--sa-outline);
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-label-md);
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
   cursor: pointer;
 }
-.sa-page-header__back:hover { color: var(--sa-on-surface); }
+.sa-page-header__back:hover { color: var(--color-ink); }
 
 .sa-page-header__eyebrow {
   margin: 0 0 4px;
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-label-sm);
-  color: var(--sa-outline);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-caption);
+  color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -34,18 +34,18 @@
 .sa-page-header__title {
   margin: 0;
   text-align: start;
-  font-family: var(--sa-font-headline);
-  font-size: var(--sa-text-headline-lg);
-  line-height: var(--sa-leading-headline-lg);
+  font-family: var(--font-hanzi);
+  font-size: var(--font-size-display);
+  line-height: var(--leading-display);
   font-weight: 500;
-  color: var(--sa-on-surface);
+  color: var(--color-ink);
   letter-spacing: -0.01em;
 }
-.sa-page-header__title span { font-family: var(--sa-font-body); }
+.sa-page-header__title span { font-family: var(--font-hanzi); }
 
 .sa-page-header__subtitle {
   margin: 2px 0 0;
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-body-md);
-  color: var(--sa-outline);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  color: var(--color-muted);
 }

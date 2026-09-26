@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 /**
  * The one bilingual-text primitive every screen uses. Hierarchy per
  * DESIGN.md: Hanzi strongest, pinyin secondary (ruby, 55-60% of Hanzi size),
- * English/gloss secondary. Never a 3rd visible tier stacked below both —
+ * English/gloss secondary. Never a 3rd visible tier stacked below both ??
  * pinyin lives in the ruby <rt>, gloss is a separate sibling line.
  */
 export type BilingualWordSize = "hero" | "display" | "inline";
@@ -19,14 +19,14 @@ interface BilingualWordProps {
 }
 
 const SIZE_VAR: Record<BilingualWordSize, string> = {
-  hero: "var(--sa-text-character-hero)",
-  display: "var(--sa-text-character-display)",
-  inline: "var(--sa-text-character-inline)",
+  hero: "var(--font-size-character-hero)",
+  display: "var(--font-size-character-display)",
+  inline: "var(--font-size-character-inline)",
 };
 const LEADING_VAR: Record<BilingualWordSize, string> = {
-  hero: "var(--sa-leading-character-hero)",
-  display: "var(--sa-leading-character-display)",
-  inline: "var(--sa-leading-character-inline)",
+  hero: "var(--leading-character-hero)",
+  display: "var(--leading-character-display)",
+  inline: "var(--leading-character-inline)",
 };
 
 export default function BilingualWord({
@@ -53,10 +53,10 @@ export default function BilingualWord({
           className="sa-ruby"
           lang="zh-Hant"
           style={{
-            fontFamily: "var(--sa-font-body)",
+            fontFamily: "var(--font-hanzi)",
             fontSize: SIZE_VAR[size],
             lineHeight: LEADING_VAR[size],
-            color: toneHighlight ? "var(--sa-primary)" : "var(--sa-on-surface)",
+            color: toneHighlight ? "var(--color-primary)" : "var(--color-ink)",
             fontWeight: toneHighlight ? 500 : 400,
           }}
         >
@@ -69,10 +69,10 @@ export default function BilingualWord({
         <span
           lang="zh-Hant"
           style={{
-            fontFamily: "var(--sa-font-body)",
+            fontFamily: "var(--font-hanzi)",
             fontSize: SIZE_VAR[size],
             lineHeight: LEADING_VAR[size],
-            color: toneHighlight ? "var(--sa-primary)" : "var(--sa-on-surface)",
+            color: toneHighlight ? "var(--color-primary)" : "var(--color-ink)",
             fontWeight: toneHighlight ? 500 : 400,
           }}
         >
@@ -82,10 +82,10 @@ export default function BilingualWord({
       {gloss && (
         <span
           style={{
-            fontFamily: "var(--sa-font-label)",
-            fontSize: "var(--sa-text-body-sm)",
-            lineHeight: "var(--sa-leading-body-sm)",
-            color: "var(--sa-on-surface-variant)",
+            fontFamily: "var(--font-ui)",
+            fontSize: "var(--font-size-small)",
+            lineHeight: "var(--leading-small)",
+            color: "var(--color-muted)",
             fontStyle: "italic",
           }}
         >

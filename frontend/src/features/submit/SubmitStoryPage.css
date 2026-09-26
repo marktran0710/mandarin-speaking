@@ -2,16 +2,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sa-space-lg);
-  padding: var(--sa-space-xl);
+  gap: var(--space-6);
+  padding: var(--space-8);
   text-align: center;
 }
 
 .sa-submit__topic {
   margin: 0;
-  font-family: var(--sa-font-body);
-  font-size: var(--sa-text-headline-sm);
-  color: var(--sa-on-surface);
+  font-family: var(--font-hanzi);
+  font-size: var(--font-size-body);
+  color: var(--color-ink);
 }
 
 .sa-submit__checklist {
@@ -20,23 +20,30 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sa-space-sm);
+  gap: var(--space-2);
 }
 .sa-submit__check-item {
   display: flex;
   align-items: center;
-  gap: var(--sa-space-sm);
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-body-md);
-  color: var(--sa-outline);
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  color: var(--color-muted);
 }
-.sa-submit__check-item.is-done { color: var(--sa-on-surface); }
-.sa-submit__check-item.is-done .sa-icon { color: var(--sa-secondary); }
+.sa-submit__check-item.is-done { color: var(--color-ink); }
+.sa-submit__check-item.is-done .sa-icon { color: var(--color-success); }
 
 .sa-submit__error {
   margin: 0;
   max-width: 420px;
-  font-family: var(--sa-font-label);
-  font-size: var(--sa-text-body-sm);
-  color: var(--sa-error);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  color: var(--color-error);
 }
+
+.sa-submit__card { border-radius: 20px; border-color: color-mix(in srgb, var(--color-primary) 16%, transparent); background: var(--color-surface); box-shadow: 0 10px 28px color-mix(in srgb, var(--color-ink) 8%, transparent); }
+.sa-submit__topic { color: var(--color-ink); }
+.sa-submit__check-item { min-height: 44px; padding: 8px 12px; border-radius: 12px; background: var(--color-sky); color: var(--color-muted); }
+.sa-submit__check-item.is-done { color: var(--color-ink); background: var(--color-mint); }
+.sa-submit__check-item.is-done .sa-icon { color: var(--color-success); }
+.sa-submit__error { padding: 12px 14px; border-radius: 12px; background: var(--color-peach); color: var(--color-error); }
