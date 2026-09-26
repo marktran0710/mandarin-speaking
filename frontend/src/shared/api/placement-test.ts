@@ -150,6 +150,8 @@ export interface PlacementResponseImportResult extends PlacementResponseImportSu
 
 export interface PlacementResponseReplaceResult extends PlacementResponseImportResult {
   deletedStudents: number;
+  deletedAttempts: number;
+  deletedResponses: number;
 }
 
 async function parseError(response: Response, fallback: string): Promise<Error> {

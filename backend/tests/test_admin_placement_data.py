@@ -146,7 +146,7 @@ def test_admin_placement_data_import_replace_route(admin_client, monkeypatch):
 
     def replace(_db, content: bytes, filename: str):
         captured.update({"content": content, "filename": filename})
-        return {"valid": True, "filename": filename, "deletedStudents": 1, "responseCount": 2}
+        return {"valid": True, "filename": filename, "deletedAttempts": 1, "deletedResponses": 2, "responseCount": 2}
 
     monkeypatch.setattr(placement_test_router.data_import_service, "replace_import", replace)
     response = admin_client.post(
@@ -154,7 +154,7 @@ def test_admin_placement_data_import_replace_route(admin_client, monkeypatch):
         files={"file": ("responses.xlsx", b"workbook", "application/octet-stream")},
     )
     assert response.status_code == 200
-    assert response.json()["deletedStudents"] == 1
+    assert response.json()["deletedAttempts"] == 1
     assert captured == {"content": b"workbook", "filename": "responses.xlsx"}
 
 
@@ -207,12 +207,13 @@ def _full_roster_workbook_bytes() -> bytes:
     sheet.append(list(workbook_import.EXPECTED_HEADERS))
     for student_id in workbook_import.EXPECTED_STUDENT_IDS:
         session_id = f"PLACEMENT-{student_id}-V1"
+        student_name = f"Synthetic Student {student_id.removeprefix('SIM')}"
         sheet.append([
-            student_id, f"Synthetic {student_id}", session_id, "lesson-5-1",
+            student_id, student_name, session_id, "lesson-5-1",
             "Q0016", "tier1", "to be free", "2026-09-25T00:00:00+00:00", 3000,
         ])
         sheet.append([
-            student_id, f"Synthetic {student_id}", session_id, "lesson-5-2",
+            student_id, student_name, session_id, "lesson-5-2",
             "Q0063", "tier3", "裡", "2026-09-25T00:00:00+00:00", 4000,
         ])
     output = BytesIO()
@@ -221,7 +222,7 @@ def _full_roster_workbook_bytes() -> bytes:
     return output.getvalue()
 
 
-def test_replace_import_deletes_conflicting_sim_data_then_reimports(monkeypatch):
+def test_replace_import_clears_a_stale_blueprint_conflict_then_reimports(monkeypatch):
     monkeypatch.setattr(workbook_import, "EXPECTED_QUESTION_COUNT", 2)
     _seed_active_blueprint(revision=2)
     # SIM001 already holds a completed attempt frozen against a stale/empty
@@ -234,8 +235,12 @@ def test_replace_import_deletes_conflicting_sim_data_then_reimports(monkeypatch)
             connection, _full_roster_workbook_bytes(), "responses.xlsx"
         )
 
+    # SIM001's stale attempt + its 2 responses are what gets cleared; the
+    # student account itself is never touched, so it isn't re-"created".
     assert result["deletedStudents"] == 1
-    assert result["createdStudents"] == 40
+    assert result["deletedAttempts"] == 1
+    assert result["deletedResponses"] == 2
+    assert result["createdStudents"] == 39
     assert result["createdAttempts"] == 40
     assert result["createdResponses"] == 80
 
@@ -248,9 +253,14 @@ def test_replace_import_deletes_conflicting_sim_data_then_reimports(monkeypatch)
             "SELECT count(*) AS n FROM vocab_quiz_responses WHERE student_id = 'SIM001'"
         ).fetchone()
         assert response_count["n"] == 2
+        student = connection.execute("SELECT id FROM students WHERE id = 'SIM001'").fetchone()
+        assert student is not None
 
 
-def test_replace_import_rejects_students_outside_the_synthetic_roster():
+def test_replace_import_rejects_students_outside_the_synthetic_roster(monkeypatch):
+    monkeypatch.setattr(workbook_import, "EXPECTED_QUESTION_COUNT", 2)
+    _seed_active_blueprint(revision=2)
+
     workbook = openpyxl.Workbook()
     sheet = workbook.active
     sheet.append(list(workbook_import.EXPECTED_HEADERS))
@@ -263,32 +273,5 @@ def test_replace_import_rejects_students_outside_the_synthetic_roster():
     workbook.close()
 
     with db.connect_db() as connection:
-        with pytest.raises(ValueError, match="unexpected student_id"):
+        with pytest.raises(ValueError, match="Unexpected student_id"):
             placement_data_import_service.replace_import(connection, output.getvalue(), "bad.xlsx")
-
-
-def test_replace_import_refuses_to_touch_a_non_test_account():
-    with db.connect_db() as connection:
-        connection.execute(
-            "INSERT INTO students (id, name, password, password_reset_required, status, is_test_account) "
-            "VALUES ('SIM001', 'A Real Student', 'hash', TRUE, 'active', FALSE)"
-        )
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.append(list(workbook_import.EXPECTED_HEADERS))
-    sheet.append([
-        "SIM001", "A Real Student", "SESSION-1", "lesson-5-1",
-        "Q0016", "tier1", "to be free", "2026-09-25T00:00:00+00:00", 3000,
-    ])
-    output = BytesIO()
-    workbook.save(output)
-    workbook.close()
-
-    with db.connect_db() as connection:
-        with pytest.raises(ValueError, match="not flagged as test accounts"):
-            placement_data_import_service.replace_import(connection, output.getvalue(), "bad.xlsx")
-
-    with db.connect_db() as connection:
-        still_there = connection.execute("SELECT id FROM students WHERE id = 'SIM001'").fetchone()
-        assert still_there is not None

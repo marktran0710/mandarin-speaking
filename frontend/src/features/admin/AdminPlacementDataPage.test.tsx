@@ -44,11 +44,13 @@ vi.mock("../../shared/api/placement-test", () => ({
     }],
   }),
   previewPlacementResponseImport: vi.fn(),
+  replacePlacementResponseImport: vi.fn(),
 }));
 
 import {
   downloadPlacementResponseSample,
   previewPlacementResponseImport,
+  replacePlacementResponseImport,
 } from "../../shared/api/placement-test";
 
 describe("AdminPlacementDataPage", () => {
@@ -89,5 +91,56 @@ describe("AdminPlacementDataPage", () => {
 
     await user.upload(screen.getByLabelText("Placement response XLSX file"), new File(["xlsx"], "responses.xlsx"));
     expect(await screen.findByText("1,120 responses ready")).toBeInTheDocument();
+  });
+
+  it("lets the admin delete conflicting SIM test data and re-import when a workbook is blocked", async () => {
+    vi.mocked(previewPlacementResponseImport).mockResolvedValue({
+      valid: false,
+      filename: "responses.xlsx",
+      rowIssues: ["PLACEMENT-SIM001-V1: question snapshot differs from the active blueprint"],
+      studentCount: 0,
+      questionCount: 0,
+      responseCount: 0,
+      correctCount: 0,
+      incorrectCount: 0,
+      correctByMode: {},
+      canonicalizedStoryAliases: 0,
+      existingSessions: 0,
+      newSessions: 0,
+    });
+    vi.mocked(replacePlacementResponseImport).mockResolvedValue({
+      valid: true,
+      filename: "responses.xlsx",
+      deletedStudents: 1,
+      deletedAttempts: 1,
+      deletedResponses: 2,
+      studentCount: 40,
+      questionCount: 28,
+      responseCount: 1120,
+      correctCount: 636,
+      incorrectCount: 484,
+      correctByMode: { tier1: 338, tier3: 298 },
+      canonicalizedStoryAliases: 0,
+      existingSessions: 0,
+      newSessions: 40,
+      createdStudents: 40,
+      createdAttempts: 40,
+      createdResponses: 1120,
+      rebuiltStudents: 40,
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<AdminPlacementDataPage />);
+
+    expect(await screen.findByRole("heading", { name: "40-student response view" })).toBeInTheDocument();
+    await user.upload(screen.getByLabelText("Placement response XLSX file"), new File(["xlsx"], "responses.xlsx"));
+    expect(await screen.findByText("Import blocked")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm import" })).toBeDisabled();
+
+    const replaceButton = screen.getByRole("button", { name: "Delete SIM test data & re-import" });
+    await user.click(replaceButton);
+
+    await waitFor(() => expect(replacePlacementResponseImport).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(/Replaced data for 1 student\(s\), deleted 1 earlier attempt\(s\) and 2 response\(s\)/)).toBeInTheDocument();
   });
 });

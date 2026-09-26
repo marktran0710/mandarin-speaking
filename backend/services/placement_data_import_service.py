@@ -9,7 +9,6 @@ from typing import Any
 import openpyxl
 from openpyxl.utils.exceptions import InvalidFileException
 
-from db import delete_student_cascade
 from scripts import import_placement_bkt_workbook as workbook_import
 
 
@@ -105,52 +104,40 @@ def confirm_import(db: Any, content: bytes, filename: str) -> dict[str, Any]:
 
 
 def replace_import(db: Any, content: bytes, filename: str) -> dict[str, Any]:
-    """Delete this workbook's synthetic students, then import fresh.
+    """Delete this importer's earlier data for the workbook's students, then import fresh.
 
-    Only ever touches the standard SIM001-SIM040 synthetic roster, and only
-    rows already flagged ``is_test_account`` - the same scope
-    ``purge_test_accounts.py`` uses - so a stale blueprint snapshot from an
-    earlier import (or a rebuilt blueprint) can never block a re-import, and
-    this can never reach a real student's data.
+    Mirrors ``import_placement_bkt_workbook.py --replace``: only rows this
+    importer itself wrote (``evidence_origin='synthetic'`` and its own
+    resolver version) are ever deleted, and only attempts holding exclusively
+    those rows - real evidence and other attempts are never touched, and
+    student accounts are kept so their ids stay stable. This is what clears
+    a stale "question snapshot differs from the active blueprint" block after
+    the active blueprint changes.
     """
     _validate_filename(filename)
     if not content:
         raise ValueError("The placement response workbook is empty.")
+    blueprint = workbook_import.load_active_blueprint(db)
     try:
         rows = workbook_import.read_workbook(BytesIO(content))
     except (InvalidFileException, OSError, ValueError) as exc:
         raise ValueError(f"Could not read the placement response workbook: {exc}") from exc
+    plan = workbook_import.build_import_plan(
+        rows,
+        blueprint,
+        imported_at=datetime.now(timezone.utc).isoformat(),
+        expected_student_ids=workbook_import.EXPECTED_STUDENT_IDS,
+    )
 
-    student_ids = sorted({str(row.get("student_id") or "").strip() for row in rows})
-    unexpected = [sid for sid in student_ids if sid not in workbook_import.EXPECTED_STUDENT_IDS]
-    if unexpected:
-        raise ValueError(
-            "Replace only supports the standard SIM001-SIM040 synthetic roster; "
-            f"unexpected student_id(s): {', '.join(unexpected[:5])}"
-        )
-
-    existing = db.execute(
-        "SELECT id, is_test_account FROM students WHERE id = ANY(%s)",
-        (student_ids,),
-    ).fetchall()
-    not_test = [row["id"] for row in existing if not row["is_test_account"]]
-    if not_test:
-        raise ValueError(
-            "Refusing to replace data for account(s) not flagged as test accounts: "
-            f"{', '.join(not_test)}"
-        )
-
-    deleted_students = 0
-    for row in existing:
-        if delete_student_cascade(db, row["id"]):
-            deleted_students += 1
-
-    plan, state = _build_plan(db, content, filename)
+    deleted = workbook_import.delete_previous_import(db, plan)
+    state = workbook_import._existing_state(db, plan)
     result = workbook_import.apply_import(db, plan)
     return {
         "valid": True,
         "filename": filename,
-        "deletedStudents": deleted_students,
+        "deletedStudents": deleted["students"],
+        "deletedAttempts": deleted["attempts"],
+        "deletedResponses": deleted["responses"],
         **_summary(plan, state),
         **_apply_result(result),
     }

@@ -235,7 +235,7 @@ def test_replace_reimports_after_blueprint_change_and_keeps_real_evidence(admin_
 
     with db.connect_db() as conn:
         assert previous_import_counts(conn, second) == {"attempts": 2, "responses": 4}
-        assert delete_previous_import(conn, second) == {"attempts": 2, "responses": 4}
+        assert delete_previous_import(conn, second) == {"students": 2, "attempts": 2, "responses": 4}
         apply_import(conn, second)
 
     with db.connect_db() as conn:

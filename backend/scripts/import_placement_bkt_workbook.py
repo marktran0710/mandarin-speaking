@@ -523,7 +523,7 @@ def _existing_state(db: Any, plan: Mapping[str, Any]) -> dict[str, Any]:
 
 
 _REPLACEABLE_ATTEMPTS = """
-    SELECT a.id FROM placement_test_attempts AS a
+    SELECT a.id, a.student_id FROM placement_test_attempts AS a
     WHERE a.student_id = ANY(%(students)s)
       AND (
         a.id = ANY(%(sessions)s)
@@ -570,7 +570,20 @@ def delete_previous_import(db: Any, plan: Mapping[str, Any]) -> dict[str, int]:
     accounts are kept so their ids stay stable.
     """
     params = _replace_params(plan)
-    attempt_ids = [row["id"] for row in db.execute(_REPLACEABLE_ATTEMPTS, params).fetchall()]
+    replaceable_attempts = db.execute(_REPLACEABLE_ATTEMPTS, params).fetchall()
+    synthetic_response_students = db.execute(
+        "SELECT DISTINCT student_id FROM vocab_quiz_responses "
+        "WHERE student_id = ANY(%(students)s) "
+        "AND evidence_origin = 'synthetic' AND resolver_version = %(resolver)s",
+        params,
+    ).fetchall()
+    deleted_students = {
+        row["student_id"] for row in replaceable_attempts if row.get("student_id")
+    }
+    deleted_students.update(
+        row["student_id"] for row in synthetic_response_students if row.get("student_id")
+    )
+    attempt_ids = [row["id"] for row in replaceable_attempts]
     responses = db.execute(
         "DELETE FROM vocab_quiz_responses WHERE student_id = ANY(%(students)s) "
         "AND evidence_origin = 'synthetic' AND resolver_version = %(resolver)s",
@@ -579,7 +592,7 @@ def delete_previous_import(db: Any, plan: Mapping[str, Any]) -> dict[str, int]:
     attempts = db.execute(
         "DELETE FROM placement_test_attempts WHERE id = ANY(%s)", (attempt_ids,)
     ).rowcount
-    return {"attempts": attempts, "responses": responses}
+    return {"students": len(deleted_students), "attempts": attempts, "responses": responses}
 
 
 def _insert_student(db: Any, student: Mapping[str, str]) -> None:

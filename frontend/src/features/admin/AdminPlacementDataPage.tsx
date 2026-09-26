@@ -130,7 +130,7 @@ function PlacementResponseImportPanel({ onImported }: { onImported: () => void }
     setMessage("");
     try {
       const result = await confirmPlacementResponseImport(file);
-      setMessage(`Imported ${result.createdResponses.toLocaleString()} responses for ${result.createdStudents} students.`);
+      setMessage(`Imported ${result.createdResponses.toLocaleString()} responses for ${result.studentCount} students.`);
       setFile(null);
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -146,8 +146,8 @@ function PlacementResponseImportPanel({ onImported }: { onImported: () => void }
     if (!file) return;
     if (
       !window.confirm(
-        "This deletes every SIM001-SIM040 test student and their existing placement data, then imports this workbook fresh. " +
-          "Only test accounts are touched. Continue?",
+        "This deletes this importer's own earlier synthetic placement data for the workbook's students " +
+          "(real evidence and student accounts are never touched), then imports this workbook fresh. Continue?",
       )
     ) {
       return;
@@ -158,7 +158,7 @@ function PlacementResponseImportPanel({ onImported }: { onImported: () => void }
     try {
       const result = await replacePlacementResponseImport(file);
       setMessage(
-        `Replaced data for ${result.deletedStudents} student(s), then imported ${result.createdResponses.toLocaleString()} responses for ${result.createdStudents} students.`,
+        `Replaced data for ${result.deletedStudents} student(s), deleted ${result.deletedAttempts} earlier attempt(s) and ${result.deletedResponses} response(s), then imported ${result.createdResponses.toLocaleString()} responses for ${result.studentCount} students.`,
       );
       setFile(null);
       setPreview(null);
