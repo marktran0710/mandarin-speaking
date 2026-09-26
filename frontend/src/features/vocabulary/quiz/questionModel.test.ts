@@ -77,6 +77,19 @@ describe("tone keypad editing", () => {
     expect(applyToneMark("ni3", 2, 3, 3)).toEqual({ value: "ní", cursor: 2 });
   });
 
+  it.each([
+    [1, "mā"],
+    [2, "má"],
+    [3, "mǎ"],
+    [4, "mà"],
+  ] as const)("maps the %s keypad tone to the matching mark", (tone, expected) => {
+    expect(applyToneMark("ma", tone, 2, 2).value).toBe(expected);
+  });
+
+  it("treats v as the keyboard spelling for ü", () => {
+    expect(applyToneMark("lv4", 3, 3, 3)).toEqual({ value: "lǚ", cursor: 2 });
+  });
+
   it("preserves the rest of a multi-syllable draft", () => {
     expect(applyToneMark("ni hao", 3, 6, 6).value).toBe("ni hǎo");
   });

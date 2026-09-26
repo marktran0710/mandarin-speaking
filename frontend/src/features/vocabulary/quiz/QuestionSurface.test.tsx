@@ -96,6 +96,19 @@ describe("QuizQuestionSurface", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps each tone keypad column mapped to its numbered tone", () => {
+    render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={vi.fn()} />);
+
+    const input = screen.getByLabelText("Pinyin with tones") as HTMLInputElement;
+    const marks = ["ā", "á", "ǎ", "à"];
+    marks.forEach((mark, index) => {
+      fireEvent.change(input, { target: { value: "ma" } });
+      input.setSelectionRange(2, 2);
+      fireEvent.click(screen.getByRole("button", { name: `a tone ${index + 1}: ${mark}` }));
+      expect(input).toHaveValue(mark === "ā" ? "mā" : mark === "á" ? "má" : mark === "ǎ" ? "mǎ" : "mà");
+    });
+  });
+
   it("renders a context blank as a dedicated answer slot", () => {
     render(<SurfaceHarness question={makeQuestion("context_cloze_mcq", "single_choice", "Choose the correct word in the sentence: 我找不到____。 ")} onSubmit={vi.fn()} />);
 

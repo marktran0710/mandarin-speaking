@@ -162,8 +162,13 @@ const TONE_MARK_TO_BASE = new Map(
   Object.entries(TONE_MARKS).flatMap(([base, marks]) => marks.map((mark) => [mark, base] as const)),
 );
 
+function normalizePinyinVowel(character: string): string {
+  const lower = character.toLowerCase();
+  return lower === "v" ? "ü" : lower;
+}
+
 function isPinyinVowel(character: string): boolean {
-  return /[aeiouüAEIOUÜāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/u.test(character);
+  return /[aeiouüvAEIOUÜVāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/u.test(character);
 }
 
 function isPinyinCharacter(character: string): boolean {
@@ -173,7 +178,7 @@ function isPinyinCharacter(character: string): boolean {
 function toneBearingIndex(syllable: string): number {
   const normalized = Array.from(syllable)
     .filter((character) => !/[1-5]/u.test(character))
-    .map((character) => TONE_MARK_TO_BASE.get(character) ?? character.toLowerCase());
+    .map((character) => TONE_MARK_TO_BASE.get(character) ?? normalizePinyinVowel(character));
   const aOrE = normalized.findIndex((character) => character === "a" || character === "e");
   if (aOrE >= 0) return aOrE;
   const ou = normalized.findIndex((character, index) => character === "o" && normalized[index + 1] === "u");
@@ -208,7 +213,7 @@ export function applyToneMark(
 
   const syllableCharacters = Array.from(syllable).filter((character) => !/[1-5]/u.test(character));
   const originalVowel = syllableCharacters[vowelIndex];
-  const base = TONE_MARK_TO_BASE.get(originalVowel) ?? originalVowel.toLowerCase();
+  const base = TONE_MARK_TO_BASE.get(originalVowel) ?? normalizePinyinVowel(originalVowel);
   const replacement = TONE_MARKS[base]?.[tone - 1] ?? originalVowel;
   const editedSyllable = syllableCharacters.map((character, index) => index === vowelIndex ? replacement : character).join("");
   const next = [...characters.slice(0, start), editedSyllable, ...characters.slice(end)].join("");
