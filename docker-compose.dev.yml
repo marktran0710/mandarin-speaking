@@ -12,6 +12,10 @@ services:
     volumes:
       - dev_pgdata:/var/lib/postgresql/data
       - ./backend/infrastructure/database/bootstrap:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Expose the same canonical dev database to host-side scripts and tools.
+      # The backend container still uses db:5432 on the internal network.
+      - "127.0.0.1:${DEV_DB_PORT:-5433}:5432"
     networks:
       - data
     healthcheck:
