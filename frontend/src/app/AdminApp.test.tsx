@@ -25,19 +25,39 @@ describe("admin-only diagnostic navigation", () => {
     expect(screen.getByRole("heading", { name: "Admin overview", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Materials.*Stories and lesson content/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Research" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Student analytics" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Learning Engine" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Measurement" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "BKT Debug" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Materials.*Stories and lesson content/ }));
     expect(screen.getByRole("heading", { name: "Materials", level: 1 })).toBeInTheDocument();
   });
 
-  it("opens Practice Debug from the admin navigation", async () => {
+  it("opens the merged speech diagnostics workspace from the admin navigation", async () => {
     const user = userEvent.setup();
     render(<AdminApp />);
 
-    await user.click(screen.getByRole("button", { name: "Practice Debug" }));
+    await user.click(screen.getByRole("button", { name: "Speech diagnostics" }));
     expect(screen.getByText("Practice debug content")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "ASR compare" })).toBeInTheDocument();
+  });
 
-    expect(screen.queryByRole("button", { name: "Benchmark" })).not.toBeInTheDocument();
+  it("keeps retired insight links working by opening the merged workspace tab", () => {
+    render(<AdminApp initialNav="Measurement" />);
+
+    expect(screen.getByRole("heading", { name: "Student analytics", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Measurement health" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("groups runtime, verification, and synthetic BKT tools under Learning Engine", async () => {
+    const user = userEvent.setup();
+    render(<AdminApp />);
+
+    await user.click(screen.getByRole("button", { name: "Learning Engine" }));
+    expect(screen.getByRole("tab", { name: "Runtime model" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "BKT verification" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Synthetic replay" })).toBeInTheDocument();
   });
 
   it("opens the admin audio library from the admin navigation", async () => {

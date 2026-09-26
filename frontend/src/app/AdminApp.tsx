@@ -20,15 +20,11 @@ import {
   type Teacher,
   type VocabQuizAttempt,
 } from "../services/database";
-import AdminIrtStudentPanel from "../components/analytics/AdminIrtStudentPanel";
-import MeasurementAnalyticsPanel from "../components/analytics/MeasurementAnalyticsPanel";
 import type { MeasurementEvent } from "../utils/measurement";
-import KnowledgeModelPilotPanel from "../components/analytics/KnowledgeModelPilotPanel";
 import type { AudioRecord } from "@entities/audio";
-import TeacherPracticeDebugPage from "../features/teacher/TeacherPracticeDebugPage";
-import AdminAsrComparePage from "../features/admin/AdminAsrComparePage";
-import AdminBktDebugPage from "../features/admin/AdminBktDebugPage";
-import AdminLearningEnginePage from "../features/admin/AdminLearningEnginePage";
+import AdminInsightsWorkspace from "../features/admin/AdminInsightsWorkspace";
+import AdminSpeechDiagnosticsWorkspace from "../features/admin/AdminSpeechDiagnosticsWorkspace";
+import AdminLearningEngineWorkspace from "../features/admin/AdminLearningEngineWorkspace";
 import AdminResearchPage from "../features/admin/AdminResearchPage";
 import AdminMaterialsPage from "../features/admin/AdminMaterialsPage";
 import AdminVocabularyPage from "../features/admin/AdminVocabularyPage";
@@ -45,19 +41,37 @@ type AccountStatus = "Active" | "Inactive";
 type Account = { id: string; name: string; role: Role; status: AccountStatus; createdAt: string };
 
 const ADMIN_KEY = "adminConsoleSession";
-// "Measurement" moved here from the teacher sidebar: it is research tooling
-// about instrument health, not part of a teacher's daily loop.
-const NAV_ITEMS = ["Admin Home", "Materials", "Audio Library", "Vocabulary", "Placement Test", "Placement Data", "Teachers", "Students", "IRT / Student analytics", "Measurement", "Practice Debug", "ASR Compare", "BKT Debug", "Research", "Learning Engine"] as const;
-export type AdminNav = typeof NAV_ITEMS[number];
+const NAV_ITEMS = ["Admin Home", "Materials", "Audio Library", "Vocabulary", "Placement Test", "Placement Data", "Teachers", "Students", "Student analytics", "Speech diagnostics", "Learning Engine", "Research"] as const;
+type CanonicalAdminNav = typeof NAV_ITEMS[number];
+type LegacyAdminNav = "IRT / Student analytics" | "Measurement" | "Practice Debug" | "ASR Compare" | "BKT Debug" | "BKT Verification";
+export type AdminNav = CanonicalAdminNav | LegacyAdminNav;
+
+type AdminRoute = {
+  nav: CanonicalAdminNav;
+  insightTab?: "students" | "measurement";
+  speechTab?: "practice" | "asr";
+  learningTab?: "runtime" | "verification" | "replay";
+};
+
+function normalizeAdminRoute(nav: AdminNav): AdminRoute {
+  if (nav === "IRT / Student analytics") return { nav: "Student analytics", insightTab: "students" };
+  if (nav === "Measurement") return { nav: "Student analytics", insightTab: "measurement" };
+  if (nav === "Practice Debug") return { nav: "Speech diagnostics", speechTab: "practice" };
+  if (nav === "ASR Compare") return { nav: "Speech diagnostics", speechTab: "asr" };
+  if (nav === "BKT Debug") return { nav: "Learning Engine", learningTab: "replay" };
+  if (nav === "BKT Verification") return { nav: "Learning Engine", learningTab: "verification" };
+  return { nav };
+}
 
 function initialPassword() {
   return isTestRuntime() || isDevelopmentRuntime() ? "123456" : "";
 }
 
 export default function AdminApp({ embedded = false, onExit, initialNav = "Admin Home" }: { embedded?: boolean; onExit?: () => void; initialNav?: AdminNav } = {}) {
+  const initialRoute = normalizeAdminRoute(initialNav);
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem(ADMIN_KEY) === "true");
   const [password, setPassword] = useState("");
-  const [activeNav, setActiveNav] = useState<AdminNav>(initialNav);
+  const [activeNav, setActiveNav] = useState<CanonicalAdminNav>(initialRoute.nav);
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<VocabQuizAttempt[]>([]);
@@ -76,6 +90,7 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
   const [editPassword, setEditPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [vocabularyRefresh, setVocabularyRefresh] = useState(0);
+  const [bktVerificationRefresh, setBktVerificationRefresh] = useState(0);
   const [deletingId, setDeletingId] = useState("");
   const minimumPasswordLength = isDevelopmentRuntime() ? 6 : 8;
 
@@ -120,13 +135,13 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
   }, []);
 
   useEffect(() => {
-    if (!["Audio Library", "Practice Debug", "Measurement"].includes(activeNav) || !canUseDatabase()) return;
+    if (!["Audio Library", "Speech diagnostics", "Student analytics"].includes(activeNav) || !canUseDatabase()) return;
     const limit = activeNav === "Audio Library" ? 100 : 1000;
     void listAudioRecords({ limit }).then(setAudioRecords).catch(() => setError("Could not load audio records from the backend."));
     if (activeNav === "Audio Library") {
       void getAudioRecordCount().then(setAudioRecordCount).catch(() => setError("Could not load the audio record count."));
     }
-    if (activeNav === "Measurement") void listMeasurementEvents().then(setMeasurementEvents).catch(() => {});
+    if (activeNav === "Student analytics") void listMeasurementEvents().then(setMeasurementEvents).catch(() => {});
   }, [activeNav]);
 
   const refreshAudioRecords = async () => {
@@ -284,8 +299,8 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
   }
 
   const isAccountWorkspace = activeNav === "Admin Home" || activeNav === "Teachers" || activeNav === "Students";
-  const heading = activeNav === "Admin Home" ? "Admin overview" : activeNav === "Teachers" ? "Teachers" : activeNav === "Students" ? "Students" : activeNav === "Vocabulary" ? "Content Bank" : activeNav === "Placement Test" ? "Placement Test" : activeNav === "Placement Data" ? "Placement Data" : activeNav === "Materials" ? "Materials" : activeNav === "Audio Library" ? "Audio Library" : activeNav === "IRT / Student analytics" ? "IRT / Student analytics" : activeNav === "Measurement" ? "Measurement health" : activeNav === "Practice Debug" ? "Practice Stage Debugger" : activeNav === "ASR Compare" ? "ASR Compare" : activeNav === "BKT Debug" ? "BKT Debug" : activeNav === "Learning Engine" ? "Learning Engine" : activeNav === "Research" ? "Research study" : "Admin workspace";
-  const description = activeNav === "Admin Home" ? "A calm starting point for people, curriculum, and research operations." : activeNav === "Teachers" ? "Create, review, and maintain teacher access." : activeNav === "Students" ? "Create, review, and maintain student access." : activeNav === "Vocabulary" ? "Manage vocabulary and questions together from one canonical import format." : activeNav === "Placement Test" ? "Build one ordered diagnostic test from published vocabulary question codes." : activeNav === "Placement Data" ? "Inspect the imported synthetic placement responses and their BKT projections." : activeNav === "Materials" ? "Create and review the story content available to students." : activeNav === "Audio Library" ? "Review and remove student recording evidence and uploaded media." : activeNav === "IRT / Student analytics" ? "Track student ability, response quality and calibration readiness." : activeNav === "Measurement" ? "Check how much of the scoring pipeline produced usable evidence." : activeNav === "Practice Debug" ? "Trace student attempts through the scoring pipeline." : activeNav === "ASR Compare" ? "Compare ASR models on the same recording through the real scoring pipeline." : activeNav === "BKT Debug" ? "Inject fake answers and watch BKT mastery replay, step by step." : activeNav === "Learning Engine" ? "What production actually runs: algorithms, runtime parameters, and calibration status." : activeNav === "Research" ? "Study status, assignment balance, and protocol fidelity - never shown on the Teacher Dashboard." : "Manage the Mandarin learning workspace.";
+  const heading = activeNav === "Admin Home" ? "Admin overview" : activeNav === "Teachers" ? "Teachers" : activeNav === "Students" ? "Students" : activeNav === "Vocabulary" ? "Content Bank" : activeNav === "Placement Test" ? "Placement Test" : activeNav === "Placement Data" ? "Placement Data" : activeNav === "Materials" ? "Materials" : activeNav === "Audio Library" ? "Audio Library" : activeNav === "Student analytics" ? "Student analytics" : activeNav === "Speech diagnostics" ? "Speech diagnostics" : activeNav === "Learning Engine" ? "Learning Engine" : activeNav === "Research" ? "Research study" : "Admin workspace";
+  const description = activeNav === "Admin Home" ? "A calm starting point for people, curriculum, and research operations." : activeNav === "Teachers" ? "Create, review, and maintain teacher access." : activeNav === "Students" ? "Create, review, and maintain student access." : activeNav === "Vocabulary" ? "Manage vocabulary and questions together from one canonical import format." : activeNav === "Placement Test" ? "Build one ordered diagnostic test from published question IDs." : activeNav === "Placement Data" ? "Inspect the imported synthetic placement responses and their BKT projections." : activeNav === "Materials" ? "Create and review the story content available to students." : activeNav === "Audio Library" ? "Review and remove student recording evidence and uploaded media." : activeNav === "Student analytics" ? "Review student performance, learning model comparisons, and measurement health in one workspace." : activeNav === "Speech diagnostics" ? "Trace the scoring pipeline or compare ASR models from one diagnostics workspace." : activeNav === "Learning Engine" ? "Inspect production models, verify BKT behavior, or replay synthetic answers from one workspace." : activeNav === "Research" ? "Study status, assignment balance, and protocol fidelity - never shown on the Teacher Dashboard." : "Manage the Mandarin learning workspace.";
   const accountScope = activeNav === "Teachers" ? "teachers" : activeNav === "Students" ? "students" : "people";
 
   return <ManagementShell
@@ -293,7 +308,7 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
     activeView={activeNav}
     onSelectView={(view) => { setActiveNav(view as (typeof NAV_ITEMS)[number]); cancelEdit(); }}
     refreshing={refreshing}
-    onRefresh={() => activeNav === "Vocabulary" ? setVocabularyRefresh(value => value + 1) : activeNav === "Audio Library" ? void refreshAudioRecords() : void refresh()}
+    onRefresh={() => activeNav === "Vocabulary" ? setVocabularyRefresh(value => value + 1) : activeNav === "Learning Engine" ? setBktVerificationRefresh(value => value + 1) : activeNav === "Audio Library" ? void refreshAudioRecords() : void refresh()}
     onLogout={() => { void logoutAdmin(); localStorage.removeItem(ADMIN_KEY); setAuthenticated(false); onExit?.(); }}
   ><div className={`admin-main${activeNav === "Vocabulary" ? " admin-vocabulary-main" : ""}`}>
     <header className="admin-header">
@@ -304,7 +319,7 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
       </div>
     </header>
     {error && activeNav !== "Vocabulary" && <p className="admin-error" role="alert">{error}</p>}
-    {activeNav === "Vocabulary" ? <AdminVocabularyPage refreshKey={vocabularyRefresh} onOpenMaterials={() => setActiveNav("Materials")} /> : activeNav === "Placement Test" ? <AdminPlacementTestPage /> : activeNav === "Placement Data" ? <AdminPlacementDataPage /> : activeNav === "Materials" ? <AdminMaterialsPage /> : activeNav === "Audio Library" ? <AdminAudioLibraryPage records={audioRecords} hasMoreRecords={audioRecords.length < audioRecordCount} onDeleteRecord={(id) => void deleteAudioRecord(id)} onLoadMoreRecords={loadMoreAudioRecords} /> : activeNav === "Practice Debug" ? <TeacherPracticeDebugPage records={audioRecords} /> : activeNav === "ASR Compare" ? <AdminAsrComparePage /> : activeNav === "BKT Debug" ? <AdminBktDebugPage students={students} /> : activeNav === "Learning Engine" ? <AdminLearningEnginePage /> : activeNav === "Research" ? <AdminResearchPage /> : activeNav === "Measurement" ? <MeasurementAnalyticsPanel records={audioRecords} events={measurementEvents} /> : activeNav === "IRT / Student analytics" ? <><AdminIrtStudentPanel students={students} attempts={quizAttempts} /><KnowledgeModelPilotPanel /></> : <>
+    {activeNav === "Vocabulary" ? <AdminVocabularyPage refreshKey={vocabularyRefresh} onOpenMaterials={() => setActiveNav("Materials")} /> : activeNav === "Placement Test" ? <AdminPlacementTestPage /> : activeNav === "Placement Data" ? <AdminPlacementDataPage /> : activeNav === "Materials" ? <AdminMaterialsPage /> : activeNav === "Audio Library" ? <AdminAudioLibraryPage records={audioRecords} hasMoreRecords={audioRecords.length < audioRecordCount} onDeleteRecord={(id) => void deleteAudioRecord(id)} onLoadMoreRecords={loadMoreAudioRecords} /> : activeNav === "Speech diagnostics" ? <AdminSpeechDiagnosticsWorkspace records={audioRecords} initialTab={initialRoute.speechTab} /> : activeNav === "Learning Engine" ? <AdminLearningEngineWorkspace students={students} refreshKey={bktVerificationRefresh} initialTab={initialRoute.learningTab} /> : activeNav === "Research" ? <AdminResearchPage /> : activeNav === "Student analytics" ? <AdminInsightsWorkspace students={students} attempts={quizAttempts} records={audioRecords} events={measurementEvents} initialTab={initialRoute.insightTab} /> : <>
       <section className="admin-metrics" aria-label="Account totals">
         <div><span>Teachers</span><strong>{teachers.length}</strong><small>active directory</small></div>
         <div><span>Students</span><strong>{students.length}</strong><small>active directory</small></div>

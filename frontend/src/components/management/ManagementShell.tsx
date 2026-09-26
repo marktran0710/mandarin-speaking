@@ -34,12 +34,10 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Placement Test", label: "Placement Test", icon: "quiz", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
-  { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
+  { id: "Student analytics", label: "Student analytics", icon: "analytics", group: "Insights" },
   { id: "Placement Data", label: "Placement Data", icon: "analytics", group: "Insights" },
-  { id: "Measurement", label: "Measurement", icon: "analytics", group: "Insights" },
-  { id: "Practice Debug", label: "Practice Debug", icon: "debug", group: "Insights" },
-  { id: "ASR Compare", label: "ASR Compare", icon: "debug", group: "Insights" },
-  { id: "BKT Debug", label: "BKT Debug", icon: "debug", group: "Insights" },
+  { id: "Speech diagnostics", label: "Speech diagnostics", icon: "debug", group: "Insights" },
+  { id: "Learning Engine", label: "Learning Engine", icon: "analytics", group: "Insights" },
   { id: "Research", label: "Research", icon: "analytics", group: "Insights" },
 ];
 

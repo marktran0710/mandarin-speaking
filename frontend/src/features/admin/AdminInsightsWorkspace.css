@@ -1,0 +1,38 @@
+.admin-insights-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-insight-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  border: 1px solid var(--admin-border, #d8e0e8);
+  border-radius: 0.75rem;
+  background: var(--admin-surface-muted, #f4f7fa);
+}
+
+.admin-insight-tabs button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--admin-text-muted, #526274);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-insight-tabs button:hover,
+.admin-insight-tabs button:focus-visible {
+  background: var(--admin-surface, #fff);
+  color: var(--admin-text, #17324b);
+}
+
+.admin-insight-tabs button.is-active {
+  background: var(--admin-surface, #fff);
+  color: var(--admin-accent, #214f70);
+  box-shadow: 0 1px 3px rgb(23 50 75 / 12%);
+}
