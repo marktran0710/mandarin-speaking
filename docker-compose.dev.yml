@@ -105,7 +105,11 @@ services:
       - sh
       - -c
       - >-
-        if [ ! -x node_modules/.bin/vite ]; then npm ci; fi &&
+        LOCKFILE_HASH="$$(sha256sum package-lock.json | cut -d ' ' -f 1)" &&
+        INSTALLED_LOCKFILE_HASH="$$(cat node_modules/.package-lock-hash 2>/dev/null || true)" &&
+        if [ ! -x node_modules/.bin/vite ] || [ "$$LOCKFILE_HASH" != "$$INSTALLED_LOCKFILE_HASH" ]; then
+          npm ci && printf '%s' "$$LOCKFILE_HASH" > node_modules/.package-lock-hash
+        fi &&
         exec npm run dev -- --host 0.0.0.0 --port 5173
 
 volumes:

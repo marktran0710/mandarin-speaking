@@ -501,6 +501,11 @@ def extension_from_upload(
 
 def extension_from_mime(mime: str, default: str) -> str:
     return {
+        "audio/aac": ".aac",
+        "audio/flac": ".flac",
+        "audio/mp4": ".m4a",
+        "audio/ogg": ".ogg",
+        "audio/opus": ".opus",
         "audio/wav": ".wav",
         "audio/wave": ".wav",
         "audio/webm": ".webm",

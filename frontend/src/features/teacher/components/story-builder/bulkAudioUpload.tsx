@@ -3,6 +3,7 @@ import { useState } from "react";
 import { canUseDatabase, createCustomStory as saveCustomStoryToDatabase } from "../../../../services/database";
 import { saveCustomStories } from "@entities/story";
 import { getAudioUploadError, parseLessonAudioFilename } from "../../../../utils/myStoriesUtils";
+import { expandAudioSelection } from "./bulkAudioFiles";
 
 const readAudioAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -31,15 +32,27 @@ export function useBulkAudioUpload(customStories, setCustomStories) {
     setNotice("");
     setError("");
 
-    const badFile = selectedFiles.map(getAudioUploadError).find(Boolean);
+    setIsUploading(true);
+    let expanded;
+    try {
+      expanded = await expandAudioSelection(selectedFiles);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Could not extract the selected ZIP archive.");
+      setIsUploading(false);
+      return;
+    }
+
+    const audioFiles = expanded.files;
+    const badFile = audioFiles.map(getAudioUploadError).find(Boolean);
     if (badFile) {
-      setError(badFile);
+      setError([badFile, ...expanded.issues].join(" "));
+      setIsUploading(false);
       return;
     }
 
     const groups = new Map();
     const skippedFiles: string[] = [];
-    for (const file of selectedFiles) {
+    for (const file of audioFiles) {
       const parsed = parseLessonAudioFilename(file.name);
       if (!parsed) {
         skippedFiles.push(file.name);
@@ -58,14 +71,17 @@ export function useBulkAudioUpload(customStories, setCustomStories) {
 
     if (groups.size === 0) {
       setError(
-        'No files matched the "lesson-story-scene" naming pattern, e.g. "5-1-01.mp3" for Lesson 5, story 1, scene 1.',
+        [
+          ...expanded.issues,
+          'No files matched the "lesson-story-scene" naming pattern, e.g. "5-1-01.mp3" for Lesson 5, story 1, scene 1.',
+        ].join(" "),
       );
+      setIsUploading(false);
       return;
     }
 
-    setIsUploading(true);
     const updatedStories = [];
-    const failures: string[] = [];
+    const failures: string[] = [...expanded.issues];
 
     for (const { lessonNumber, lessonSubOrder, files: sceneFiles } of groups.values()) {
       const label = `Lesson ${lessonNumber}-${lessonSubOrder}`;

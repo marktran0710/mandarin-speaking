@@ -44,20 +44,20 @@ function BulkAudioUpload({ onBulkUploadAudio, isBulkUploadingAudio }) {
   return <div className="teacher-audio-batch-upload custom-story-bulk-audio">
     <div>
       <strong>Bulk upload audio for saved stories</strong>
-      <p>Name each file "lesson-story-scene", e.g. "5-1-01.mp3" = Lesson 5, story 1, scene 1. Pick every recording for lesson 5-8 (or any lessons) at once and each file is matched to its story automatically.</p>
+      <p>Choose audio files directly or select a ZIP folder. Files inside ZIPs can be nested; name each recording "lesson-story-scene", e.g. "5-1-01.mp3" = Lesson 5, story 1, scene 1.</p>
     </div>
     <label className="teacher-file-upload teacher-file-upload-batch">
       {isBulkUploadingAudio ? "Uploading..." : "Choose audio files"}
       <input
         type="file"
-        accept="audio/*"
+        accept="audio/*,.zip,application/zip,application/x-zip-compressed"
         multiple
         disabled={isBulkUploadingAudio}
-        aria-label="Bulk upload audio for saved stories"
+        aria-label="Bulk upload audio files or ZIP archives for saved stories"
         onChange={(event) => {
-          const files = event.target.files;
+          const files = Array.from(event.currentTarget.files ?? []);
           event.currentTarget.value = "";
-          if (files?.length) onBulkUploadAudio(files);
+          if (files.length) onBulkUploadAudio(files);
         }}
       />
     </label>
