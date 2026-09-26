@@ -154,43 +154,105 @@
 }
 
 .sa-vocab-preview__pager {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+.sa-vocab-preview__pager-status {
+  min-width: 0;
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* The page body expands to the available study region so the action footer
+   stays in one predictable place on short and long vocabulary pages. */
+.sa-vocab-preview-page { --vocab-preview-footer-height: 75px; }
+.sa-vocab-preview-page .sa-page__actions {
+  position: sticky;
+  /* Keep the footer at the lower edge once it enters the scrollport, while
+     leaving tall card grids in normal flow until the learner reaches them. */
+  top: calc(100dvh - var(--vocab-preview-footer-height));
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: auto;
   padding: var(--space-3) 0 max(var(--space-3), env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-canvas) 94%, transparent);
   box-shadow: 0 -8px 18px color-mix(in srgb, var(--color-ink) 6%, transparent);
   backdrop-filter: blur(10px);
 }
-.sa-vocab-preview__pager-status {
-  color: var(--color-muted);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-small);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.sa-vocab-preview-page .sa-page__actions-secondary {
+  width: 100%;
+  min-width: 0;
+  margin-right: 0;
 }
 
 @media (min-width: 901px) {
   .sa-vocab-preview-page { min-height: 100%; }
   .sa-vocab-preview-page .sa-page__body {
     display: flex;
-    min-height: 0;
+    min-height: min-content;
     flex: 1 1 auto;
     flex-direction: column;
   }
-  .sa-vocab-preview-page .sa-vocab-preview__pager { margin-top: auto; }
 }
 
-@media (max-width: 560px) {
+/* At the compact desktop height used by laptop windows, keep all twelve
+   review cards and the action footer in the first viewport without letting
+   the sticky bar cover the final row. */
+@media (min-width: 901px) and (max-height: 850px) {
+  .sa-vocab-preview-page { gap: var(--space-4); }
+  .sa-vocab-preview__grid.is-paginated .sa-vocab-preview__card {
+    gap: 8px;
+    padding: 10px;
+  }
+  .sa-vocab-preview__grid.is-paginated .sa-vocab-preview__word-stage {
+    min-height: 72px;
+    padding: 8px 6px;
+  }
+}
+
+@media (max-width: 640px) {
   .sa-vocab-preview__grid { grid-template-columns: 1fr; }
   .sa-vocab-preview__card { padding: 16px; }
-  .sa-vocab-preview__pager { flex-wrap: wrap; }
-  .sa-vocab-preview__pager-status { order: -1; width: 100%; text-align: center; }
-  .sa-vocab-preview__pager .sa-button { flex: 1; }
+  .sa-vocab-preview-page .sa-page__actions {
+    --vocab-preview-footer-height: 131px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .sa-vocab-preview-page .sa-page__actions > .sa-button {
+    width: 100%;
+  }
+  .sa-vocab-preview__pager {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+  .sa-vocab-preview__pager-button {
+    width: 44px;
+    min-width: 44px;
+    padding-inline: 0;
+  }
+  .sa-vocab-preview__pager-button .sa-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sa-vocab-preview__pager-status {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }

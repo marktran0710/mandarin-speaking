@@ -56,6 +56,36 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
     </StudentButton>
   );
 
+  const pagination = hasPagination ? (
+    <nav className="sa-vocab-preview__pager" aria-label="Vocabulary pages">
+      <StudentButton
+        className="sa-vocab-preview__pager-button"
+        variant="secondary"
+        size="sm"
+        icon="arrow_back"
+        aria-label="Previous vocabulary page"
+        disabled={activePageIndex === 0}
+        onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+      >
+        <span lang="zh-Hant">上一頁</span> · Previous
+      </StudentButton>
+      <span className="sa-vocab-preview__pager-status" role="status">
+        Page {activePageIndex + 1} of {pageCount} &middot; {pageStart + 1}&ndash;{Math.min(pageStart + VOCABULARY_PAGE_SIZE, items.length)} of {items.length}
+      </span>
+      <StudentButton
+        className="sa-vocab-preview__pager-button"
+        variant="secondary"
+        size="sm"
+        iconTrailing="arrow_forward"
+        aria-label="Next vocabulary page"
+        disabled={activePageIndex === pageCount - 1}
+        onClick={() => setPageIndex((current) => Math.min(pageCount - 1, current + 1))}
+      >
+        <span lang="zh-Hant">下一頁</span> · Next
+      </StudentButton>
+    </nav>
+  ) : undefined;
+
   if (items.length === 0) {
     return (
       <StudentPage
@@ -74,7 +104,7 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
       wide
       className="sa-vocab-preview-page"
       header={header}
-      actions={{ primary: primaryAction }}
+      actions={{ secondary: pagination, primary: primaryAction }}
     >
       <div
         className={`sa-vocab-preview__grid${hasPagination ? " is-paginated" : ""}`}
@@ -115,33 +145,6 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
         ))}
       </div>
 
-      {hasPagination && (
-        <nav className="sa-vocab-preview__pager" aria-label="Vocabulary pages">
-          <StudentButton
-            variant="secondary"
-            size="sm"
-            icon="arrow_back"
-            aria-label="Previous vocabulary page"
-            disabled={activePageIndex === 0}
-            onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
-          >
-            <span lang="zh-Hant">上一頁</span> · Previous
-          </StudentButton>
-          <span className="sa-vocab-preview__pager-status" role="status">
-            {pageStart + 1}–{Math.min(pageStart + VOCABULARY_PAGE_SIZE, items.length)} of {items.length}
-          </span>
-          <StudentButton
-            variant="secondary"
-            size="sm"
-            iconTrailing="arrow_forward"
-            aria-label="Next vocabulary page"
-            disabled={activePageIndex === pageCount - 1}
-            onClick={() => setPageIndex((current) => Math.min(pageCount - 1, current + 1))}
-          >
-            <span lang="zh-Hant">下一頁</span> · Next
-          </StudentButton>
-        </nav>
-      )}
     </StudentPage>
   );
 }
