@@ -3,6 +3,7 @@ export type {
   BackendFeedbackQuality,
   ContentDiffSegment,
   DiagnosticStatus,
+  FeedbackProvenance,
   PauseAnalysis,
   PraatMetrics,
   ScoreProvenance,

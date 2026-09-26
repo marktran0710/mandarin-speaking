@@ -50,7 +50,6 @@ async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch)
     import services.speech_analysis as speech_analysis
     import main
 
-    monkeypatch.setattr(speech_analysis, "GEMINI_API_KEY", "test-key")
     empty_analysis = (
         [],  # pitch contour
         {},  # formants
@@ -84,6 +83,12 @@ async def test_silence_never_reaches_direct_audio_ai_or_language_ai(monkeypatch)
             "generate_language_feedback",
             new_callable=AsyncMock,
         ) as language_ai,
+        patch.object(
+            speech_analysis,
+            "transcribe_audio_content",
+            new_callable=AsyncMock,
+            return_value=type("Transcript", (), {"text": "", "model": "auto:silent"})(),
+        ),
         patch.object(speech_analysis, "analyze_all", return_value=empty_analysis),
         patch.object(
             speech_analysis,

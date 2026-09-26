@@ -31,14 +31,15 @@ LOCAL_FEEDBACK = {
 }
 
 
-def _common_patches(analyze_all_mock):
+def _common_patches(analyze_all_mock, feedback_mock=None):
+    feedback_mock = feedback_mock or AsyncMock(return_value=LOCAL_FEEDBACK)
     return [
         patch("services.speech_analysis.assess_recording_quality", return_value={
             "status": "reliable", "reason_codes": [], "student_message": "Sound check passed.",
         }),
         patch("services.speech_analysis.resolve_image_b64", new_callable=AsyncMock, return_value=None),
         patch("services.speech_analysis.analyze_all", analyze_all_mock),
-        patch("services.speech_analysis.generate_language_feedback", new_callable=AsyncMock, return_value=LOCAL_FEEDBACK),
+        patch("services.speech_analysis.generate_language_feedback", feedback_mock),
         patch("services.speech_analysis.finalize_feedback_quality", return_value=QUALITY),
         patch("services.speech_analysis.classify_vowel_quality", return_value="Clear vowels"),
         patch("services.speech_analysis.build_tone_direction", return_value="rising"),
@@ -145,4 +146,57 @@ async def test_word_practice_verify_word_path_is_unaffected():
         )
 
     assert analyze_all_calls == ["你好"]
-    assert result.processing_trace.stages[-1].stage in {"quality_gate"}
+    assert result.processing_trace.stages[-1].stage == "feedback"
+
+
+@pytest.mark.asyncio
+async def test_final_cloud_coaching_receives_praat_evidence_after_auto_asr():
+    import main
+
+    async def fake_transcribe(_content, model, **_kwargs):
+        assert model == "auto"
+        return MagicMock(text="你好", model="auto:groq")
+
+    cloud_feedback = {
+        **LOCAL_FEEDBACK,
+        "provider": "groq",
+        "feedback_provenance": {
+            "requested_provider": "groq",
+            "executed_provider": "groq",
+            "fallback_used": False,
+            "acoustic_context_used": True,
+            "acoustic_context_supplied": True,
+            "pronunciation_source": "praat_acoustic_measurements",
+        },
+    }
+    feedback_mock = AsyncMock(return_value=cloud_feedback)
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch("services.speech_analysis.transcribe_audio_content", fake_transcribe)
+        )
+        for cm in _common_patches(
+            lambda *_args, **_kwargs: PRAAT_RESULT,
+            feedback_mock=feedback_mock,
+        ):
+            stack.enter_context(cm)
+        result = await main._do_analyze(
+            b"wav-bytes",
+            "",
+            "",
+            scene_target_text="你好",
+            ai_provider="groq",
+        )
+
+    feedback_mock.assert_awaited_once()
+    kwargs = feedback_mock.await_args.kwargs
+    assert kwargs["praat_tone_accuracy"] == 78.0
+    assert kwargs["praat_fluency_score"] == 72.0
+    assert kwargs["praat_speech_rate"] == 3.0
+    assert kwargs["praat_vowel_quality"] == "Clear vowels"
+    assert kwargs["praat_pause_analysis"]["articulation_rate"] == 3.0
+    assert kwargs["word_prosody"] == []
+    assert result.feedback_provenance.executed_provider == "groq"
+    stages = [stage.stage for stage in result.processing_trace.stages]
+    assert stages.index("feedback") > stages.index("praat")
+    assert stages.index("feedback") > stages.index("quality_gate")

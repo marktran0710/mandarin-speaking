@@ -152,6 +152,13 @@ export default function RecordCard({
         {record.praatMetrics?.ai_feedback &&
           record.praatMetrics.feedback_quality?.can_score_content !== false && (
           <div className="story-ai-summary">
+            {record.praatMetrics.feedback_provenance && (
+              <small className="story-feedback-provenance">
+                Feedback: {record.praatMetrics.feedback_provenance.executed_provider || "local"}
+                {record.praatMetrics.feedback_provenance.fallback_used ? " (fallback)" : ""}
+                {record.praatMetrics.feedback_provenance.pronunciation_source === "praat_acoustic_measurements" ? " · grounded in Praat" : ""}
+              </small>
+            )}
             <strong>
               <BiLabel
                 zh={`AI 老師（${record.praatMetrics.ai_feedback.provider || "Gemini"}）`}

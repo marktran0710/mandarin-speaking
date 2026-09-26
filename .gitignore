@@ -29,6 +29,7 @@ backend/uploads/
 backend/private-data/
 backend/uvicorn*.log
 backend/logs/
+backend/verification_reports/
 backend/*.zip
 .models/
 .playwright-mcp/

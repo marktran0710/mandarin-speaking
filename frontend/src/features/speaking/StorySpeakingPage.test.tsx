@@ -165,6 +165,45 @@ describe("StorySpeakingPage", () => {
     expect(stopRecording).toHaveBeenCalledTimes(1);
   });
 
+  it("shows the executed feedback provider and Praat grounding", async () => {
+    const startRecording = vi.fn().mockResolvedValue(
+      makeRecorderResult({
+        metrics: {
+          ...makeRecorderResult().metrics,
+          feedback_provenance: {
+            requested_provider: "groq",
+            executed_provider: "gemini",
+            fallback_used: true,
+            fallback_reason: "provider_unavailable_or_failed",
+            acoustic_context_used: true,
+            acoustic_context_supplied: true,
+            pronunciation_source: "praat_acoustic_measurements",
+          },
+        },
+      }),
+    );
+    vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ startRecording }));
+    vi.mocked(analyzeSpeakingResult).mockReturnValue(makeAnalysis());
+
+    render(
+      <StorySpeakingPage
+        topic={makeTopic()}
+        selectedImageIndex={0}
+        onImageIndexChange={vi.fn()}
+        onAddRecord={vi.fn()}
+        onSceneSubmission={vi.fn()}
+        onDone={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Record" }));
+    expect(
+      await screen.findByText(
+        "Coach: gemini fallback · pronunciation grounded in Praat",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("walks a clean scene straight to the next scene, then Fix/Practice before finishing the last scene", async () => {
     const startRecording = vi
       .fn()

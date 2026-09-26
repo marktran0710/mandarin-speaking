@@ -313,6 +313,18 @@ class ProcessingTrace(BaseModel):
     total_duration_ms: float = 0.0
 
 
+class FeedbackProvenance(BaseModel):
+    requested_provider: str = "local"
+    executed_provider: str = "local"
+    fallback_used: bool = False
+    fallback_reason: Optional[str] = None
+    acoustic_context_used: bool = False
+    acoustic_context_supplied: bool = False
+    pronunciation_source: Literal[
+        "praat_acoustic_measurements", "local_deterministic"
+    ] = "local_deterministic"
+
+
 class ContentDiffSegment(BaseModel):
     type: Literal["match", "replace", "missing", "extra"]
     target: str = ""
@@ -336,6 +348,7 @@ class AnalysisResponse(BaseModel):
     pause_analysis: dict = {}
     feedback: str
     ai_feedback: dict
+    feedback_provenance: FeedbackProvenance = Field(default_factory=FeedbackProvenance)
     # Set only when the caller passed `verify_word` ??an independent real ASR
     # pass confirming whether the recording actually contains that word,
     # since `transcription` may have been supplied by the caller (not

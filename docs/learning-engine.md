@@ -25,13 +25,13 @@ throughout this code explicitly say so - see quotes below.
 
 ## 1. Personalized learning - Bayesian Knowledge Tracing
 
-`analytics/bkt.py`. Provenance: `STANDARD_ALGORITHM` (the equations);
+`analytics/learner_model/bkt/core.py`. Provenance: `STANDARD_ALGORITHM` (the equations);
 parameter values are `ENGINEERING_DEFAULT`.
 
 **Purpose**: estimate per-word mastery from binary correct/incorrect
 responses; rank weak words for personalized practice.
 
-**Equations** (`analytics/bkt.py:136-164`, `update_bkt`):
+**Equations** (`analytics/learner_model/bkt/core.py`, `update_bkt`):
 
 ```
 P(L|correct)   = L(1-S) / [L(1-S) + (1-L)G]
@@ -39,7 +39,7 @@ P(L|incorrect) = LS / [LS + (1-L)(1-G)]
 P(L_next)      = P(L|obs) + [1 - P(L|obs)] * T
 ```
 
-**Runtime defaults** (`BktConfig`, `analytics/bkt.py:37-53`):
+**Runtime defaults** (`BktConfig`, `analytics/learner_model/bkt/core.py`):
 
 | Parameter | Value |
 |---|---|
@@ -54,23 +54,24 @@ P(L_next)      = P(L|obs) + [1 - P(L|obs)] * T
 | Required diagnostic rounds | 3 |
 | Review count | 5 |
 
-Format-aware guess/slip (`guess_slip_for()`, `analytics/bkt.py:116-124`):
+Format-aware guess/slip (`guess_slip_for()`, `analytics/learner_model/bkt/core.py`):
 typed free-text answers use the typed pair; everything else uses the MCQ
 pair. A single global pair previously under-rewarded correct typed answers
 and over-punished typos.
 
-**Status, verbatim from source** (`analytics/bkt.py:1-6, 78-79`):
+**Status, verbatim from source** (`analytics/learner_model/bkt/core.py`):
 > "The defaults are engineering defaults for the first research version,
 > not validated or calibrated cutoffs." ... "TODO: replace with
 > pilot-calibrated/frozen BKT parameters before the main experiment. These
 > transparent temporary defaults are not research-validated."
 
 **Pipeline**: client response -> server resolves the authoritative
-assessment answer (`analytics/bkt_assessment_resolver.py` - never trusts a
+assessment answer (`analytics/learner_model/bkt/assessment_resolver.py` - never trusts a
 client-sent correct/incorrect boolean alone) -> BKT posterior update ->
 learning transition -> mastery status (`UNASSESSED` / `DEVELOPING` /
-`NEEDS_PRACTICE` / `STRONG`, `analytics/bkt.py:190-203`) -> weak-word
-ranking (`analytics/weak_words.py`) for personalized practice.
+`NEEDS_PRACTICE` / `STRONG`, `analytics/learner_model/bkt/mastery.py`) ->
+weak-word ranking (`services/vocab_quiz_analytics_service.py`) for
+personalized practice.
 
 **Reference**: Corbett, A. T., & Anderson, J. R. (1995). Knowledge
 tracing: Modeling the acquisition of procedural knowledge. *User Modeling
@@ -82,26 +83,26 @@ project's own configuration, not values the paper recommends.
 
 ## 2. Retention - Modified SM-2
 
-`analytics/srs.py`. Provenance: `MODIFIED_STANDARD_ALGORITHM`.
+`analytics/learner_model/srs.py`. Provenance: `MODIFIED_STANDARD_ALGORITHM`.
 
 **Purpose**: schedule future review of vocabulary that has already reached
 a `STRONG` BKT state - a separate concern from BKT mastery itself.
-`analytics/srs.py` never touches `p_learned`; a review's correctness still
+`analytics/learner_model/srs.py` never touches `p_learned`; a review's correctness still
 flows into BKT unchanged.
 
-**Input mapping** (`quality_from_response()`, `analytics/srs.py:49-60`):
+**Input mapping** (`quality_from_response()`, `analytics/learner_model/srs.py`):
 the UI grades binary correct/incorrect, mapped to the SM-2 0-5 quality
 scale as `q=4` (correct) / `q=2` (incorrect) - a project adaptation of
 SM-2's self-rating scale, not published SM-2 behavior.
 
-**Ease update** (`_updated_ease()`, `analytics/srs.py:63-65`):
+**Ease update** (`_updated_ease()`, `analytics/learner_model/srs.py`):
 
 ```
 EF' = EF + [0.1 - (5-q) * (0.08 + (5-q) * 0.02)]
 EF' = max(EF', 1.3)
 ```
 
-**Interval sequence** (`review()`, `analytics/srs.py:68-97`): first
+**Interval sequence** (`review()`, `analytics/learner_model/srs.py`): first
 success -> 1 day; second success -> 6 days; thereafter
 `round(previous_interval * ease)`. Any failure (`q < PASS_QUALITY=3`)
 resets repetitions to 0 and the interval to 1 day.
@@ -112,7 +113,7 @@ resets repetitions to 0 and the interval to 1 day.
 "day" for live testing - never in production; see
 `routers/vocab_quiz_attempts.py`'s `_effective_srs_day_seconds`).
 
-**Idempotency**: `should_advance()` (`analytics/srs.py:100-109`) requires a
+**Idempotency**: `should_advance()` (`analytics/learner_model/srs.py`) requires a
 full `day_seconds` to have elapsed since the last graded review before a
 new answer can advance the schedule - repeated practice within one cycle
 doesn't keep pushing the due date out.
@@ -120,7 +121,7 @@ doesn't keep pushing the due date out.
 **Conceptual separation**: BKT asks "how well is this word currently
 learned?"; SRS asks "when should this word be reviewed again?" A word can
 be BKT-weak, SRS-due, both, or neither. The review queue
-(`analytics/review_queue.py`) tags each entry `weak` or `due` rather than
+(`analytics/learner_model/review_queue.py`) tags each entry `weak` or `due` rather than
 merging the two - a mastered-but-due word is never shown as weak merely
 because it needs a maintenance review.
 
@@ -135,11 +136,11 @@ modified SM-2 implementation - not the original algorithm unchanged.
 ```
 Audio upload
   -> Recording quality control (duration / loudness / speech presence / clipping / format)
-  -> ASR transcription
-  -> Praat/Parselmouth acoustic (pitch contour) extraction
+  -> ASR transcription (production requests leave transcript empty)
+  -> Praat/Parselmouth acoustic extraction in parallel with ASR when the target is known
   -> Deterministic shape + directional tone scoring
   -> Feedback-quality gate (poor evidence -> UNCERTAIN/INVALID_AUDIO, never a confident bad score)
-  -> AI/local coaching feedback
+  -> AI/local coaching feedback after the acoustic result and quality gate
   -> Pronunciation mastery + sentence-level verdict
   -> Speaking-progress persistence
 ```
@@ -235,13 +236,11 @@ sandhi (e.g. 一/不) is explicitly out of scope.
 
 ### 3.4 What actually gates lesson progression
 
-**This is the single most important distinction on this page.** The
-diagnostic states (`CORRECT`/`UNCERTAIN`/`INCORRECT`/`INVALID_AUDIO`) are
-shown to students as feedback but explicitly do **not** drive progression -
-verbatim from `domain/speech/tone_decision.py:1-34`:
-
-> "None of these states drive lesson progression. Progression still runs
-> on the legacy `score >= SYLLABLE_PASS_THRESHOLD` path, unchanged."
+The diagnostic states (`CORRECT`/`UNCERTAIN`/`INCORRECT`/`INVALID_AUDIO`) are
+shown to students as feedback. The production progression roll-up is the
+legacy per-syllable score path with the quality gate and sentence ratio
+applied by `services/pronunciation_scoring.py`; diagnostic labels remain an
+additional explanation layer.
 
 | Threshold | Value | Gates progression? | Purpose |
 |---|---|---|---|
@@ -293,9 +292,12 @@ treated as bad pronunciation.
   It never demotes.
 - **Word -> sentence** (`build_pronunciation_mastery()`,
   `services/pronunciation_scoring.py:76-227`): excludes placeholder
-  (unmeasured) syllables from both numerator and denominator; sentence
-  passes when `pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO (0.80)` and
-  `content_match is not False`.
+  (unmeasured) syllables from both numerator and denominator. `UNCERTAIN`
+  syllables with a numeric legacy score remain in the judged ratio; the
+  sentence passes when `pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO (0.80)` and
+  `content_match is not False`. Therefore `content_match=null` can fail open
+  for progression while the response still tells the student that the
+  independent content check was unavailable.
 
 ### 3.7 Speech recognition
 
@@ -312,10 +314,22 @@ offline deterministic CAF-style engine) unless `AI_FEEDBACK_PROVIDER` is
 set. When a cloud provider is requested, on a missing key or a failed call
 it degrades to the next configured cloud provider, then to the local
 engine - a student always gets feedback even if every cloud provider is
-unavailable. AI feedback is coaching/explanation; it is not the source of
-truth for whether pronunciation or required vocabulary was produced -
+unavailable. For a scorable recording, the cloud adapter receives finalized
+Praat tone accuracy, fluency, speech rate, vowel quality, pause analysis and
+word/syllable prosody. Missing measurements are represented as `not measured`
+or empty evidence instead of guessed values. AI feedback is
+coaching/explanation; it is not the source of truth for whether pronunciation
+or required vocabulary was produced -
 those are the deterministic tone-scoring and transcript-matching steps
 above.
+
+Every response includes typed `feedback_provenance`: requested provider,
+provider actually executed, fallback state/reason, whether acoustic context
+was supplied and used, and whether pronunciation comments came from Praat
+measurements or local deterministic guidance. Cloud coaching is bounded by
+the existing 30-second analysis budget; a timeout returns local feedback with
+`fallback_reason=feedback_timeout`. Audio that fails the quality gate returns
+retry/not-judged and skips cloud coaching.
 
 ---
 

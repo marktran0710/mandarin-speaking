@@ -88,8 +88,9 @@ async def analyze_speech(
 ):
     """
     Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
-    If transcription is empty and asr_model is provided, transcribe first, then
-    run Praat against the same audio. scene_prompt and scene_vocabulary are used
+    If transcription is empty, the requested ``asr_model`` is selected (or the
+    existing ``auto`` fallback chain when it is blank), then Praat runs against
+    the same audio. scene_prompt and scene_vocabulary are used
     to make AI and local feedback context-aware. scene_phrases and
     scene_suggested_answer give the AI a reference for judging whether the
     student's sentence actually means the right thing, before pronunciation

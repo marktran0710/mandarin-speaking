@@ -111,6 +111,16 @@ interface LanguageFeedback {
   vocabulary?: { score: number; feedback: string; suggestions: string[] };
 }
 
+export interface FeedbackProvenance {
+  requested_provider: string;
+  executed_provider: string;
+  fallback_used: boolean;
+  fallback_reason?: string | null;
+  acoustic_context_used: boolean;
+  acoustic_context_supplied: boolean;
+  pronunciation_source: "praat_acoustic_measurements" | "local_deterministic";
+}
+
 export interface PraatMetrics {
   transcription?: string;
   transcription_model?: string;
@@ -127,6 +137,7 @@ export interface PraatMetrics {
   pause_analysis?: PauseAnalysis;
   feedback: string;
   ai_feedback?: LanguageFeedback;
+  feedback_provenance?: FeedbackProvenance;
   feedback_quality?: BackendFeedbackQuality;
   recognized_text?: string | null;
   content_match?: boolean | null;

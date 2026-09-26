@@ -66,6 +66,7 @@ export default function StorySpeakingPage({
   const [lastAnalysis, setLastAnalysis] = useState<SpeakingResultAnalysis | null>(null);
   const [lastGates, setLastGates] = useState<{ masteryPassed: boolean; contentPassed: boolean } | null>(null);
   const [lastPitch, setLastPitch] = useState<{ contour: Array<[number, number]>; detectedTone: number } | null>(null);
+  const [lastFeedbackProvenance, setLastFeedbackProvenance] = useState<PraatMetrics["feedback_provenance"]>(undefined);
   const [lastWordProsody, setLastWordProsody] = useState<PraatMetrics["word_prosody"]>(undefined);
   const [attempts, setAttempts] = useState(0);
   const [feedbackStep, setFeedbackStep] = useState<FeedbackStep>("overview");
@@ -126,6 +127,7 @@ export default function StorySpeakingPage({
       contour: result.metrics.pitch_contour ?? [],
       detectedTone: result.metrics.detected_tone ?? 0,
     });
+    setLastFeedbackProvenance(result.metrics.feedback_provenance);
     setLastWordProsody(result.metrics.word_prosody);
     setLastAnalysis(
       analyzeSpeakingResult({
@@ -211,6 +213,7 @@ export default function StorySpeakingPage({
     setLastAnalysis(null);
     setLastGates(null);
     setLastPitch(null);
+    setLastFeedbackProvenance(undefined);
     setLastWordProsody(undefined);
     setStage("recording");
     if (selectedImageIndex + 1 < topic.images.length) {
@@ -365,6 +368,15 @@ export default function StorySpeakingPage({
 
             {feedbackStep === "overview" && (
               <StudentSection variant="panel" className="sa-speaking__overview">
+                {lastFeedbackProvenance && (
+                  <p className="sa-speaking__feedback-source" role="status">
+                    Coach: {lastFeedbackProvenance.executed_provider}
+                    {lastFeedbackProvenance.fallback_used ? " fallback" : ""}
+                    {lastFeedbackProvenance.pronunciation_source === "praat_acoustic_measurements"
+                      ? " · pronunciation grounded in Praat"
+                      : " · local pronunciation guidance"}
+                  </p>
+                )}
                 <div className="sa-speaking__self-eval">
                   <p className="sa-speaking__self-eval-title">How did you do?</p>
                   <SelfEvalRow label="Meaning" value={selfEvalMeaning} onChange={setSelfEvalMeaning} />

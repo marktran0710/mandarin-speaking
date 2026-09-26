@@ -13,8 +13,6 @@ that logic stays in the modules it calls.
 from __future__ import annotations
 
 import asyncio
-import importlib
-import logging
 import os
 import tempfile
 import time
@@ -23,7 +21,6 @@ from typing import Any, Callable, Dict, Optional
 from starlette.concurrency import run_in_threadpool
 
 import helpers.caf_metrics as caf_metrics
-from config import settings
 from helpers.pinyin_service import canonical_pinyin
 from api.schemas.models import AnalysisResponse, ProcessingTrace, ProcessingTraceStage
 from domain.speech.acoustics import analyze_all
@@ -40,22 +37,13 @@ from services.content.verification import (
     build_analysis_description,
 )
 from services.media import resolve_image_b64
-from services.ai_feedback import generate_language_feedback
+from services.ai_feedback import AI_FEEDBACK_PROVIDER, generate_language_feedback
 from services.pronunciation_scoring import (
     apply_recording_qc_to_diagnostics,
     build_pronunciation_mastery,
     classify_vowel_quality,
     build_tone_direction,
 )
-from services.text_normalization import convert_to_traditional_chinese
-
-logger = logging.getLogger("speaking_app")
-
-GEMINI_API_KEY = settings.gemini_api_key
-OPENAI_API_KEY = settings.openai_api_key
-GROQ_API_KEY = settings.groq_api_key
-
-
 async def _do_analyze(
     content: bytes,
     transcription: str,
@@ -137,50 +125,7 @@ async def _do_analyze(
         ai_feedback = None
         image_b64, image_mime = await resolve_image_b64(scene_image_url) or (None, "")
 
-        # For cloud AI providers that support audio input, send the recording +
-        # vocabulary together so the model can directly hear which words were spoken.
-        # Groq chains Whisper → LLaMA in one call (no audio LLM yet).
-        # Falls back to the normal ASR → text → feedback path on any error.
-        _audio_assessors = {
-            "gemini": (GEMINI_API_KEY, "services.ai_feedback", "assess_audio_with_gemini", "gemini-audio"),
-            "openai": (OPENAI_API_KEY, "services.ai_feedback", "assess_audio_with_openai", "openai-audio"),
-            "groq":   (GROQ_API_KEY,   "services.ai_feedback", "assess_audio_with_groq",   "groq-audio"),
-        }
-        chosen_provider = (ai_provider or "").strip().lower()
-        audio_assessed = False
         asr_started_at = time.perf_counter()
-        if (
-            recording_preflight["status"] != "retry"
-            and not transcription.strip()
-            and chosen_provider in _audio_assessors
-        ):
-            api_key, module, fn_name, tag = _audio_assessors[chosen_provider]
-            if api_key:
-                try:
-                    mod = importlib.import_module(module)
-                    audio_result = await getattr(mod, fn_name)(
-                        content, scene_prompt, scene_vocabulary,
-                        image_b64=image_b64, image_mime=image_mime,
-                        scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
-                        scene_attempt_number=scene_attempt_number,
-                    )
-                    transcription = convert_to_traditional_chinese(audio_result["transcription"])
-                    transcription_model = tag
-                    ai_feedback = audio_result["feedback"]
-                    audio_assessed = True
-                    add_trace_stage(
-                        "asr",
-                        "integrated",
-                        asr_started_at,
-                        model=transcription_model,
-                        provider=chosen_provider,
-                        detail="Transcript and language feedback came from the audio provider.",
-                        input={"audio_provider": chosen_provider, "scene_vocabulary": scene_vocabulary},
-                        output={"transcription": transcription, "model": transcription_model},
-                    )
-                except Exception as exc:
-                    logger.warning(f"{chosen_provider} audio assessment failed, falling back: {exc}")
-
         sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
 
         # Scene vocabulary phrases arrive "; "-joined (see StoryRecorder.tsx)
@@ -210,7 +155,6 @@ async def _do_analyze(
             bool(sentence_target)
             and not verify_word.strip()
             and not transcription.strip()
-            and bool(asr_model.strip())
         )
         speculative_praat_started_at = time.perf_counter()
         speculative_praat_task = (
@@ -219,10 +163,11 @@ async def _do_analyze(
             else None
         )
 
-        if not transcription.strip() and asr_model.strip():
+        if not transcription.strip():
+            selected_asr_model = asr_model.strip() or "auto"
             try:
                 transcription_result = await transcribe_audio_content(
-                    content, asr_model.strip(), vocab_hint=scene_vocabulary
+                    content, selected_asr_model, vocab_hint=scene_vocabulary
                 )
                 transcription = transcription_result.text
                 transcription_model = transcription_result.model
@@ -232,7 +177,7 @@ async def _do_analyze(
                     asr_started_at,
                     model=transcription_model,
                     detail="Backend transcription completed." if transcription.strip() else "ASR returned no transcript.",
-                    input={"asr_model": asr_model.strip(), "scene_vocabulary": scene_vocabulary},
+                    input={"asr_model": selected_asr_model, "scene_vocabulary": scene_vocabulary},
                     output={"transcription": transcription, "model": transcription_model},
                 )
             except Exception as exc:
@@ -243,8 +188,8 @@ async def _do_analyze(
                     speculative_praat_task.add_done_callback(lambda t: t.exception())
                     speculative_praat_task = None
                 add_trace_stage(
-                    "asr", "failed", asr_started_at, model=asr_model.strip(), detail=str(exc),
-                    input={"asr_model": asr_model.strip(), "scene_vocabulary": scene_vocabulary},
+                    "asr", "failed", asr_started_at, model=selected_asr_model, detail=str(exc),
+                    input={"asr_model": selected_asr_model, "scene_vocabulary": scene_vocabulary},
                 )
                 raise
         elif not trace_entries or trace_entries[-1]["stage"] != "asr":
@@ -293,20 +238,9 @@ async def _do_analyze(
                 speculative_praat_task.add_done_callback(lambda t: t.exception())
                 speculative_praat_task = None
 
-        # Run Praat (CPU-bound, threadpool), AI feedback (I/O-bound), and the
-        # optional word-content verification pass all in parallel so checking
-        # "did they actually say this word" doesn't add extra latency on top
-        # of the analysis that was already happening.
-        feedback_coro = (
-            asyncio.sleep(0)  # no-op placeholder when feedback already done
-            if audio_assessed or recording_preflight["status"] == "retry"
-            else generate_language_feedback(
-                transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None,
-                image_b64=image_b64, image_mime=image_mime,
-                scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
-                scene_attempt_number=scene_attempt_number,
-            )
-        )
+        # Run Praat (CPU-bound, threadpool) and optional word-content
+        # verification together. Coaching is deliberately deferred until
+        # Praat and the recording-quality gate have finalized their evidence.
         verify_coro = (
             _verify_word_transcription(content, verify_word, vocab_hint=scene_vocabulary)
             if verify_word.strip()
@@ -350,32 +284,6 @@ async def _do_analyze(
             )
             return result
 
-        feedback_input = {
-            "scene_prompt": scene_prompt or None,
-            "scene_vocabulary": scene_vocabulary or None,
-            "scene_phrases": scene_phrases or None,
-            "scene_suggested_answer": scene_suggested_answer or None,
-            "scene_attempt_number": scene_attempt_number,
-            "image_provided": bool(image_b64),
-        }
-
-        async def run_feedback_stage():
-            started_at = time.perf_counter()
-            result = await feedback_coro
-            output = result if isinstance(result, dict) else (ai_feedback if isinstance(ai_feedback, dict) else None)
-            add_trace_stage(
-                "feedback",
-                "skipped" if audio_assessed or recording_preflight["status"] == "retry" else "passed",
-                started_at,
-                provider=(result.get("provider") if isinstance(result, dict) else None)
-                or ai_provider
-                or "backend-default",
-                detail="Provider feedback completed." if not audio_assessed else "Audio provider feedback already included.",
-                input=feedback_input,
-                output=output,
-            )
-            return result
-
         async def run_verify_stage():
             started_at = time.perf_counter()
             result = await verify_coro
@@ -388,13 +296,11 @@ async def _do_analyze(
                 )
             return result
 
-        (praat_result, maybe_feedback, (recognized_text, content_match)) = await asyncio.gather(
+        (praat_result, (recognized_text, content_match)) = await asyncio.gather(
             run_praat_stage(),
-            run_feedback_stage(),
             run_verify_stage(),
         )
-        if not audio_assessed:
-            ai_feedback = maybe_feedback
+        ai_feedback = None
         if sentence_target and not verify_word.strip():
             content_match = scene_content_match
             recognized_text = (transcription or None) if sentence_content_verified else None
@@ -490,10 +396,68 @@ async def _do_analyze(
             "natural_pause_count": len(pause_judgment["natural"]) if pause_judgment["judged"] else 0,
         }
 
-        # The parallel feedback call ran before Praat finished. Recompute the
-        # local CAF feedback now that we have the acoustic numbers: when the
-        # provider is local, swap in the full grounded result; for an external
-        # provider, only patch its pronunciation_note with the real Praat data.
+        feedback_started_at = time.perf_counter()
+        feedback_timeout = False
+        if feedback_quality["can_score_pronunciation"]:
+            try:
+                ai_feedback = await asyncio.wait_for(
+                    generate_language_feedback(
+                        transcription, scene_prompt, scene_vocabulary,
+                        praat_tone_accuracy=float(tone_accuracy),
+                        praat_fluency_score=float(fluency_score),
+                        praat_vowel_quality=vowel_quality or "",
+                        praat_pause_analysis=pause_analysis,
+                        praat_speech_rate=float(speech_rate),
+                        word_prosody=word_prosody,
+                        provider=ai_provider or None,
+                        image_b64=image_b64, image_mime=image_mime,
+                        scene_phrases=scene_phrases,
+                        scene_suggested_answer=scene_suggested_answer,
+                        scene_attempt_number=scene_attempt_number,
+                    ),
+                    timeout=30.0,
+                )
+                provenance = ai_feedback.get("feedback_provenance", {})
+                add_trace_stage(
+                    "feedback",
+                    "passed",
+                    feedback_started_at,
+                    provider=provenance.get("executed_provider") or ai_feedback.get("provider"),
+                    detail="Coaching completed from finalized Praat evidence.",
+                    input={
+                        "requested_provider": ai_provider or "backend-default",
+                        "tone_accuracy": float(tone_accuracy),
+                        "fluency_score": float(fluency_score),
+                        "speech_rate": float(speech_rate),
+                        "vowel_quality": vowel_quality or None,
+                        "pause_analysis": pause_analysis,
+                        "word_prosody": word_prosody,
+                    },
+                    output={"feedback_provenance": provenance},
+                )
+            except TimeoutError:
+                feedback_timeout = True
+                add_trace_stage(
+                    "feedback",
+                    "failed",
+                    feedback_started_at,
+                    provider=ai_provider or "backend-default",
+                    detail="Cloud coaching exceeded the 30-second evidence-grounding budget; local feedback was used.",
+                    reason_codes=["feedback_timeout"],
+                )
+        else:
+            add_trace_stage(
+                "feedback",
+                "skipped",
+                feedback_started_at,
+                provider=ai_provider or "backend-default",
+                detail="Recording evidence was not reliable enough for coaching.",
+                reason_codes=feedback_quality.get("reason_codes"),
+            )
+
+        # The deterministic local note remains authoritative for
+        # pronunciation; cloud AI uses the measurements for coaching but does
+        # not decide the student's score or verdict.
         from services.ai_feedback import (
             apply_feedback_quality_gate as _apply_feedback_quality_gate,
             fallback_language_feedback as _local_fb,
@@ -518,6 +482,28 @@ async def _do_analyze(
                 ai_feedback["pronunciation_note"] = local_fb["pronunciation_note"]
         else:
             ai_feedback = local_fb
+        if not isinstance(ai_feedback.get("feedback_provenance") if isinstance(ai_feedback, dict) else None, dict):
+            requested_provider = (ai_provider or AI_FEEDBACK_PROVIDER or "local").strip().lower()
+            acoustic_context_used = bool(feedback_quality["can_score_pronunciation"])
+            ai_feedback["feedback_provenance"] = {
+                "requested_provider": requested_provider,
+                "executed_provider": "local",
+                "fallback_used": feedback_timeout or requested_provider != "local",
+                "fallback_reason": (
+                    "feedback_timeout"
+                    if feedback_timeout
+                    else "recording_not_scorable"
+                    if not acoustic_context_used
+                    else None
+                ),
+                "acoustic_context_used": acoustic_context_used,
+                "acoustic_context_supplied": acoustic_context_used,
+                "pronunciation_source": (
+                    "praat_acoustic_measurements"
+                    if acoustic_context_used
+                    else "local_deterministic"
+                ),
+            }
         ai_feedback = _apply_feedback_quality_gate(
             ai_feedback,
             feedback_quality,
@@ -568,6 +554,7 @@ async def _do_analyze(
             pause_analysis=pause_analysis,
             feedback=feedback,
             ai_feedback=ai_feedback,
+            feedback_provenance=ai_feedback.get("feedback_provenance", {}),
             recognized_text=recognized_text,
             content_match=content_match,
             content_diff=content_diff,

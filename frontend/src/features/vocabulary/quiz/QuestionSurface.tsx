@@ -177,7 +177,11 @@ export default function QuizQuestionSurface({
   }, [draftAnswer, freeText, onDraftAnswerChange, onSubmit, question.options, showingFeedback]);
 
   return (
-    <section className="sa-quiz__question-column" aria-labelledby="quiz-question-title">
+    <section
+      className="sa-quiz__question-column"
+      aria-labelledby="quiz-question-title"
+      data-verification-word={question.word}
+    >
       <Stimulus
         question={question}
         presentation={presentation}

@@ -8,9 +8,10 @@ Two entry points:
     offline CAF-based engine (fallback_language_feedback/
     fallback_story_feedback) so a student always gets feedback even with no
     API keys configured.
-  - assess_audio_with_gemini/openai/groq(): the audio-native "Speaking
-    engine" path - one multimodal call does transcription + feedback
-    together, instead of transcribing via services.asr first.
+  - assess_audio_with_gemini/openai/groq(): legacy audio-native adapters kept
+    for compatibility with teacher tools. The student analysis path uses the
+    separate ASR service and calls these coaching adapters only after Praat
+    evidence is finalized.
 
 apply_feedback_quality_gate() is the final server-side step after Praat/ASR:
 generative providers can suggest coaching, but never get to decide whether
@@ -487,6 +488,9 @@ async def generate_language_feedback(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    praat_pause_analysis: Dict | None = None,
+    praat_speech_rate: float = 0,
+    word_prosody: List[Dict] | None = None,
     provider: str | None = None,
     image_b64: str | None = None,
     image_mime: str = "",
@@ -505,18 +509,48 @@ async def generate_language_feedback(
     Groq's text model has no vision input, so it's ignored there.
     """
     text = transcription.strip()
-    args = (text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
+    local_args = (
+        text,
+        scene_prompt,
+        scene_vocabulary,
+        praat_tone_accuracy,
+        praat_fluency_score,
+        praat_vowel_quality,
+    )
     ref_kwargs = {
         "scene_phrases": scene_phrases,
         "scene_suggested_answer": scene_suggested_answer,
         "scene_attempt_number": scene_attempt_number,
     }
     if not text:
-        return fallback_language_feedback(*args, image_b64=image_b64, **ref_kwargs)
+        result = fallback_language_feedback(*local_args, praat_pause_analysis=praat_pause_analysis, praat_speech_rate=praat_speech_rate, word_prosody=word_prosody, image_b64=image_b64, **ref_kwargs)
+        result["feedback_provenance"] = _feedback_provenance(provider, "local", True, True)
+        return result
 
     chosen = (provider or AI_FEEDBACK_PROVIDER or "local").strip().lower()
     if chosen == "local":
-        return fallback_language_feedback(*args, image_b64=image_b64, **ref_kwargs)
+        result = fallback_language_feedback(*local_args, praat_pause_analysis=praat_pause_analysis, praat_speech_rate=praat_speech_rate, word_prosody=word_prosody, image_b64=image_b64, **ref_kwargs)
+        result["feedback_provenance"] = _feedback_provenance(provider, "local", False, True)
+        return result
+
+    acoustic_context = (
+        "\nFinalized Praat evidence (use this evidence for coaching; do not "
+        "replace the deterministic score or verdict):\n"
+        f"- Tone accuracy: {praat_tone_accuracy:.1f}"
+        f"{' (not measured)' if praat_tone_accuracy <= 0 else ''}\n"
+        f"- Fluency score: {praat_fluency_score:.1f}"
+        f"{' (not measured)' if praat_fluency_score <= 0 else ''}\n"
+        f"- Speech rate: {praat_speech_rate:.2f}"
+        f"{' (not measured)' if praat_speech_rate <= 0 else ''}\n"
+        f"- Vowel quality: {praat_vowel_quality or 'not measured'}\n"
+        f"- Pause analysis: {json.dumps(praat_pause_analysis or 'not measured', ensure_ascii=False)}\n"
+        f"- Word prosody: {json.dumps(word_prosody or 'not measured', ensure_ascii=False)}"
+    )
+    cloud_args = (
+        text,
+        f"{scene_prompt}{acoustic_context}",
+        scene_vocabulary,
+    )
 
     # Build priority order: chosen provider first, then others as fallback.
     all_providers = ["groq", "gemini", "openai"]
@@ -531,11 +565,47 @@ async def generate_language_feedback(
         if not keys.get(name):
             continue
         try:
-            return await callers[name](*args, image_b64=image_b64, image_mime=image_mime, **ref_kwargs)
+            result = await callers[name](
+                *cloud_args,
+                praat_tone_accuracy=praat_tone_accuracy,
+                praat_fluency_score=praat_fluency_score,
+                praat_vowel_quality=praat_vowel_quality,
+                praat_pause_analysis=praat_pause_analysis,
+                praat_speech_rate=praat_speech_rate,
+                word_prosody=word_prosody,
+                image_b64=image_b64,
+                image_mime=image_mime,
+                **ref_kwargs,
+            )
+            result["feedback_provenance"] = _feedback_provenance(provider, name, name != chosen, True)
+            return result
         except Exception as exc:
             print(f"{name} feedback failed, trying next engine: {exc}")
 
-    return fallback_language_feedback(*args, image_b64=image_b64, **ref_kwargs)
+    result = fallback_language_feedback(*local_args, praat_pause_analysis=praat_pause_analysis, praat_speech_rate=praat_speech_rate, word_prosody=word_prosody, image_b64=image_b64, **ref_kwargs)
+    result["feedback_provenance"] = _feedback_provenance(provider, "local", True, True)
+    return result
+
+
+def _feedback_provenance(
+    requested: str | None,
+    executed: str,
+    fallback: bool,
+    acoustic: bool,
+) -> Dict:
+    return {
+        "requested_provider": (
+            requested or AI_FEEDBACK_PROVIDER or "local"
+        ).strip().lower(),
+        "executed_provider": executed,
+        "fallback_used": bool(fallback),
+        "fallback_reason": "provider_unavailable_or_failed" if fallback else None,
+        "acoustic_context_used": bool(acoustic),
+        "acoustic_context_supplied": bool(acoustic),
+        "pronunciation_source": (
+            "praat_acoustic_measurements" if acoustic else "local_deterministic"
+        ),
+    }
 
 
 async def _feedback_with_groq(
@@ -545,6 +615,9 @@ async def _feedback_with_groq(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    praat_pause_analysis: Dict | None = None,
+    praat_speech_rate: float = 0,
+    word_prosody: List[Dict] | None = None,
     image_b64: str | None = None,
     image_mime: str = "",
     scene_phrases: str = "",
@@ -570,6 +643,9 @@ async def _feedback_with_groq(
                 "role": "user",
                 "content": _feedback_prompt(
                     transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+                    praat_pause_analysis=praat_pause_analysis,
+                    praat_speech_rate=praat_speech_rate,
+                    word_prosody=word_prosody,
                     scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
                     scene_attempt_number=scene_attempt_number,
                 ),
@@ -602,6 +678,9 @@ async def _feedback_with_openai(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    praat_pause_analysis: Dict | None = None,
+    praat_speech_rate: float = 0,
+    word_prosody: List[Dict] | None = None,
     image_b64: str | None = None,
     image_mime: str = "",
     scene_phrases: str = "",
@@ -610,6 +689,9 @@ async def _feedback_with_openai(
 ) -> Dict:
     prompt_text = _feedback_prompt(
         transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+        praat_pause_analysis=praat_pause_analysis,
+        praat_speech_rate=praat_speech_rate,
+        word_prosody=word_prosody,
         has_image=bool(image_b64),
         scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
         scene_attempt_number=scene_attempt_number,
@@ -1037,6 +1119,9 @@ async def _feedback_with_gemini(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    praat_pause_analysis: Dict | None = None,
+    praat_speech_rate: float = 0,
+    word_prosody: List[Dict] | None = None,
     image_b64: str | None = None,
     image_mime: str = "",
     scene_phrases: str = "",
@@ -1048,6 +1133,9 @@ async def _feedback_with_gemini(
             "text": _feedback_prompt(
                 transcription, scene_prompt, scene_vocabulary,
                 praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+                praat_pause_analysis=praat_pause_analysis,
+                praat_speech_rate=praat_speech_rate,
+                word_prosody=word_prosody,
                 has_image=bool(image_b64),
                 scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
                 scene_attempt_number=scene_attempt_number,
@@ -1104,6 +1192,9 @@ def _feedback_prompt(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    praat_pause_analysis: Dict | None = None,
+    praat_speech_rate: float = 0,
+    word_prosody: List[Dict] | None = None,
     has_image: bool = False,
     scene_phrases: str = "",
     scene_suggested_answer: str = "",
@@ -1137,13 +1228,15 @@ Note: a word counts as "used" if the student pronounced it correctly even if the
                 "student can self-correct.\n"
             )
 
-    praat_context = ""
-    if praat_tone_accuracy > 0 or praat_fluency_score > 0:
-        praat_context = f"""
-Praat acoustic data (use to inform pronunciation feedback):
-- Tone accuracy: {round(praat_tone_accuracy)}%
-- Fluency score: {round(praat_fluency_score)}%
-{f'- Vowel quality: {praat_vowel_quality}' if praat_vowel_quality else ''}
+    praat_context = f"""
+Praat acoustic data (use these finalized measurements to inform pronunciation feedback;
+never invent a value when a field says not measured):
+- Tone accuracy: {round(praat_tone_accuracy)}%{' (not measured)' if praat_tone_accuracy <= 0 else ''}
+- Fluency score: {round(praat_fluency_score)}%{' (not measured)' if praat_fluency_score <= 0 else ''}
+- Speech rate: {praat_speech_rate:.2f}{' (not measured)' if praat_speech_rate <= 0 else ''}
+- Vowel quality: {praat_vowel_quality or 'not measured'}
+- Pause analysis: {json.dumps(praat_pause_analysis or 'not measured', ensure_ascii=False)}
+- Word/syllable prosody: {json.dumps(word_prosody or 'not measured', ensure_ascii=False)}
 """
 
     image_context = (

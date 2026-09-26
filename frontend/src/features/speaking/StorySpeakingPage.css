@@ -171,6 +171,13 @@
   padding: var(--space-6);
 }
 
+.sa-speaking__feedback-source {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
+}
+
 .sa-speaking__self-eval {
   display: flex;
   flex-direction: column;

@@ -1,4 +1,4 @@
-import type { AssistiveFeedbackSyllable, BackendFeedbackQuality } from "@entities/speech";
+import type { AssistiveFeedbackSyllable, BackendFeedbackQuality, FeedbackProvenance } from "@entities/speech";
 import { averageWordProsodyAccuracy } from "../../../utils/storyRecorderFeedback";
 import type { SceneSubmission, StoredAudioRecord } from "../../../services/database";
 import type { SpeechModel, Topic } from "./storyContent";
@@ -33,6 +33,7 @@ export interface PraatMetrics {
   pause_analysis?: PauseAnalysis;
   feedback: string;
   ai_feedback?: LanguageFeedback;
+  feedback_provenance?: FeedbackProvenance;
   feedback_quality?: BackendFeedbackQuality;
   /** Transcript from the independent ASR/content check, when requested. */
   recognized_text?: string | null;
