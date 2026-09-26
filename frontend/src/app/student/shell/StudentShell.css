@@ -44,6 +44,9 @@
    returns to normal document flow below, where #sa-main exposes overflow. */
 @media (min-width: 901px) {
   .app-container.student-shell-app {
+    position: fixed;
+    inset: 0;
+    width: 100%;
     height: 100dvh;
     min-height: 0;
     overflow: hidden;
