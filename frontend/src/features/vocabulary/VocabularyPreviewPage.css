@@ -131,7 +131,49 @@
 .sa-vocab-preview__audio .sa-audio-control { min-width: 44px; min-height: 44px; border-radius: 999px; color: var(--color-primary); }
 .sa-vocab-preview__audio .sa-audio-control:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 32%, transparent); outline-offset: 2px; }
 
+/* Larger lessons use short review pages instead of one long wall of cards.
+   Twelve words keeps a desktop page to roughly three rows at the five-column
+   breakpoint while preserving enough room for the character, pinyin, meaning,
+   and 44px listen target. */
+.sa-vocab-preview__grid.is-paginated { gap: 12px; }
+.sa-vocab-preview__grid.is-paginated .sa-vocab-preview__card {
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+}
+.sa-vocab-preview__grid.is-paginated .sa-vocab-preview__word-stage {
+  min-height: 96px;
+  padding: 10px 6px;
+  border-radius: 12px;
+}
+.sa-vocab-preview__grid.is-paginated .sa-vocab-preview__card-footer {
+  padding-top: 6px;
+}
+.sa-vocab-preview__grid.is-paginated .sa-vocab-preview__meaning {
+  font-size: var(--font-size-small);
+}
+
+.sa-vocab-preview__pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+.sa-vocab-preview__pager-status {
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 @media (max-width: 560px) {
   .sa-vocab-preview__grid { grid-template-columns: 1fr; }
   .sa-vocab-preview__card { padding: 16px; }
+  .sa-vocab-preview__pager { flex-wrap: wrap; }
+  .sa-vocab-preview__pager-status { order: -1; width: 100%; text-align: center; }
+  .sa-vocab-preview__pager .sa-button { flex: 1; }
 }
