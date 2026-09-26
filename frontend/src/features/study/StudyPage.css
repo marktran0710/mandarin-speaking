@@ -184,16 +184,15 @@
   overflow-wrap: anywhere;
 }
 .study-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+  margin-top: 0;
   padding: var(--space-4) var(--space-5);
 }
 .study-progress > div:first-child {
   display: grid;
   gap: var(--space-1);
-  min-width: 180px;
+  min-width: 0;
 }
 .study-progress strong {
   color: var(--color-ink);
@@ -204,7 +203,7 @@
 }
 .study-progress-bar {
   height: 8px;
-  flex: 1;
+  width: 100%;
   background: var(--color-border);
   border-radius: var(--radius-control-full);
   overflow: hidden;
@@ -227,13 +226,6 @@
   .study-phases {
     grid-column: 2;
     grid-template-columns: repeat(2, 1fr);
-  }
-  .study-progress {
-    display: grid;
-    gap: var(--space-3);
-  }
-  .study-progress-bar {
-    width: 100%;
   }
 }
 

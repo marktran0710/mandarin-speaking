@@ -155,6 +155,15 @@ export default function StudyPage({
           </p>
         )}
       </StudentSection>
+      <StudentSection variant="tinted" className="study-progress">
+        <div>
+          <strong>學習進度 · Progress</strong>
+          <span>{percent}% 完成 · Keep your steady pace</span>
+        </div>
+        <div className="study-progress-bar">
+          <span style={{ width: `${percent}%` }} />
+        </div>
+      </StudentSection>
     </aside>
   );
   return (
@@ -273,15 +282,7 @@ export default function StudyPage({
           </StudentSection>
         </section>
       ))}
-      <StudentSection variant="tinted" className="study-progress">
-        <div>
-          <strong>學習進度 · Progress</strong>
-          <span>{percent}% 完成 · Keep your steady pace</span>
-        </div>
-        <div className="study-progress-bar">
-          <span style={{ width: `${percent}%` }} />
-        </div>
-      </StudentSection>
+
     </StudentPage>
   );
 }
