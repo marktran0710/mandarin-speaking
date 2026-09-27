@@ -21,5 +21,6 @@ def list_published_stories_for_audit(db) -> list[dict]:
 def list_quiz_attempts_for_audit(db) -> list[dict]:
     return db.execute(
         "SELECT id, student_id, student_name, mode, completed_at, question_results "
-        "FROM vocab_quiz_attempts"
+        "FROM vocab_quiz_attempts a "
+        "WHERE NOT EXISTS (SELECT 1 FROM students s WHERE s.id = a.student_id AND s.is_test_account)"
     ).fetchall()

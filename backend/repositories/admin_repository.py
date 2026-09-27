@@ -10,9 +10,12 @@ def fetch_roster_overview(db):
     round-trip. Returns (student_rows, teacher_rows, attempt_rows).
     """
     with db.pipeline():
-        students_cur = db.execute("SELECT * FROM students ORDER BY lower(name)")
+        students_cur = db.execute("SELECT * FROM students WHERE NOT is_test_account ORDER BY lower(name)")
         teachers_cur = db.execute("SELECT * FROM teachers ORDER BY lower(name)")
         attempts_cur = db.execute(
-            "SELECT * FROM vocab_quiz_attempts ORDER BY completed_at DESC"
+            "SELECT a.* FROM vocab_quiz_attempts a "
+            "LEFT JOIN students s ON s.id = a.student_id "
+            "WHERE COALESCE(s.is_test_account, FALSE) = FALSE "
+            "ORDER BY a.completed_at DESC"
         )
     return students_cur.fetchall(), teachers_cur.fetchall(), attempts_cur.fetchall()

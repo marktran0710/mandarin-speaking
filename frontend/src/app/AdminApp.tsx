@@ -50,7 +50,7 @@ type AdminRoute = {
   nav: CanonicalAdminNav;
   insightTab?: "students" | "measurement";
   speechTab?: "practice" | "asr";
-  learningTab?: "runtime" | "verification" | "replay";
+  learningTab?: "runtime" | "verification" | "verifier" | "replay";
 };
 
 function normalizeAdminRoute(nav: AdminNav): AdminRoute {

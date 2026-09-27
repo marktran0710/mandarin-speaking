@@ -99,6 +99,7 @@ def record_attempt(
     *,
     now,
     day_seconds: float,
+    evidence_origin: str = "real",
 ) -> list[dict]:
     """Persist a completed attempt, update BKT, and enroll/advance SRS as appropriate.
 
@@ -165,6 +166,7 @@ def record_attempt(
         identity_id,
         response_results=question_results,
         research_study_id=research_context.study_id,
+        evidence_origin=evidence_origin,
     )
 
     # Spaced-repetition schedule update for review sessions. Scheduling only
@@ -196,6 +198,7 @@ def record_response(
     *,
     now,
     day_seconds: float,
+    evidence_origin: str = "real",
 ) -> list[dict]:
     """Persist the answers seen so far without creating a completed attempt.
 
@@ -215,6 +218,7 @@ def record_response(
         identity_id,
         response_results=question_results,
         research_study_id=research_context.study_id,
+        evidence_origin=evidence_origin,
     )
     # Spaced-repetition schedule update for review sessions. Scheduling only
     # (BKT already updated above); a review answer advances/resets the

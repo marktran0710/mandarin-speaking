@@ -1,10 +1,13 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from dataclasses import dataclass
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 import security.auth as auth
 import services.vocab_quiz_attempt_service as vocab_quiz_attempt_service
+from services import algorithm_verifier_service
 from application.research.response_routing import get_research_context
 from analytics.learner_model.srs import DAY_SECONDS
 from config import settings
@@ -13,6 +16,41 @@ from api.schemas.models import VocabQuizAttemptRequest
 
 
 router = APIRouter()
+
+
+@dataclass(frozen=True)
+class _QuizWriteContext:
+    identity: auth.Identity
+    evidence_origin: str
+    run_id: str | None = None
+    step: int | None = None
+
+
+def _quiz_write_context(
+    request: Request,
+    identity: auth.Identity = Depends(auth.get_current_identity),
+) -> _QuizWriteContext:
+    run_id = request.headers.get("X-Algorithm-Verifier-Run")
+    verifier_student = request.headers.get("X-Algorithm-Verifier-Student")
+    raw_step = request.headers.get("X-Algorithm-Verifier-Step")
+    if not any((run_id, verifier_student, raw_step)):
+        if identity.role != "student":
+            raise HTTPException(status_code=403, detail="Student account required.")
+        return _QuizWriteContext(identity=identity, evidence_origin="real")
+    if identity.role != "admin":
+        raise HTTPException(status_code=403, detail="Verifier context requires an authenticated Admin.")
+    if not run_id or not verifier_student or raw_step is None:
+        raise HTTPException(status_code=403, detail="Verifier context headers are incomplete.")
+    try:
+        step = int(raw_step)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail="Verifier context step is invalid.") from exc
+    return _QuizWriteContext(
+        identity=auth.Identity(role="student", id=algorithm_verifier_service.INTEGRATION_STUDENT_ID),
+        evidence_origin="synthetic",
+        run_id=run_id,
+        step=step,
+    )
 
 
 def _dev_srs_today(today: Optional[str]) -> Optional[datetime]:
@@ -91,7 +129,7 @@ def list_vocab_quiz_attempts(
 def create_vocab_quiz_attempt(
     attempt: VocabQuizAttemptRequest,
     today: Optional[str] = None,
-    identity: auth.Identity = Depends(auth.require_student),
+    context: _QuizWriteContext = Depends(_quiz_write_context),
 ):
     # The client-facing response echoes exactly what the client sent, not the
     # server-resolved/authoritative version the service validates internally.
@@ -100,13 +138,23 @@ def create_vocab_quiz_attempt(
     ]
     with connect_db() as db:
         try:
+            if context.evidence_origin == "synthetic":
+                algorithm_verifier_service.lock_and_validate_verifier_context(
+                    db,
+                    run_id=context.run_id or "",
+                    student_id=context.identity.id,
+                    step=context.step if context.step is not None else -1,
+                )
             vocab_quiz_attempt_service.record_attempt(
-                db, attempt, identity.id,
+                db, attempt, context.identity.id,
                 now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+                evidence_origin=context.evidence_origin,
             )
-        except (vocab_quiz_attempt_service.AttemptConflictError, ValueError) as exc:
+            if context.evidence_origin == "synthetic":
+                algorithm_verifier_service.advance_verifier_context(db, step=context.step or 0)
+        except (vocab_quiz_attempt_service.AttemptConflictError, ValueError, algorithm_verifier_service.AlgorithmVerifierError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
-        research_context = get_research_context(db, identity.id)
+        research_context = get_research_context(db, context.identity.id)
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
@@ -122,15 +170,25 @@ def create_vocab_quiz_attempt(
 def record_vocab_quiz_response(
     attempt: VocabQuizAttemptRequest,
     today: Optional[str] = None,
-    identity: auth.Identity = Depends(auth.require_student),
+    context: _QuizWriteContext = Depends(_quiz_write_context),
 ):
     """Persist the answers seen so far without creating a completed attempt."""
     with connect_db() as db:
         try:
+            if context.evidence_origin == "synthetic":
+                algorithm_verifier_service.lock_and_validate_verifier_context(
+                    db,
+                    run_id=context.run_id or "",
+                    student_id=context.identity.id,
+                    step=context.step if context.step is not None else -1,
+                )
             question_results = vocab_quiz_attempt_service.record_response(
-                db, attempt, identity.id,
+                db, attempt, context.identity.id,
                 now=_dev_srs_today(today), day_seconds=_effective_srs_day_seconds(),
+                evidence_origin=context.evidence_origin,
             )
-        except ValueError as exc:
+            if context.evidence_origin == "synthetic":
+                algorithm_verifier_service.advance_verifier_context(db, step=context.step or 0)
+        except (ValueError, algorithm_verifier_service.AlgorithmVerifierError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"acceptedResponses": len(question_results)}

@@ -63,8 +63,8 @@ def bkt_sequence(
     trace: list[dict[str, Any]] = []
     prior = initial_mastery
     for index, observation in enumerate(observations, start=1):
-        question_type = str(observation.get("questionType") or "").strip().lower()
-        typed = question_type in typed_question_types
+        question_type = str(observation.get("questionType") or observation.get("questionFormat") or "").strip().lower()
+        typed = question_type in typed_question_types or question_type == "typed"
         step = bkt_step(
             prior,
             bool(observation.get("correct")),
@@ -126,4 +126,16 @@ def sm2_transition(
         "ease": next_ease,
         "nextDue": next_due,
         "rawInterval": interval_days * previous_ease if repetitions >= 2 and quality >= pass_quality else None,
+    }
+
+
+def sm2_enrollment(*, now: datetime, day_seconds: float, initial_ease: float = 2.5, interval_days: int = 1) -> dict[str, Any]:
+    """Return the independent first schedule created for a strong word."""
+    next_due = now + timedelta(seconds=interval_days * day_seconds)
+    return {
+        "repetitions": 1,
+        "intervalDays": interval_days,
+        "ease": float(initial_ease),
+        "nextDue": next_due,
+        "lastReviewedOn": now,
     }

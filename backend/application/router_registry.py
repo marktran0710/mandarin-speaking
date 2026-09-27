@@ -12,6 +12,7 @@ from routers.admin import router as admin_router
 from routers.admin_learning_engine import router as admin_learning_engine_router
 from routers.bkt_debug import router as bkt_debug_router
 from routers.bkt_verification import router as bkt_verification_router
+from routers.algorithm_verifier import router as algorithm_verifier_router
 from routers.knowledge_analytics import router as knowledge_analytics_router
 from routers.placement_test import router as placement_test_router
 from routers.asr import router as asr_router
@@ -38,6 +39,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(admin_learning_engine_router)
     app.include_router(bkt_debug_router)
     app.include_router(bkt_verification_router)
+    app.include_router(algorithm_verifier_router)
     app.include_router(knowledge_analytics_router)
     app.include_router(placement_test_router)
     app.include_router(asr_router)

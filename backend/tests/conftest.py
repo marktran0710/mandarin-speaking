@@ -102,6 +102,7 @@ TRUNCATED_TABLES = (
     "vocab_quiz_attempts",
     "vocab_quiz_irt_cache",
     "vocab_quiz_responses",
+    "algorithm_verifier_runs",
     "placement_test_attempts",
     "placement_test_blueprints",
     "student_vocab_mastery",

@@ -169,12 +169,15 @@ def update_bkt_trace(
     *,
     guess: float | None = None,
     slip: float | None = None,
+    learn_rate: float | None = None,
 ) -> dict[str, float]:
     """Return the production BKT arithmetic with intermediate values."""
     _validate_config(params)
     g = params.guess_rate if guess is None else guess
     s = params.slip_rate if slip is None else slip
+    transition = params.learn_rate if learn_rate is None else learn_rate
     _validate_guess_slip("guess", g, "slip", s)
+    _validate_probability("learn_rate", transition)
     p = clamp_probability(current_mastery)
     if correct:
         numerator = p * (1.0 - s)
@@ -183,7 +186,7 @@ def update_bkt_trace(
         numerator = p * s
         denominator = numerator + (1.0 - p) * (1.0 - g)
     posterior = numerator / denominator if denominator > 0.0 else p
-    resulting = clamp_probability(posterior + (1.0 - posterior) * params.learn_rate)
+    resulting = clamp_probability(posterior + (1.0 - posterior) * transition)
     return {
         "prior": p,
         "numerator": numerator,

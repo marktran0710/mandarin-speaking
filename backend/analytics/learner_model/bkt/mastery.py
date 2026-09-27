@@ -459,9 +459,13 @@ def rebuild_all_vocabulary_mastery(db: Any, params: BktConfig = BKT_CONFIG) -> N
 def record_attempt_and_rebuild(
     db: Any, attempt: Any, student_id: str, params: BktConfig = BKT_CONFIG,
     response_results: Iterable[Any] | None = None, research_study_id: str | None = None,
+    evidence_origin: str = "real",
 ) -> None:
     _lock_student_bkt(db, student_id)
-    upsert_raw_responses(db, response_rows_for_attempt(attempt, student_id, response_results, research_study_id))
+    rows = response_rows_for_attempt(attempt, student_id, response_results, research_study_id)
+    for row in rows:
+        row["evidence_origin"] = evidence_origin
+    upsert_raw_responses(db, rows)
     rebuild_student_vocabulary_mastery(db, student_id, params, acquire_lock=False)
 
 

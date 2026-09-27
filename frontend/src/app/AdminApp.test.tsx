@@ -56,7 +56,7 @@ describe("admin-only diagnostic navigation", () => {
 
     await user.click(screen.getByRole("button", { name: "Learning Engine" }));
     expect(screen.getByRole("tab", { name: "Runtime model" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "BKT verification" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Algorithm verifier" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Synthetic replay" })).toBeInTheDocument();
   });
 

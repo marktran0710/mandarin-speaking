@@ -12,6 +12,57 @@ python scripts/verify_learning_engine.py --engine all --provider groq --audio-di
 python scripts/manual_bkt_smoke.py --base-url http://127.0.0.1:8000 --student-id <id> --password <password>
 ```
 
+## Algorithm Verifier v1
+
+Admin -> Learning Engine -> Algorithm verifier reuses the existing Learning
+Engine route and contains three tabs: BKT, SM-2, and Integration. The BKT and
+SM-2 tabs compare production adapters with standard-library reference functions
+that do not import production learner-model code. Every result includes the
+explicit inputs, both traces, differences, tolerance, timestamp, and model
+fingerprint. The pinned BKT golden fixtures retain their `1e-9` tolerance;
+interactive BKT calculations use `0.001` by default.
+
+The BKT verifier exposes the production defaults (`P(L0)=0.20`, `P(T)=0.15`,
+MCQ `G/S=0.20/0.10`, typed `G/S=0.05/0.15`) as editable inputs. It shows the
+posterior numerator and denominator, the learning transition, and explicit
+clamping to `[0.000001, 0.999999]`. Presets cover single responses, format-aware
+success sequences, recovery, and high-probability failures. Application mastery
+is shown separately: the diagnostic gate still requires all three rounds, and a
+failed dimension needs two targeted corrective successes before enrollment.
+
+The SM-2 tab labels the implementation **Modified SM-2 behavior**. Student
+grading maps correct to quality `4` and wrong to quality `2`; enrollment starts
+at repetition `1`; intervals are `1`, `6`, then `round(previous interval *
+previous ease)` using Python ties-to-even. The raw product is displayed, along
+with exact timestamps, minimum ease `1.3`, due-cycle guards, and the development
+day compression value.
+
+The Integration tab is development-only and uses the published Lesson 8 reading
+fixture resolved by lesson `8`, section `3`, and canonical word IDs. It requires
+all seven words exactly once in each of `tier1`, `tier2`, and `tier3`. Focus words
+are `C8-8-3-W203` (年輕), `W204` (老), and `W205` (皮包); supporting diagnostics
+are `W206-W209`. The run submits real published question IDs through the normal
+quiz resolver, records synthetic provenance server-side, captures partial then
+completed persistence, and reports BKT, application mastery, SRS, and queue state
+after every stage. The reserved student is
+`test-stu-verifier-integration-001`; it is never enrolled in research studies.
+
+Reset deletes only that student's owned rows and the verifier report, then writes
+a clean `READY` run. A reserved ID without `is_test_account=true` blocks the
+operation. Verifier writes require an authenticated Admin, development mode, an
+active run, the exact reserved student selected by the server, and a monotonic
+step header. Normal student requests remain unchanged. Verifier rows are tagged
+`synthetic` and must be excluded from normal analytics, calibration, research
+exports, participant counts, and study summaries.
+
+The reproducible integration clock is `2026-08-01T00:00:00Z`; `D` is the active
+development scheduling-day length. After diagnostics, 老 reaches approximately
+`0.959495` but remains practice-required. Two correct meaning-practice answers
+enroll it. A correct review of 年輕 at `base + D` produces repetition `2`,
+interval `6`, and due time `base + 7D`; a wrong review at `base + 7D` resets the
+schedule and reopens targeted meaning practice. Queue reports distinguish due
+extras, weak entries, overlaps, exclusions, and ordering.
+
 The runner loads `backend/.env`, creates a uniquely named PostgreSQL database,
 applies Alembic to `head`, runs the focused API/ledger checks, and drops the
 database unless `--keep-database` is supplied. It writes a Markdown and JSON
