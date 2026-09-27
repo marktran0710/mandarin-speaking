@@ -24,6 +24,7 @@
 .algorithm-verifier-actions .admin-secondary-button { background: var(--clay-surface-card); }
 .algorithm-verifier-presets { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs); }
 .algorithm-verifier-presets span { color: var(--clay-muted); font-size: var(--text-xs); }
+.algorithm-verifier-presets button[aria-pressed="true"] { border-color: var(--jade); color: var(--jade-deep); background: var(--jade-soft); }
 .algorithm-verifier-badge { display: inline-flex; width: fit-content; padding: var(--space-2xs) var(--space-xs); border-radius: var(--clay-radius-pill); font-size: var(--text-xs); font-weight: 800; white-space: nowrap; }
 .algorithm-verifier-badge--pass { color: var(--jade-deep); background: var(--jade-soft); }
 .algorithm-verifier-badge--fail, .algorithm-verifier-badge--blocked, .algorithm-verifier-badge--model-contract-changed { color: var(--clay-error-deep); background: var(--clay-error-soft); }

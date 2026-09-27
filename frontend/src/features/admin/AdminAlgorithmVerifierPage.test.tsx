@@ -1,21 +1,135 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAlgorithmVerifierPage from "./AdminAlgorithmVerifierPage";
-import { getAlgorithmVerifierBootstrap, runSm2Verification } from "../../services/api/algorithm-verifier";
+import AdminBktVerificationPage from "./AdminBktVerificationPage";
+import { getAlgorithmVerifierBootstrap, runBktVerification, runSm2Verification } from "../../services/api/algorithm-verifier";
+
+vi.mock("./AdminBktVerificationPage", () => ({
+  default: vi.fn(() => <section aria-label="Live BKT panel" />),
+}));
 
 vi.mock("../../services/api/algorithm-verifier", () => ({
   getAlgorithmVerifierBootstrap: vi.fn(),
+  runBktVerification: vi.fn(),
   runSm2Verification: vi.fn(),
 }));
 
+const verifierBootstrap = {
+  model: {}, golden: { summary: { passed: 7, total: 7 } }, contractStatus: "PASS", sm2: {},
+  baselineSuites: { bkt: "PASS", sm2: "PASS" } as const,
+  integration: { enabled: false, studentId: "verifier", runId: "run", fixture: null, fixtureError: null },
+};
+
 beforeEach(() => {
-  vi.mocked(getAlgorithmVerifierBootstrap).mockReset().mockResolvedValue({
-    model: {}, golden: { summary: { passed: 7, total: 7 } }, contractStatus: "PASS", sm2: {},
-    baselineSuites: { bkt: "PASS", sm2: "PASS" },
-    integration: { enabled: false, studentId: "verifier", runId: "run", fixture: null, fixtureError: null },
-  });
+  vi.mocked(getAlgorithmVerifierBootstrap).mockReset().mockResolvedValue(verifierBootstrap);
   vi.mocked(runSm2Verification).mockReset();
+  vi.mocked(runBktVerification).mockReset();
+  vi.mocked(AdminBktVerificationPage).mockClear();
+});
+
+describe("BKT preset inputs", () => {
+  it("replaces typed wrong and custom inputs immediately with a complete MCQ sequence", async () => {
+    const user = userEvent.setup();
+    render(<AdminAlgorithmVerifierPage />);
+    await user.click(await screen.findByRole("button", { name: "Typed wrong" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Previous P(L)" }), { target: { value: "0.8" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "P(T)" }), { target: { value: "0.3" } });
+    await user.click(screen.getByRole("button", { name: "3 MCQ successes" }));
+
+    expect(screen.getByRole("combobox", { name: "Format" })).toHaveValue("mcq");
+    expect(screen.getByRole("combobox", { name: "Answer" })).toHaveValue("correct");
+    expect(screen.getByRole("spinbutton", { name: "Previous P(L)" })).toHaveValue(0.2);
+    expect(screen.getByRole("spinbutton", { name: "P(T)" })).toHaveValue(0.15);
+    expect(screen.getByRole("spinbutton", { name: "Guess" })).toHaveValue(0.2);
+    expect(screen.getByRole("spinbutton", { name: "Slip" })).toHaveValue(0.1);
+    expect(screen.getByRole("button", { name: "3 MCQ successes" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Selected BKT sequence")).toHaveTextContent("MCQ correct → MCQ correct → MCQ correct");
+    expect(runBktVerification).not.toHaveBeenCalled();
+
+    vi.mocked(runBktVerification).mockResolvedValue({ result: "PASS" });
+    await user.click(screen.getByRole("button", { name: "Run BKT update" }));
+    expect(runBktVerification).toHaveBeenCalledWith(expect.objectContaining({
+      prior: 0.2, questionFormat: "mcq", correct: true, guess: 0.2, slip: 0.1,
+      observations: Array.from({ length: 3 }, () => ({ correct: true, questionFormat: "mcq" })),
+    }));
+  });
+
+  it("loads typed sequence defaults from production and removes the sequence for a single answer", async () => {
+    vi.mocked(getAlgorithmVerifierBootstrap).mockResolvedValueOnce({
+      ...verifierBootstrap,
+      model: { parameters: { P_L0_initial_mastery: { value: 0.25 }, P_T_learn_rate: { value: 0.12 }, P_G_guess_typed: { value: 0.06 }, P_S_slip_typed: { value: 0.16 } } },
+    });
+    const user = userEvent.setup();
+    render(<AdminAlgorithmVerifierPage />);
+    await user.click(await screen.findByRole("button", { name: "3 typed successes" }));
+    expect(screen.getByRole("combobox", { name: "Format" })).toHaveValue("typed");
+    expect(screen.getByRole("combobox", { name: "Answer" })).toHaveValue("correct");
+    expect(screen.getByRole("spinbutton", { name: "Guess" })).toHaveValue(0.06);
+    expect(screen.getByRole("spinbutton", { name: "Slip" })).toHaveValue(0.16);
+    expect(screen.getByRole("spinbutton", { name: "Previous P(L)" })).toHaveValue(0.25);
+    expect(screen.getByRole("spinbutton", { name: "P(T)" })).toHaveValue(0.12);
+    expect(screen.getByLabelText("Selected BKT sequence")).toHaveTextContent("Typed correct → Typed correct → Typed correct");
+
+    await user.click(screen.getByRole("button", { name: "Typed wrong" }));
+    expect(screen.queryByLabelText("Selected BKT sequence")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "3 typed successes" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("combobox", { name: "Answer" })).toHaveValue("wrong");
+    vi.mocked(runBktVerification).mockResolvedValue({ result: "FAIL" });
+    await user.click(screen.getByRole("button", { name: "Run BKT update" }));
+    expect(runBktVerification).toHaveBeenCalledWith({ prior: 0.25, questionFormat: "typed", correct: false, learnRate: 0.12, guess: 0.06, slip: 0.16 });
+  });
+
+  it("leaves live traces untouched by calculator edits and still refreshes them on request", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<AdminAlgorithmVerifierPage refreshKey={0} />);
+    await screen.findByRole("region", { name: "Live BKT panel" });
+    const renders = vi.mocked(AdminBktVerificationPage).mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Recovery" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Format" }), "typed");
+    expect(screen.queryByLabelText("Selected BKT sequence")).not.toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Guess" })).toHaveValue(0.05);
+    expect(screen.getByRole("spinbutton", { name: "Slip" })).toHaveValue(0.15);
+    expect(AdminBktVerificationPage).toHaveBeenCalledTimes(renders);
+    rerender(<AdminAlgorithmVerifierPage refreshKey={1} />);
+    expect(AdminBktVerificationPage).toHaveBeenCalledTimes(renders + 1);
+  });
+});
+
+describe.each(["bkt", "sm2"] as const)("%s pending calculation", (tab) => {
+  it.each(["result", "error"])("ignores an outdated %s when a preset changes", async (settlement) => {
+    let resolve!: (result: Record<string, unknown>) => void;
+    let reject!: (reason: Error) => void;
+    const calculate = tab === "bkt" ? runBktVerification : runSm2Verification;
+    vi.mocked(calculate).mockReturnValueOnce(new Promise((done, fail) => { resolve = done; reject = fail; }));
+    const user = userEvent.setup();
+    render(<AdminAlgorithmVerifierPage initialTab={tab} />);
+    await user.click(await screen.findByRole("button", { name: tab === "bkt" ? "Run BKT update" : "Calculate review result" }));
+    const preset = tab === "bkt" ? "Typed wrong" : "Failed due review";
+    await user.click(screen.getByRole("button", { name: preset }));
+    expect(screen.getByRole("button", { name: preset })).toHaveAttribute("aria-pressed", "true");
+    if (tab === "bkt") expect(screen.getByRole("combobox", { name: "Answer" })).toHaveValue("wrong");
+    else expect(screen.getByRole("spinbutton", { name: "Review quality (0-5)" })).toHaveValue(2);
+    expect(calculate).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      if (settlement === "result") resolve({ result: "FAIL", formula: { observation: "Outdated calculation" } });
+      else reject(new Error("Outdated calculation"));
+    });
+    expect(screen.queryByText("FAIL")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getAllByText("NOT RUN")).toHaveLength(3);
+  });
+
+  it("clears an existing result after manually editing the inputs", async () => {
+    const calculate = tab === "bkt" ? runBktVerification : runSm2Verification;
+    vi.mocked(calculate).mockResolvedValue({ result: "FAIL" });
+    const user = userEvent.setup();
+    render(<AdminAlgorithmVerifierPage initialTab={tab} />);
+    await user.click(await screen.findByRole("button", { name: tab === "bkt" ? "Run BKT update" : "Calculate review result" }));
+    await screen.findAllByText("FAIL");
+    fireEvent.change(screen.getByRole("spinbutton", { name: tab === "bkt" ? "Guess" : "Ease before review" }), { target: { value: tab === "bkt" ? "0.3" : "2.8" } });
+    expect(screen.queryByText("FAIL")).not.toBeInTheDocument();
+  });
 });
 
 describe("SM-2 production lifecycle presets", () => {

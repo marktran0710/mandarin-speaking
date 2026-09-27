@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import AdminBktVerificationPage from "./AdminBktVerificationPage";
 import {
   getAlgorithmVerifierBootstrap,
@@ -15,11 +15,17 @@ import "./AdminAlgorithmVerifierPage.css";
 
 type VerifierTab = "bkt" | "sm2" | "integration";
 
-const bktPresets: Array<[string, Record<string, unknown>]> = [
-  ["MCQ correct", { prior: 0.2, correct: true, questionFormat: "mcq" }],
-  ["MCQ wrong", { prior: 0.2, correct: false, questionFormat: "mcq" }],
-  ["Typed correct", { prior: 0.2, correct: true, questionFormat: "typed" }],
-  ["Typed wrong", { prior: 0.2, correct: false, questionFormat: "typed" }],
+// Keep live traces independent of calculator input changes.
+const LiveBktVerification = memo(AdminBktVerificationPage);
+
+type BktObservation = { correct: boolean; questionFormat: "mcq" | "typed" };
+type BktPreset = { prior?: number; correct?: boolean; questionFormat?: "mcq" | "typed"; observations?: BktObservation[] };
+
+const bktPresets: Array<[string, BktPreset]> = [
+  ["MCQ correct", { correct: true, questionFormat: "mcq" }],
+  ["MCQ wrong", { correct: false, questionFormat: "mcq" }],
+  ["Typed correct", { correct: true, questionFormat: "typed" }],
+  ["Typed wrong", { correct: false, questionFormat: "typed" }],
   ["3 MCQ successes", { observations: [{ correct: true, questionFormat: "mcq" }, { correct: true, questionFormat: "mcq" }, { correct: true, questionFormat: "mcq" }] }],
   ["3 typed successes", { observations: [{ correct: true, questionFormat: "typed" }, { correct: true, questionFormat: "typed" }, { correct: true, questionFormat: "typed" }] }],
   ["Correct / correct / wrong", { observations: [{ correct: true, questionFormat: "mcq" }, { correct: true, questionFormat: "mcq" }, { correct: false, questionFormat: "mcq" }] }],
@@ -59,40 +65,88 @@ function StatusSummary({ bootstrap, bktStatus, sm2Status, integrationStatus }: {
   </div>;
 }
 
+function useVerifierCalculation(calculate: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, onStatus: (status: string) => void, failureMessage: string) {
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [error, setError] = useState("");
+  const revision = useRef(0);
+  useEffect(() => () => { revision.current += 1; }, []);
+  const invalidate = () => {
+    revision.current += 1;
+    setResult(null);
+    setError("");
+    onStatus("NOT RUN");
+  };
+  const run = (input: Record<string, unknown>) => {
+    invalidate();
+    const requestedRevision = revision.current;
+    void calculate(input).then((next) => {
+      if (revision.current !== requestedRevision) return;
+      setResult(next);
+      onStatus(String(next.result));
+    }).catch((reason) => {
+      if (revision.current !== requestedRevision) return;
+      setError(reason instanceof Error ? reason.message : failureMessage);
+    });
+  };
+  return { result, error, run, invalidate };
+}
+
 function BktWorkbench({ bootstrap, refreshKey, onStatus }: { bootstrap: AlgorithmVerifierBootstrap; refreshKey?: number; onStatus: (status: string) => void }) {
   const model = bootstrap.model as { parameters?: Record<string, { value?: number }> };
   const parameters = model.parameters ?? {};
   const value = (key: string, fallback: number) => parameters[key]?.value ?? fallback;
-  const [input, setInput] = useState<Record<string, unknown>>({ prior: value("P_L0_initial_mastery", 0.2), correct: true, questionFormat: "mcq", learnRate: value("P_T_learn_rate", 0.15), guess: value("P_G_guess_mcq", 0.2), slip: value("P_S_slip_mcq", 0.1) });
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState("");
-  const applyPreset = (preset: Record<string, unknown>) => { const format = preset.questionFormat === "typed" ? "typed" : "mcq"; setInput((current) => ({ ...current, ...preset, guess: format === "typed" ? value("P_G_guess_typed", 0.05) : value("P_G_guess_mcq", 0.2), slip: format === "typed" ? value("P_S_slip_typed", 0.15) : value("P_S_slip_mcq", 0.1) })); };
-  const run = () => { setError(""); void runBktVerification(input).then((next) => { setResult(next); onStatus(String(next.result)); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Could not run BKT.")); };
+  const formatParameters = (format: string) => ({
+    guess: format === "typed" ? value("P_G_guess_typed", 0.05) : value("P_G_guess_mcq", 0.2),
+    slip: format === "typed" ? value("P_S_slip_typed", 0.15) : value("P_S_slip_mcq", 0.1),
+  });
+  const defaults = { prior: value("P_L0_initial_mastery", 0.2), correct: true, questionFormat: "mcq", learnRate: value("P_T_learn_rate", 0.15), ...formatParameters("mcq") };
+  const [input, setInput] = useState<Record<string, unknown>>(defaults);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const { result, error, run, invalidate } = useVerifierCalculation(runBktVerification, onStatus, "Could not run BKT.");
+  const changeInput = (changes: Record<string, unknown>) => {
+    setInput((current) => ({ ...current, ...changes }));
+    setSelectedPreset(null);
+    invalidate();
+  };
+  const applyPreset = (label: string, preset: BktPreset) => {
+    const first = preset.observations?.[0] ?? preset;
+    const format = first.questionFormat ?? "mcq";
+    setInput({ ...defaults, ...preset, questionFormat: format, correct: first.correct ?? true, ...formatParameters(format) });
+    setSelectedPreset(label);
+    invalidate();
+  };
+  const observations = input.observations as BktObservation[] | undefined;
   const production = result?.production as Record<string, unknown> | undefined;
   const reference = result?.reference as Record<string, unknown> | undefined;
   const productionTrace = production?.trace as Array<Record<string, unknown>> | undefined;
   return <div className="algorithm-verifier-stack">
     <section className="algorithm-verifier-panel"><div className="algorithm-verifier-panel-heading"><div><span className="admin-eyebrow">Independent equation check</span><h2>Manual BKT step or sequence</h2><p>Defaults are loaded from production metadata. Edit the values to inspect a custom calculation.</p></div><ResultBadge result={result ? String(result.result) : "NOT RUN"} /></div>
-      <div className="algorithm-verifier-form-grid"><label>Previous P(L)<input type="number" min="0" max="1" step="0.000001" value={String(input.prior ?? 0.2)} onChange={(event) => setInput({ ...input, prior: Number(event.target.value), observations: undefined })} /></label><label>Format<select value={String(input.questionFormat ?? "mcq")} onChange={(event) => applyPreset({ questionFormat: event.target.value, observations: undefined })}><option value="mcq">MCQ</option><option value="typed">Typed</option></select></label><label>Answer<select value={input.correct ? "correct" : "wrong"} onChange={(event) => setInput({ ...input, correct: event.target.value === "correct", observations: undefined })}><option value="correct">Correct</option><option value="wrong">Wrong</option></select></label><label>P(T)<input type="number" min="0" max="1" step="0.000001" value={String(input.learnRate ?? 0.15)} onChange={(event) => setInput({ ...input, learnRate: Number(event.target.value) })} /></label><label>Guess<input type="number" min="0" max="1" step="0.000001" value={String(input.guess ?? 0.2)} onChange={(event) => setInput({ ...input, guess: Number(event.target.value) })} /></label><label>Slip<input type="number" min="0" max="1" step="0.000001" value={String(input.slip ?? 0.1)} onChange={(event) => setInput({ ...input, slip: Number(event.target.value) })} /></label></div>
-      <div className="algorithm-verifier-actions"><button type="button" className="admin-primary-button" onClick={run}>Run BKT update</button><div className="algorithm-verifier-presets"><span>Presets</span>{bktPresets.map(([label, preset]) => <button type="button" key={label} onClick={() => applyPreset(preset)}>{label}</button>)}</div></div>{error && <p className="admin-error" role="alert">{error}</p>}
+      <div className="algorithm-verifier-form-grid">
+        <label>Previous P(L)<input type="number" min="0" max="1" step="0.000001" value={String(input.prior)} onChange={(event) => changeInput({ prior: Number(event.target.value), observations: undefined })} /></label>
+        <label>Format<select value={String(input.questionFormat)} onChange={(event) => changeInput({ questionFormat: event.target.value, ...formatParameters(event.target.value), observations: undefined })}><option value="mcq">MCQ</option><option value="typed">Typed</option></select></label>
+        <label>Answer<select value={input.correct ? "correct" : "wrong"} onChange={(event) => changeInput({ correct: event.target.value === "correct", observations: undefined })}><option value="correct">Correct</option><option value="wrong">Wrong</option></select></label>
+        <label>P(T)<input type="number" min="0" max="1" step="0.000001" value={String(input.learnRate)} onChange={(event) => changeInput({ learnRate: Number(event.target.value) })} /></label>
+        <label>Guess<input type="number" min="0" max="1" step="0.000001" value={String(input.guess)} onChange={(event) => changeInput({ guess: Number(event.target.value), observations: undefined })} /></label>
+        <label>Slip<input type="number" min="0" max="1" step="0.000001" value={String(input.slip)} onChange={(event) => changeInput({ slip: Number(event.target.value), observations: undefined })} /></label>
+      </div>
+      {observations && <p className="algorithm-verifier-note" aria-label="Selected BKT sequence"><strong>{observations.length} steps:</strong> {observations.map((step) => `${step.questionFormat === "typed" ? "Typed" : "MCQ"} ${step.correct ? "correct" : "wrong"}`).join(" → ")}. Format and Answer show the first step. Editing prior, format, answer, guess or slip switches to a single step.</p>}
+      <div className="algorithm-verifier-actions"><button type="button" className="admin-primary-button" onClick={() => run(input)}>Run BKT update</button><div className="algorithm-verifier-presets"><span>Presets</span>{bktPresets.map(([label, preset]) => <button type="button" key={label} aria-pressed={selectedPreset === label} onClick={() => applyPreset(label, preset)}>{label}</button>)}</div></div>{error && <p className="admin-error" role="alert">{error}</p>}
     </section>
     {result && <section className="algorithm-verifier-panel algorithm-verifier-results"><div className="algorithm-verifier-results-grid"><article><h3>Production</h3><dl><div><dt>Posterior</dt><dd>{displayNumber(production?.posterior)}</dd></div><div><dt>P(L) new</dt><dd>{displayNumber(production?.resultingMastery)}</dd></div></dl></article><article><h3>Independent reference</h3><dl><div><dt>Posterior</dt><dd>{displayNumber(reference?.posterior)}</dd></div><div><dt>P(L) new</dt><dd>{displayNumber(reference?.resultingMastery)}</dd></div></dl></article><article><h3>Difference / tolerance</h3><dl><div><dt>Absolute</dt><dd>{displayNumber(result.difference)}</dd></div><div><dt>Tolerance</dt><dd>{displayNumber(result.tolerance)}</dd></div></dl></article></div>{productionTrace && <div className="algorithm-verifier-history"><strong>Independent sequence progression</strong>{productionTrace.map((step, index) => <div key={index} className="algorithm-verifier-trace-row"><span>Step {index + 1}</span><span>{step.correct ? "correct" : "wrong"}</span><span>prior {displayNumber(step.prior)}</span><span>posterior {displayNumber(step.posterior)}</span><span>final {displayNumber(step.resultingMastery)}</span></div>)}</div>}<pre className="algorithm-verifier-formula">{JSON.stringify(result.formula, null, 2)}</pre><p className="algorithm-verifier-note">The effective prior is clamped to [0.000001, 0.999999] before the observation update and the final probability is clamped after the learning transition.</p></section>}
-    <AdminBktVerificationPage refreshKey={refreshKey} />
+    <LiveBktVerification refreshKey={refreshKey} />
   </div>;
 }
 
 function Sm2Workbench({ onStatus }: { onStatus: (status: string) => void }) {
   const [input, setInput] = useState<Record<string, unknown>>({ operation: "review", repetitions: 1, intervalDays: 1, ease: 2.5, quality: 4, now: "2026-08-02T00:00:00Z", daySeconds: 86400 });
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const { result, error, run, invalidate } = useVerifierCalculation(runSm2Verification, onStatus, "Could not run SM-2.");
   const enrolling = input.operation === "enroll";
-  const changeInput = (changes: Record<string, unknown>) => {
+  const changeInput = (changes: Record<string, unknown>, presetLabel: string | null = null) => {
     setInput((current) => ({ ...current, ...changes }));
-    setResult(null);
-    setError("");
-    onStatus("NOT RUN");
+    setSelectedPreset(presetLabel);
+    invalidate();
   };
-  const run = () => { setError(""); void runSm2Verification(input).then((next) => { setResult(next); onStatus(String(next.result)); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Could not run SM-2.")); };
   const production = result?.production as Record<string, unknown> | undefined;
   const reference = result?.reference as Record<string, unknown> | undefined;
   const completedInputs = result?.inputs as Record<string, unknown> | undefined;
@@ -116,8 +170,8 @@ function Sm2Workbench({ onStatus }: { onStatus: (status: string) => void }) {
         ? "Enrollment requires no existing schedule. The disabled review fields are ignored; no answer is graded and no quality is used. The timestamp starts the one-day wait until the first due review."
         : "Inputs describe the state before the review; the resulting state appears below after Run. Repetitions include the initial schedule created at enrollment. Student grading maps correct to q=4 and wrong to q=2."}</p>
       <div className="algorithm-verifier-actions">
-        <button type="button" className="admin-primary-button" onClick={run}>{enrolling ? "Calculate enrollment schedule" : "Calculate review result"}</button>
-        <div className="algorithm-verifier-presets"><span>Presets</span>{sm2Presets.map(([label, preset]) => <button type="button" key={label} onClick={() => changeInput(preset)}>{label}</button>)}</div>
+        <button type="button" className="admin-primary-button" onClick={() => run(input)}>{enrolling ? "Calculate enrollment schedule" : "Calculate review result"}</button>
+        <div className="algorithm-verifier-presets"><span>Presets</span>{sm2Presets.map(([label, preset]) => <button type="button" key={label} aria-pressed={selectedPreset === label} onClick={() => changeInput(preset, label)}>{label}</button>)}</div>
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
     </section>
