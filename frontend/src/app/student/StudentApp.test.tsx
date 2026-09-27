@@ -331,7 +331,7 @@ describe("StudentApp", () => {
     expect(
       phaseButton("生詞預習"),
     ).not.toBeDisabled();
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).toBeDisabled();
     expect(
       phaseButton("口語練習"),
     ).not.toBeDisabled();

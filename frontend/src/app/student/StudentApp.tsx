@@ -45,6 +45,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // sidebar. Speaking and Conversation use their shared vocabulary gate.
   // Only ever moves forward; see advancePhase.
   const [furthestPhase, setFurthestPhase] = useState<StudentPhase>("vocab-preview");
+  const [vocabularyPreviewCompleted, setVocabularyPreviewCompleted] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
   // Every scene/turn's latest submission for the topic currently in
   // progress, keyed so a re-recorded attempt replaces its own entry rather
@@ -64,6 +65,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     setSceneSubmissions({});
     setCompletedPractice("speaking");
     setPhase("vocab-preview");
+    setVocabularyPreviewCompleted(loadPhaseFlags(topicStoryId(topic)).vocab);
     // A previously earned three-star quiz is a completed gate when the
     // learner reopens the lesson; don't force the quiz just to re-enter
     // either practice path.
@@ -73,6 +75,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const backToStudy = () => {
     setActiveTopic(null);
   };
+
+  // Quiz stars and the phase watermark cannot substitute for previewing.
+  const vocabularyPracticeUnlocked = Boolean(activeTopic && vocabularyPreviewCompleted);
 
   useEffect(() => {
     setActiveProgression(null);
@@ -177,6 +182,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     ? (!topicHasQuiz(activeTopic) || activeStars >= PRACTICE_UNLOCK_STARS)
     : false;
 
+  const displayPhase = phase === "vocab-quiz" && !vocabularyPracticeUnlocked
+    ? "vocab-preview" : phase;
+
   const finishVocabularyQuiz = () => {
     refreshProgression();
     advancePhase("story-speaking");
@@ -192,15 +200,18 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     body = <PlacementPage live />;
   } else if (!activeTopic) {
     body = <StudyPage topics={topics} statusByStoryId={statusByStoryId} onOpenTopic={openTopic} />;
-  } else if (phase === "vocab-preview") {
+  } else if (displayPhase === "vocab-preview") {
     body = (
       <VocabularyPreviewPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        onStartSpeaking={() => advancePhase(topicHasQuiz(activeTopic) ? "vocab-quiz" : "story-speaking")}
+        onStartSpeaking={() => {
+          setVocabularyPreviewCompleted(true);
+          advancePhase(topicHasQuiz(activeTopic) ? "vocab-quiz" : "story-speaking");
+        }}
       />
     );
-  } else if (phase === "vocab-quiz") {
+  } else if (displayPhase === "vocab-quiz") {
     body = (
       <VocabularyQuizPage
         topic={activeTopic}
@@ -213,7 +224,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         }}
       />
     );
-  } else if (phase === "story-speaking") {
+  } else if (displayPhase === "story-speaking") {
     body = (
       <StorySpeakingPage
         topic={activeTopic}
@@ -227,7 +238,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         }}
       />
     );
-  } else if (phase === "conversation") {
+  } else if (displayPhase === "conversation") {
     body = (
       <ConversationPage
         topic={activeTopic}
@@ -241,7 +252,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         onBack={backToStudy}
       />
     );
-  } else if (phase === "submit") {
+  } else if (displayPhase === "submit") {
     body = (
       <SubmitStoryPage
         topic={activeTopic}
@@ -279,11 +290,12 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         studentName={studentName}
         currentLessonTitle={currentLessonTitle}
         activeSection={section}
-        activePhase={section === "study" && activeTopic ? phase : null}
+        activePhase={section === "study" && activeTopic ? displayPhase : null}
         quizStars={totalQuizStars}
         maxQuizStars={maxQuizStars}
         furthestPhase={furthestPhase}
         practiceChoicesUnlocked={practiceChoicesUnlocked}
+        vocabularyPracticeUnlocked={vocabularyPracticeUnlocked}
         onNavigateSection={(next) => {
           const cameFromSettings = section === "settings";
           setSection(next);
@@ -294,7 +306,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
             ? (next) => {
                 const reachable = next === "story-speaking" || next === "conversation"
                   ? practiceChoicesUnlocked
-                  : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
+                  : next === "vocab-quiz"
+                    ? vocabularyPracticeUnlocked
+                    : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
                 if (reachable) {
                   if (next === "story-speaking" || next === "conversation") {
                     setCompletedPractice(next === "conversation" ? "conversation" : "speaking");

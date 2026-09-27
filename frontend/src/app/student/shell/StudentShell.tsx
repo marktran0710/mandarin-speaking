@@ -15,6 +15,7 @@ interface StudentShellProps {
   maxQuizStars?: number;
   furthestPhase?: StudentPhase | null;
   practiceChoicesUnlocked?: boolean;
+  vocabularyPracticeUnlocked?: boolean;
   currentLessonTitle?: string;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
@@ -35,6 +36,7 @@ export default function StudentShell({
   maxQuizStars,
   furthestPhase,
   practiceChoicesUnlocked,
+  vocabularyPracticeUnlocked,
   currentLessonTitle,
   onNavigateSection,
   onNavigatePhase,
@@ -58,6 +60,7 @@ export default function StudentShell({
           maxQuizStars={maxQuizStars}
           furthestPhase={furthestPhase}
           practiceChoicesUnlocked={practiceChoicesUnlocked}
+          vocabularyPracticeUnlocked={vocabularyPracticeUnlocked}
           currentLessonTitle={currentLessonTitle}
           onNavigateSection={(section) => {
             onNavigateSection(section);

@@ -47,6 +47,8 @@ interface StudentSidebarProps {
   /** Unlocks Speaking and Conversation together, independently of the
    * furthest phase and conversation content availability. */
   practiceChoicesUnlocked?: boolean;
+  /** Vocabulary Practice opens only after completing Vocabulary Preview. */
+  vocabularyPracticeUnlocked?: boolean;
   currentLessonTitle?: string;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
@@ -61,6 +63,7 @@ export default function StudentSidebar({
   maxQuizStars = 0,
   furthestPhase,
   practiceChoicesUnlocked = false,
+  vocabularyPracticeUnlocked = false,
   currentLessonTitle,
   onNavigateSection,
   onNavigatePhase,
@@ -171,9 +174,11 @@ export default function StudentSidebar({
             </p>
             {PHASE_NAV.map((phase) => {
               const isPractice = phase.id === "story-speaking" || phase.id === "conversation";
-              const locked = isPractice
-                ? !practiceChoicesUnlocked
-                : PHASE_ORDER.indexOf(phase.id) > furthestIndex;
+              const locked = phase.id === "vocab-quiz"
+                ? !vocabularyPracticeUnlocked
+                : isPractice
+                  ? !practiceChoicesUnlocked
+                  : PHASE_ORDER.indexOf(phase.id) > furthestIndex;
               return (
                 <button
                   key={phase.id}
@@ -181,7 +186,7 @@ export default function StudentSidebar({
                   className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""} ${locked ? "is-locked" : ""}`}
                   aria-current={activePhase === phase.id ? "page" : undefined}
                   disabled={locked}
-                  aria-label={locked ? (isPractice ? "完成三星後解鎖" : "請先完成前一個步驟") : undefined}
+                  aria-label={locked ? (phase.id === "vocab-quiz" ? "請先完成生詞預習" : isPractice ? "完成三星後解鎖" : "請先完成前一個步驟") : undefined}
                   onClick={() => onNavigatePhase(phase.id)}
                 >
                   {locked ? (

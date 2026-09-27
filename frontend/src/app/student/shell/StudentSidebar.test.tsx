@@ -94,6 +94,7 @@ describe("StudentSidebar", () => {
         activeSection="study"
         activePhase="vocab-quiz"
         furthestPhase="vocab-quiz"
+        vocabularyPracticeUnlocked
         onNavigateSection={vi.fn()}
         onNavigatePhase={onNavigatePhase}
         onLogout={vi.fn()}
@@ -136,6 +137,30 @@ describe("StudentSidebar", () => {
     fireEvent.click(conversation);
     expect(onNavigatePhase).not.toHaveBeenCalled();
   });
+
+  it.each(["vocab-preview", "story-speaking", "completion"] as const)(
+    "requires completed Preview to open Vocabulary Practice at furthest phase %s",
+    (furthestPhase) => {
+      const onNavigatePhase = vi.fn();
+      const props = {
+        studentName: "Student One", activeSection: "study" as const, activePhase: "vocab-preview" as const,
+        furthestPhase, practiceChoicesUnlocked: true,
+        onNavigateSection: vi.fn(), onNavigatePhase, onLogout: vi.fn(),
+      };
+      const { rerender } = render(<StudentSidebar {...props} vocabularyPracticeUnlocked={false} />);
+      const vocabularyPractice = screen.getByText("詞彙練習").closest("button")!;
+      expect(vocabularyPractice).toBeDisabled();
+      fireEvent.click(vocabularyPractice);
+      expect(onNavigatePhase).not.toHaveBeenCalled();
+      expect(screen.getByText("口語練習").closest("button")).not.toBeDisabled();
+      expect(screen.getByText("對話練習").closest("button")).not.toBeDisabled();
+
+      rerender(<StudentSidebar {...props} vocabularyPracticeUnlocked />);
+      expect(vocabularyPractice).not.toBeDisabled();
+      fireEvent.click(vocabularyPractice);
+      expect(onNavigatePhase).toHaveBeenCalledWith("vocab-quiz");
+    },
+  );
 
   it.each(["vocab-preview", "vocab-quiz", "story-speaking", "conversation", "submit", "completion"] as const)(
     "uses the same practice gate for both modes at furthest phase %s",
