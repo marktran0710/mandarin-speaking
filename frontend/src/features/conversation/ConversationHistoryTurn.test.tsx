@@ -17,6 +17,7 @@ describe("ConversationHistoryTurn", () => {
     );
 
     expect(container.querySelectorAll("[data-role-header]")).toHaveLength(1);
+    expect(container.querySelector("[data-role-header] .sa-conversation__mascot")).toBeInTheDocument();
     expect(container.querySelector(".sa-bubble .sa-conversation__mascot")).toBeNull();
     expect(container.querySelector("[data-role-header] .sa-bubble-row__dot")).toBeInTheDocument();
 

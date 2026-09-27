@@ -1,4 +1,5 @@
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import RoleAvatar from "./RoleAvatar";
 
 interface ConversationRoleHeaderProps {
   role: "character" | "student";
@@ -14,8 +15,10 @@ export default function ConversationRoleHeader({ role, history = false }: Conver
       className={`sa-bubble-row__who${history ? " sa-bubble-row__who--history" : ""}`}
       data-role-header={role}
     >
+      <RoleAvatar role={role} compact={history} />
       <span className="sa-bubble-row__dot" aria-hidden="true" />
-      {history && isStudent ? <span lang="zh-Hant">你</span> : <StudentSystemText k={isStudent ? "yourResponse" : "speakingCharacter"} />}
+      {history && isStudent && <span lang="zh-Hant">{"\u4f60"}</span>}
+      {(!history || !isStudent) && <StudentSystemText k={isStudent ? "yourResponse" : "speakingCharacter"} />}
     </div>
   );
 }
