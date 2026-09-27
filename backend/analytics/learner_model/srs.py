@@ -46,6 +46,17 @@ class SrsState:
     last_reviewed_on: datetime | None = None
 
 
+def enrollment_state(now: datetime, *, day_seconds: float = DAY_SECONDS) -> SrsState:
+    """Create the first schedule for an application-level STRONG word."""
+    return SrsState(
+        reps=1,
+        ease=INITIAL_EASE,
+        interval_days=FIRST_INTERVAL_DAYS,
+        due_on=now + timedelta(seconds=FIRST_INTERVAL_DAYS * day_seconds),
+        last_reviewed_on=now,
+    )
+
+
 def quality_from_response(
     correct: bool,
     _time_ms: int | None = None,

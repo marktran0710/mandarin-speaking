@@ -19,6 +19,7 @@ from analytics.learner_model.srs import (
     is_due,
     quality_from_response,
     review,
+    enrollment_state,
     should_advance,
 )
 
@@ -165,13 +166,7 @@ def enroll_strong_words(
         # A newly official word receives its first one-day interval. This is
         # enrollment, not a maintenance answer: no artificial q=5 review is
         # generated and the ease remains at the configured initial value.
-        enrolled_state = SrsState(
-            reps=1,
-            ease=INITIAL_EASE,
-            interval_days=FIRST_INTERVAL_DAYS,
-            due_on=started_at + timedelta(seconds=day_seconds * FIRST_INTERVAL_DAYS),
-            last_reviewed_on=started_at,
-        )
+        enrolled_state = enrollment_state(started_at, day_seconds=day_seconds)
         accepted = record_srs_event(
             db,
             student_id,

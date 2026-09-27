@@ -153,6 +153,28 @@ def update_bkt(
     g = params.guess_rate if guess is None else guess
     s = params.slip_rate if slip is None else slip
     _validate_guess_slip("guess", g, "slip", s)
+    return update_bkt_trace(
+        current_mastery,
+        correct,
+        params,
+        guess=guess,
+        slip=slip,
+    )["resultingMastery"]
+
+
+def update_bkt_trace(
+    current_mastery: float,
+    correct: bool,
+    params: BktConfig = BKT_CONFIG,
+    *,
+    guess: float | None = None,
+    slip: float | None = None,
+) -> dict[str, float]:
+    """Return the production BKT arithmetic with intermediate values."""
+    _validate_config(params)
+    g = params.guess_rate if guess is None else guess
+    s = params.slip_rate if slip is None else slip
+    _validate_guess_slip("guess", g, "slip", s)
     p = clamp_probability(current_mastery)
     if correct:
         numerator = p * (1.0 - s)
@@ -161,7 +183,14 @@ def update_bkt(
         numerator = p * s
         denominator = numerator + (1.0 - p) * (1.0 - g)
     posterior = numerator / denominator if denominator > 0.0 else p
-    return clamp_probability(posterior + (1.0 - posterior) * params.learn_rate)
+    resulting = clamp_probability(posterior + (1.0 - posterior) * params.learn_rate)
+    return {
+        "prior": p,
+        "numerator": numerator,
+        "denominator": denominator,
+        "posterior": posterior,
+        "resultingMastery": resulting,
+    }
 
 
 def replay_bkt(

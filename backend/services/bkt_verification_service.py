@@ -34,6 +34,8 @@ from services.bkt_verification_golden import (
     GOLDEN_TOLERANCE,
     build_golden_report,
     golden_contract_status,
+    _reference_status,
+    _reference_trace,
 )
 
 
