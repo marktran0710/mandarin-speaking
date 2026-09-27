@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import HomePage from "../features/home/HomePage";
 import ErrorBoundary from "@shared/ui/ErrorBoundary";
 
@@ -149,16 +149,25 @@ export default function App() {
     saveLastVisitedPage(currentPage);
   }, [activeRole, currentPage]);
 
+  // Returning to the tab fires both `focus` and `visibilitychange`, and each
+  // used to re-download the full story list (every story's frames). Share
+  // one in-flight request between callers.
+  const publishedTopicsRequestRef = useRef<Promise<void> | null>(null);
   const refreshPublishedTopics = useCallback(async () => {
     if (!canUseDatabase()) {
       setPublishedTopics([]);
       return;
     }
-    try {
-      const stories = await listCustomStories();
-      saveCustomStories(stories);
-      setPublishedTopics(publishedTopicsFromStories(stories));
-    } catch {/* keep current */}
+    if (publishedTopicsRequestRef.current) return publishedTopicsRequestRef.current;
+    const request = (async () => {
+      try {
+        const stories = await listCustomStories();
+        saveCustomStories(stories);
+        setPublishedTopics(publishedTopicsFromStories(stories));
+      } catch {/* keep current */}
+    })().finally(() => { publishedTopicsRequestRef.current = null; });
+    publishedTopicsRequestRef.current = request;
+    return request;
   }, []);
 
   useEffect(() => {

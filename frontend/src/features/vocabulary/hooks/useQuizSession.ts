@@ -101,6 +101,11 @@ export function useQuizSession({
   const attemptStartedAtRef = useRef<string | null>(null);
   const plannedQuestionCountRef = useRef(0);
   const finishedRef = useRef(false);
+  // Per-answer response saves still in flight. The weak/due menu is refreshed
+  // once these settle (end of round / back to modes) rather than after every
+  // answer: each refresh re-runs the full server BKT replay twice
+  // (weak-words + review-queue), and nothing on the quiz screen reads it.
+  const pendingResponsesRef = useRef(new Set<Promise<unknown>>());
   const {
     stars,
     setAttempts,
@@ -301,7 +306,7 @@ export function useQuizSession({
     // complete, but Weak Words can now reflect the learner's latest answer.
     const shouldRecordLearningResponse = isBktEligible || mode === "weak_words" || mode === "maintenance_review";
     if (storyId && studentId && canUseDatabase() && shouldRecordLearningResponse) {
-      void recordVocabQuizResponse({
+      const saved: Promise<unknown> = recordVocabQuizResponse({
         id: quizId,
         storyId,
         studentName: studentName ?? "Student",
@@ -315,8 +320,14 @@ export function useQuizSession({
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: nextResults,
       })
-      .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
-        .catch(() => { /* final attempt persistence remains the fallback */ });
+        .catch(() => { /* final attempt persistence remains the fallback */ })
+        .finally(() => { pendingResponsesRef.current.delete(saved); });
+      pendingResponsesRef.current.add(saved);
+      if (isLast) {
+        void saved
+          .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
+          .catch(() => { /* retain the last known menu state */ });
+      }
     }
   };
 
@@ -465,7 +476,9 @@ export function useQuizSession({
     // The attempt has been posted before the learner can leave the summary.
     // Refresh here so the menu reflects that newly rebuilt BKT state without
     // requiring a route reload or completion of the other diagnostic tiers.
-    void Promise.all([refreshWeakWords(), refreshDueWords()]).catch(() => { /* retain the last known menu state */ });
+    void Promise.allSettled([...pendingResponsesRef.current])
+      .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
+      .catch(() => { /* retain the last known menu state */ });
   };
 
   return {

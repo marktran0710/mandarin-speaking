@@ -40,7 +40,7 @@ def get_student_priority_review_words(
 
 
 @router.get("/api/students/{student_id}/review-queue")
-async def get_student_review_queue(
+def get_student_review_queue(
     student_id: str,
     review_count: Optional[int] = None,
     story_id: Optional[str] = None,

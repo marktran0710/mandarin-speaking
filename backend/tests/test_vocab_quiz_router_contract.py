@@ -86,5 +86,8 @@ def test_facade_preserves_auth_chain_and_endpoint_shapes():
         if isinstance(route, APIRoute) and route.path.endswith("{word_id:path}/seen-items")
     )
     assert "{word_id:path}" in seen_route.path
-    assert iscoroutinefunction(vocab_quiz.record_vocab_quiz_response)
-    assert iscoroutinefunction(vocab_quiz.get_student_review_queue)
+    # These handlers only make blocking psycopg calls. They must stay plain
+    # `def` so Starlette runs them in its threadpool; as `async def` they ran
+    # on the event loop and stalled every other request on the worker.
+    assert not iscoroutinefunction(vocab_quiz.record_vocab_quiz_response)
+    assert not iscoroutinefunction(vocab_quiz.get_student_review_queue)

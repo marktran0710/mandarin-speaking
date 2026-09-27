@@ -42,6 +42,6 @@ class VocabularyMetadataEdit(BaseModel):
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-metadata")
-async def update_vocabulary_metadata(story_id: str, edit: VocabularyMetadataEdit):
+def update_vocabulary_metadata(story_id: str, edit: VocabularyMetadataEdit):
     with connect_db() as db:
         return story_vocabulary_metadata_service.update_vocabulary_metadata(db, story_id, edit)
