@@ -1,10 +1,13 @@
 import { useRef, useState } from "react";
 import StudentIcon from "./StudentIcon";
+import StudentSystemText from "./StudentSystemText";
+import { studentUiCopy, type StudentUiCopyKey } from "../../../i18n/student-ui-copy";
 import "./StudentAudioControl.css";
 
 interface StudentAudioControlProps {
   audioUrl?: string;
-  label: string;
+  label?: string;
+  labelKey?: StudentUiCopyKey;
   compact?: boolean;
   showDuration?: boolean;
 }
@@ -13,13 +16,14 @@ interface StudentAudioControlProps {
  * Plays only a real recorded/imported model clip. Missing audio is explicit
  * so content owners can identify records that still need an audio update.
  */
-export default function StudentAudioControl({ audioUrl, label, compact = false, showDuration = false }: StudentAudioControlProps) {
+export default function StudentAudioControl({ audioUrl, label, labelKey, compact = false, showDuration = false }: StudentAudioControlProps) {
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const available = Boolean(audioUrl?.trim());
-  const displayLabel = available ? label : "Audio not available";
+  const displayLabel = available ? (labelKey ? undefined : label ?? "聆聽") : "沒有音訊";
   const durationLabel = showDuration && duration !== null ? ` (${formatAudioDuration(duration)})` : "";
+  const ariaLabel = `${available ? (labelKey ? studentUiCopy[labelKey].zh : displayLabel) : "沒有音訊"}${durationLabel}`.trim();
 
   const handlePlay = () => {
     if (!audioUrl?.trim()) return;
@@ -43,11 +47,11 @@ export default function StudentAudioControl({ audioUrl, label, compact = false, 
       className={`sa-audio-control ${compact ? "is-compact" : ""}`}
       onClick={handlePlay}
       disabled={!available}
-      aria-label={`${displayLabel}${durationLabel}`}
+      aria-label={ariaLabel}
       aria-pressed={available ? playing : undefined}
     >
       <StudentIcon name={playing ? "graphic_eq" : "play_arrow"} size={compact ? 15 : 18} role="decorative" />
-      <span>{displayLabel}{durationLabel}</span>
+      <span>{available && labelKey ? <StudentSystemText k={labelKey} withinControl /> : displayLabel}{durationLabel}</span>
     </button>
   );
 }

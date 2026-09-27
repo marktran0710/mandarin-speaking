@@ -4,6 +4,7 @@ import StudentSection from "@shared/ui/student/StudentSection";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "@shared/ui/student/layout.css";
 import "./CompletionPage.css";
 
@@ -38,10 +39,9 @@ export default function CompletionPage({
   return (
     <div className="sa-page-container sa-page-container--narrow">
       <StudentPageHeader
-        eyebrowZh="課程完成"
-        eyebrowEn="Lesson Complete"
-        titleZh="完成！"
-        titleEn={topic.name}
+        eyebrowKey="lessonComplete"
+        context={<span lang="zh-Hant">{topic.name}</span>}
+        titleKey="finished"
       />
 
       <StudentSection variant="panel" className="sa-completion__stats">
@@ -66,29 +66,29 @@ export default function CompletionPage({
       <StudentSection variant="tinted" className="sa-completion__overall">
         <div>
           <strong>學習進度: {overallCompleted} / {overallTotal} ({overallPercent}%)</strong>
-          <span>持續學習，完成下一個課程單元</span>
+          <span><StudentSystemText k="keepLearning" /></span>
         </div>
-        <div className="sa-completion__overall-bar" aria-label={`${overallPercent}% of the course complete`}>
+        <div className="sa-completion__overall-bar" aria-label={`課程完成 ${overallPercent}%`}>
           <span style={{ width: `${overallPercent}%` }} />
         </div>
       </StudentSection>
 
       {nextTopic && (
         <StudentSection variant="panel" className="sa-completion__next">
-          <p className="sa-completion__next-label">下一課 · Next lesson</p>
+          <p className="sa-completion__next-label"><StudentSystemText k="nextLesson" /></p>
           <p className="sa-completion__next-title" lang="zh-Hant">{nextTopic.name}</p>
           {nextTopicUnlocked ? (
             <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => onStartNext(nextTopic)}>
-              開始學習 Start
+              <StudentSystemText k="start" withinControl />
             </StudentButton>
           ) : (
-            <StudentStatusPill tone="neutral">未開啟 Locked</StudentStatusPill>
+            <StudentStatusPill tone="neutral"><StudentSystemText k="locked" withinControl /></StudentStatusPill>
           )}
         </StudentSection>
       )}
 
       <StudentButton variant="secondary" onClick={onBackToStudy}>
-        回到課程目錄 Back to Study
+        <StudentSystemText k="backToStudy" withinControl />
       </StudentButton>
     </div>
   );

@@ -23,14 +23,14 @@ describe("Navigation student links", () => {
     const user = userEvent.setup();
     const onNavigate = renderStudentNav();
 
-    await user.click(screen.getByRole("button", { name: /My learning/ }));
+    await user.click(screen.getByRole("button", { name: /我的學習/ }));
     expect(onNavigate).toHaveBeenCalledWith("student-workspace");
   });
 
   it("hides every section tab in compact (mid-practice) mode", () => {
     renderStudentNav({ compact: true });
 
-    expect(screen.queryByRole("button", { name: /My learning/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /我的學習/ })).not.toBeInTheDocument();
   });
 });
 
@@ -49,7 +49,7 @@ describe("Navigation keeps the two modes unlinked", () => {
     );
 
     // The student login link is still expected — only the teacher door is gone.
-    expect(screen.getByRole("button", { name: /Student Login/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /學生登入/ })).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByText(/teacher/i)).not.toBeInTheDocument();
   });

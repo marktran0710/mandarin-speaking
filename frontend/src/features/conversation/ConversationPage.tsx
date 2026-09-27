@@ -5,9 +5,11 @@ import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentButton from "@shared/ui/student/StudentButton";
 import ConversationHistoryTurn from "./ConversationHistoryTurn";
+import ConversationRoleHeader from "./ConversationRoleHeader";
 import InterlocutorTurn from "./InterlocutorTurn";
 import StudentTurn from "./StudentTurn";
 import TurnFeedback from "./TurnFeedback";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { useConversationSession } from "./useConversationSession";
 import { SpeechSelfEvaluation } from "@entities/speech";
 import "./ConversationPage.css";
@@ -20,6 +22,19 @@ interface ConversationPageProps {
   onDone: () => void;
   onBack: () => void;
 }
+
+export function groupConversationTurns(turns: ConversationTurn[]) {
+  return turns.reduce<ConversationTurn[][]>((groups, turn) => {
+    const currentGroup = groups[groups.length - 1];
+    if (currentGroup && currentGroup[0].speaker === turn.speaker) {
+      currentGroup.push(turn);
+    } else {
+      groups.push([turn]);
+    }
+    return groups;
+  }, []);
+}
+
 export default function ConversationPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
   if (turns.length === 0) {
     return <ConversationEmptyPage topic={topic} onBack={onBack} />;
@@ -40,10 +55,10 @@ export default function ConversationPage({ topic, turns, onAddRecord, onSceneSub
 function ConversationEmptyPage({ topic, onBack }: Pick<ConversationPageProps, "topic" | "onBack">) {
   const header = (
     <StudentPageHeader
-      eyebrowZh="對話練習"
-      eyebrowEn="Conversation Practice"
-      titleZh={topic.name}
-      titleEn={topic.description || "Practice the dialogue"}
+      eyebrowKey="conversation"
+      titleKey="conversationPractice"
+      context={<span lang="zh-Hant">{topic.name}</span>}
+      subtitle={topic.description}
       onBack={onBack}
     />
   );
@@ -53,9 +68,9 @@ function ConversationEmptyPage({ topic, onBack }: Pick<ConversationPageProps, "t
       layout="task"
       header={header}
       state="empty"
-      emptyTitle={<><span lang="zh-Hant">對話內容尚未準備</span> · Conversation content is not ready yet</>}
-      emptyText={<><span lang="zh-Hant">請先回到學習頁，完成其他可用活動。</span> Return to Study and continue with another available activity.</>}
-      emptyAction={<StudentButton variant="secondary" onClick={onBack}>返回學習 · Back to Study</StudentButton>}
+      emptyTitle={<StudentSystemText k="conversationNotReady" />}
+      emptyText={<StudentSystemText k="conversationBackHint" />}
+      emptyAction={<StudentButton variant="secondary" onClick={onBack}><StudentSystemText k="backToStudy" withinControl /></StudentButton>}
     />
   );
 }
@@ -63,26 +78,27 @@ function ConversationEmptyPage({ topic, onBack }: Pick<ConversationPageProps, "t
 function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
   const session = useConversationSession({ topic, turns, onAddRecord, onSceneSubmission, onDone });
   const { state, currentTurn, historyTurns, exchange } = session;
+  const historyGroups = groupConversationTurns(historyTurns);
   const progress = exchange.total > 0 ? Math.min(100, (exchange.current / exchange.total) * 100) : 0;
 
   const header = (
     <StudentPageHeader
-      eyebrowZh="對話練習"
-      eyebrowEn="Conversation Practice"
-      titleZh={topic.name}
-      titleEn={topic.description || "Practice the dialogue"}
+      eyebrowKey="conversation"
+      titleKey="conversationPractice"
+      context={<span lang="zh-Hant">{topic.name}</span>}
+      subtitle={topic.description}
       onBack={onBack}
       aside={
         <div
           className="sa-conversation__progress"
-          aria-label={`Exchange ${exchange.current} of ${exchange.total}`}
+          aria-label={`第 ${exchange.current} / ${exchange.total} 輪`}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={exchange.total}
           aria-valuenow={exchange.current}
         >
           <span className="sa-conversation__progress-copy">
-            <span lang="zh-Hant">第{exchange.current}輪</span> · Exchange <strong>{exchange.current}</strong> / {exchange.total}
+            第 {exchange.current} / {exchange.total} 輪
           </span>
           <span className="sa-conversation__progress-track" aria-hidden="true">
             <span style={{ width: `${progress}%` }} />
@@ -94,10 +110,20 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
 
   return (
     <StudentPage layout="stage" header={header}>
-      <section className="sa-conversation__surface" aria-label="Conversation practice">
+      <section className="sa-conversation__surface" aria-label="對話練習">
         <div className="sa-conversation__workspace">
           <div className="sa-conversation__column">
-            {historyTurns.map((turn) => <ConversationHistoryTurn key={turn.id} turn={turn} />)}
+            {historyGroups.map((group) => (
+              <div className="sa-conversation__history-group" key={group[0].id}>
+                {group.map((turn, index) => (
+                  <ConversationHistoryTurn
+                    key={turn.id}
+                    turn={turn}
+                    showRoleHeader={index === group.length - 1}
+                  />
+                ))}
+              </div>
+            ))}
 
             {currentTurn && state.step === "system" && (
               <InterlocutorTurn turn={currentTurn} onContinue={session.handleListen} />
@@ -109,10 +135,9 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
 
             {currentTurn && state.step === "selfEval" && session.lastResult && (
               <div className="sa-bubble-row is-student is-current">
-                <span className="sa-bubble-row__who"><span lang="zh-Hant">雿???</span> · Your response</span>
+                <ConversationRoleHeader role="student" />
                 <SpeechSelfEvaluation
                   targetText={currentTurn.targetText || currentTurn.text}
-                  pinyin={currentTurn.pinyin}
                   translation={currentTurn.translation}
                   modelAudioUrl={currentTurn.targetAudioUrl || currentTurn.audioUrl}
                   audioBlob={session.lastResult.audioBlob}
@@ -129,10 +154,10 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
 
             {currentTurn && state.step === "feedback" && (
               <div className="sa-bubble-row is-student is-current">
-                <span className="sa-bubble-row__who"><span lang="zh-Hant">你的回答</span> · Your response</span>
+                <ConversationRoleHeader role="student" />
                 <TurnFeedback
                   session={session}
-                  continueLabel={state.turnIndex + 1 < turns.length ? "Next turn" : "Finish"}
+                  continueLabel={state.turnIndex + 1 < turns.length ? "next" : "finish"}
                 />
               </div>
             )}

@@ -2,6 +2,7 @@ import "./Navigation.css";
 import { Page } from "../../types/page";
 import { LoginRole } from "../../features/auth/LoginPage";
 import { BiLabel } from "@shared/ui";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import ToneMark from "../tone/ToneMark";
 import StudentIcon from "./StudentIcon";
 import useColorMode from "../../hooks/useColorMode";
@@ -62,7 +63,7 @@ export default function Navigation({
                   onClick={() => onNavigate("home")}
                 >
                   {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="home" /></span>}
-                  <BiLabel k="portals" />
+                  <StudentSystemText k="home" withinControl />
                 </button>
               </li>
               <li>
@@ -72,7 +73,7 @@ export default function Navigation({
                   onClick={() => onNavigate("student-login")}
                 >
                   {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="voice" /></span>}
-                  <BiLabel k="student_login" />
+                  <StudentSystemText k="studentLogin" withinControl />
                 </button>
               </li>
             </>
@@ -86,7 +87,7 @@ export default function Navigation({
                 onClick={() => onNavigate("student-workspace")}
               >
                 <span className="nav-link-icon"><StudentIcon name="home" /></span>
-                <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
+                <StudentSystemText k="myLearning" withinControl />
               </button>
             </li>
           )}
@@ -97,13 +98,21 @@ export default function Navigation({
               className="nav-link nav-color-mode"
               onClick={toggleColorMode}
               aria-pressed={colorMode === "dark"}
-              title={colorMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={
+                appVariant === "student"
+                  ? colorMode === "dark" ? "亮色" : "深色"
+                  : colorMode === "dark" ? "Switch to light mode" : "Switch to dark mode"
+              }
             >
               {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name={colorMode === "dark" ? "sun" : "moon"} /></span>}
               {colorMode === "dark" ? (
-                <BiLabel zh="亮色" pinyin="Liàngsè" en="Light" />
+                appVariant === "student"
+                  ? <StudentSystemText k="lightMode" withinControl />
+                  : <BiLabel zh="亮色" pinyin="Liàngsè" en="Light" />
               ) : (
-                <BiLabel zh="深色" pinyin="Shēnsè" en="Dark" />
+                appVariant === "student"
+                  ? <StudentSystemText k="darkMode" withinControl />
+                  : <BiLabel zh="深色" pinyin="Shēnsè" en="Dark" />
               )}
             </button>
           </li>
@@ -112,7 +121,9 @@ export default function Navigation({
             <li>
               <button type="button" className="nav-link logout" onClick={onLogout}>
                 {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="logout" /></span>}
-                <BiLabel k="log_out" />
+                {appVariant === "student"
+                  ? <StudentSystemText k="logout" withinControl />
+                  : <BiLabel k="log_out" />}
               </button>
             </li>
           )}

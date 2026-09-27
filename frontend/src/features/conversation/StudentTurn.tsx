@@ -3,6 +3,8 @@ import type { ConversationSession } from "./useConversationSession";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentAudioUpload from "@shared/ui/student/StudentAudioUpload";
 import BilingualWord from "@shared/ui/student/BilingualWord";
+import ConversationRoleHeader from "./ConversationRoleHeader";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 
 interface StudentTurnProps {
   turn: ConversationTurn;
@@ -11,13 +13,12 @@ interface StudentTurnProps {
 export default function StudentTurn({ turn, session }: StudentTurnProps) {
   const { recorder } = session;
   return (
-    <section className="sa-bubble-row is-student is-current" aria-label="Your response">
-      <span className="sa-bubble-row__who"><span lang="zh-Hant">你的回答</span> · Your response</span>
+    <section className="sa-bubble-row is-student is-current" aria-label="你的回答">
+      <ConversationRoleHeader role="student" />
       <div className="sa-bubble sa-bubble--target">
-        <span className="sa-conversation__target-label">Your turn</span>
+        <span className="sa-conversation__target-label"><StudentSystemText k="yourTurn" /></span>
         <BilingualWord
           hanzi={turn.targetText || turn.text}
-          pinyin={turn.pinyin}
           gloss={turn.translation}
           size="display"
         />
@@ -29,10 +30,10 @@ export default function StudentTurn({ turn, session }: StudentTurnProps) {
             disabled={recorder.isAnalyzing}
             onClick={recorder.isRecording ? recorder.stopRecording : session.handleRecord}
           >
-            {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
+            {recorder.isRecording ? <><StudentSystemText k="stop" withinControl />（{recorder.recordingDuration} 秒）</> : recorder.isAnalyzing ? <StudentSystemText k="analyzing" withinControl /> : <StudentSystemText k="record" withinControl />}
           </StudentButton>
           <StudentAudioUpload
-            label="Upload recording"
+            labelKey="upload"
             disabled={recorder.isRecording || recorder.isAnalyzing}
             onSelect={session.handleUpload}
           />

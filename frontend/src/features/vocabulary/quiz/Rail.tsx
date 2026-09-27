@@ -2,6 +2,7 @@ import type { VocabQuizEntry, VocabQuizQuestion, VocabQuizQuestionResult } from 
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { questionPresentation } from "./questionModel";
 
 interface QuizRailFlow {
@@ -24,14 +25,14 @@ function supportCopy(question: VocabQuizQuestion) {
   const surface = questionPresentation(question).surface;
   if (surface === "context") return null;
   if (surface === "pinyin") return {
-    title: "Tone guide",
+    title: "聲調提示",
     icon: "graphic_eq",
-    copy: "Tone 1 stays level, tone 2 rises, tone 3 dips, and tone 4 falls.",
+    copy: "第一聲平，第二聲上升，第三聲先降後升，第四聲下降。",
   };
   return {
-    title: "Meaning anchor",
+    title: "意思提示",
     icon: "lightbulb",
-    copy: "Connect the character form, reading, and meaning before you submit.",
+    copy: "提交前，把字形、讀音和意思連在一起。",
   };
 }
 
@@ -42,13 +43,13 @@ export default function QuizRail({ flow, question }: QuizRailProps) {
   const support = supportCopy(question);
 
   return (
-    <aside className="sa-quiz__rail sa-quiz__rail--sticky" aria-label="Quiz progress and support">
+    <aside className="sa-quiz__rail sa-quiz__rail--sticky" aria-label="測驗進度與提示">
       <StudentSection variant="panel" className="sa-quiz__rail-card">
-        <div className="sa-quiz__rail-heading"><span>Assessment</span><StudentStatusPill tone="success">In progress</StudentStatusPill></div>
+        <div className="sa-quiz__rail-heading"><StudentSystemText k="assessment" /><StudentStatusPill tone="success"><StudentSystemText k="inProgress" withinControl /></StudentStatusPill></div>
         <div className="sa-quiz__stats">
-          <div><span>Accuracy</span><strong>{accuracy}</strong></div>
-          <div><span>Done</span><strong>{flow.results.length}<small> / {total}</small></strong></div>
-          <div><span>Left</span><strong>{Math.max(0, total - flow.results.length)}</strong></div>
+          <div><span><StudentSystemText k="accuracy" /></span><strong>{accuracy}</strong></div>
+          <div><span><StudentSystemText k="done" /></span><strong>{flow.results.length}<small> / {total}</small></strong></div>
+          <div><span><StudentSystemText k="left" /></span><strong>{Math.max(0, total - flow.results.length)}</strong></div>
         </div>
       </StudentSection>
 
@@ -63,7 +64,7 @@ export default function QuizRail({ flow, question }: QuizRailProps) {
       )}
 
       <StudentSection variant="panel" className="sa-quiz__rail-card sa-quiz__question-map">
-        <div className="sa-quiz__rail-heading"><span>Question map</span><span className="sa-quiz__map-legend"><i className="is-done" /> Done <i className="is-current" /> Current</span></div>
+        <div className="sa-quiz__rail-heading"><StudentSystemText k="questionMap" /><span className="sa-quiz__map-legend"><i className="is-done" /> 完成 <i className="is-current" /> <StudentSystemText k="current" /></span></div>
         <ol>
           {Array.from({ length: total }, (_, index) => {
             const result = resultAt(flow.results, index);

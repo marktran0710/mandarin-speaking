@@ -5,6 +5,8 @@ import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill, { type StudentStatusTone } from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import type { StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import {
   unavailablePlacementSession,
   usePlacementSession,
@@ -27,42 +29,42 @@ export interface PlacementPageProps {
 }
 
 interface PlacementStatusPresentation {
-  label: string;
+  labelKey: StudentUiCopyKey;
   tone: StudentStatusTone;
-  heading: string;
-  body: string;
+  headingKey: StudentUiCopyKey;
+  bodyKey: StudentUiCopyKey;
 }
 
 const STATUS_PRESENTATION: Record<PlacementSessionStatus, PlacementStatusPresentation> = {
   unavailable: {
-    label: "Not available",
+    labelKey: "notAvailable",
     tone: "neutral",
-    heading: "Placement test not available",
-    body: "The placement assessment is not available in this learning workspace yet.",
+    headingKey: "placementUnavailable",
+    bodyKey: "placementNotConfigured",
   },
   loading: {
-    label: "Loading",
+    labelKey: "loading",
     tone: "info",
-    heading: "Placement test is loading",
-    body: "The placement assessment is being prepared. No assessment data is shown until the session is ready.",
+    headingKey: "assessmentLoading",
+    bodyKey: "assessmentPreparing",
   },
   ready: {
-    label: "Ready",
+    labelKey: "ready",
     tone: "info",
-    heading: "Placement test is ready",
-    body: "The placement assessment can be connected here when its learner-facing session contract is available.",
+    headingKey: "assessmentReady",
+    bodyKey: "assessmentStartHint",
   },
   complete: {
-    label: "Complete",
+    labelKey: "complete",
     tone: "success",
-    heading: "Placement test complete",
-    body: "Placement results will appear here when the assessment result contract is available.",
+    headingKey: "placementComplete",
+    bodyKey: "placementResultShown",
   },
   error: {
-    label: "Unavailable",
+    labelKey: "unavailable",
     tone: "danger",
-    heading: "Placement test unavailable",
-    body: "The placement assessment could not be loaded. No assessment data is shown.",
+    headingKey: "placementUnavailable",
+    bodyKey: "placementLoadError",
   },
 };
 
@@ -75,11 +77,9 @@ function UnavailablePlacementPage({ adapter = unavailablePlacementSession }: Pla
       layout="task"
       header={
         <StudentPageHeader
-          eyebrowZh="入門測驗"
-          eyebrowEn="Placement"
-          titleZh="入門測驗"
-          titleEn="Placement Test"
-          aside={<StudentStatusPill tone={presentation.tone}>{presentation.label}</StudentStatusPill>}
+          eyebrowKey="placement"
+          titleKey="placementTest"
+          aside={<StudentStatusPill tone={presentation.tone}><StudentSystemText k={presentation.labelKey} withinControl /></StudentStatusPill>}
         />
       }
     >
@@ -95,17 +95,17 @@ function UnavailablePlacementPage({ adapter = unavailablePlacementSession }: Pla
               <StudentIcon name="flag" size={20} role="decorative" />
             </div>
             <div className="sa-placement__intro-copy">
-              <p className="sa-placement__kicker">Assessment availability</p>
-              <h2 id="placement-test-heading">{presentation.heading}</h2>
-              <p className="sa-placement__description">{presentation.body}</p>
+              <p className="sa-placement__kicker"><StudentSystemText k="assessmentAvailability" /></p>
+              <h2 id="placement-test-heading"><StudentSystemText k={presentation.headingKey} /></h2>
+              <p className="sa-placement__description"><StudentSystemText k={presentation.bodyKey} /></p>
             </div>
           </div>
 
           <div className="sa-placement__notice" role="status" aria-live="polite">
             <StudentIcon name="info" size={18} role="decorative" />
             <p>
-              <span lang="zh-Hant">入門測驗目前未開放。</span>
-              <span>Placement testing will appear here when it is enabled for learners.</span>
+              <StudentSystemText k="placementClosedNotice" />
+              <StudentSystemText k="placementEnabledNotice" />
             </p>
           </div>
         </div>
@@ -114,10 +114,10 @@ function UnavailablePlacementPage({ adapter = unavailablePlacementSession }: Pla
   );
 }
 
-function labelFor(question: PlacementQuestion): string {
-  if (question.questionType === "basic_meaning_mcq") return "Meaning check";
-  if (question.questionType === "character_to_pinyin_typing") return "Reading recall";
-  return "Context clue";
+function labelFor(question: PlacementQuestion): StudentUiCopyKey {
+  if (question.questionType === "basic_meaning_mcq") return "meaningCheck";
+  if (question.questionType === "character_to_pinyin_typing") return "readingRecall";
+  return "contextClue";
 }
 
 function shuffleQuestions(questions: PlacementQuestion[]): PlacementQuestion[] {
@@ -149,7 +149,7 @@ function PlacementAssessmentPage() {
   const loadBlueprint = () => {
     setStatus("loading");
     setError("");
-    void getPlacementBlueprint().then((data) => { setBlueprint(data); setQuestions(data.questions); setStatus("ready"); }).catch((reason) => { setError(reason instanceof Error ? reason.message : "Could not load the placement test."); setStatus("error"); });
+    void getPlacementBlueprint().then((data) => { setBlueprint(data); setQuestions(data.questions); setStatus("ready"); }).catch((reason) => { setError(reason instanceof Error ? reason.message : "入門測驗載入失敗。請再試一次。"); setStatus("error"); });
   };
 
   useEffect(() => {
@@ -161,7 +161,7 @@ function PlacementAssessmentPage() {
       setStatus("ready");
     }).catch((reason) => {
       if (!active) return;
-      setError(reason instanceof Error ? reason.message : "Could not load the placement test.");
+      setError(reason instanceof Error ? reason.message : "入門測驗載入失敗。請再試一次。");
       setStatus("error");
     });
     return () => { active = false; };
@@ -187,7 +187,7 @@ function PlacementAssessmentPage() {
       setResult(null);
       setStatus("answering");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not start the placement test.");
+      setError(reason instanceof Error ? reason.message : "入門測驗無法開始。請再試一次。");
       setStatus("error");
     }
   };
@@ -231,47 +231,47 @@ function PlacementAssessmentPage() {
       setResult(completed);
       setStatus("result");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not submit the placement test.");
+      setError(reason instanceof Error ? reason.message : "入門測驗無法提交。請再試一次。");
       setStatus("answering");
     }
   };
 
   const placementHeader = (aside?: React.ReactNode) => (
-    <StudentPageHeader eyebrowZh="入門測驗" eyebrowEn="Placement" titleZh="入門測驗" titleEn="Placement Test" aside={aside} />
+    <StudentPageHeader eyebrowKey="placement" titleKey="placementTest" aside={aside} />
   );
 
   if (status === "loading") {
-    return <StudentPage layout="task" header={placementHeader(<StudentStatusPill tone="info">Loading</StudentStatusPill>)} state="loading" />;
+    return <StudentPage layout="task" header={placementHeader(<StudentStatusPill tone="info"><StudentSystemText k="loading" withinControl /></StudentStatusPill>)} state="loading" />;
   }
   if (status === "error") {
     return (
       <StudentPage
         layout="task"
-        header={placementHeader(<StudentStatusPill tone="danger">Unavailable</StudentStatusPill>)}
-      ><StudentSection variant="panel" className="sa-placement__result"><StudentIcon name="error" size={30} role="decorative" /><p className="sa-placement__result-kicker">入門測驗 · Placement</p><h2>測驗暫時無法載入</h2><p>請檢查網路連線後再試一次。 The placement test could not be loaded. Please try again.</p><p className="sa-placement__error" role="alert">{error}</p><StudentButton variant="primary" onClick={loadBlueprint}>重試 · Try again</StudentButton></StudentSection></StudentPage>
+        header={placementHeader(<StudentStatusPill tone="danger"><StudentSystemText k="unavailable" withinControl /></StudentStatusPill>)}
+      ><StudentSection variant="panel" className="sa-placement__result"><StudentIcon name="error" size={30} role="decorative" /><p className="sa-placement__result-kicker"><StudentSystemText k="placementTest" /></p><h2><StudentSystemText k="placementUnavailableTitle" /></h2><p><StudentSystemText k="retryNetwork" /></p><p className="sa-placement__error" role="alert">{error}</p><StudentButton variant="primary" onClick={loadBlueprint}><StudentSystemText k="retry" withinControl /></StudentButton></StudentSection></StudentPage>
     );
   }
   if (!blueprint?.configured || blueprint.questionCount === 0) {
     return (
       <StudentPage
         layout="task"
-        header={placementHeader(<StudentStatusPill tone="neutral">Not available</StudentStatusPill>)}
+        header={placementHeader(<StudentStatusPill tone="neutral"><StudentSystemText k="notAvailable" withinControl /></StudentStatusPill>)}
         state="empty"
-        emptyTitle={<><span lang="zh-Hant">入門測驗尚未設定</span> · Placement test not available</>}
-        emptyText={<><span lang="zh-Hant">目前沒有可進行的測驗。請先回到課程繼續學習。</span> No assessment is available yet. Return to your course to keep learning.</>}
+        emptyTitle={<StudentSystemText k="placementNotSet" />}
+        emptyText={<StudentSystemText k="noPlacementQuestions" />}
       />
     );
   }
   if (status === "result" && result) {
     const congratulations = result.messageKey === "CONGRATULATIONS";
     return (
-      <StudentPage layout="task" header={placementHeader(<StudentStatusPill tone="success">Complete</StudentStatusPill>)}>
+      <StudentPage layout="task" header={placementHeader(<StudentStatusPill tone="success"><StudentSystemText k="complete" withinControl /></StudentStatusPill>)}>
         <StudentSection variant="panel" className="sa-placement__result">
           <StudentIcon name={congratulations ? "celebration" : "self_improvement"} size={34} role="decorative" />
-          <p className="sa-placement__result-kicker">Placement complete</p>
+          <p className="sa-placement__result-kicker"><StudentSystemText k="placementComplete" /></p>
           <h2>你答對 {result.correctCount} / {result.totalQuestions} 題。</h2>
           <p className="sa-placement__result-score">{result.percentage}%</p>
-          <p>{congratulations ? "Great work — you are ready to keep learning." : "Keep practising — every question helps build your learning path."}</p>
+          <p><StudentSystemText k={congratulations ? "greatWork" : "keepPractising"} /></p>
         </StudentSection>
       </StudentPage>
     );
@@ -283,19 +283,19 @@ function PlacementAssessmentPage() {
   const isLastQuestion = index + 1 === displayedQuestions.length;
 
   const questionAction = isLastQuestion
-    ? <StudentButton variant="primary" disabled={!selected.trim()} onClick={() => void finish()}>完成測驗 · Finish</StudentButton>
-    : <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={!selected.trim()} onClick={next}>下一題 · Next</StudentButton>;
+    ? <StudentButton variant="primary" disabled={!selected.trim()} onClick={() => void finish()}><StudentSystemText k="finishQuiz" withinControl /></StudentButton>
+    : <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={!selected.trim()} onClick={next}><StudentSystemText k="nextQuestion" withinControl /></StudentButton>;
 
   return (
     <StudentPage
       layout="task"
-      header={placementHeader(status === "answering" ? <StudentStatusPill tone="info">Question {index + 1} / {displayedQuestions.length}</StudentStatusPill> : undefined)}
+      header={placementHeader(status === "answering" ? <StudentStatusPill tone="info">第 {index + 1} / {displayedQuestions.length} 題</StudentStatusPill> : undefined)}
     >
-      {status === "ready" && <StudentSection variant="panel" className="sa-placement__start"><div><p className="sa-placement__kicker">入門測驗 · A short diagnostic</p><h2>看看你已經會什麼。</h2><p>本測驗使用已發布課程中的 {blueprint.questionCount} 個詞彙題。提交後，系統會更新你的學習紀錄。 This test uses {blueprint.questionCount} vocabulary questions from your published course material and updates your learning record after you submit.</p></div><div className="sa-placement__start-controls"><label className="sa-placement__randomize"><input type="checkbox" checked={randomize} onChange={(event) => setRandomize(event.target.checked)} /> 隨機排列題目 · Randomize display order</label><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => void start()}>開始測驗 · Start test</StudentButton></div></StudentSection>}
-      {(status === "starting" || status === "submitting") && <StudentSection variant="panel" className="sa-placement__start"><p role="status">{status === "starting" ? "Starting your assessment…" : "Saving your answers…"}</p></StudentSection>}
+      {status === "ready" && <StudentSection variant="panel" className="sa-placement__start"><div><p className="sa-placement__kicker"><StudentSystemText k="placementTest" /> · <StudentSystemText k="shortDiagnostic" /></p><h2><StudentSystemText k="placementIntro" /></h2><p><StudentSystemText k="placementDataNote" />（{blueprint.questionCount} 題）</p></div><div className="sa-placement__start-controls"><label className="sa-placement__randomize"><input type="checkbox" checked={randomize} onChange={(event) => setRandomize(event.target.checked)} /> <StudentSystemText k="randomizeQuestions" /></label><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => void start()}><StudentSystemText k="startTest" withinControl /></StudentButton></div></StudentSection>}
+      {(status === "starting" || status === "submitting") && <StudentSection variant="panel" className="sa-placement__start"><p role="status">{status === "starting" ? <StudentSystemText k="startingAssessment" /> : <StudentSystemText k="saveAnswers" />}</p></StudentSection>}
       {status === "answering" && activeQuestion && <div className="sa-placement">
-        <div className="sa-placement__progress" role="progressbar" aria-label="Placement progress" aria-valuemin={0} aria-valuemax={displayedQuestions.length} aria-valuenow={index + 1}><span style={{ width: `${progress}%` }} /></div>
-        <StudentSection variant="panel" className="sa-placement__question"><div className="sa-placement__question-meta"><span>{labelFor(activeQuestion)}</span><small>{activeQuestion.sourceStoryTitle}</small></div><p className="sa-placement__question-prompt">{activeQuestion.prompt || (activeQuestion.questionType === "character_to_pinyin_typing" ? `Type the pinyin for ${activeQuestion.targetWord}.` : "Choose the best answer.")}</p><h2 lang="zh-Hant">{activeQuestion.targetWord}</h2>{activeQuestion.questionType === "character_to_pinyin_typing" ? <label className="sa-placement__input">Pinyin with tones<input autoFocus value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="e.g. nǐ hǎo or ni3 hao3" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) { if (isLastQuestion) void finish(); else next(); } }} /></label> : <div className="sa-placement__options" role="group" aria-label="Answer options">{activeQuestion.options.map((option, optionIndex) => <button key={option} type="button" className={`sa-placement__option${selected === option ? " is-selected" : ""}`} onClick={() => saveCurrentAnswer(option)}><span>{optionIndex + 1}</span>{option}</button>)}</div>}<div className="sa-placement__question-footer">{error && <p role="alert" className="sa-placement__error">{error}</p>}{questionAction}</div></StudentSection>
+        <div className="sa-placement__progress" role="progressbar" aria-label="入門測驗進度" aria-valuemin={0} aria-valuemax={displayedQuestions.length} aria-valuenow={index + 1}><span style={{ width: `${progress}%` }} /></div>
+        <StudentSection variant="panel" className="sa-placement__question"><div className="sa-placement__question-meta"><span><StudentSystemText k={labelFor(activeQuestion)} /></span><small>{activeQuestion.sourceStoryTitle}</small></div><p className="sa-placement__question-prompt">{activeQuestion.prompt || (activeQuestion.questionType === "character_to_pinyin_typing" ? <><StudentSystemText k="typePinyinReading" />：{activeQuestion.targetWord}</> : <StudentSystemText k="chooseOption" />)}</p><h2 lang="zh-Hant">{activeQuestion.targetWord}</h2>{activeQuestion.questionType === "character_to_pinyin_typing" ? <label className="sa-placement__input"><StudentSystemText k="pinyinWithTones" /><input autoFocus value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="例如：nǐ hǎo 或 ni3 hao3" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) { if (isLastQuestion) void finish(); else next(); } }} /></label> : <div className="sa-placement__options" role="group" aria-label="答案選項">{activeQuestion.options.map((option, optionIndex) => <button key={option} type="button" className={`sa-placement__option${selected === option ? " is-selected" : ""}`} onClick={() => saveCurrentAnswer(option)}><span>{optionIndex + 1}</span>{option}</button>)}</div>}<div className="sa-placement__question-footer">{error && <p role="alert" className="sa-placement__error">{error}</p>}{questionAction}</div></StudentSection>
       </div>}
     </StudentPage>
   );

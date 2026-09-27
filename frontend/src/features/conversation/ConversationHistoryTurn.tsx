@@ -1,32 +1,30 @@
 import type { ConversationTurn } from "@entities/conversation";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import BilingualWord from "@shared/ui/student/BilingualWord";
+import ConversationRoleHeader from "./ConversationRoleHeader";
 
 interface ConversationHistoryTurnProps {
   turn: ConversationTurn;
+  showRoleHeader: boolean;
 }
 
-export default function ConversationHistoryTurn({ turn }: ConversationHistoryTurnProps) {
+export default function ConversationHistoryTurn({ turn, showRoleHeader }: ConversationHistoryTurnProps) {
   const isStudent = turn.speaker === "student";
   const audioUrl = turn.audioUrl || turn.targetAudioUrl;
 
   return (
-    <article className={`sa-bubble-row sa-bubble-row--compact ${isStudent ? "is-student" : "is-character"}`}>
-      <div className="sa-bubble-row__who">
-        <span className="sa-bubble-row__dot" aria-hidden="true" />
-        <span>{isStudent ? <><span lang="zh-Hant">你</span> · You</> : <><span lang="zh-Hant">對話角色</span> · Character</>}</span>
-      </div>
+    <article className={`sa-bubble-row sa-bubble-row--compact ${!showRoleHeader ? "is-grouped" : ""} ${isStudent ? "is-student" : "is-character"}`}>
+      {showRoleHeader && <ConversationRoleHeader role={isStudent ? "student" : "character"} history />}
       <div className="sa-bubble sa-bubble--history">
         <BilingualWord
           hanzi={turn.targetText || turn.text}
-          pinyin={turn.pinyin}
           gloss={turn.translation}
           size="inline"
         />
         {audioUrl && (
           <StudentAudioControl
             audioUrl={audioUrl}
-            label={isStudent ? "Replay response" : "Listen"}
+            labelKey={isStudent ? "replayAnswer" : "listen"}
             compact
             showDuration
           />

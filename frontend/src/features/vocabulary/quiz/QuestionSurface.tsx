@@ -11,6 +11,7 @@ import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import ToneKeypad from "./ToneKeypad";
 import {
   extractClozeSentence,
@@ -36,25 +37,13 @@ interface QuizQuestionSurfaceProps {
 }
 
 function RubyText({ text }: { text: string }) {
-  return (
-    <>
-      {sentenceSegments(text).map((segment, segmentIndex) => {
-        if (!segment.pinyin) return <span key={`${segment.text}-${segmentIndex}`}>{segment.text}</span>;
-        return Array.from(segment.text).map((character, characterIndex) => (
-          <ruby className="sa-quiz__cloze-ruby" key={`${character}-${segmentIndex}-${characterIndex}`}>
-            <span>{character}</span>
-            <rt>{segment.pinyin?.[characterIndex]}</rt>
-          </ruby>
-        ));
-      })}
-    </>
-  );
+  return <>{sentenceSegments(text).map((segment, index) => <span key={`${segment.text}-${index}`}>{segment.text}</span>)}</>;
 }
 
 function ClozePrompt({ prompt }: { prompt: string }) {
   const sentence = extractClozeSentence(prompt);
   return (
-    <div className="sa-quiz__cloze-stage" aria-label="Sentence completion prompt">
+    <div className="sa-quiz__cloze-stage" aria-label="完成句子">
       <p className="sa-quiz__cloze-sentence">
         <RubyText text={sentence.before} />
         {sentence.hasBlank && <span className="sa-quiz__cloze-slot" aria-label="missing word">____</span>}
@@ -67,10 +56,7 @@ function ClozePrompt({ prompt }: { prompt: string }) {
 function optionMeta(option: string, entries: VocabQuizEntry[]) {
   const entry = entries.find((candidate) => candidate.word.trim() === option.trim());
   if (!entry) return undefined;
-  return entry.pinyin || entry.translation ? {
-    pinyin: entry.pinyin,
-    translation: entry.translation,
-  } : undefined;
+  return entry.translation ? { translation: entry.translation } : undefined;
 }
 
 function OptionLabel({ option, surface, entries }: { option: string; surface: QuizSurfaceKind; entries: VocabQuizEntry[] }) {
@@ -80,7 +66,6 @@ function OptionLabel({ option, surface, entries }: { option: string; surface: Qu
       <span className="sa-quiz__option-label">{option}</span>
       {meta && (
         <span className="sa-quiz__option-meta">
-          {meta.pinyin && <span>{meta.pinyin}</span>}
           {meta.translation && <span>{meta.translation}</span>}
         </span>
       )}
@@ -92,10 +77,10 @@ function Feedback({ result, explanation }: { result: VocabQuizQuestionResult; ex
   return (
     <div className={`sa-quiz__feedback ${result.correct ? "is-correct" : "is-incorrect"}`} role="status" aria-live="polite">
       <StudentStatusPill tone={result.correct ? "success" : "attention"} icon={result.correct ? "check_circle" : "change_history"}>
-        {result.correct ? "Correct" : "Not quite"}
+        <StudentSystemText k={result.correct ? "correct" : "notQuite"} withinControl />
       </StudentStatusPill>
-      <strong>{result.correct ? "Good recognition." : "Keep this word in your next review."}</strong>
-      {!result.correct && result.correctAnswer && <span>Answer: {result.correctAnswer}</span>}
+      <strong><StudentSystemText k={result.correct ? "quizCorrectMessage" : "quizReviewMessage"} /></strong>
+      {!result.correct && result.correctAnswer && <span>答案：{result.correctAnswer}</span>}
       {explanation && <p>{explanation}</p>}
     </div>
   );
@@ -114,17 +99,19 @@ function Stimulus({
   if (presentation.surface === "context") {
     stage = <ClozePrompt prompt={presentation.prompt} />;
   } else {
-    stage = <BilingualWord hanzi={question.word} pinyin={presentation.pinyin} size="hero" />;
+    stage = <BilingualWord hanzi={question.word} size="hero" />;
   }
   const heading = presentation.surface === "context"
-    ? "Choose the word that completes the sentence."
-    : presentation.prompt;
+    ? <StudentSystemText k="chooseWordCompletesSentence" />
+    : presentation.promptKey && !presentation.prompt
+      ? <><StudentSystemText k={presentation.promptKey} />{presentation.promptData && <> <span>{presentation.promptData}</span></>}</>
+      : presentation.prompt;
 
   return (
     <StudentSection variant="panel" className="sa-quiz__stimulus-card">
       <div className="sa-quiz__card-heading">
         <div>
-          <span className="sa-quiz__section-kicker"><i /> {presentation.label}</span>
+          <span className="sa-quiz__section-kicker"><i /> <StudentSystemText k={presentation.labelKey} /></span>
           <h2 id="quiz-question-title">{heading}</h2>
         </div>
         <span className="sa-quiz__source-label">{lessonLabel}</span>
@@ -132,7 +119,7 @@ function Stimulus({
       <div className={`sa-quiz__word-stage sa-quiz__word-stage--${presentation.surface}`}>{stage}</div>
       {presentation.audioUrl && (
         <div className="sa-quiz__prompt-footer">
-          <StudentAudioControl audioUrl={presentation.audioUrl} label="Listen to model" showDuration />
+          <StudentAudioControl audioUrl={presentation.audioUrl} labelKey="modelAudio" showDuration />
         </div>
       )}
     </StudentSection>
@@ -191,15 +178,19 @@ export default function QuizQuestionSurface({
       <div className="sa-quiz__answer-section">
         <div className="sa-quiz__answer-heading">
           <div>
-            <p className="sa-quiz__section-kicker">Your response</p>
-            <h3>{freeText ? "Type the reading" : presentation.surface === "context" ? "Complete the sentence" : "Choose one option"}</h3>
+            <p className="sa-quiz__section-kicker"><StudentSystemText k="yourResponse" /></p>
+            <h3>{freeText ? <StudentSystemText k="typeReading" /> : presentation.surface === "context" ? <StudentSystemText k="completeSentence" /> : <StudentSystemText k="chooseOption" />}</h3>
           </div>
-          {!showingFeedback && !freeText && <span className="sa-quiz__keyboard-hint">Keys 1–{question.options.length} · Enter to submit</span>}
+          {!showingFeedback && !freeText && (
+            <span className="sa-quiz__keyboard-hint">
+              <StudentSystemText k="keyboardHint" children={`按 1–${question.options.length} 選擇 · 按 Enter 提交`} />
+            </span>
+          )}
         </div>
 
         {!showingFeedback && freeText && (
           <div className="sa-quiz__input-block">
-            <label htmlFor="sa-pinyin-input">Pinyin with tones</label>
+            <label htmlFor="sa-pinyin-input"><StudentSystemText k="pinyinWithTones" /></label>
             <input
               ref={inputRef}
               id="sa-pinyin-input"
@@ -217,13 +208,13 @@ export default function QuizQuestionSurface({
                 }
               }}
             />
-            <span id="sa-pinyin-help" className="sa-quiz__input-help">Use tone marks or tone numbers.</span>
+            <span id="sa-pinyin-help" className="sa-quiz__input-help"><StudentSystemText k="useToneMarks" /></span>
             <ToneKeypad inputRef={inputRef} value={pinyinDraft} onChange={onPinyinChange} />
           </div>
         )}
 
         {!showingFeedback && !freeText && (
-          <div className="sa-quiz__options" role="group" aria-label="Answer options">
+          <div className="sa-quiz__options" role="group" aria-label="答案選項">
             {question.options.map((option, index) => {
               const selected = draftAnswer === option;
               return (
@@ -233,7 +224,7 @@ export default function QuizQuestionSurface({
                   className={`sa-quiz__option ${selected ? "is-selected" : ""}`}
                   onClick={() => onDraftAnswerChange(option)}
                   aria-pressed={selected}
-                  aria-label={`Option ${index + 1}: ${option}`}
+                  aria-label={`選項 ${index + 1}：${option}`}
                 >
                   <span className="sa-quiz__option-index">{index + 1}</span>
                   <OptionLabel option={option} surface={presentation.surface} entries={entries} />
@@ -248,14 +239,14 @@ export default function QuizQuestionSurface({
 
         <div className="sa-quiz__actions">
           <div className="sa-quiz__action-note">
-            {!showingFeedback && !freeText && <span>{draftAnswer ? "Ready to submit." : "Select an option to check your answer."}</span>}
-            {!showingFeedback && freeText && <span>Enter a reading, then check your answer.</span>}
+            {!showingFeedback && !freeText && <span>{draftAnswer ? <StudentSystemText k="readyToSubmit" /> : <StudentSystemText k="submitChoiceHint" />}</span>}
+            {!showingFeedback && freeText && <span><StudentSystemText k="submitReadingHint" /></span>}
           </div>
           {showingFeedback ? (
-            <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onNext}>Next question</StudentButton>
+            <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onNext}><StudentSystemText k="nextQuestion" withinControl /></StudentButton>
           ) : (
             <StudentButton variant="primary" disabled={freeText ? !pinyinDraft.trim() : !draftAnswer} onClick={onSubmit}>
-              {freeText ? "Check answer" : "Submit answer"}
+              <StudentSystemText k={freeText ? "checkAnswer" : "submitAnswer"} withinControl />
             </StudentButton>
           )}
         </div>

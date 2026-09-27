@@ -19,6 +19,7 @@ import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentAudioUpload from "@shared/ui/student/StudentAudioUpload";
 import BilingualWord from "@shared/ui/student/BilingualWord";
 import StudentIcon from "@shared/ui/student/StudentIcon";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { SpeechResultReview, SpeechSelfEvaluation, type SelfEvalLevel } from "@entities/speech";
 import type { SpeakingAnalysisResult } from "./hooks/useSpeakingRecorder";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
@@ -302,10 +303,10 @@ export default function StorySpeakingPage({
       layout="stage"
       header={
         <StudentPageHeader
-          eyebrowZh={`???蝺渡? 繚 ?湔 ${selectedImageIndex + 1} / ${topic.images.length}`}
-          eyebrowEn={`Story Speaking 繚 Scene ${selectedImageIndex + 1} / ${topic.images.length}`}
-          titleZh={topic.name}
-          titleEn="Look, listen, and speak the target sentence"
+          eyebrowKey="storySpeaking"
+          titleKey="storySpeakingTitle"
+          context={<><span lang="zh-Hant">{topic.name}</span> · {selectedImageIndex + 1} / {topic.images.length}</>}
+          subtitle={<StudentSystemText k="lookListenSpeak" />}
         />
       }
       media={

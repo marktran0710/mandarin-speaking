@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import StudentIcon from "./StudentIcon";
 import StudentSection from "./StudentSection";
+import StudentSystemText from "./StudentSystemText";
 import "./layout.css";
 import "./StudentPage.css";
 
@@ -64,14 +65,14 @@ export default function StudentPage({
       <div className="sa-page__body">
         {state === "loading" && (
           <p className="sa-page__status" role="status">
-            <span lang="zh-Hant">載入中</span> · Loading…
+            <StudentSystemText k="loading" />
           </p>
         )}
 
         {state === "error" && (
           <StudentSection variant="panel" className="sa-page__state-card">
             <StudentIcon name="error" size={22} role="decorative" />
-            <p>{errorText ?? <><span lang="zh-Hant">發生錯誤</span> · Something went wrong.</>}</p>
+            <p>{errorText ?? <StudentSystemText k="genericError" />}</p>
           </StudentSection>
         )}
 

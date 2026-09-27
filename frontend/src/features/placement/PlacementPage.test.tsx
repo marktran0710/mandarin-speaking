@@ -28,9 +28,9 @@ describe("PlacementPage", () => {
     render(<PlacementPage live={false} />);
 
     expect(screen.getByRole("heading", { name: "入門測驗" })).toBeInTheDocument();
-    expect(screen.getByText("Placement Test")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Placement test not available" })).toBeInTheDocument();
-    expect(screen.getByText("Not available")).toBeInTheDocument();
+    expect(screen.getAllByText("入門測驗").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "入門測驗暫時無法使用" })).toBeInTheDocument();
+    expect(screen.getByText("尚未開放")).toBeInTheDocument();
     expect(screen.getByText("入門測驗目前未開放。")).toBeInTheDocument();
     expect(screen.queryByText(/timer|progress|HSK|TOCFL|score|question/i)).not.toBeInTheDocument();
   });
@@ -43,9 +43,9 @@ describe("PlacementPage", () => {
     const user = userEvent.setup();
     render(<PlacementPage />);
 
-    await screen.findByText(/開始測驗|Start test|Start placement test/);
-    expect(screen.queryByText("Question 1 / 2")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Start test|Start placement test/ }));
-    await waitFor(() => expect(screen.getByText("Question 1 / 2")).toBeInTheDocument());
+    await screen.findByText("開始測驗");
+    expect(screen.queryByText("第 1 / 2 題")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "開始測驗" }));
+    await waitFor(() => expect(screen.getByText("第 1 / 2 題")).toBeInTheDocument());
   });
 });

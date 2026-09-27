@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import HomePage from "../features/home/HomePage";
 import ErrorBoundary from "@shared/ui/ErrorBoundary";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 
 import StudentLoginPage from "../features/auth/StudentLoginPage";
 import Navigation from "../components/navigation/Navigation";
@@ -312,7 +313,7 @@ export default function App() {
         <div className="app-loading">
           <div className="app-loading-card">
             <div className="app-loading-icon" aria-hidden="true" />
-            <h2>Loading your progress…</h2>
+            <h2><StudentSystemText k="loadingProgress" /></h2>
           </div>
         </div>
       )}

@@ -116,11 +116,11 @@ describe("App role flows", () => {
 
     render(<App />);
 
-    await user.click(screen.getByRole("button", { name: /Student Login/ }));
-    await user.type(screen.getByLabelText(/Student name/), "Student Demo");
-    await user.type(screen.getByLabelText(/Password/), "123456");
+    await user.click(screen.getByRole("button", { name: /學生登入/ }));
+    await user.type(screen.getByPlaceholderText("打上你的名字"), "Student Demo");
+    await user.type(screen.getByPlaceholderText("輸入教師提供的密碼"), "123456");
     await user.click(
-      screen.getByRole("button", { name: /Enter Student Mode/ }),
+      screen.getByRole("button", { name: /進入學生模式/ }),
     );
 
     await waitFor(() => {
@@ -148,10 +148,10 @@ describe("App role flows", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<App />);
-    await user.click(screen.getByRole("button", { name: /Start Learning/ }));
-    await user.type(screen.getByLabelText(/Student name/), "App Flow Student");
-    await user.type(screen.getByLabelText(/Password/), "123456");
-    await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
+    await user.click(screen.getByRole("button", { name: /開始學習/ }));
+    await user.type(screen.getByPlaceholderText("打上你的名字"), "App Flow Student");
+    await user.type(screen.getByPlaceholderText("輸入教師提供的密碼"), "123456");
+    await user.click(screen.getByRole("button", { name: /進入學生模式/ }));
 
     expect(await screen.findByText("App Flow Student", { selector: ".sa-sidebar__identity-name" })).toBeInTheDocument();
 

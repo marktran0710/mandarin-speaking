@@ -54,26 +54,26 @@ describe("App — student data must be ready before a student route renders", ()
     render(<App />);
 
     expect(
-      screen.getByRole("heading", { name: /Loading your progress/ }),
+      screen.getByRole("heading", { name: /正在載入進度/ }),
     ).toBeInTheDocument();
     // The whole student route (rail included) is behind the gate, so while
     // it is loading the rail must not be on screen at all.
     expect(
-      screen.queryByRole("navigation", { name: "Learning areas" }),
+      screen.queryByRole("navigation", { name: "學習區域" }),
     ).not.toBeInTheDocument();
 
     resolveTopics([]);
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("heading", { name: /Loading your progress/ }),
+        screen.queryByRole("heading", { name: /正在載入進度/ }),
       ).not.toBeInTheDocument(),
     );
     // The workspace's left rail is the marker that the route actually
     // rendered (it replaced the old page-sized "我的學習" heading this test
     // used to look for, which no longer exists).
     expect(
-      screen.getByRole("navigation", { name: "Learning areas" }),
+        screen.getByRole("navigation", { name: "學習區域" }),
     ).toBeInTheDocument();
     expect(document.querySelector(".app-container")).toHaveClass("student-shell-app");
     expect(api.listCustomStories).toHaveBeenCalledTimes(1);
@@ -90,14 +90,14 @@ describe("App — student data must be ready before a student route renders", ()
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("heading", { name: /Loading your progress/ }),
+        screen.queryByRole("heading", { name: /正在載入進度/ }),
       ).not.toBeInTheDocument(),
     );
     // The workspace's left rail is the marker that the route actually
     // rendered (it replaced the old page-sized "我的學習" heading this test
     // used to look for, which no longer exists).
     expect(
-      screen.getByRole("navigation", { name: "Learning areas" }),
+      screen.getByRole("navigation", { name: "學習區域" }),
     ).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe("App — student data must be ready before a student route renders", ()
     render(<App />);
 
     expect(
-      await screen.findByRole("navigation", { name: "Learning areas" }),
+      await screen.findByRole("navigation", { name: "學習區域" }),
     ).toBeInTheDocument();
 
     window.history.pushState({}, "", "/");

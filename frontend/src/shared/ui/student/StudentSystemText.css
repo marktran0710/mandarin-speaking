@@ -1,0 +1,80 @@
+.sa-system-text {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  border-radius: 4px;
+  outline: none;
+}
+
+.sa-system-text:not(.is-within-control):focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+.sa-system-text__zh { color: inherit; }
+
+.sa-system-text__en {
+  margin-inline-start: 0.35em;
+  color: var(--color-muted);
+  font-size: 0.72em;
+  font-weight: 500;
+}
+
+.sa-system-text__tooltip {
+  position: absolute;
+  z-index: 20;
+  inset-block-end: calc(100% + 7px);
+  inset-inline-start: 50%;
+  max-width: min(28rem, calc(100vw - 24px));
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, white);
+  border-radius: 6px;
+  background: var(--color-ink);
+  color: white;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  max-inline-size: min(28rem, calc(100vw - 24px));
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sa-system-text__tooltip-en {
+  color: color-mix(in srgb, white 78%, transparent);
+  font-size: 0.86em;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.sa-system-text__tooltip::after {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--color-ink);
+  content: "";
+  transform: translate(-50%, -4px) rotate(45deg);
+}
+
+.sa-system-text:hover .sa-system-text__tooltip,
+.sa-system-text:focus-visible .sa-system-text__tooltip,
+.sa-system-text[data-touch-open="true"] .sa-system-text__tooltip,
+:where(button, a, [role="button"]):hover .sa-system-text .sa-system-text__tooltip,
+:where(button, a, [role="button"]):focus-visible .sa-system-text .sa-system-text__tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-system-text__tooltip { transition: none; }
+}

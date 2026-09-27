@@ -16,6 +16,8 @@ import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import type { StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import "./VocabularyQuizPage.css";
 
 interface VocabularyQuizPageProps {
@@ -26,15 +28,20 @@ interface VocabularyQuizPageProps {
   hasConversation?: boolean;
 }
 
-const ROUND_DESCRIPTIONS: Record<TierMode, string> = {
-  tier1: "Recognise the meaning of each lesson word.",
-  tier2: "Recall the reading and form of each word.",
-  tier3: "Use the words in context before speaking practice.",
+const ROUND_DESCRIPTION_KEYS: Record<TierMode, "roundOneDescription" | "roundTwoDescription" | "roundThreeDescription"> = {
+  tier1: "roundOneDescription",
+  tier2: "roundTwoDescription",
+  tier3: "roundThreeDescription",
 };
 
 function roundName(mode: VocabQuizMode | null, tierPos: number): string {
-  if (mode && mode in ROUND_LABEL) return ROUND_LABEL[mode as TierMode];
-  return ROUND_LABEL[TIER_SEQUENCE[tierPos]];
+  const tier = mode && mode in ROUND_LABEL ? mode as TierMode : TIER_SEQUENCE[tierPos];
+  return tier === "tier1" ? "認識" : tier === "tier2" ? "說出" : "運用";
+}
+
+function roundCopyKey(mode: VocabQuizMode | null, tierPos: number): StudentUiCopyKey {
+  const tier = mode && mode in ROUND_LABEL ? mode as TierMode : TIER_SEQUENCE[tierPos];
+  return tier === "tier1" ? "knowIt" : tier === "tier2" ? "sayIt" : "useIt";
 }
 
 function formatTime(milliseconds: number): string {
@@ -55,11 +62,11 @@ function QuizStatusBar({
 
   return (
     <div className="sa-quiz__status-bar">
-      <div className="sa-quiz__header-meta" aria-label="Quiz status">
+      <div className="sa-quiz__header-meta" aria-label="測驗狀態">
         {question && (
           <span className="sa-quiz__meta-chip">
             <StudentIcon name="quiz" size={16} role="decorative" />
-            Question {flow.index + 1} / {total}
+            第 {flow.index + 1} / {total} 題
           </span>
         )}
         {typeof flow.timeLimitMs === "number" && Number.isFinite(flow.timeLimitMs) && (
@@ -72,7 +79,7 @@ function QuizStatusBar({
       <div
         className="sa-quiz__progress"
         role="progressbar"
-        aria-label="Quiz progress"
+        aria-label="測驗進度"
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={completed}
@@ -85,6 +92,7 @@ function QuizStatusBar({
 
 function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
   const tier = TIER_SEQUENCE[flow.tierPos];
+  const tierCopyKey = roundCopyKey(flow.mode, flow.tierPos);
   const weakCount = flow.weakEntries.length || flow.interimReviewEntries.length;
   const dueCount = flow.dueWords.length;
 
@@ -93,13 +101,13 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
       <section className="sa-quiz__mode-main" aria-labelledby="quiz-mode-title">
         <div className="sa-quiz__mode-intro">
           <div>
-            <StudentStatusPill tone="info" icon="route">Guided practice</StudentStatusPill>
-            <h2 id="quiz-mode-title">Choose a practice path</h2>
-            <p>Build a reliable word foundation, then return to the words that need more attention.</p>
+            <StudentStatusPill tone="info" icon="route"><StudentSystemText k="guidedPractice" withinControl /></StudentStatusPill>
+            <h2 id="quiz-mode-title"><StudentSystemText k="choosePracticePath" /></h2>
+            <p><StudentSystemText k="buildWordFoundation" /></p>
           </div>
           <div className="sa-quiz__star-summary" aria-label={`${flow.stars} of 3 stars earned`}>
             <StudentIcon name="hotel_class" size={20} role="decorative" filled />
-            <strong>{flow.stars}</strong><span>/ 3 stars</span>
+            <strong>{flow.stars}</strong><span>/ 3 顆星</span>
           </div>
         </div>
 
@@ -107,59 +115,59 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
           <StudentSection variant="panel" className="sa-quiz__mode-card sa-quiz__mode-card--primary">
             <div className="sa-quiz__mode-index">01</div>
             <div className="sa-quiz__mode-copy">
-              <p className="sa-quiz__mode-kicker">Diagnostic path</p>
-              <h3>{ROUND_LABEL[tier]}</h3>
-              <p>{ROUND_DESCRIPTIONS[tier]}</p>
-              <div className="sa-quiz__mode-detail"><StudentIcon name="lock_open" size={15} role="decorative" /><span>Rounds unlock in order</span></div>
+              <p className="sa-quiz__mode-kicker"><StudentSystemText k="diagnosticPath" /></p>
+              <h3><StudentSystemText k={tierCopyKey} /></h3>
+              <p><StudentSystemText k={ROUND_DESCRIPTION_KEYS[tier]} /></p>
+              <div className="sa-quiz__mode-detail"><StudentIcon name="lock_open" size={15} role="decorative" /><span><StudentSystemText k="roundsUnlockInOrder" /></span></div>
             </div>
             <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.startTier}>
-              Start {ROUND_LABEL[tier]}
+              <><StudentSystemText k="start" withinControl /> <StudentSystemText k={tierCopyKey} withinControl /></>
             </StudentButton>
           </StudentSection>
 
           <StudentSection variant="panel" className="sa-quiz__mode-card">
             <div className="sa-quiz__mode-index">02</div>
             <div className="sa-quiz__mode-copy">
-              <p className="sa-quiz__mode-kicker">Personalised practice</p>
-              <h3>Weak words</h3>
-              <p>Practice from your current learning record.</p>
-              <div className="sa-quiz__mode-detail"><StudentIcon name="psychology" size={15} role="decorative" /><span>{weakCount > 0 ? `${weakCount} words ready` : "No words queued yet"}</span></div>
+              <p className="sa-quiz__mode-kicker"><StudentSystemText k="personalisedPractice" /></p>
+              <h3><StudentSystemText k="weakWords" /></h3>
+              <p><StudentSystemText k="practiceFromRecord" /></p>
+              <div className="sa-quiz__mode-detail"><StudentIcon name="psychology" size={15} role="decorative" /><span>{weakCount > 0 ? `${weakCount} 個詞語可以練習` : <StudentSystemText k="noWordsQueued" />}</span></div>
             </div>
             <StudentButton variant="secondary" icon="fitness_center" disabled={weakCount === 0} onClick={flow.startWeakWords}>
-              Practice weak words
+              <StudentSystemText k="practiceWeakWords" withinControl />
             </StudentButton>
           </StudentSection>
 
           <StudentSection variant="panel" className="sa-quiz__mode-card">
             <div className="sa-quiz__mode-index">03</div>
             <div className="sa-quiz__mode-copy">
-              <p className="sa-quiz__mode-kicker">Spaced review</p>
-              <h3>Review today</h3>
-              <p>Review words that are due in your learning schedule.</p>
-              <div className="sa-quiz__mode-detail"><StudentIcon name="event_repeat" size={15} role="decorative" /><span>{dueCount > 0 ? `${dueCount} words due` : "Nothing due today"}</span></div>
+              <p className="sa-quiz__mode-kicker"><StudentSystemText k="spacedReview" /></p>
+              <h3><StudentSystemText k="reviewToday" /></h3>
+              <p><StudentSystemText k="dueSchedule" /></p>
+              <div className="sa-quiz__mode-detail"><StudentIcon name="event_repeat" size={15} role="decorative" /><span>{dueCount > 0 ? `${dueCount} 個詞語到期` : <StudentSystemText k="nothingDue" />}</span></div>
             </div>
             <StudentButton variant="secondary" icon="schedule" disabled={dueCount === 0} onClick={flow.startDueReview}>
-              Review due words
+              <StudentSystemText k="reviewDueWords" withinControl />
             </StudentButton>
           </StudentSection>
         </div>
       </section>
 
-      <aside className="sa-quiz__mode-rail" aria-label="Practice overview">
+       <aside className="sa-quiz__mode-rail" aria-label="練習概覽">
         <StudentSection variant="panel" className="sa-quiz__rail-card">
-          <div className="sa-quiz__rail-heading"><span>Practice overview</span><StudentStatusPill tone="success">Active session</StudentStatusPill></div>
+          <div className="sa-quiz__rail-heading"><StudentSystemText k="practiceOverview" /><StudentStatusPill tone="success"><StudentSystemText k="activeSession" withinControl /></StudentStatusPill></div>
           <dl className="sa-quiz__overview-list">
-            <div><dt>Lesson words</dt><dd>{flow.entries.length}</dd></div>
-            <div><dt>Stars earned</dt><dd>{flow.stars} / 3</dd></div>
-            <div><dt>Speaking gate</dt><dd>{flow.stars >= 3 ? "Open" : "Locked"}</dd></div>
+             <div><dt><StudentSystemText k="lessonWords" /></dt><dd>{flow.entries.length}</dd></div>
+             <div><dt><StudentSystemText k="starsEarned" /></dt><dd>{flow.stars} / 3</dd></div>
+             <div><dt><StudentSystemText k="speakingGate" /></dt><dd><StudentSystemText k={flow.stars >= 3 ? "open" : "locked"} /></dd></div>
           </dl>
         </StudentSection>
         <StudentSection variant="tinted" className="sa-quiz__rail-card sa-quiz__round-guide">
-          <div className="sa-quiz__rail-heading"><span>Diagnostic sequence</span><StudentIcon name="stairs" size={18} role="decorative" /></div>
+          <div className="sa-quiz__rail-heading"><StudentSystemText k="diagnosticSequence" /><StudentIcon name="stairs" size={18} role="decorative" /></div>
           <ol>
             {TIER_SEQUENCE.map((round, index) => (
               <li key={round} className={index < flow.tierPos ? "is-complete" : index === flow.tierPos ? "is-current" : ""}>
-                <span>{index + 1}</span><div><strong>{ROUND_LABEL[round]}</strong><small>{ROUND_DESCRIPTIONS[round]}</small></div>
+                <span>{index + 1}</span><div><strong><StudentSystemText k={round === "tier1" ? "knowIt" : round === "tier2" ? "sayIt" : "useIt"} /></strong><small><StudentSystemText k={ROUND_DESCRIPTION_KEYS[round]} /></small></div>
               </li>
             ))}
           </ol>
@@ -174,16 +182,16 @@ function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<ty
     return (
       <div className="sa-quiz__result-layout">
         <StudentSection variant="panel" className="sa-quiz__result-card">
-          <StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}>{flow.roundResult.passed ? "Passed" : "Not quite"}</StudentStatusPill>
-          <p className="sa-quiz__result-eyebrow">{ROUND_LABEL[flow.roundResult.tier]} complete</p>
+          <StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}><StudentSystemText k={flow.roundResult.passed ? "completed" : "notQuite"} withinControl /></StudentStatusPill>
+          <p className="sa-quiz__result-eyebrow"><StudentSystemText k={flow.roundResult.tier === "tier1" ? "knowIt" : flow.roundResult.tier === "tier2" ? "sayIt" : "useIt"} /> 完成</p>
           <p className="sa-quiz__result-score">{flow.roundResult.correctCount} <span>/ {flow.roundResult.totalQuestions}</span></p>
-          <p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? "Your vocabulary gate is open. Choose one practice path to continue." : "The next round is now unlocked." : `${flow.roundResult.starGap ?? 1} more correct answer${flow.roundResult.starGap === 1 ? "" : "s"} needed to pass this round.`}</p>
+           <p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? <StudentSystemText k="vocabularyGateOpen" /> : <StudentSystemText k="nextRoundUnlocked" /> : `${flow.roundResult.starGap ?? 1} 題答對後即可通過這一輪。`}</p>
           {flow.roundResult.passed ? isLastTier ? (
             <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path">
-              <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}>Story Speaking</StudentButton>
-              {hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}>Conversation Practice</StudentButton>}
-            </div>
-          ) : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}>Continue</StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}>Try again</StudentButton>}
+               <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}><StudentSystemText k="storySpeaking" withinControl /></StudentButton>
+               {hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}><StudentSystemText k="conversation" withinControl /></StudentButton>}
+             </div>
+           ) : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}><StudentSystemText k="continue" withinControl /></StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}><StudentSystemText k="retry" withinControl /></StudentButton>}
         </StudentSection>
       </div>
     );
@@ -192,11 +200,11 @@ function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<ty
     return (
       <div className="sa-quiz__result-layout">
         <StudentSection variant="panel" className="sa-quiz__result-card">
-          <StudentStatusPill tone="success">Practice complete</StudentStatusPill>
-          <p className="sa-quiz__result-eyebrow">{flow.practiceResult.mode === "maintenance_review" ? "Review today" : "Weak words"}</p>
+           <StudentStatusPill tone="success"><StudentSystemText k="practiceComplete" withinControl /></StudentStatusPill>
+           <p className="sa-quiz__result-eyebrow"><StudentSystemText k={flow.practiceResult.mode === "maintenance_review" ? "reviewToday" : "weakWords"} /></p>
           <p className="sa-quiz__result-score">{flow.practiceResult.correctCount} <span>/ {flow.practiceResult.totalQuestions}</span></p>
-          <p className="sa-quiz__result-copy">Your practice result has been saved to your learning record.</p>
-          <StudentButton variant="primary" iconTrailing="arrow_back" onClick={flow.returnToModes}>Back to practice options</StudentButton>
+           <p className="sa-quiz__result-copy"><StudentSystemText k="savedToLearningRecord" /></p>
+           <StudentButton variant="primary" iconTrailing="arrow_back" onClick={flow.returnToModes}><StudentSystemText k="backToPracticeOptions" withinControl /></StudentButton>
         </StudentSection>
       </div>
     );
@@ -216,10 +224,9 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
 
   const header = (
     <StudentPageHeader
-      eyebrowZh={`學習 · ${lessonLabel} · 詞彙測驗`}
-      eyebrowEn={`Study · ${lessonLabel} · Vocabulary Quiz`}
-      titleZh="詞彙測驗"
-      titleEn="Vocabulary Quiz"
+      eyebrowKey="study"
+      context={<><span lang="zh-Hant">{lessonLabel}</span> · <StudentSystemText k="vocabularyQuizTitle" /></>}
+      titleKey="vocabularyQuizTitle"
       aside={flow.entries.length > 0 ? <span className="sa-quiz__round-tag">{roundName(flow.mode, flow.tierPos)}</span> : undefined}
     />
   );
@@ -230,8 +237,8 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
         layout="task"
         header={header}
         state="empty"
-        emptyTitle={<><span lang="zh-Hant">此課程沒有測驗</span> · No quiz for this lesson</>}
-        emptyAction={<StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}>Continue to Story Speaking</StudentButton>}
+        emptyTitle={<StudentSystemText k="noQuiz" />}
+        emptyAction={<StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}><StudentSystemText k="continueToSpeaking" withinControl /></StudentButton>}
       />
     );
   }

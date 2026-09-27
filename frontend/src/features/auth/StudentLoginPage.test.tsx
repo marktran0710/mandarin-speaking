@@ -29,9 +29,9 @@ describe("StudentLoginPage", () => {
     );
 
     render(<StudentLoginPage onLogin={onLogin} />);
-    await user.type(screen.getByPlaceholderText(/Enter your name/), "Student 42");
-    await user.type(screen.getByPlaceholderText(/Enter your password/), "123456");
-    await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
+    await user.type(screen.getByPlaceholderText("打上你的名字"), "Student 42");
+    await user.type(screen.getByPlaceholderText("輸入教師提供的密碼"), "123456");
+    await user.click(screen.getByRole("button", { name: "進入學生模式" }));
 
     expect(onLogin).toHaveBeenCalledOnce();
     expect(currentRole("student")).toBe("student");

@@ -33,7 +33,7 @@ function makeTopic(wordCount = 1): Topic {
 
 describe("VocabularyPreviewPage", () => {
   it("uses the reference card anatomy with real vocabulary data", () => {
-    render(
+    const { container } = render(
       <VocabularyPreviewPage
         topic={makeTopic()}
         lessonLabel="Lesson 1"
@@ -41,17 +41,18 @@ describe("VocabularyPreviewPage", () => {
       />,
     );
 
-    const grid = screen.getByLabelText("Vocabulary preview");
+    const grid = container.querySelector(".sa-vocab-preview__grid");
+    expect(grid).not.toBeNull();
     expect(grid).toHaveClass("sa-vocab-preview__grid");
     expect(screen.getByText("01")).toBeInTheDocument();
     expect(screen.getByText("知道")).toBeInTheDocument();
     expect(screen.getByText("to know")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Listen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "聆聽" })).toBeInTheDocument();
   });
 
   it("paginates larger vocabulary sets to keep review pages short", async () => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <VocabularyPreviewPage
         topic={makeTopic(20)}
         lessonLabel="Lesson 1"
@@ -59,19 +60,21 @@ describe("VocabularyPreviewPage", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Vocabulary preview").querySelectorAll(".sa-vocab-preview__card")).toHaveLength(12);
-    const pager = screen.getByRole("navigation", { name: "Vocabulary pages" });
+    const grid = container.querySelector(".sa-vocab-preview__grid");
+    expect(grid).not.toBeNull();
+    expect(grid?.querySelectorAll(".sa-vocab-preview__card")).toHaveLength(12);
+    const pager = screen.getByRole("navigation", { name: "生詞頁面" });
     const footer = pager.closest(".sa-page__actions");
     expect(footer).not.toBeNull();
-    expect(footer).toContainElement(screen.getByRole("button", { name: /Start quiz/i }));
-    expect(screen.getByRole("status")).toHaveTextContent(/Page 1 of 2.*1.?12 of 20/);
-    expect(screen.getByRole("button", { name: "Previous vocabulary page" })).toBeDisabled();
+    expect(footer).toContainElement(screen.getByRole("button", { name: "開始測驗" }));
+    expect(screen.getByRole("status")).toHaveTextContent(/第 1 \/ 2 頁.*1.?12 \/ 20/);
+    expect(screen.getByRole("button", { name: "上一頁" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Next vocabulary page" }));
+    await user.click(screen.getByRole("button", { name: "下一頁" }));
 
     expect(screen.getByText("13")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(/Page 2 of 2.*13.?20 of 20/);
-    expect(screen.getByRole("button", { name: "Next vocabulary page" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(/第 2 \/ 2 頁.*13.?20 \/ 20/);
+    expect(screen.getByRole("button", { name: "下一頁" })).toBeDisabled();
   });
 
   it("keeps the start action in the shared footer without a pager for short lessons", () => {
@@ -83,7 +86,7 @@ describe("VocabularyPreviewPage", () => {
       />,
     );
 
-    expect(screen.queryByRole("navigation", { name: "Vocabulary pages" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Start quiz/i })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "生詞頁面" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "開始測驗" })).toBeInTheDocument();
   });
 });

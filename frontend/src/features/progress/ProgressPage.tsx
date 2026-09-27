@@ -6,6 +6,7 @@ import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./ProgressPage.css";
 
 interface ProgressPageProps {
@@ -36,7 +37,7 @@ export default function ProgressPage({ topics }: ProgressPageProps) {
       return {
         key: group.lessonNumber ?? "other",
         label: group.lessonNumber != null ? `第 ${group.lessonNumber} 課` : "其他",
-        titleEn: title?.en,
+        titleZh: title?.zh,
         status,
         done,
         total,
@@ -53,24 +54,24 @@ export default function ProgressPage({ topics }: ProgressPageProps) {
   return (
     <StudentPage
       layout="hub"
-      header={<StudentPageHeader eyebrowZh="進度" eyebrowEn="Progress" titleZh="學習進度" titleEn="Study Progress" />}
+      header={<StudentPageHeader eyebrowKey="progress" titleKey="learningProgress" />}
     >
       <StudentSection variant="panel" className="sa-progress__list">
         {lessonRows.map((row) => (
           <div key={row.key} className="sa-progress__row">
             <div className="sa-progress__row-copy">
               <span lang="zh-Hant" className="sa-progress__row-title">{row.label}</span>
-              {row.titleEn && <span className="sa-progress__row-subtitle">{row.titleEn}</span>}
+              {row.titleZh && <span className="sa-progress__row-subtitle">{row.titleZh}</span>}
             </div>
-            {row.status === "completed" && <StudentStatusPill tone="success">Completed</StudentStatusPill>}
-            {row.status === "current" && <StudentStatusPill tone="info">Current</StudentStatusPill>}
-            {row.status === "not-started" && <StudentStatusPill tone="neutral" icon="schedule">Not started</StudentStatusPill>}
+            {row.status === "completed" && <StudentStatusPill tone="success"><StudentSystemText k="completed" withinControl /></StudentStatusPill>}
+            {row.status === "current" && <StudentStatusPill tone="info"><StudentSystemText k="current" withinControl /></StudentStatusPill>}
+            {row.status === "not-started" && <StudentStatusPill tone="neutral" icon="schedule"><StudentSystemText k="notStarted" withinControl /></StudentStatusPill>}
           </div>
         ))}
       </StudentSection>
 
       <StudentSection variant="panel" className="sa-progress__stat-row">
-        <span className="sa-progress__stat-label">Sessions completed</span>
+        <span className="sa-progress__stat-label"><StudentSystemText k="sessionsCompleted" /></span>
         <span className="sa-progress__stat-value">{totalDone} / {totalStories}</span>
       </StudentSection>
     </StudentPage>

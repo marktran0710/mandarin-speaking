@@ -5,7 +5,7 @@ import type { ConversationTurn, WordProsody, WordProsodySyllable } from "../../c
 import type { SpeakingResultAnalysis } from "../../components/speaking-flow-card/model/analysis";
 import { analyzeSpeakingResult } from "../../components/speaking-flow-card/model/analysis";
 import { saveSpeakingProgress } from "../../services/database";
-import ConversationPage from "./ConversationPage";
+import ConversationPage, { groupConversationTurns } from "./ConversationPage";
 import { useSpeakingRecorder, type SpeakingAnalysisResult } from "../speaking/hooks/useSpeakingRecorder";
 
 vi.mock("../speaking/hooks/useSpeakingRecorder", () => ({ useSpeakingRecorder: vi.fn() }));
@@ -15,6 +15,7 @@ vi.mock("../../utils/studentSession", () => ({
   getStudentId: () => "student-1",
   getStudentScopeKey: () => "student-1",
   getStudentName: () => "Student One",
+  getStudentGender: () => "male",
 }));
 
 function makeTopic(overrides: Partial<Topic> = {}): Topic {
@@ -147,6 +148,20 @@ describe("ConversationPage", () => {
     sessionStorage.clear();
   });
 
+  it("groups consecutive history turns by speaker so only each group end needs a marker", () => {
+    const grouped = groupConversationTurns([
+      { id: "system-1", speaker: "system", text: "你好" },
+      { id: "system-2", speaker: "system", text: "你好嗎？" },
+      { id: "student-1", speaker: "student", text: "很好" },
+      { id: "student-2", speaker: "student", text: "謝謝" },
+    ]);
+
+    expect(grouped.map((group) => group.map((turn) => turn.id))).toEqual([
+      ["system-1", "system-2"],
+      ["student-1", "student-2"],
+    ]);
+  });
+
   it("keeps the page usable when a lesson has no authored conversation turns", () => {
     const onBack = vi.fn();
     render(
@@ -154,8 +169,8 @@ describe("ConversationPage", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/Conversation content is not ready yet/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /返回學習.*Back to Study/ }));
+    expect(screen.getByText("對話內容尚未準備好")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "返回課程目錄" })[1]);
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
@@ -172,26 +187,23 @@ describe("ConversationPage", () => {
 
     // System turn: listen, then Continue moves to the student's turn.
     expect(screen.getByText("你好嗎？")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     // Student turn: analysis opens the self-evaluation step first.
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("How did you do?");
-    expect(screen.queryByText("Meaning: clear")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
-    await screen.findByText("Your result");
-    const firstWord = screen.getByRole("button", { name: /我: Correct/ });
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
+    await screen.findByText("你覺得表現如何？");
+    fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
+    await screen.findByText("你的錄音");
+    const firstWord = screen.getByRole("button", { name: "我: 選擇以比較" });
     expect(firstWord).toBeInTheDocument();
     fireEvent.click(firstWord);
-    expect(screen.getByText(/Keep this word clear/)).toBeInTheDocument();
-    expect(screen.getByText("Uncertain")).toBeInTheDocument();
-    expect(screen.getByText("Verified recording")).toBeInTheDocument();
+    expect(screen.getByText("錄音已確認")).toBeInTheDocument();
     expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(onAddRecord.mock.calls[0][0].model).toBe("ctwhisper");
     expect(saveSpeakingProgress).toHaveBeenCalledTimes(1);
 
     // Only one exchange in this fixture -> the feedback continue button reads "Finish".
-    fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
 
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").conversation).toBe(true);
@@ -206,9 +218,9 @@ describe("ConversationPage", () => {
     render(
       <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Stop (4s)" }));
+    fireEvent.click(screen.getByRole("button", { name: /停止.*4/ }));
     expect(stopRecording).toHaveBeenCalledTimes(1);
   });
 
@@ -228,14 +240,15 @@ describe("ConversationPage", () => {
         onBack={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     const file = new File(["uploaded audio"], "reply.mp3", { type: "audio/mpeg" });
-    fireEvent.change(screen.getByLabelText("Upload recording"), { target: { files: [file] } });
+    const uploadInput = screen.getAllByLabelText("上傳").find((element) => element.tagName === "INPUT") as HTMLInputElement;
+    fireEvent.change(uploadInput, { target: { files: [file] } });
 
-    await screen.findByText("How did you do?");
-    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
-    await screen.findByText("Your result");
+    await screen.findByText("你覺得表現如何？");
+    fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
+    await screen.findByText("你的錄音");
     expect(uploadRecording).toHaveBeenCalledWith(file);
     expect(onAddRecord).toHaveBeenCalledTimes(1);
   });
@@ -248,16 +261,16 @@ describe("ConversationPage", () => {
     render(
       <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("How did you do?");
-    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
-    await screen.findByText("Your result");
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
+    await screen.findByText("你覺得表現如何？");
+    fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
+    await screen.findByText("你的錄音");
 
-    fireEvent.click(screen.getByRole("button", { name: "Record again" }));
+    fireEvent.click(screen.getByRole("button", { name: "再錄一次" }));
 
-    expect(screen.getByRole("button", { name: "Record" })).toBeInTheDocument();
-    expect(screen.queryByText("Meaning needs another look")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "錄音" })).toBeInTheDocument();
+    expect(screen.queryByText("需要加強")).not.toBeInTheDocument();
   });
 
   it("does not label an unverified recorder result as verified", async () => {
@@ -268,12 +281,12 @@ describe("ConversationPage", () => {
     render(
       <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
-    await screen.findByText("How did you do?");
-    fireEvent.click(screen.getByRole("button", { name: "Skip self-evaluation" }));
-    await screen.findByText("Your result");
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
+    await screen.findByText("你覺得表現如何？");
+    fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
+    await screen.findByText("你的錄音");
 
-    expect(screen.queryByText("Verified recording")).not.toBeInTheDocument();
+    expect(screen.queryByText("錄音已確認")).not.toBeInTheDocument();
   });
 });

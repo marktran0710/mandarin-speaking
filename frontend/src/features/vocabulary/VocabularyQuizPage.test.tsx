@@ -111,37 +111,37 @@ describe("VocabularyQuizPage", () => {
   it("runs tier1 -> tier2 -> tier3 in sequence and only finishes after tier 3's practice choice", () => {
     const onFinished = vi.fn();
     render(<VocabularyQuizPage topic={makeTopic()} lessonLabel="Lesson" onFinished={onFinished} />);
-    fireEvent.click(screen.getByRole("button", { name: "Start Know It" }));
+    fireEvent.click(screen.getByRole("button", { name: "開始 認識" }));
 
     // Tier 1: the learner starts the diagnostic round from the mode picker. The stimulus word encodes the
     // tier the fake hook was started with, so it doubles as proof of order.
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
-    expect(screen.getByRole("button", { name: /Submit answer/i })).toBeInTheDocument();
-    expect(screen.queryByText("Correct")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
-    expect(screen.getByText("Correct")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Submit answer/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Next/ }));
-    expect(screen.getByText("Passed")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByRole("button", { name: "提交答案" })).toBeInTheDocument();
+    expect(screen.queryByText("答對了")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+    expect(screen.getByText("答對了")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "提交答案" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "下一題" }));
+    expect(screen.getByText("已完成")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
     expect(onFinished).not.toHaveBeenCalled();
 
     // Tier 2: only reached because tier1's round-result was passed + confirmed.
     expect(screen.getByText("word-tier2")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Next/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+    fireEvent.click(screen.getByRole("button", { name: "下一題" }));
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
     expect(onFinished).not.toHaveBeenCalled();
     expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").quiz).not.toBe(true);
 
     // Tier 3: only its practice choice (after a passed round-result) finishes the quiz.
     expect(screen.getByText("word-tier3")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Next/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Story Speaking" }));
+    fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+    fireEvent.click(screen.getByRole("button", { name: "下一題" }));
+    fireEvent.click(screen.getByRole("button", { name: "口語練習" }));
 
     expect(onFinished).toHaveBeenCalledTimes(1);
     expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").quiz).toBe(true);
@@ -150,18 +150,18 @@ describe("VocabularyQuizPage", () => {
   it("shows Try Again (not Continue/Finish) and never advances or finishes when a tier is failed", () => {
     const onFinished = vi.fn();
     render(<VocabularyQuizPage topic={makeTopic()} lessonLabel="Lesson" onFinished={onFinished} />);
-    fireEvent.click(screen.getByRole("button", { name: "Start Know It" }));
+    fireEvent.click(screen.getByRole("button", { name: "開始 認識" }));
 
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /wrong/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Next/ }));
+    fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+    fireEvent.click(screen.getByRole("button", { name: "下一題" }));
 
-    expect(screen.getByText("Not quite")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+    expect(screen.getByText("還差一點")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "繼續" })).not.toBeInTheDocument();
     expect(onFinished).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: /Try again/i }));
+    fireEvent.click(screen.getByRole("button", { name: "重試" }));
 
     // Retrying re-starts the SAME tier fresh, never the next one.
     expect(screen.getByText("word-tier1")).toBeInTheDocument();
@@ -172,8 +172,8 @@ describe("VocabularyQuizPage", () => {
     const onFinished = vi.fn();
     render(<VocabularyQuizPage topic={makeTopic({ vocabAssessment: [] })} lessonLabel="Lesson" onFinished={onFinished} />);
 
-    expect(screen.getByText(/No quiz for this lesson/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Continue to Story Speaking/i }));
+    expect(screen.getByText("這一課沒有測驗。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "繼續故事口說" }));
     expect(onFinished).toHaveBeenCalledTimes(1);
   });
 });

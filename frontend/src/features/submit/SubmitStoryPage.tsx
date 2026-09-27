@@ -4,6 +4,7 @@ import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "@shared/ui/student/layout.css";
 import "./SubmitStoryPage.css";
 
@@ -40,10 +41,9 @@ export default function SubmitStoryPage({ topic, sceneCount, hasConversation, co
   return (
     <div className="sa-page-container sa-page-container--narrow">
       <StudentPageHeader
-        eyebrowZh="口語練習 · 準備提交"
-        eyebrowEn="Story Speaking · Ready to Submit"
-        titleZh="準備提交"
-        titleEn="Turn in your work"
+        eyebrowKey="storySpeaking"
+        context={<span lang="zh-Hant">準備提交</span>}
+        titleKey="submitWork"
       />
 
       <StudentSection variant="panel" className="sa-submit__card">
@@ -52,19 +52,19 @@ export default function SubmitStoryPage({ topic, sceneCount, hasConversation, co
         <ul className="sa-submit__checklist">
           {completedPractice === "speaking" && <li className="sa-submit__check-item is-done">
             <StudentIcon name="check_circle" size={18} role="decorative" filled />
-            <span>{sceneCount} / {sceneCount} 幕已完成 · Scenes spoken</span>
+            <span>{sceneCount} / {sceneCount} 幕已完成</span>
           </li>}
           {completedPractice === "conversation" && hasConversation && (
             <li className="sa-submit__check-item is-done">
               <StudentIcon name="check_circle" size={18} role="decorative" filled />
-              <span>對話已完成 · Conversation finished</span>
+              <span><StudentSystemText k="conversationDone" /></span>
             </li>
           )}
         </ul>
 
         {state === "error" && (
           <p className="sa-submit__error">
-            Couldn't reach the server to notify your teacher yet — your progress is still saved on this device. Try again.
+            <StudentSystemText k="serverSubmitError" />
           </p>
         )}
 
@@ -75,7 +75,7 @@ export default function SubmitStoryPage({ topic, sceneCount, hasConversation, co
           disabled={state === "submitting"}
           onClick={handleSubmit}
         >
-          {state === "submitting" ? "Submitting…" : "提交給老師 Submit to Teacher"}
+          <StudentSystemText k={state === "submitting" ? "submitting" : "submitToTeacher"} withinControl />
         </StudentButton>
       </StudentSection>
     </div>

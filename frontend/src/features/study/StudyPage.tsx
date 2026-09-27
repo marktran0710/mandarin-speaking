@@ -13,6 +13,8 @@ import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import type { StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import "./StudyPage.css";
 export type LessonRowStatus =
   "completed" | "in-progress" | "not-started" | "locked";
@@ -40,7 +42,7 @@ export function selectStudyHeroTopic(
     null
   );
 }
-const phases = ["詞彙", "測驗", "口語", "對話"];
+const phases: StudentUiCopyKey[] = ["phaseVocabulary", "phaseQuiz", "phaseSpeaking", "phaseConversation"];
 export default function StudyPage({
   topics,
   statusByStoryId,
@@ -65,10 +67,8 @@ export default function StudyPage({
   );
   const header = (
     <StudentPageHeader
-      eyebrowZh="學習"
-      eyebrowEn="Study"
-      titleZh="慢慢學，穩穩進步"
-      titleEn="Your Mandarin course"
+      eyebrowKey="study"
+      titleKey="courseTitle"
     />
   );
   if (!groups.length)
@@ -77,8 +77,8 @@ export default function StudyPage({
         layout="hub"
         header={header}
         state="empty"
-        emptyTitle="目前沒有可學的課程"
-        emptyText="課程發布後會出現在這裡。"
+        emptyTitle={<StudentSystemText k="noCourses" />}
+        emptyText={<StudentSystemText k="coursesPublished" />}
       />
     );
   const heroCard = (
@@ -86,11 +86,11 @@ export default function StudyPage({
       <span className="study-kicker">
         {hero ? (
           <>
-            繼續你的學習 · <em>Continue learning</em>
+            <StudentSystemText k="keepGoing" />
           </>
         ) : (
           <>
-            課程完成 · <em>Course complete</em>
+            <StudentSystemText k="courseComplete" />
           </>
         )}
       </span>
@@ -109,11 +109,11 @@ export default function StudyPage({
           >
             {heroStatus?.status === "in-progress" ? (
               <>
-                繼續學習 · <span>Continue</span>
+                <StudentSystemText k="continue" withinControl />
               </>
             ) : (
               <>
-                開始學習 · <span>Start</span>
+                <StudentSystemText k="start" withinControl />
               </>
             )}
           </StudentButton>
@@ -130,8 +130,8 @@ export default function StudyPage({
         </div>
       ) : (
         <>
-          <h2>你已完成所有課程</h2>
-          <p>回顧任何一課，保持你的學習節奏。</p>
+          <h2><StudentSystemText k="allCoursesComplete" /></h2>
+          <p><StudentSystemText k="reviewAnyLesson" /></p>
         </>
       )}
     </StudentSection>
@@ -142,35 +142,33 @@ export default function StudyPage({
         <div className="study-card-heading">
           <h2>
             <StudentIcon name="menu_book" size={17} role="decorative" />{" "}
-            本課重點 <small>Focus words</small>
+            <StudentSystemText k="focusWords" />
           </h2>
-          <span>{words.length} 個詞 · words</span>
+          <span>{words.length} <StudentSystemText k="wordsCount" /></span>
         </div>
         {words.length ? (
           words.map((word) => (
             <div className="study-word" key={word.wordId}>
               <span>
-                <small>{word.pinyin}</small>
                 <strong lang="zh-Hant">{word.word}</strong>
               </span>
               <StudentAudioControl
                 audioUrl={word.audioUrl}
-                label="聆聽 · Listen"
+                labelKey="listen"
                 compact
               />
             </div>
           ))
         ) : (
           <p>
-            選擇一課後，重點詞彙會顯示在這裡。 Choose a lesson to see focus
-            words.
+            <StudentSystemText k="focusWordsEmpty" />
           </p>
         )}
       </StudentSection>
       <StudentSection variant="tinted" className="study-progress">
         <div>
-          <strong>學習進度 · Progress</strong>
-          <span>{percent}% 完成 · Keep your steady pace</span>
+          <strong><StudentSystemText k="learningProgress" /></strong>
+          <span>{percent}% 完成 · <StudentSystemText k="steadyPace" /></span>
         </div>
         <div className="study-progress-bar">
           <span style={{ width: `${percent}%` }} />
@@ -186,14 +184,14 @@ export default function StudyPage({
           <div className="study-group-label">
             <strong>
               {group.lessonNumber == null
-                ? "其他內容"
+                ? <StudentSystemText k="otherLessons" />
                 : `第 ${group.lessonNumber} 課 · ${lessonTitle(group.lessonNumber).zh}`}
             </strong>
             <span>
               {group.lessonNumber == null
-                ? "Other lessons"
-                : lessonTitle(group.lessonNumber).en}{" "}
-              · {group.topics.length} units
+                ? ""
+                : lessonTitle(group.lessonNumber).zh}{" "}
+              · {group.topics.length} <StudentSystemText k="unitsCount" />
             </span>
           </div>
           <StudentSection variant="flat" className="study-list">
@@ -227,12 +225,12 @@ export default function StudyPage({
                   <div className="study-row-action">
                     {entry.status === "completed" && (
                       <StudentStatusPill tone="success">
-                        已完成 · Complete
+                        <StudentSystemText k="completed" withinControl />
                       </StudentStatusPill>
                     )}
                     {locked && (
                       <StudentStatusPill tone="neutral">
-                        尚未開放 · Locked
+                        <StudentSystemText k="locked" withinControl />
                       </StudentStatusPill>
                     )}
                     {!locked && (
@@ -243,17 +241,17 @@ export default function StudyPage({
                         onClick={() => onOpenTopic(topic)}
                       >
                         {entry.status === "completed"
-                          ? "複習 · Review"
+                          ? <StudentSystemText k="review" withinControl />
                           : current
-                            ? "繼續 · Continue"
-                            : "開始 · Start"}
+                            ? <StudentSystemText k="continue" withinControl />
+                            : <StudentSystemText k="start" withinControl />}
                       </StudentButton>
                     )}
                   </div>
                   {current && (
                     <div
                       className="study-phases"
-                      aria-label="學習階段 · Lesson phases"
+                       aria-label="學習階段"
                     >
                       {phases.map((label, i) => (
                         <span
@@ -273,17 +271,7 @@ export default function StudyPage({
                             size={15}
                             role="decorative"
                           />
-                          {label}
-                          <small>
-                            {
-                              [
-                                "Vocabulary",
-                                "Quiz",
-                                "Speaking",
-                                "Conversation",
-                              ][i]
-                            }
-                          </small>
+                          <StudentSystemText k={label} />
                         </span>
                       ))}
                     </div>

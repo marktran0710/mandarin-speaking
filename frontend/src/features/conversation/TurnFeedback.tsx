@@ -1,17 +1,18 @@
 import type { ConversationSession } from "./useConversationSession";
 import ConversationFooter from "./ConversationFooter";
 import { SpeechResultReview } from "@entities/speech";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 
 interface TurnFeedbackProps {
   session: ConversationSession;
-  continueLabel: string;
+  continueLabel: "next" | "finish";
 }
 export default function TurnFeedback({ session, continueLabel }: TurnFeedbackProps) {
   const { lastAnalysis, lastResult, lastRecognizedText } = session;
   if (!lastAnalysis || !lastResult) return null;
 
   return (
-    <section className="sa-bubble sa-bubble--feedback" aria-label="Recording feedback">
+    <section className="sa-bubble sa-bubble--feedback" aria-label="錄音回饋">
       <SpeechResultReview
         targetScript={session.currentTurn?.targetText || session.currentTurn?.text || ""}
         transcript={lastRecognizedText}
@@ -21,7 +22,7 @@ export default function TurnFeedback({ session, continueLabel }: TurnFeedbackPro
         meaningPassed={lastAnalysis.accepted}
         pronunciationPassed={lastResult.masteryPassed}
       />
-      {lastResult.verified && <p className="sa-conversation__verified">Verified recording</p>}
+      {lastResult.verified && <p className="sa-conversation__verified"><StudentSystemText k="verifiedRecording" /></p>}
       <ConversationFooter
         continueLabel={continueLabel}
         onRecordAgain={session.recordAgain}

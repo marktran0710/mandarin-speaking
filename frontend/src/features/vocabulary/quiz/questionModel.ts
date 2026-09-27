@@ -4,6 +4,7 @@ import type {
   VocabQuizQuestionResult,
 } from "@entities/vocabulary";
 import { toPinyin, toPinyinSyllables } from "@entities/vocabulary";
+import type { StudentUiCopyKey } from "../../../i18n/student-ui-copy";
 
 export type QuizQuestionSurface = "meaning" | "pinyin" | "context";
 
@@ -16,29 +17,32 @@ export interface ClozeSentenceParts {
 export interface QuestionPresentation {
   surface: QuizQuestionSurface;
   label: string;
+  labelKey: StudentUiCopyKey;
   prompt: string;
+  promptKey?: StudentUiCopyKey;
+  promptData?: string;
   pinyin?: string;
   audioUrl?: string;
   explanation?: string;
 }
 
-const QUESTION_TYPE_LABELS: Record<string, string> = {
-  basic_meaning_mcq: "Meaning check",
-  character_to_pinyin_typing: "Reading recall",
-  context_cloze_mcq: "Sentence completion",
-  productive_recall: "Active recall",
-  contextual_productive_recall: "Context recall",
+const QUESTION_TYPE_LABELS: Record<string, { label: string; key: StudentUiCopyKey }> = {
+  basic_meaning_mcq: { label: "Meaning check", key: "meaningCheck" },
+  character_to_pinyin_typing: { label: "Reading recall", key: "readingRecall" },
+  context_cloze_mcq: { label: "Sentence completion", key: "sentenceCompletion" },
+  productive_recall: { label: "Active recall", key: "activeRecall" },
+  contextual_productive_recall: { label: "Context recall", key: "contextRecall" },
 };
 
-const QUESTION_KIND_LABELS: Record<VocabQuizQuestion["kind"], string> = {
-  translation: "Meaning check",
-  cloze: "Sentence completion",
-  pinyin: "Reading recall",
-  pos: "Word class",
-  synonym: "Related meaning",
-  reverse: "Character recall",
-  listening: "Listening check",
-  assessment: "Assessment item",
+const QUESTION_KIND_LABELS: Record<VocabQuizQuestion["kind"], { label: string; key: StudentUiCopyKey }> = {
+  translation: { label: "Meaning check", key: "meaningCheck" },
+  cloze: { label: "Sentence completion", key: "sentenceCompletion" },
+  pinyin: { label: "Reading recall", key: "readingRecall" },
+  pos: { label: "Word class", key: "wordClass" },
+  synonym: { label: "Related meaning", key: "relatedMeaning" },
+  reverse: { label: "Character recall", key: "characterRecall" },
+  listening: { label: "Listening check", key: "listeningCheck" },
+  assessment: { label: "Assessment item", key: "assessmentItem" },
 };
 
 function surfaceFor(question: VocabQuizQuestion): QuizQuestionSurface {
@@ -62,9 +66,11 @@ export function questionPresentation(
   const audioUrl = assessment?.audioUrl || entry?.audioUrl;
 
   if (question.kind === "assessment") {
+    const label = QUESTION_TYPE_LABELS[question.assessment.questionType] ?? QUESTION_KIND_LABELS.assessment;
     return {
       surface,
-      label: QUESTION_TYPE_LABELS[question.assessment.questionType] ?? "Assessment item",
+      label: label.label,
+      labelKey: label.key,
       prompt: question.prompt,
       pinyin: surface === "pinyin" ? undefined : pinyin || undefined,
       audioUrl,
@@ -72,24 +78,29 @@ export function questionPresentation(
     };
   }
 
-  const prompt = question.kind === "cloze"
-    ? question.sentenceWithBlank
+  const prompt = question.kind === "cloze" ? question.sentenceWithBlank : "";
+  const promptKey = question.kind === "cloze"
+    ? "chooseWordCompletesSentence"
     : question.kind === "reverse"
-      ? `Choose the Chinese word for ${question.translation}.`
+      ? "chooseChineseWord"
       : question.kind === "pinyin"
-        ? "Type the pinyin reading for this word."
+        ? "typePinyinReading"
         : question.kind === "pos"
-          ? "Choose the word class that best describes this word."
+          ? "chooseWordClass"
           : question.kind === "synonym"
-            ? "Choose the closest related meaning."
+            ? "chooseRelatedMeaning"
             : question.kind === "listening"
-              ? "Listen to the model and choose the matching word."
-              : "Choose the English meaning of this word.";
+              ? "listenChooseWord"
+              : "chooseEnglishMeaning";
 
+  const label = QUESTION_KIND_LABELS[question.kind];
   return {
     surface,
-    label: QUESTION_KIND_LABELS[question.kind],
+    label: label.label,
+    labelKey: label.key,
     prompt,
+    promptKey,
+    promptData: question.kind === "reverse" ? question.translation : undefined,
     pinyin: surface === "pinyin" ? undefined : pinyin || undefined,
     audioUrl,
   };

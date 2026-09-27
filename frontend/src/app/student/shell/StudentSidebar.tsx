@@ -1,4 +1,5 @@
 import StudentIcon from "@shared/ui/student/StudentIcon";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./StudentSidebar.css";
 
 export type StudentTopSection = "study" | "progress" | "placement";
@@ -10,23 +11,22 @@ export type StudentPhase =
   | "submit"
   | "completion";
 
-const PHASE_NAV: Array<{ id: StudentPhase; labelZh: string; labelEn: string }> =
+const PHASE_NAV: Array<{ id: Exclude<StudentPhase, "completion"> }> =
   [
-    { id: "vocab-preview", labelZh: "生詞預習", labelEn: "Vocab Preview" },
-    { id: "vocab-quiz", labelZh: "詞彙練習", labelEn: "Vocab Quiz" },
-    { id: "story-speaking", labelZh: "口語練習", labelEn: "Story Speaking" },
-    { id: "conversation", labelZh: "對話練習", labelEn: "Conversation" },
-    { id: "submit", labelZh: "提交", labelEn: "Submit" },
+    { id: "vocab-preview" },
+    { id: "vocab-quiz" },
+    { id: "story-speaking" },
+    { id: "conversation" },
+    { id: "submit" },
   ];
 
-const PHASE_PINYIN: Record<StudentPhase, string> = {
-  "vocab-preview": "shēngcí yùxí",
-  "vocab-quiz": "cíhuì liànxí",
-  "story-speaking": "kǒuyǔ liànxí",
-  conversation: "duìhuà liànxí",
-  submit: "tíjiāo",
-  completion: "wánchéng",
-};
+const PHASE_COPY = {
+  "vocab-preview": "vocabPreview",
+  "vocab-quiz": "vocabQuiz",
+  "story-speaking": "storySpeaking",
+  conversation: "conversation",
+  submit: "submit",
+} as const;
 
 /** "completion" has no nav button but is a real reachable StudentPhase —
  * appended so watermark comparisons below never miss it. */
@@ -95,18 +95,17 @@ export default function StudentSidebar({
           </span>
         </div>
 
-        <nav className="sa-sidebar__nav" aria-label="Learning areas">
+        <nav className="sa-sidebar__nav" aria-label="學習區域">
           <button
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "study" ? "is-active" : ""}`}
             aria-current={activeSection === "study" ? "page" : undefined}
-            title="kèchéng"
             onClick={() => onNavigateSection("study")}
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="menu_book" size={18} role="decorative" />
               <span>
-                <span lang="zh-Hant">課程</span> · Lessons
+                <StudentSystemText k="lessons" withinControl />
               </span>
             </span>
           </button>
@@ -114,13 +113,12 @@ export default function StudentSidebar({
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "progress" ? "is-active" : ""}`}
             aria-current={activeSection === "progress" ? "page" : undefined}
-            title="jìndù"
             onClick={() => onNavigateSection("progress")}
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="trending_up" size={18} role="decorative" />
               <span>
-                <span lang="zh-Hant">進度</span> · Progress
+                <StudentSystemText k="progress" withinControl />
               </span>
             </span>
           </button>
@@ -128,24 +126,23 @@ export default function StudentSidebar({
             type="button"
             className={`sa-sidebar__nav-item ${activeSection === "placement" ? "is-active" : ""}`}
             aria-current={activeSection === "placement" ? "page" : undefined}
-            title="rùmén cèyàn"
             onClick={() => onNavigateSection("placement")}
           >
             <span className="sa-sidebar__nav-item-main">
               <StudentIcon name="flag" size={18} role="decorative" />
               <span>
-                <span lang="zh-Hant">入門測驗</span> · Placement
+                <StudentSystemText k="placement" withinControl />
               </span>
             </span>
           </button>
         </nav>
 
         {activeSection === "study" && maxQuizStars > 0 && (
-          <section className="sa-sidebar__stars" aria-label="Learning stars">
+          <section className="sa-sidebar__stars" aria-label="學習星星">
             <div className="sa-sidebar__stars-head">
               <span className="sa-sidebar__stars-label">
                 <StudentIcon name="star" size={18} role="decorative" filled />
-                <span lang="zh-Hant">星星</span> · Stars
+                <StudentSystemText k="stars" withinControl />
               </span>
               <span>
                 <strong>{quizStars}</strong> / {maxQuizStars}
@@ -159,7 +156,7 @@ export default function StudentSidebar({
 
         {activeSection === "study" && currentLessonTitle && (
           <div className="sa-sidebar__current-lesson">
-            <span className="sa-sidebar__current-lesson-label">現在學習 · Current lesson</span>
+            <span className="sa-sidebar__current-lesson-label"><StudentSystemText k="currentLesson" /></span>
             <strong lang="zh-Hant">{currentLessonTitle}</strong>
           </div>
         )}
@@ -167,10 +164,10 @@ export default function StudentSidebar({
         {activeSection === "study" && activePhase && onNavigatePhase && (
           <nav
             className="sa-sidebar__nav sa-sidebar__phase-nav"
-            aria-label="Lesson phase"
+            aria-label="課程階段"
           >
             <p className="sa-sidebar__nav-label">
-              <span lang="zh-Hant">課程階段</span> · Pedagogical Phase
+              <StudentSystemText k="lessonPhase" />
             </p>
             {PHASE_NAV.map((phase) => {
               const starLocked =
@@ -192,13 +189,7 @@ export default function StudentSidebar({
                   className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""} ${locked ? "is-locked" : ""}`}
                   aria-current={activePhase === phase.id ? "page" : undefined}
                   disabled={locked}
-                  title={
-                    locked
-                      ? starLocked
-                        ? "Earn 3⭐ to unlock"
-                        : "Complete the previous step first"
-                      : undefined
-                  }
+                  aria-label={locked ? (starLocked ? "完成三星後解鎖" : "請先完成前一個步驟") : undefined}
                   onClick={() => onNavigatePhase(phase.id)}
                 >
                   {locked ? (
@@ -209,10 +200,7 @@ export default function StudentSidebar({
                       aria-hidden="true"
                     />
                   )}
-                  <span title={PHASE_PINYIN[phase.id]}>
-                    <span lang="zh-Hant">{phase.labelZh}</span> ·{" "}
-                    {phase.labelEn}
-                  </span>
+                  <StudentSystemText k={PHASE_COPY[phase.id]} withinControl />
                 </button>
               );
             })}
@@ -226,7 +214,7 @@ export default function StudentSidebar({
             <StudentIcon name="person" size={17} role="decorative" />
           </span>
           <span className="sa-sidebar__identity-name">
-            {studentName || "Learner"}
+            {studentName || <StudentSystemText k="learner" withinControl />}
           </span>
         </div>
         <button
@@ -236,11 +224,11 @@ export default function StudentSidebar({
         >
           <span className="sa-sidebar__footer-action-label">
             <StudentIcon name="logout" size={18} role="decorative" />
-            <span lang="zh-Hant">登出</span> · Log out
+            <StudentSystemText k="logout" withinControl />
           </span>
         </button>
         <p className="sa-sidebar__legal">
-          NTNU 《時代華語一》 · Educational Use
+          NTNU 《時代華語一》 · 僅供教學使用
         </p>
       </div>
     </aside>

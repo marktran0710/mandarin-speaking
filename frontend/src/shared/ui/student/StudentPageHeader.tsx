@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 import StudentIcon from "./StudentIcon";
+import StudentSystemText from "./StudentSystemText";
+import type { StudentUiCopyKey } from "../../../i18n/student-ui-copy";
 import "./StudentPageHeader.css";
 
 interface StudentPageHeaderProps {
-  /** Chinese primary + English secondary on every label (D2) — both required,
-   * no English-only eyebrow. */
-  eyebrowZh?: string;
-  eyebrowEn?: string;
-  titleZh: string;
-  titleEn: string;
+  eyebrowKey?: StudentUiCopyKey;
+  titleKey: StudentUiCopyKey;
+  /** Dynamic lesson/topic context is intentionally plain content, not UI copy. */
+  context?: ReactNode;
+  subtitle?: ReactNode;
   aside?: ReactNode;
   /** Only the "stage" layout's Conversation screen uses this today — Story
    * Speaking has no back affordance and none is added here (no new
@@ -17,10 +18,10 @@ interface StudentPageHeaderProps {
 }
 
 export default function StudentPageHeader({
-  eyebrowZh,
-  eyebrowEn,
-  titleZh,
-  titleEn,
+  eyebrowKey,
+  titleKey,
+  context,
+  subtitle,
   aside,
   onBack,
 }: StudentPageHeaderProps) {
@@ -35,17 +36,15 @@ export default function StudentPageHeader({
           >
             <StudentIcon name="arrow_back" size={18} role="decorative" />
             <span>
-              <span lang="zh-Hant">返回</span> · Back to Study
+              <StudentSystemText k="backToStudy" withinControl />
             </span>
           </button>
         )}
-        {(eyebrowZh || eyebrowEn) && <p className="sa-page-header__eyebrow">
-          <span lang="zh-Hant">{eyebrowZh}</span> · {eyebrowEn}
-        </p>}
+        {eyebrowKey && <p className="sa-page-header__eyebrow"><StudentSystemText k={eyebrowKey} />{context && <> · <span className="sa-page-header__context">{context}</span></>}</p>}
         <h1 className="sa-page-header__title">
-          <span lang="zh-Hant">{titleZh}</span>
+          <StudentSystemText k={titleKey} />
         </h1>
-        <p className="sa-page-header__subtitle">{titleEn}</p>
+        {subtitle && <p className="sa-page-header__subtitle">{subtitle}</p>}
       </div>
       {aside && <div className="sa-page-header__aside">{aside}</div>}
     </header>

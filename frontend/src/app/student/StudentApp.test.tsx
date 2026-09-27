@@ -22,14 +22,14 @@ vi.mock("../../features/vocabulary/VocabularyQuizPage", () => ({
     onStartPractice?: (practice: "story-speaking" | "conversation") => void;
   }) => (
     <div data-testid="quiz-mock">
-      <button onClick={onFinished}>Finish Quiz</button>
+      <button onClick={onFinished}>完成測驗</button>
       {onStartPractice && (
         <>
           <button onClick={() => onStartPractice("story-speaking")}>
-            Choose Story Speaking
+            選擇故事口說
           </button>
           <button onClick={() => onStartPractice("conversation")}>
-            Choose Conversation
+            選擇對話
           </button>
         </>
       )}
@@ -39,14 +39,14 @@ vi.mock("../../features/vocabulary/VocabularyQuizPage", () => ({
 vi.mock("../../features/speaking/StorySpeakingPage", () => ({
   default: ({ onDone }: { onDone: () => void }) => (
     <div data-testid="speaking-mock">
-      <button onClick={onDone}>Finish Speaking</button>
+      <button onClick={onDone}>完成口說</button>
     </div>
   ),
 }));
 vi.mock("../../features/conversation/ConversationPage", () => ({
   default: ({ onDone }: { onDone: () => void }) => (
     <div data-testid="conversation-mock">
-      <button onClick={onDone}>Finish Conversation</button>
+      <button onClick={onDone}>完成對話</button>
     </div>
   ),
 }));
@@ -130,7 +130,7 @@ describe("StudentApp", () => {
     expect(within(row2).queryByRole("button")).not.toBeInTheDocument();
 
     // Stars widget: 2 quiz-bearing stories * 3 max = 6, s1 already earned 3.
-    const starsSection = screen.getByLabelText("Learning stars");
+    const starsSection = screen.getByLabelText("學習星星");
     expect(within(starsSection).getByText("3")).toBeInTheDocument();
     expect(within(starsSection).getByText(/\/ 6/)).toBeInTheDocument();
   });
@@ -161,13 +161,13 @@ describe("StudentApp", () => {
       .closest("article")!;
     const vocabPhase = within(row)
       .getByText("詞彙")
-      .closest(".study-phases span")!;
+      .closest(".study-phases > span")!;
     const quizPhase = within(row)
       .getByText("測驗")
-      .closest(".study-phases span")!;
+      .closest(".study-phases > span")!;
     const speakingPhase = within(row)
       .getByText("口語")
-      .closest(".study-phases span")!;
+      .closest(".study-phases > span")!;
     expect(vocabPhase).toHaveClass("is-done");
     expect(quizPhase).toHaveClass("is-done");
     expect(speakingPhase).not.toHaveClass("is-done");
@@ -193,23 +193,23 @@ describe("StudentApp", () => {
     );
     expect(sessionStorage.getItem("studentPhaseFlags:student-1:s1")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
+    fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
     expect(
       JSON.parse(
         sessionStorage.getItem("studentPhaseFlags:student-1:s1") ?? "{}",
       ).vocab,
     ).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成測驗" }));
     expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish Speaking" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成口說" }));
     expect(
-      await screen.findByRole("button", { name: /Submit to Teacher/ }),
+      await screen.findByRole("button", { name: "提交給老師" }),
     ).toBeInTheDocument();
     expect(localStorage.getItem("storyLevelProgress:student-1")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Submit to Teacher/ }));
+    fireEvent.click(screen.getByRole("button", { name: "提交給老師" }));
 
     expect(await screen.findByText("完成！")).toBeInTheDocument();
     expect(
@@ -240,9 +240,9 @@ describe("StudentApp", () => {
           .closest("article")!,
       ).getByRole("button", { name: /繼續/ }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
+    fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Choose Conversation" }),
+      screen.getByRole("button", { name: "選擇對話" }),
     );
 
     expect(screen.getByTestId("conversation-mock")).toBeInTheDocument();
@@ -266,7 +266,7 @@ describe("StudentApp", () => {
           .closest("article")!,
       ).getByRole("button", { name: /繼續/ }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Start speaking/i }));
+    fireEvent.click(screen.getByRole("button", { name: "開始口說練習" }));
 
     expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
     expect(screen.queryByTestId("quiz-mock")).not.toBeInTheDocument();
@@ -294,44 +294,45 @@ describe("StudentApp", () => {
 
     // Freshly opened: preview is the only reachable phase. Stars do not skip
     // the required vocabulary quiz.
+    const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
+    const phaseButton = (label: string) => within(phaseNav).getByText(label).closest("button")!;
     expect(
-      screen.getByRole("button", { name: /Vocab Preview/ }),
+      phaseButton("生詞預習"),
     ).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: /Vocab Quiz/ })).toBeDisabled();
-    const phaseNav = screen.getByRole("navigation", { name: "Lesson phase" });
+    expect(phaseButton("詞彙練習")).toBeDisabled();
     expect(
-      within(phaseNav).getByRole("button", { name: /Story Speaking/ }),
+      phaseButton("口語練習"),
     ).toBeDisabled();
     expect(
-      within(phaseNav).getByRole("button", { name: /Conversation/ }),
+      phaseButton("對話練習"),
     ).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
+    expect(phaseButton("提交")).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
+    fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
     expect(
-      screen.getByRole("button", { name: /Vocab Quiz/ }),
+      phaseButton("詞彙練習"),
     ).not.toBeDisabled();
     expect(
-      within(phaseNav).getByRole("button", { name: /Story Speaking/ }),
+      phaseButton("口語練習"),
     ).toBeDisabled();
     expect(
-      within(phaseNav).getByRole("button", { name: /Conversation/ }),
+      phaseButton("對話練習"),
     ).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成測驗" }));
     // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
     expect(
-      within(phaseNav).getByRole("button", { name: /Story Speaking/ }),
+      phaseButton("口語練習"),
     ).not.toBeDisabled();
     expect(
-      within(phaseNav).getByRole("button", { name: /Conversation/ }),
+      phaseButton("對話練習"),
     ).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: /Submit/ })).toBeDisabled();
+    expect(phaseButton("提交")).toBeDisabled();
 
     // Completing either practice branch is the point at which Submit opens.
-    fireEvent.click(screen.getByRole("button", { name: "Finish Speaking" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成口說" }));
     expect(
-      within(phaseNav).getByRole("button", { name: /Submit/ }),
+      phaseButton("提交"),
     ).not.toBeDisabled();
   });
 
@@ -350,14 +351,14 @@ describe("StudentApp", () => {
     fireEvent.click(
       within(
         screen.getAllByRole("article")[0],
-      ).getByRole("button", { name: /Continue/ }),
+      ).getByRole("button", { name: /繼續/ }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Start quiz/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Finish Quiz" }));
-    fireEvent.click(screen.getByRole("button", { name: /Conversation/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Finish Conversation" }));
+    fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成測驗" }));
+    fireEvent.click(screen.getByRole("button", { name: /對話練習/ }));
+    fireEvent.click(screen.getByRole("button", { name: "完成對話" }));
 
-    expect(screen.getByText(/Conversation finished/)).toBeInTheDocument();
+    expect(screen.getByText(/對話已完成/)).toBeInTheDocument();
   });
 
   it("makes Placement a real, reachable section (not disabled) alongside Progress", () => {
@@ -371,12 +372,12 @@ describe("StudentApp", () => {
       />,
     );
 
-    const placementButton = screen.getByRole("button", { name: /Placement/ });
+    const placementButton = screen.getByRole("button", { name: /入門測驗/ });
     expect(placementButton).not.toBeDisabled();
     fireEvent.click(placementButton);
-    expect(screen.getByText("Placement Test")).toBeInTheDocument();
+    expect(screen.getAllByText("入門測驗").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole("button", { name: /Progress/ }));
-    expect(screen.getByText("Study Progress")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /進度/ }));
+    expect(screen.getByText("學習進度")).toBeInTheDocument();
   });
 });

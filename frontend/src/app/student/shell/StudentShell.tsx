@@ -4,6 +4,7 @@ import StudentSidebar, {
   type StudentTopSection,
 } from "./StudentSidebar";
 import StudentIcon from "@shared/ui/student/StudentIcon";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./StudentShell.css";
 
 interface StudentShellProps {
@@ -49,7 +50,7 @@ export default function StudentShell({
   return (
     <div className="student-app sa-shell">
       <a href="#sa-main" className="sa-skip-link">
-        Skip to learning content
+        <StudentSystemText k="skipToContent" withinControl />
       </a>
 
       <div className={`sa-shell__sidebar-wrap ${mobileOpen ? "is-open" : ""}`}>
@@ -82,7 +83,7 @@ export default function StudentShell({
         <button
           type="button"
           className="sa-shell__backdrop"
-          aria-label="Close menu"
+          aria-label="關閉選單"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -92,18 +93,16 @@ export default function StudentShell({
           type="button"
           className="sa-shell__menu-btn"
           onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
+          aria-label="開啟選單"
         >
           <StudentIcon
             name="menu"
             size={22}
             role="meaningful"
-            label="Open menu"
+            label="開啟選單"
           />
         </button>
-        <span className="sa-shell__mobile-brand" lang="zh-Hant">
-          慢慢中文
-        </span>
+        <StudentSystemText k="brand" className="sa-shell__mobile-brand" />
       </header>
 
       <main id="sa-main" className="sa-shell__main" tabIndex={-1}>

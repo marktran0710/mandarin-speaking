@@ -1,11 +1,11 @@
 import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../../types/page";
-import { BiLabel, BiText } from "@shared/ui";
 import ToneStroke from "../../components/tone/ToneStroke";
 import StudentIcon from "../../components/navigation/StudentIcon";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import { studentUiCopy } from "../../i18n/student-ui-copy";
 import SourceAttribution from "@shared/ui/SourceAttribution";
-import "@shared/ui/BilingualText.css";
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;
@@ -18,10 +18,10 @@ const HERO_TITLE_CHARS: Array<{ char: string; tone: 1 | 2 | 3 | 4 }> = [
   { char: "文", tone: 2 },
 ];
 
-const SKILLS: Array<{ zh: string; pinyin: string; en: string }> = [
-  { zh: "發音", pinyin: "Fāyīn", en: "Pronunciation" },
-  { zh: "生詞", pinyin: "Shēngcí", en: "Vocabulary" },
-  { zh: "應用", pinyin: "Yìngyòng", en: "Practical use" },
+const SKILLS: Array<{ zh: string; key: "pronunciation" | "vocabulary" | "practicalUse" }> = [
+  { zh: "發音", key: "pronunciation" },
+  { zh: "生詞", key: "vocabulary" },
+  { zh: "應用", key: "practicalUse" },
 ];
 
 /* Four compact scenes keep the preview visual without asking one image to fill
@@ -34,50 +34,27 @@ const STORY_SCENES = [
   { file: "afternoon-tea-material.png", className: "image-four" },
 ];
 
-const STATS: Array<{ zh: string; pinyin: string; en: string }> = [
-  { zh: "4 個聲調", pinyin: "4 ge shēngdiào", en: "4 tones" },
-  { zh: "6 個部分", pinyin: "6 ge bùfen", en: "6 scenes a story" },
-  {
-    zh: "AI 馬上回饋",
-    pinyin: "AI mǎshàng huíkuì",
-    en: "AI feedback right away",
-  },
+const STATS: Array<{ key: "fourTones" | "sixScenes" | "aiFeedback" }> = [
+  { key: "fourTones" },
+  { key: "sixScenes" },
+  { key: "aiFeedback" },
 ];
 
 const HOW_IT_WORKS: Array<{
   zh: string;
-  pinyin: string;
-  en: string;
   descZh: string;
-  descPinyin: string;
-  descEn: string;
 }> = [
   {
     zh: "看圖片",
-    pinyin: "Kàn túpiàn",
-    en: "Look",
     descZh: "先看清楚圖片，找出故事裡的人、地點和動作。",
-    descPinyin:
-      "Xiān kàn qīngchǔ túpiàn, zhǎo chū gùshì lǐ de rén, dìdiǎn hé dòngzuò.",
-    descEn: "Study the scene and notice who, where, and what happens.",
   },
   {
     zh: "說故事",
-    pinyin: "Shuō gùshì",
-    en: "Speak",
     descZh: "說一句中文，錄下來，把圖片變成故事。",
-    descPinyin:
-      "Shuō yí jù Zhōngwén, lù xiàlái, bǎ túpiàn biànchéng gùshì.",
-    descEn: "Record your Mandarin and turn the picture into a story.",
   },
   {
     zh: "看回饋",
-    pinyin: "Kàn huíkuì",
-    en: "Improve",
     descZh: "看看小提醒，再說一次會更自然。",
-    descPinyin:
-      "Kànkan xiǎo tíxǐng, zài shuō yí cì huì gèng zìrán.",
-    descEn: "Review tone, rhythm, and vocabulary feedback before trying again.",
   },
 ];
 
@@ -119,20 +96,17 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                 </span>
               ))}
             </span>
-            <span className="hero-title-meta">
-              <span className="hero-title-pinyin">Mànmàn Zhōngwén</span>
-              <span className="hero-title-en">Mandarin, little by little</span>
-            </span>
+            <span className="hero-title-meta"><StudentSystemText k="brand" /></span>
           </h1>
 
           <p className="hero-subtitle">
-            <BiText k="build_better_chinese_stories_with_pictur" />
+            用圖片和聲音，慢慢說出你的中文故事。
           </p>
 
-          <ul className="hero-stats" aria-label="At a glance">
+          <ul className="hero-stats" aria-label={studentUiCopy.atAGlance.zh}>
             {STATS.map((stat) => (
-              <li key={stat.en} className="hero-stat-chip">
-                <BiLabel zh={stat.zh} pinyin={stat.pinyin} en={stat.en} />
+            <li key={stat.key} className="hero-stat-chip">
+              <StudentSystemText k={stat.key} />
               </li>
             ))}
           </ul>
@@ -142,12 +116,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             className="hero-primary-action"
             onClick={() => onNavigate("student-login")}
           >
-            <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
+            <StudentSystemText k="startLearning" withinControl />
             <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="home-hero-visual" aria-label="Story practice preview">
+        <div className="home-hero-visual" aria-label="故事練習預覽">
           <div className="story-preview-stage">
             <div className="story-preview-scenes" aria-hidden="true">
               {STORY_SCENES.map(({ file, className }) => (
@@ -164,13 +138,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             <div
               className="vertical-title"
               lang="zh-Hant"
-              aria-label="發音 Pronunciation, 生詞 Vocabulary, 應用 Practical use"
+              aria-label="發音、生詞、應用"
             >
               {SKILLS.map((skill, gi) => (
                 <div
                   className="vertical-title-group"
-                  key={skill.en}
-                  title={`${skill.pinyin} · ${skill.en}`}
+                  key={skill.key}
                 >
                   {[...skill.zh].map((char, i) => (
                     <span
@@ -190,28 +163,21 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
       </section>
 
-      <section className="how-it-works" aria-label="How it works">
+      <section className="how-it-works" aria-label="使用方式">
         <p className="how-it-works-kicker">
-          <span lang="zh-Hant">三步開始</span>
-          <span className="how-it-works-kicker-meta">
-            Sān bù kāishǐ · Three steps
-          </span>
+          <StudentSystemText k="threeSteps" />
         </p>
         <ol className="how-it-works-grid">
           {HOW_IT_WORKS.map((step, i) => (
-            <li key={step.en} className="how-it-works-tile">
+            <li key={step.zh} className="how-it-works-tile">
               <span className="how-it-works-num" aria-hidden="true">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <strong className="how-it-works-title">
-                <BiLabel zh={step.zh} pinyin={step.pinyin} en={step.en} />
+                <StudentSystemText k={i === 0 ? "lookAtImages" : i === 1 ? "tellStory" : "seeFeedback"} />
               </strong>
               <span className="how-it-works-desc">
-                <BiText
-                  zh={step.descZh}
-                  pinyin={step.descPinyin}
-                  en={step.descEn}
-                />
+                {step.descZh}
               </span>
             </li>
           ))}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentButton from "@shared/ui/student/StudentButton";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import BilingualWord from "@shared/ui/student/BilingualWord";
 import "./SpeechSelfEvaluation.css";
 
@@ -48,12 +50,12 @@ export default function SpeechSelfEvaluation({
   }, [audioBlob]);
 
   return (
-    <section className="sa-self-evaluation" aria-label="Self evaluation">
+    <section className="sa-self-evaluation" aria-label={studentUiCopy.selfEvaluation.zh}>
       <div className="sa-self-evaluation__heading">
         <div>
-          <p className="sa-self-evaluation__eyebrow">Before your result</p>
-          <h2>How did you do?</h2>
-          <p>Listen once, then choose the answer that feels closest to this attempt.</p>
+          <p className="sa-self-evaluation__eyebrow"><StudentSystemText k="beforeResult" /></p>
+          <h2><StudentSystemText k="howDidYouDo" /></h2>
+          <p><StudentSystemText k="listenChooseClosest" /></p>
         </div>
         <span className="sa-self-evaluation__step">1 / 2</span>
       </div>
@@ -61,24 +63,24 @@ export default function SpeechSelfEvaluation({
       <div className="sa-self-evaluation__target">
         <BilingualWord hanzi={targetText} pinyin={pinyin} gloss={translation} size="display" />
         <div className="sa-self-evaluation__audio" aria-label="Listen to the model and your recording">
-          <StudentAudioControl audioUrl={modelAudioUrl} label="Model" />
-          <StudentAudioControl audioUrl={recordedAudioUrl} label="Your recording" />
+          <StudentAudioControl audioUrl={modelAudioUrl} labelKey="modelAudio" />
+          <StudentAudioControl audioUrl={recordedAudioUrl} labelKey="yourRecording" />
         </div>
       </div>
 
-      <SelfEvalRow label="Meaning" value={meaning} onChange={onMeaningChange} />
-      <SelfEvalRow label="Pronunciation" value={pronunciation} onChange={onPronunciationChange} />
+      <SelfEvalRow labelKey="selfEvalMeaning" value={meaning} onChange={onMeaningChange} />
+      <SelfEvalRow labelKey="selfEvalPronunciation" value={pronunciation} onChange={onPronunciationChange} />
 
       <div className="sa-self-evaluation__hint" role="note">
-        Your answers are saved with this attempt and are not used to change the AI score.
+        <StudentSystemText k="selfEvalHint" />
       </div>
 
       <div className="sa-self-evaluation__actions">
         <StudentButton variant="secondary" icon="replay" onClick={onRecordAgain}>
-          Record again
+          <StudentSystemText k="recordAgain" withinControl />
         </StudentButton>
         <StudentButton variant="subtle" onClick={onSkip}>
-          Skip self-evaluation
+          <StudentSystemText k="skipSelfEvaluation" withinControl />
         </StudentButton>
         <StudentButton
           variant="primary"
@@ -86,7 +88,7 @@ export default function SpeechSelfEvaluation({
           disabled={!meaning || !pronunciation}
           onClick={onContinue}
         >
-          See result
+          <StudentSystemText k="seeResult" withinControl />
         </StudentButton>
       </div>
     </section>
@@ -94,23 +96,24 @@ export default function SpeechSelfEvaluation({
 }
 
 function SelfEvalRow({
-  label,
+  labelKey,
   value,
   onChange,
 }: {
-  label: string;
+  labelKey: Extract<StudentUiCopyKey, "selfEvalMeaning" | "selfEvalPronunciation">;
   value: SelfEvalLevel | null;
   onChange: (value: SelfEvalLevel) => void;
 }) {
-  const options: Array<{ level: SelfEvalLevel; text: string }> = [
-    { level: "good", text: "Good" },
-    { level: "ok", text: "OK" },
-    { level: "bad", text: "Needs work" },
+  const options: Array<{ level: SelfEvalLevel; text: Extract<StudentUiCopyKey, "good" | "okay" | "needsWork"> }> = [
+    { level: "good", text: "good" },
+    { level: "ok", text: "okay" },
+    { level: "bad", text: "needsWork" },
   ];
+  const label = studentUiCopy[labelKey].zh;
 
   return (
     <div className="sa-self-evaluation__row">
-      <span className="sa-self-evaluation__label">{label}</span>
+      <span className="sa-self-evaluation__label"><StudentSystemText k={labelKey} /></span>
       <div className="sa-self-evaluation__options" role="group" aria-label={`${label} self-evaluation`}>
         {options.map((option) => (
           <button
@@ -120,7 +123,7 @@ function SelfEvalRow({
             aria-pressed={value === option.level}
             onClick={() => onChange(option.level)}
           >
-            {option.text}
+            <StudentSystemText k={option.text} withinControl />
           </button>
         ))}
       </div>

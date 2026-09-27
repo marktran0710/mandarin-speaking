@@ -9,6 +9,7 @@ import StudentSection from "@shared/ui/student/StudentSection";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import BilingualWord from "@shared/ui/student/BilingualWord";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./VocabularyPreviewPage.css";
 
 const VOCABULARY_PAGE_SIZE = 12;
@@ -41,47 +42,45 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
 
   const header = (
     <StudentPageHeader
-      eyebrowZh={`學習 · ${lessonLabel} · 生詞預習`}
-      eyebrowEn={`Study · ${lessonLabel} · Vocabulary Preview`}
-      titleZh="生詞預習"
-      titleEn={`${items.length} words`}
+      eyebrowKey="study"
+      context={<><span lang="zh-Hant">{lessonLabel}</span> · <StudentSystemText k="vocabPreview" /></>}
+      titleKey="vocabularyPreviewTitle"
+      subtitle={<>{items.length} <StudentSystemText k="wordsCount" /></>}
     />
   );
 
   const primaryAction = (
     <StudentButton variant="primary" size="lg" iconTrailing="arrow_forward" onClick={handleStartSpeaking}>
-      {hasQuiz
-        ? <><span lang="zh-Hant">開始測驗</span> · Start quiz</>
-        : <><span lang="zh-Hant">開始口說練習</span> · Start speaking</>}
+      <StudentSystemText k={hasQuiz ? "startQuiz" : "startSpeaking"} withinControl />
     </StudentButton>
   );
 
   const pagination = hasPagination ? (
-    <nav className="sa-vocab-preview__pager" aria-label="Vocabulary pages">
+    <nav className="sa-vocab-preview__pager" aria-label="生詞頁面">
       <StudentButton
         className="sa-vocab-preview__pager-button"
         variant="secondary"
         size="sm"
         icon="arrow_back"
-        aria-label="Previous vocabulary page"
+        aria-label="上一頁"
         disabled={activePageIndex === 0}
         onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
       >
-        <span lang="zh-Hant">上一頁</span> · Previous
+        <StudentSystemText k="previous" withinControl />
       </StudentButton>
       <span className="sa-vocab-preview__pager-status" role="status">
-        Page {activePageIndex + 1} of {pageCount} &middot; {pageStart + 1}&ndash;{Math.min(pageStart + VOCABULARY_PAGE_SIZE, items.length)} of {items.length}
+        第 {activePageIndex + 1} / {pageCount} 頁 · {pageStart + 1}&ndash;{Math.min(pageStart + VOCABULARY_PAGE_SIZE, items.length)} / {items.length}
       </span>
       <StudentButton
         className="sa-vocab-preview__pager-button"
         variant="secondary"
         size="sm"
         iconTrailing="arrow_forward"
-        aria-label="Next vocabulary page"
+        aria-label="下一頁"
         disabled={activePageIndex === pageCount - 1}
         onClick={() => setPageIndex((current) => Math.min(pageCount - 1, current + 1))}
       >
-        <span lang="zh-Hant">下一頁</span> · Next
+        <StudentSystemText k="next" withinControl />
       </StudentButton>
     </nav>
   ) : undefined;
@@ -92,7 +91,7 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
         layout="task"
         header={header}
         state="empty"
-        emptyTitle={<><span lang="zh-Hant">本課沒有生詞</span> · This lesson has no vocabulary</>}
+        emptyTitle={<StudentSystemText k="noVocabulary" />}
         emptyAction={primaryAction}
       />
     );
@@ -108,18 +107,18 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
     >
       <div
         className={`sa-vocab-preview__grid${hasPagination ? " is-paginated" : ""}`}
-        aria-label="Vocabulary preview"
+        aria-label="生詞預習"
       >
         {visibleItems.map((item, index) => (
           <StudentSection key={item.wordId} variant="panel" className="sa-vocab-preview__card">
             <div className="sa-vocab-preview__card-top">
-              <span className="sa-vocab-preview__index" aria-label={`Word ${pageStart + index + 1}`}>
+              <span className="sa-vocab-preview__index" aria-label={`第 ${pageStart + index + 1} 個詞語`}>
                 {String(pageStart + index + 1).padStart(2, "0")}
               </span>
               <div className="sa-vocab-preview__audio">
                 <StudentAudioControl
                   audioUrl={item.audioUrl}
-                  label="Listen"
+                  labelKey="listen"
                 />
               </div>
             </div>
@@ -127,7 +126,6 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
             <div className="sa-vocab-preview__word-stage">
               <BilingualWord
                 hanzi={item.word}
-                pinyin={item.pinyin}
                 size="display"
                 className="sa-vocab-preview__word"
               />
@@ -136,9 +134,9 @@ export default function VocabularyPreviewPage({ topic, lessonLabel, onStartSpeak
             <div className="sa-vocab-preview__card-footer">
               <span
                 className="sa-vocab-preview__meaning"
-                title={item.meaning ?? "Meaning not available"}
+                title={item.meaning ?? "沒有意思說明"}
               >
-                {item.meaning ?? "Meaning not available"}
+                {item.meaning ?? <StudentSystemText k="noMeaning" />}
               </span>
             </div>
           </StudentSection>

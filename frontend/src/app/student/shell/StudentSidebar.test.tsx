@@ -15,10 +15,10 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Lessons/ })).toHaveAttribute("title", "kèchéng");
-    expect(screen.getByRole("button", { name: /Progress/ })).toHaveAttribute("title", "jìndù");
-    expect(screen.getByRole("button", { name: /Placement/ })).toHaveAttribute("title", "rùmén cèyàn");
-    expect(screen.getByTitle("kǒuyǔ liànxí")).toBeInTheDocument();
+    expect(screen.getByTitle("Kèchéng")).toBeInTheDocument();
+    expect(screen.getByTitle("Jìndù")).toBeInTheDocument();
+    expect(screen.getByTitle("Rùmén cèyàn")).toBeInTheDocument();
+    expect(screen.getByTitle("Kǒuyǔ liànxí")).toBeInTheDocument();
   });
 
   it("keeps Conversation visible as a first-class lesson phase", () => {
@@ -33,8 +33,8 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Story Speaking/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Conversation/ })).toBeInTheDocument();
+    expect(screen.getByTitle("Kǒuyǔ liànxí")).toBeInTheDocument();
+    expect(screen.getByTitle("Duìhuà liànxí")).toBeInTheDocument();
   });
 
   it("makes Placement a real, non-disabled nav button that calls onNavigateSection", () => {
@@ -48,7 +48,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const placementButton = screen.getByRole("button", { name: /Placement/ });
+    const placementButton = screen.getByRole("button", { name: "入門測驗" });
     expect(placementButton).not.toBeDisabled();
     fireEvent.click(placementButton);
     expect(onNavigateSection).toHaveBeenCalledWith("placement");
@@ -66,7 +66,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const starsSection = screen.getByLabelText("Learning stars");
+    const starsSection = screen.getByLabelText("學習星星");
     expect(starsSection).toHaveTextContent("3");
     expect(starsSection).toHaveTextContent("/ 6");
     const fill = starsSection.querySelector(".sa-sidebar__stars-track span") as HTMLElement;
@@ -83,7 +83,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("Learning stars")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("學習星星")).not.toBeInTheDocument();
   });
 
   it("locks phase-nav items beyond furthestPhase and never calls onNavigatePhase for them", () => {
@@ -101,8 +101,8 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const vocabQuiz = screen.getByRole("button", { name: /Vocab Quiz/ });
-    const speaking = screen.getByRole("button", { name: /Story Speaking/ });
+    const vocabQuiz = screen.getByTitle("Cíhuì liànxí").closest("button") as HTMLButtonElement;
+    const speaking = screen.getByTitle("Kǒuyǔ liànxí").closest("button") as HTMLButtonElement;
     expect(vocabQuiz).not.toBeDisabled();
     expect(speaking).toBeDisabled();
 
@@ -129,7 +129,7 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    const speaking = screen.getByRole("button", { name: /Story Speaking/ });
+    const speaking = screen.getByTitle("Kǒuyǔ liànxí").closest("button") as HTMLButtonElement;
     expect(speaking).toBeDisabled();
     fireEvent.click(speaking);
     expect(onNavigatePhase).not.toHaveBeenCalled();

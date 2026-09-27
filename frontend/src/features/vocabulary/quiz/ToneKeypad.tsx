@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import { applyToneMark } from "./questionModel";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 
 interface ToneKeypadProps {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -32,10 +33,10 @@ export default function ToneKeypad({ inputRef, value, onChange, disabled = false
   };
 
   return (
-    <div className="sa-quiz__tone-keypad" aria-label="Tone mark keypad">
+    <div className="sa-quiz__tone-keypad" aria-label="聲調符號鍵盤">
       <div className="sa-quiz__tone-keypad-heading">
-        <span><StudentIcon name="edit_note" size={16} role="decorative" /> Add tone marks</span>
-        <span>1 flat · 2 rising · 3 dipping · 4 falling</span>
+        <span><StudentIcon name="edit_note" size={16} role="decorative" /> <StudentSystemText k="toneMarks" /></span>
+        <span>1 平 · 2 升 · 3 降升 · 4 降</span>
       </div>
       <div className="sa-quiz__tone-grid">
         {TONE_GROUPS.map((group) => (

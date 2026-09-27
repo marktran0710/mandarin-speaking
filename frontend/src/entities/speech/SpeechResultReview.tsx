@@ -5,6 +5,7 @@ import PraatTimeline from "../../components/pitch/PraatTimeline";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentButton from "@shared/ui/student/StudentButton";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
 import "./SpeechResultReview.css";
 
@@ -52,13 +53,14 @@ export default function SpeechResultReview({
   }, [audioBlob, audioUrl]);
 
   return (
-    <section className="sa-result-review" aria-label="Speaking result">
+    <section className="sa-result-review" aria-label="口說結果">
       <div className="sa-result-review__heading">
         <div>
-          <p className="sa-result-review__eyebrow">Your result</p>
-          <h2>See what the recording shows</h2>
+          <p className="sa-result-review__eyebrow"><StudentSystemText k="yourRecording" /></p>
+          <h2><StudentSystemText k="seeRecordingShows" /></h2>
+          <p className="sa-result-review__subheading"><StudentSystemText k="listenReviewPractice" /></p>
         </div>
-        <StudentAudioControl audioUrl={audioUrl || recordingUrl} label="Play recording" />
+        <StudentAudioControl audioUrl={audioUrl || recordingUrl} labelKey="playRecording" />
       </div>
 
       <div className="sa-result-review__summary" aria-label="Result summary">
@@ -80,7 +82,7 @@ export default function SpeechResultReview({
             type="button"
             className={`sa-script-token is-${unit.status.toLowerCase()}`}
             disabled={!unit.word}
-            aria-label={`${unit.text}: ${statusLabel(unit.status)}${unit.word?.feedback ? `. ${unit.word.feedback}` : ""}`}
+            aria-label={`${unit.text}: 選擇以比較`}
             aria-pressed={selectedIndex === unit.word?.index}
             onClick={() => {
               if (unit.word) {

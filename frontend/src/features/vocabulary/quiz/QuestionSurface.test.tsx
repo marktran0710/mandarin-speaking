@@ -64,11 +64,11 @@ describe("QuizQuestionSurface", () => {
     const onSubmit = vi.fn();
     render(<SurfaceHarness question={makeQuestion("basic_meaning_mcq", "single_choice", "What does 電話 mean?")} onSubmit={onSubmit} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Option 1: 電話" }));
-    expect(screen.getByRole("button", { name: /Submit answer/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "選項 1：電話" }));
+    expect(screen.getByRole("button", { name: "提交答案" })).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: /Submit answer/i }));
+    fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
@@ -77,7 +77,7 @@ describe("QuizQuestionSurface", () => {
     render(<SurfaceHarness question={makeQuestion("basic_meaning_mcq", "single_choice", "Choose one.")} onSubmit={onSubmit} />);
 
     fireEvent.keyDown(window, { key: "1" });
-    expect(screen.getByRole("button", { name: "Option 1: 電話" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "選項 1：電話" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.keyDown(window, { key: "Enter" });
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
@@ -86,7 +86,7 @@ describe("QuizQuestionSurface", () => {
     const onSubmit = vi.fn();
     render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={onSubmit} />);
 
-    const input = screen.getByLabelText("Pinyin with tones") as HTMLInputElement;
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "ni3" } });
     input.setSelectionRange(3, 3);
     fireEvent.click(screen.getByRole("button", { name: "i tone 2: í" }));
@@ -99,7 +99,7 @@ describe("QuizQuestionSurface", () => {
   it("keeps each tone keypad column mapped to its numbered tone", () => {
     render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={vi.fn()} />);
 
-    const input = screen.getByLabelText("Pinyin with tones") as HTMLInputElement;
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     const marks = ["ā", "á", "ǎ", "à"];
     marks.forEach((mark, index) => {
       fireEvent.change(input, { target: { value: "ma" } });
@@ -110,12 +110,12 @@ describe("QuizQuestionSurface", () => {
   });
 
   it("renders a context blank as a dedicated answer slot", () => {
-    render(<SurfaceHarness question={makeQuestion("context_cloze_mcq", "single_choice", "Choose the correct word in the sentence: 我找不到____。 ")} onSubmit={vi.fn()} />);
+    const { container } = render(<SurfaceHarness question={makeQuestion("context_cloze_mcq", "single_choice", "Choose the correct word in the sentence: 我找不到____。 ")} onSubmit={vi.fn()} />);
 
-    expect(screen.getByLabelText("Sentence completion prompt")).toBeInTheDocument();
+    expect(container.querySelector(".sa-quiz__cloze-stage")).toBeInTheDocument();
     expect(screen.getByLabelText("missing word")).toHaveTextContent("____");
-    expect(screen.getByRole("heading", { name: "Choose the word that completes the sentence." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "選擇能完成句子的詞語。" })).toBeInTheDocument();
     expect(screen.queryByText("Context clue")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Option 1: 電話" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "選項 1：電話" })).toBeInTheDocument();
   });
 });
