@@ -10,6 +10,7 @@ describe("HomePage student entry", () => {
     render(<HomePage onNavigate={onNavigate} />);
 
     expect(screen.getByRole("heading", { name: /慢慢中文/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /從發音到應用/ })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "使用方式" })).toBeInTheDocument();
     expect(screen.getByText("看圖片")).toBeInTheDocument();
     expect(screen.getByText("說故事")).toBeInTheDocument();

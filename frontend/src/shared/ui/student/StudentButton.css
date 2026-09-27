@@ -1,4 +1,5 @@
 .sa-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -12,6 +13,7 @@
   cursor: pointer;
   transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
   white-space: nowrap;
+  overflow: visible;
 }
 
 .sa-button:disabled {
@@ -70,3 +72,55 @@
 }
 
 .sa-button__label { line-height: 1; }
+
+.sa-button__tooltip {
+  position: absolute;
+  z-index: 30;
+  inset-block-start: calc(100% + 7px);
+  inset-inline-start: 50%;
+  display: inline-flex;
+  max-inline-size: min(28rem, calc(100vw - 24px));
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, white);
+  border-radius: 6px;
+  background: var(--color-ink);
+  color: white;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: normal;
+}
+
+.sa-button__tooltip::after {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-start: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--color-ink);
+  content: "";
+  transform: translate(-50%, 4px) rotate(45deg);
+}
+
+.sa-button__tooltip-pinyin,
+.sa-button__tooltip-en { display: block; white-space: nowrap; }
+.sa-button__tooltip-en { color: color-mix(in srgb, white 78%, transparent); font-size: 0.86em; font-weight: 400; letter-spacing: 0; }
+
+.sa-button:hover:not(:disabled) .sa-button__tooltip,
+.sa-button:focus-visible .sa-button__tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-button__tooltip { transition: none; }
+}

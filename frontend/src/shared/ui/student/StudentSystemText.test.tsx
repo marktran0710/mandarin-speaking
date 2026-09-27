@@ -33,6 +33,13 @@ describe("StudentSystemText", () => {
     expect(screen.getByText("開始").closest(".sa-system-text")).not.toHaveAttribute("tabindex");
   });
 
+  it("keeps control copy available without adding a tab stop", () => {
+    render(<button type="button"><StudentSystemText k="useIt" withinControl /></button>);
+    const text = screen.getByText("運用").closest(".sa-system-text");
+    expect(text).toHaveClass("is-within-control");
+    expect(text?.querySelector('[role="tooltip"]')).toBeInTheDocument();
+  });
+
   it("can show the English gloss inline only when explicitly requested", () => {
     render(<StudentSystemText k="start" english="supporting" />);
     expect(screen.getByText("Start", { selector: ".sa-system-text__en" })).toBeVisible();

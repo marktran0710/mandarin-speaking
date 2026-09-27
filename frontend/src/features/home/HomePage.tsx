@@ -58,6 +58,24 @@ const HOW_IT_WORKS: Array<{
   },
 ];
 
+const PRACTICE_FOCUS: Array<{
+  key: "pronunciation" | "vocabulary" | "practicalUse";
+  descZh: string;
+}> = [
+  {
+    key: "pronunciation",
+    descZh: "聽清楚聲調，知道下一次可以怎麼調整。",
+  },
+  {
+    key: "vocabulary",
+    descZh: "從圖片和情境記住真正會用到的詞語。",
+  },
+  {
+    key: "practicalUse",
+    descZh: "把學會的句子放進故事裡，慢慢說得自然。",
+  },
+];
+
 export default function HomePage({ onNavigate }: HomePageProps) {
   // Each hero photo fetches independently; without this the entrance
   // animation below fires on a fixed clock and photos can pop in one by
@@ -96,7 +114,9 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                 </span>
               ))}
             </span>
-            <span className="hero-title-meta"><StudentSystemText k="brand" /></span>
+            <span className="hero-title-meta">
+              <StudentSystemText k="brand">Mànmàn Zhōngwén</StudentSystemText>
+            </span>
           </h1>
 
           <p className="hero-subtitle">
@@ -161,6 +181,27 @@ export default function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
 
+      </section>
+
+      <section className="practice-focus" aria-labelledby="practice-focus-title">
+        <div className="practice-focus-heading">
+          <p className="practice-focus-kicker">學習重點</p>
+          <h2 id="practice-focus-title">從發音到應用，慢慢練成自然中文。</h2>
+          <p>每次練習都會留下下一步，讓你知道該聽什麼、說什麼、再試一次什麼。</p>
+        </div>
+        <ul className="practice-focus-grid">
+          {PRACTICE_FOCUS.map((focus, i) => (
+            <li key={focus.key} className="practice-focus-card">
+              <span className="practice-focus-index" aria-hidden="true">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <strong className="practice-focus-title">
+                <StudentSystemText k={focus.key} />
+              </strong>
+              <p>{focus.descZh}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="how-it-works" aria-label="使用方式">

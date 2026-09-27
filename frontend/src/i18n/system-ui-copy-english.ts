@@ -92,7 +92,7 @@ export const englishKeyOverrides: Record<string, string> = {
   lookListenSpeak: "Look, listen, and speak",
   practicalUse: "Practical use",
   fourTones: "Four tones",
-  sixScenes: "Six scenes",
+  sixScenes: "Story practice",
   aiFeedback: "AI feedback",
   startLearning: "Start learning",
   howItWorks: "How it works",

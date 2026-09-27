@@ -49,6 +49,13 @@
   overflow-wrap: normal;
 }
 
+/* Keep readings as two deliberate horizontal lines for standalone labels. */
+.sa-system-text__tooltip-pinyin,
+.sa-system-text__tooltip-en {
+  display: block;
+  white-space: nowrap;
+}
+
 .sa-system-text__tooltip-en {
   color: color-mix(in srgb, white 78%, transparent);
   font-size: 0.86em;

@@ -144,7 +144,7 @@ const baseStudentUiCopy = {
   pronunciation: { zh: "發音", pinyin: "Fāyīn" },
   practicalUse: { zh: "應用", pinyin: "Yìngyòng" },
   fourTones: { zh: "四個聲調", pinyin: "Sì ge shēngdiào" },
-  sixScenes: { zh: "六個場景", pinyin: "Liù ge chǎngjǐng" },
+  sixScenes: { zh: "故事練習", pinyin: "Gùshì liànxí" },
   aiFeedback: { zh: "AI 馬上回饋", pinyin: "AI mǎshàng huíkuì" },
   startLearning: { zh: "開始學習", pinyin: "Kāishǐ xuéxí" },
   howItWorks: { zh: "使用方式", pinyin: "Shǐyòng fāngshì" },
