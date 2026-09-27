@@ -20,6 +20,7 @@ def list_attempts(
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
     include_results: bool = True,
+    since: Optional[str] = None,
 ) -> list[dict]:
     columns = (
         "id, story_id, student_id, student_name, mode, completed_at, "
@@ -39,6 +40,14 @@ def list_attempts(
     if student_id:
         query += " AND student_id = %s"
         params.append(student_id)
+    if since:
+        # `completed_at` is stored as `text`, always written via the client's
+        # `Date.toISOString()` (fixed-width, UTC, millisecond precision), so a
+        # lexical >= comparison against a same-shaped cutoff string matches
+        # chronological order - the same assumption `ORDER BY completed_at`
+        # below already relies on.
+        query += " AND completed_at >= %s"
+        params.append(since)
     query += " ORDER BY completed_at DESC"
 
     rows = db.execute(query, params).fetchall()

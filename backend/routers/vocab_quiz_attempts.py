@@ -1,7 +1,7 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 import security.auth as auth
 import services.vocab_quiz_attempt_service as vocab_quiz_attempt_service
@@ -62,10 +62,19 @@ def list_vocab_quiz_attempts(
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
     include_results: bool = True,
+    since_days: Optional[int] = Query(default=None, ge=1, le=3650),
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     if identity.role == "student":
         student_id, student_name = identity.id, None
+
+    since = None
+    if since_days is not None:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=since_days)
+        # Match the exact shape `completed_at` is always written in (the
+        # client's `Date.toISOString()`) so the repository's text comparison
+        # stays a valid chronological cutoff.
+        since = cutoff.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
     with connect_db() as db:
         return vocab_quiz_attempt_service.list_attempts(
@@ -74,6 +83,7 @@ def list_vocab_quiz_attempts(
             student_name=student_name,
             student_id=student_id,
             include_results=include_results,
+            since=since,
         )
 
 

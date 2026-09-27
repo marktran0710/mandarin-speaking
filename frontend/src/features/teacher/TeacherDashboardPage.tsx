@@ -27,6 +27,13 @@ import "./TeacherDashboardPage.css";
 
 export type TeacherView = "today" | "submissions" | "students";
 
+/** The roster/analytics view only needs recent history to compute its
+ * rollups (accuracy, stars, watchlist, trend chart) - bounding it here keeps
+ * the unfiltered dashboard load from growing forever as attempts accumulate.
+ * The student-facing quiz pages call `listVocabQuizAttempts` without this
+ * option and keep seeing their full history. */
+export const DASHBOARD_QUIZ_HISTORY_DAYS = 180;
+
 export default function TeacherDashboardPage({
   records,
   hasMoreAudioRecords = false,
@@ -73,8 +80,13 @@ export default function TeacherDashboardPage({
     setQuizAttemptsError("");
     try {
       // The dashboard only aggregates attempt-level totals, so skip the heavy
-      // per-question results to keep this unfiltered load small.
-      setQuizAttempts(await listVocabQuizAttempts(undefined, undefined, { includeResults: false }));
+      // per-question results, and bound history to keep this load small.
+      setQuizAttempts(
+        await listVocabQuizAttempts(undefined, undefined, {
+          includeResults: false,
+          sinceDays: DASHBOARD_QUIZ_HISTORY_DAYS,
+        }),
+      );
     } catch {
       setQuizAttemptsError("Could not load vocabulary quiz analytics.");
     }

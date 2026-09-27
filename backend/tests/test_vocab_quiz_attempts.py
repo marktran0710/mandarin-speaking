@@ -1,5 +1,6 @@
 """Tests for the vocab quiz attempt tracking endpoints."""
 import contextlib
+from datetime import datetime, timedelta, timezone
 
 from conftest import login_new_client
 
@@ -86,6 +87,42 @@ def test_list_can_omit_question_results(logged_in_student):
     assert light[0]["totalTimeMs"] == 5000
     # ...but the heavy per-question payload is dropped.
     assert light[0]["questionResults"] == []
+
+
+def test_list_since_days_excludes_older_attempts(logged_in_student):
+    client, _ = logged_in_student
+    now = datetime.now(timezone.utc)
+
+    def iso(dt):
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+    base = {
+        "storyId": "since-days-story",
+        "studentName": "Test Student",
+        "totalQuestions": 1,
+        "correctCount": 1,
+        "totalTimeMs": 1000,
+        "questionResults": [{"word": "水", "correct": True, "timeMs": 1000}],
+    }
+    client.post(
+        "/api/vocab-quiz-attempts",
+        json={**base, "id": "since-days-recent", "completedAt": iso(now - timedelta(days=5))},
+    )
+    client.post(
+        "/api/vocab-quiz-attempts",
+        json={**base, "id": "since-days-old", "completedAt": iso(now - timedelta(days=400))},
+    )
+
+    unfiltered = client.get(
+        "/api/vocab-quiz-attempts", params={"story_id": "since-days-story"}
+    ).json()
+    assert {a["id"] for a in unfiltered} == {"since-days-recent", "since-days-old"}
+
+    filtered = client.get(
+        "/api/vocab-quiz-attempts",
+        params={"story_id": "since-days-story", "since_days": 180},
+    ).json()
+    assert {a["id"] for a in filtered} == {"since-days-recent"}
 
 
 def test_list_is_scoped_to_the_logged_in_student(logged_in_student):

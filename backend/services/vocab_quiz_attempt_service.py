@@ -36,6 +36,7 @@ def list_attempts(
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
     include_results: bool = True,
+    since: Optional[str] = None,
 ) -> list[dict]:
     return repo.list_attempts(
         db,
@@ -43,6 +44,7 @@ def list_attempts(
         student_name=student_name,
         student_id=student_id,
         include_results=include_results,
+        since=since,
     )
 
 

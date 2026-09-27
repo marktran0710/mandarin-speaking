@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TeacherDashboardPage from "./TeacherDashboardPage";
+import TeacherDashboardPage, { DASHBOARD_QUIZ_HISTORY_DAYS } from "./TeacherDashboardPage";
 import * as db from "../../services/database";
 import type { VocabQuizAttempt } from "../../services/database";
 
@@ -63,6 +63,29 @@ describe("Quiz analytics on the Students view", () => {
     const overview = await screen.findByRole("region", { name: "Quiz analytics overview" });
     expect(within(overview).getByText("1")).toBeInTheDocument();
     expect(within(overview).getByText("60%")).toBeInTheDocument();
+  });
+
+  it("loads quiz attempts scoped to the dashboard's recent history window", async () => {
+    vi.spyOn(db, "canUseDatabase").mockReturnValue(true);
+    const listSpy = vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    render(
+      <TeacherDashboardPage
+        records={[]}
+        onDeleteRecord={vi.fn()}
+        helpRequests={[]}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    await openQuizAnalytics(user);
+    await screen.findByText("No quiz attempts yet");
+
+    expect(listSpy).toHaveBeenCalledWith(undefined, undefined, {
+      includeResults: false,
+      sinceDays: DASHBOARD_QUIZ_HISTORY_DAYS,
+    });
   });
 
   it("shows an empty state when there are no quiz attempts yet", async () => {
