@@ -99,6 +99,19 @@
   font-size: 12px;
 }
 
+/* The navbar sits at the top edge, so its bilingual tooltip must open below
+   the control instead of being clipped above the viewport. */
+.navbar .sa-system-text__tooltip {
+  inset-block-start: calc(100% + 7px);
+  inset-block-end: auto;
+}
+
+.navbar .sa-system-text__tooltip::after {
+  inset-block-start: auto;
+  inset-block-end: 100%;
+  transform: translate(-50%, 4px) rotate(45deg);
+}
+
 .nav-link:hover {
   background: color-mix(in srgb, var(--clay-surface-strong) 64%, transparent);
   border-color: transparent;

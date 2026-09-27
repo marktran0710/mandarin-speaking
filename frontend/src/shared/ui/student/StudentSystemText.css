@@ -42,10 +42,11 @@
   display: inline-flex;
   flex-direction: column;
   gap: 2px;
+  width: max-content;
   max-inline-size: min(28rem, calc(100vw - 24px));
   text-align: center;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .sa-system-text__tooltip-en {
