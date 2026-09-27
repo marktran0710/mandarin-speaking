@@ -33,3 +33,13 @@ export function markVocabQuizCompleted(topicId: string) {
     /* storage unavailable — the quiz will just ask again next time */
   }
 }
+
+export function clearVocabQuizCompleted(topicId: string): void {
+  try {
+    const progress = loadCompletedVocabQuizzes();
+    delete progress[topicId];
+    localStorage.setItem(scopedKey(), JSON.stringify(progress));
+  } catch {
+    /* storage unavailable */
+  }
+}

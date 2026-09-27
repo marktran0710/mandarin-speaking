@@ -29,3 +29,11 @@ export function markPhaseSeen(topicId: string, phase: StudyPhaseKey): void {
     /* storage unavailable; the phase strip simply stays unchanged */
   }
 }
+
+export function clearPhaseFlags(topicId: string): void {
+  try {
+    sessionStorage.removeItem(flagKey(topicId));
+  } catch {
+    /* storage unavailable */
+  }
+}

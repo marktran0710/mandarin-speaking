@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "@entities/topic";
 import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder";
 import type { VocabAssessmentQuestion } from "@entities/vocabulary";
-import { recordLocalStars } from "@entities/vocabulary";
+import { loadLocalStars, recordLocalStars } from "@entities/vocabulary";
+import { loadSubmittedStoryIds, markStoryLevelSubmitted } from "../../utils/storyLevelProgress";
 import { canUseDatabase } from "../../services/database";
 import { getVocabularyProgression, type VocabularyProgression } from "../../services/api/quiz-analytics";
 import StudentApp from "./StudentApp";
@@ -277,7 +278,8 @@ describe("StudentApp", () => {
     expect(within(phaseNav).getByText("對話練習").closest("button")).not.toBeDisabled();
   });
 
-  it("skips the quiz phase entirely for a topic with no quiz — CTA reads 'Start speaking' and jumps straight to Story Speaking", () => {
+  it.each([false, true])("skips the quiz phase entirely for a topic with no quiz (database available: %s)", (databaseAvailable) => {
+    vi.mocked(canUseDatabase).mockReturnValue(databaseAvailable);
     const noQuizTopic = makeTopic({ id: "s4", vocabAssessment: [] });
     render(
       <StudentApp
@@ -302,6 +304,7 @@ describe("StudentApp", () => {
 
     expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
     expect(screen.queryByTestId("quiz-mock")).not.toBeInTheDocument();
+    expect(getVocabularyProgression).not.toHaveBeenCalled();
   });
 
   it("opens both practices at three stars and keeps Submit locked until either practice finishes", () => {
@@ -473,12 +476,43 @@ describe("StudentApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
     recordLocalStars("s1", 3);
     fireEvent.click(screen.getByRole("button", { name: "選擇對話" }));
-    await waitFor(() => expect(getVocabularyProgression).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getVocabularyProgression).toHaveBeenCalledTimes(3));
     await act(async () => { resolveInitial(makeProgression(2)); });
 
     const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
     expect(within(phaseNav).getByText("口語練習").closest("button")).not.toBeDisabled();
     expect(within(phaseNav).getByText("對話練習").closest("button")).not.toBeDisabled();
+  });
+
+  it("revokes cached completion and locks the next lesson when quiz evidence is deleted", async () => {
+    vi.mocked(canUseDatabase).mockReturnValue(true);
+    vi.mocked(getVocabularyProgression).mockImplementation(async (storyId) => ({ ...makeProgression(0), storyId }));
+    recordLocalStars("s1", 3);
+    markStoryLevelSubmitted("s1");
+    const topics = [makeTopic({ id: "s1", lessonSubOrder: 1 }), makeTopic({ id: "s2", name: "故事二", lessonSubOrder: 2 })];
+    render(<StudentApp studentName="Student One" topics={topics} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
+
+    await waitFor(() => expect(loadLocalStars("s1")).toBe(0));
+    expect(loadSubmittedStoryIds().has("s1")).toBe(false);
+    const secondRow = screen.getByText("故事二", { selector: ".study-row-title" }).closest("article")!;
+    expect(within(secondRow).queryByRole("button")).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getAllByRole("article")[0]).getByRole("button"));
+    const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
+    await waitFor(() => expect(within(phaseNav).getByText("口語練習").closest("button")).toBeDisabled());
+    expect(within(phaseNav).getByText("對話練習").closest("button")).toBeDisabled();
+  });
+
+  it("keeps both practice modes locked while the server is pending or unavailable", async () => {
+    vi.mocked(canUseDatabase).mockReturnValue(true);
+    vi.mocked(getVocabularyProgression).mockRejectedValue(new Error("Unavailable"));
+    recordLocalStars("s1", 3);
+    render(<StudentApp studentName="Student One" topics={[makeTopic({ conversationTurns })]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
+    fireEvent.click(within(screen.getAllByRole("article")[0]).getByRole("button"));
+    const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
+    expect(within(phaseNav).getByText("口語練習").closest("button")).toBeDisabled();
+    await act(async () => {});
+    expect(within(phaseNav).getByText("口語練習").closest("button")).toBeDisabled();
+    expect(within(phaseNav).getByText("對話練習").closest("button")).toBeDisabled();
   });
 
   it("records the practice branch chosen from the unlocked sidebar before Submit", () => {

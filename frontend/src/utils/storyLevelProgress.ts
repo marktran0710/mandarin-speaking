@@ -83,6 +83,12 @@ export function loadSubmittedStoryIds(): Set<string> {
   return new Set(Object.keys(loadSubmittedProgress()));
 }
 
+export function clearStoryLevelSubmitted(storyId: string): void {
+  const progress = loadSubmittedProgress();
+  delete progress[storyId];
+  persist(progress);
+}
+
 /** Add submitted stories returned by the backend to this student's local
  * mirror. Never removes local progress, is safe to run repeatedly, and
  * rejects another student's records even if a server filter is stale. */

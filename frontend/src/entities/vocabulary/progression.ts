@@ -218,6 +218,18 @@ export function recordLocalStars(storyId: string, stars: QuizTier) {
   }
 }
 
+/** Replace the offline mirror with the server's current result, including
+ * demotion after quiz evidence is reset or deleted. */
+export function syncLocalStars(storyId: string, stars: 0 | QuizTier) {
+  if (typeof window === "undefined") return;
+  const next = { ...loadStarProgress(), [storyId]: stars };
+  try {
+    window.localStorage.setItem(`${QUIZ_STARS_KEY}:${getStudentScopeKey()}`, JSON.stringify(next));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export interface QuizStarsSummary {
   quizStars: number;
   maxQuizStars: number;

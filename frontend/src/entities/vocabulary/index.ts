@@ -27,6 +27,7 @@ export {
   recordLocalStars,
   starsByStory,
   starsFromAttempts,
+  syncLocalStars,
   tierConfigFromMode,
 } from "./progression";
 export type {

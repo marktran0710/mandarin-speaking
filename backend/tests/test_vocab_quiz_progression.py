@@ -22,7 +22,10 @@ class _Db:
         if "FROM vocab_quiz_responses" in query:
             return _Rows(self.response_rows)
         if "FROM custom_stories" in query:
-            return _Rows([{"conversation_turns": self.conversation_turns, "frames": self.frames}])
+            return _Rows([{
+                "id": "story-5-1", "conversation_turns": self.conversation_turns, "frames": self.frames,
+                "vocab_assessment": [{"wordId": f"word-{i}", "targetWord": f"Word {i}"} for i in range(10)],
+            }])
         raise AssertionError(f"Unexpected query: {query}")
 
 
@@ -42,7 +45,7 @@ def _attempt(mode, quiz_id, total=10, correct=0):
 
 def _responses(mode, quiz_id, correct_count, total=10):
     return [
-        {"quiz_id": quiz_id, "quiz_mode": mode, "quiz_level": mode, "bkt_eligible": True, "correct": index < correct_count}
+        {"quiz_id": quiz_id, "quiz_mode": mode, "word_id": f"word-{index}", "quiz_level": mode, "bkt_eligible": True, "correct": index < correct_count}
         for index in range(total)
     ]
 
@@ -87,6 +90,29 @@ def test_tier_three_alone_does_not_unlock_the_contiguous_ladder(monkeypatch):
 
     result = progression.get_progression(_Db(_responses("tier3", "q3", 10), None), "student-1", "story-5-1")
 
+    assert result["quizStars"] == 0
+    assert result["speakingUnlocked"] is False
+    assert result["conversationUnlocked"] is False
+
+
+def test_deleted_observations_revoke_stars_even_when_completed_attempts_remain(monkeypatch):
+    attempts = [_attempt(tier, tier, correct=10) for tier in ("tier1", "tier2", "tier3")]
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+    result = progression.get_progression(_Db([], _conversation()), "student-1", "story-5-1")
+    assert result["quizStars"] == 0
+    assert result["speakingUnlocked"] is False
+    assert result["conversationUnlocked"] is False
+
+
+@pytest.mark.parametrize("old_ids", [False, True])
+def test_old_ids_or_partial_vocabulary_cannot_unlock_a_current_lesson(monkeypatch, old_ids):
+    attempts = [_attempt(tier, tier, total=4, correct=4) for tier in ("tier1", "tier2", "tier3")]
+    responses = [row for tier in ("tier1", "tier2", "tier3") for row in _responses(tier, tier, 4, total=4)]
+    if old_ids:
+        for row in responses:
+            row["word_id"] = f"old-{row['word_id']}"
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+    result = progression.get_progression(_Db(responses, _conversation()), "student-1", "story-5-1")
     assert result["quizStars"] == 0
     assert result["speakingUnlocked"] is False
     assert result["conversationUnlocked"] is False

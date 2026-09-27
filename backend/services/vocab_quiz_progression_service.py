@@ -10,6 +10,7 @@ from __future__ import annotations
 from math import ceil
 from typing import Any
 
+from analytics.learner_model.bkt.mastery import _known_words
 from domain.vocabulary.story_scope import canonical_story_id, story_scope_ids
 from repositories import quiz_attempt_repository
 
@@ -54,9 +55,9 @@ def _frames_conversation_available(frames: Any) -> bool:
     return len(usable) >= 2
 
 
-def _authoritative_scores(db: Any, student_id: str, attempts: list[dict]) -> dict[str, dict[str, int]]:
+def _authoritative_scores(db: Any, student_id: str, attempts: list[dict], word_ids: set[str]) -> dict[str, dict[str, int]]:
     """Return validated correct/total response counts for completed attempts."""
-    if not attempts:
+    if not attempts or not word_ids:
         return {}
 
     attempt_by_quiz_id: dict[str, str] = {}
@@ -70,29 +71,34 @@ def _authoritative_scores(db: Any, student_id: str, attempts: list[dict]) -> dic
 
     rows = db.execute(
         """
-        SELECT quiz_id, quiz_mode, correct
+        SELECT quiz_id, quiz_mode, word_id, correct
         FROM vocab_quiz_responses
         WHERE student_id = %s
           AND quiz_id = ANY(%s)
           AND lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3')
           AND quiz_mode IN ('tier1', 'tier2', 'tier3')
           AND bkt_eligible = TRUE
+          AND word_id = ANY(%s)
         ORDER BY quiz_id, attempt_order ASC
         """,
-        [student_id, list(attempt_by_quiz_id)],
+        [student_id, list(attempt_by_quiz_id), sorted(word_ids)],
     ).fetchall()
 
     scores: dict[str, dict[str, int]] = {}
+    covered_words: dict[str, set[str]] = {}
     for row in rows:
         attempt_id = attempt_by_quiz_id.get(str(row["quiz_id"]))
         mode = str(row.get("quiz_mode") or "")
-        if not attempt_id or mode not in _TIERS:
+        if not attempt_id or mode not in _TIERS or row["word_id"] not in word_ids:
             continue
         key = f"{attempt_id}:{mode}"
         score = scores.setdefault(key, {"correctCount": 0, "totalQuestions": 0})
         score["totalQuestions"] += 1
         score["correctCount"] += int(bool(row.get("correct")))
-    return scores
+        covered_words.setdefault(key, set()).add(row["word_id"])
+    # A completed round must still cover the current vocabulary pool. Old
+    # IDs and a short surviving subset cannot keep a reset lesson unlocked.
+    return {key: score for key, score in scores.items() if covered_words[key] == word_ids}
 
 
 def _story_conversation_available(db: Any, story_id: str) -> bool:
@@ -112,7 +118,7 @@ def get_progression(db: Any, student_id: str, story_id: str) -> dict[str, Any]:
     attempts = quiz_attempt_repository.list_attempts(
         db, story_id=canonical, student_id=student_id, include_results=True,
     )
-    scores = _authoritative_scores(db, student_id, attempts)
+    scores = _authoritative_scores(db, student_id, attempts, set(_known_words(db, story_id=canonical)))
     tiers: dict[str, dict[str, Any]] = {}
     earned_tiers: set[str] = set()
 

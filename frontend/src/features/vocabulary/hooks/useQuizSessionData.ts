@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 import {
   loadLocalStars,
-  recordLocalStars,
   starsFromAttempts,
   type QuizTier,
   type VocabQuizEntry,
@@ -10,13 +9,13 @@ import {
   canUseDatabase,
   getVocabQuizReviewQueue,
   getVocabQuizWeakWords,
-  createVocabQuizAttempt,
   getVocabularyProgression,
   listVocabQuizAttempts,
   type ReviewQueueItem,
   type VocabPriorityReviewWord,
 } from "../../../services/database";
 import { getStudentScopeKey } from "../../../utils/studentSession";
+import { syncServerVocabularyProgress } from "../../../utils/serverVocabularyProgress";
 import { getResearchReviewSession } from "../../../services/api/vocabulary-research";
 import { getCachedResearchContext } from "../../../utils/researchContext";
 import {
@@ -45,7 +44,9 @@ export function useQuizSessionData({
   quizIdRef,
 }: QuizSessionDataProps) {
   const canonicalStoryId = baseStoryId ?? storyId;
-  const [stars, setStars] = useState<0 | QuizTier>(() => canonicalStoryId ? loadLocalStars(canonicalStoryId) : 0);
+  const [stars, setStars] = useState<0 | QuizTier>(() => (
+    canonicalStoryId && !(studentId && canUseDatabase()) ? loadLocalStars(canonicalStoryId) : 0
+  ));
   const [serverProgression, setServerProgression] = useState<import("../../../services/api/quiz-analytics").VocabularyProgression | null>(null);
   const studentScope = studentId || studentName || getStudentScopeKey();
   const [attempts, setAttempts] = useState<VocabQuizAttempt[]>(() => (
@@ -89,35 +90,14 @@ export function useQuizSessionData({
       try {
         serverAttempts = await listVocabQuizAttempts(canonicalStoryId, { studentId, studentName });
       } catch {
-        // The server could not be read: localStorage is the deliberately
-        // limited offline fallback. It is never merged after a successful
-        // server read unless the attempt is first validated by POST.
+        // A signed-in student's cached stars cannot open a gate whose
+        // validated server evidence is unavailable.
         if (!cancelled) setStarsReady(true);
         return;
       }
 
-      // Migrate completed rounds left in the old local mirror. A POST is the
-      // validation boundary; a local record is not considered authoritative
-      // merely because it has a passing client-side score.
-      const serverIds = new Set(serverAttempts.map((attempt) => attempt.id));
-      const localAttempts = loadLessonProgressSnapshot(studentScope, canonicalStoryId ?? storyId).attempts ?? [];
-      const pending = localAttempts.filter((attempt) => !serverIds.has(attempt.id));
-      if (pending.length > 0) {
-        const synced = await Promise.allSettled(pending.map((attempt) => createVocabQuizAttempt({
-          ...attempt,
-          storyId: canonicalStoryId ?? attempt.storyId,
-          baseStoryId: canonicalStoryId ?? attempt.baseStoryId,
-          studentId,
-        })));
-        if (synced.some((result) => result.status === "fulfilled")) {
-          try {
-            serverAttempts = await listVocabQuizAttempts(canonicalStoryId, { studentId, studentName });
-          } catch {
-            // Keep the original successful read as the source of truth if the
-            // refresh after migration is unavailable.
-          }
-        }
-      }
+      // Missing server attempts may have been deliberately reset/deleted.
+      // Read the current server history; never restore a local mirror by POST.
 
       let derived: 0 | QuizTier;
       let progression: import("../../../services/api/quiz-analytics").VocabularyProgression | null = null;
@@ -126,10 +106,9 @@ export function useQuizSessionData({
           progression = await getVocabularyProgression(canonicalStoryId, studentId);
           derived = progression.quizStars;
         } catch {
-          const progressAttempts = hasApprovedMaterial
-            ? serverAttempts.filter((attempt) => Boolean(attempt.questionResults?.length && attempt.questionResults.every((result) => result.bktValidationStatus === "APPROVED")))
-            : serverAttempts;
-          derived = starsFromAttempts(progressAttempts);
+          // Authenticated progression needs the validated response ledger.
+          // A raw attempt's client-side score cannot replace that read.
+          derived = 0;
         }
       } else {
         const progressAttempts = hasApprovedMaterial
@@ -139,7 +118,7 @@ export function useQuizSessionData({
       }
 
       if (!cancelled) {
-        if (derived !== 0 && canonicalStoryId) recordLocalStars(canonicalStoryId, derived);
+        if (progression) syncServerVocabularyProgress(progression);
         setServerProgression(progression);
         setStars(derived);
         setAttempts(serverAttempts);

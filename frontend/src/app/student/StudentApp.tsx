@@ -7,6 +7,7 @@ import { getVocabularyProgression, type VocabularyProgression } from "../../serv
 import { computeStudyRowStatuses, nextTopicInSequence, topicStoryId } from "../../utils/lessonGroups";
 import { computeQuizStarsSummary, loadLocalStars, PRACTICE_UNLOCK_STARS, topicHasQuiz } from "@entities/vocabulary";
 import { getStudentId } from "../../utils/studentSession";
+import { syncServerVocabularyProgress } from "../../utils/serverVocabularyProgress";
 import { loadPhaseFlags } from "@shared/lib/studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
 import { PHASE_ORDER, type StudentPhase, type StudentTopSection } from "./shell/StudentSidebar";
@@ -43,7 +44,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const [phase, setPhase] = useState<StudentPhase>("vocab-preview");
   // The furthest phase reached gates preview, quiz and submission in the
   // sidebar. Speaking and Conversation use their shared vocabulary gate.
-  // Only ever moves forward; see advancePhase.
+  // Advances with completed work; a revoked server quiz gate resets it.
   const [furthestPhase, setFurthestPhase] = useState<StudentPhase>("vocab-preview");
   const [vocabularyPreviewCompleted, setVocabularyPreviewCompleted] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
@@ -54,11 +55,13 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const [sceneSubmissions, setSceneSubmissions] = useState<Record<string, SceneSubmission>>({});
   const [completedPractice, setCompletedPractice] = useState<"speaking" | "conversation">("speaking");
   const [activeProgression, setActiveProgression] = useState<VocabularyProgression | null>(null);
+  const [lessonProgressions, setLessonProgressions] = useState<Record<string, VocabularyProgression>>({});
   const [progressionRefresh, setProgressionRefresh] = useState(0);
+  const requiresServerProgression = Boolean(getStudentId() && canUseDatabase());
 
   const openTopic = (topic: Topic) => {
     const hasQuiz = topicHasQuiz(topic);
-    const quizAlreadyPassed = hasQuiz && loadLocalStars(topicStoryId(topic)) >= PRACTICE_UNLOCK_STARS;
+    const quizAlreadyPassed = !requiresServerProgression && hasQuiz && loadLocalStars(topicStoryId(topic)) >= PRACTICE_UNLOCK_STARS;
     setActiveTopic(topic);
     setActiveProgression(null);
     setSceneIndex(0);
@@ -82,12 +85,17 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   useEffect(() => {
     setActiveProgression(null);
     const studentId = getStudentId();
-    const storyId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
-    if (!activeTopic || !studentId || !storyId || !canUseDatabase()) return;
+    if (!studentId || !requiresServerProgression || (activeTopic && !topicHasQuiz(activeTopic))) return;
     let cancelled = false;
-    getVocabularyProgression(storyId, studentId)
-      .then((progression) => {
-        if (cancelled) return;
+    const storyIds = activeTopic
+      ? [topicStoryId(activeTopic)]
+      : [...new Set(topics.filter(topicHasQuiz).map(topicStoryId))];
+    void Promise.allSettled(storyIds.map(async (storyId) => {
+      const progression = await getVocabularyProgression(storyId, studentId);
+      if (cancelled) return;
+      syncServerVocabularyProgress(progression);
+      setLessonProgressions((prev) => ({ ...prev, [storyId]: progression }));
+      if (activeTopic) {
         setActiveProgression(progression);
         if (progression.quizStars >= PRACTICE_UNLOCK_STARS) {
           setFurthestPhase((prev) => (
@@ -95,15 +103,20 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
               ? prev
               : "story-speaking"
           ));
+        } else {
+          setFurthestPhase("vocab-quiz");
+          setPhase((prev) => PHASE_ORDER.indexOf(prev) > PHASE_ORDER.indexOf("vocab-quiz") ? "vocab-quiz" : prev);
+          setSceneIndex(0);
+          setSceneSubmissions({});
+          setCompletedPractice("speaking");
         }
-      })
-      .catch(() => { /* local mirror remains the offline fallback */ });
+      }
+    }));
     return () => { cancelled = true; };
-  }, [activeTopic, progressionRefresh]);
+  }, [activeTopic, topics, progressionRefresh, requiresServerProgression]);
 
   const refreshProgression = () => {
-    // Re-read the completed quiz's local mirror immediately, then refresh
-    // the server result through the effect so older requests are cancelled.
+    // Refresh the completed quiz's server result and cancel older requests.
     setActiveProgression(null);
     setProgressionRefresh((prev) => prev + 1);
   };
@@ -150,8 +163,11 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const availableConversationTurns = conversationContentAvailable ? (conversationTurns ?? []) : [];
 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
+  const starsForTopic = (topic: Topic) => requiresServerProgression
+    ? lessonProgressions[topicStoryId(topic)]?.quizStars ?? 0
+    : loadLocalStars(topicStoryId(topic));
   if (section === "study" && !activeTopic) {
-    const rowStatuses = computeStudyRowStatuses(topics, loadSubmittedStoryIds());
+    const rowStatuses = computeStudyRowStatuses(topics, loadSubmittedStoryIds(), starsForTopic);
     for (const [id, status] of Object.entries(rowStatuses)) {
       statusByStoryId[id] = {
         status,
@@ -163,7 +179,10 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // Not memoized: stars change via localStorage writes (quiz completion)
   // that don't change the `topics` prop, so a [topics]-keyed memo would
   // go stale.
-  const { quizStars: totalQuizStars, maxQuizStars } = computeQuizStarsSummary(topics);
+  const { quizStars: localQuizStars, maxQuizStars } = computeQuizStarsSummary(topics);
+  const totalQuizStars = requiresServerProgression
+    ? topics.filter(topicHasQuiz).reduce((sum, topic) => sum + starsForTopic(topic), 0)
+    : localQuizStars;
   const currentLessonTitle = !activeTopic
     ? (() => {
         const current = Object.entries(statusByStoryId).find(([, entry]) => entry.status === "in-progress")
@@ -177,13 +196,16 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // Content availability controls the conversation page's empty state,
   // while earned stars alone determine access to both modes.
   const activeStoryId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
-  const activeStars = activeProgression?.quizStars ?? (activeStoryId ? loadLocalStars(activeStoryId) : 0);
+  const activeStars = activeProgression?.quizStars ?? (!requiresServerProgression && activeStoryId ? loadLocalStars(activeStoryId) : 0);
   const practiceChoicesUnlocked = activeTopic
     ? (!topicHasQuiz(activeTopic) || activeStars >= PRACTICE_UNLOCK_STARS)
     : false;
+  const gateRevoked = requiresServerProgression && activeTopic && topicHasQuiz(activeTopic) && !practiceChoicesUnlocked;
+  const visiblePhase = gateRevoked && PHASE_ORDER.indexOf(phase) > PHASE_ORDER.indexOf("vocab-quiz")
+    ? "vocab-quiz" : phase;
 
-  const displayPhase = phase === "vocab-quiz" && !vocabularyPracticeUnlocked
-    ? "vocab-preview" : phase;
+  const displayPhase = visiblePhase === "vocab-quiz" && !vocabularyPracticeUnlocked
+    ? "vocab-preview" : visiblePhase;
 
   const finishVocabularyQuiz = () => {
     refreshProgression();
@@ -264,7 +286,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     );
   } else {
     const submittedIds = loadSubmittedStoryIds();
-    const rowStatuses = computeStudyRowStatuses(topics, submittedIds);
+    const rowStatuses = computeStudyRowStatuses(topics, submittedIds, starsForTopic);
     const overallCompleted = Object.values(rowStatuses).filter((status) => status === "completed").length;
     const nextTopic = nextTopicInSequence(topics, activeTopic);
     const nextTopicUnlocked = nextTopic ? rowStatuses[topicStoryId(nextTopic)] !== "locked" : false;
@@ -293,7 +315,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         activePhase={section === "study" && activeTopic ? displayPhase : null}
         quizStars={totalQuizStars}
         maxQuizStars={maxQuizStars}
-        furthestPhase={furthestPhase}
+        furthestPhase={gateRevoked ? "vocab-quiz" : furthestPhase}
         practiceChoicesUnlocked={practiceChoicesUnlocked}
         vocabularyPracticeUnlocked={vocabularyPracticeUnlocked}
         onNavigateSection={(next) => {
