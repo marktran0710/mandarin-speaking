@@ -29,11 +29,10 @@ describe("analyzeSpeakingResult — verdict", () => {
 
     expect(result.verdict).toBe("ready");
     expect(result.hasFix).toBe(false);
-    expect(result.hasPractice).toBe(false);
     expect(result.steps).toEqual(["selfEval", "overview"]);
   });
 
-  it("is 'pronounce' when accepted but a word failed pronunciation", () => {
+  it("is 'ready' when content passed even though a word failed pronunciation — mastery no longer gates readiness", () => {
     const result = analyzeSpeakingResult({
       modelSentence: "你好",
       praatMetrics: metrics({
@@ -59,14 +58,13 @@ describe("analyzeSpeakingResult — verdict", () => {
           } as never,
         ],
       }),
-      ready: false,
+      ready: true,
       selectedImageIndex: 0,
     });
 
-    expect(result.verdict).toBe("pronounce");
+    expect(result.verdict).toBe("ready");
     expect(result.hasFix).toBe(false);
-    expect(result.hasPractice).toBe(true);
-    expect(result.steps).toEqual(["overview", "practice"]);
+    expect(result.steps).toEqual(["selfEval", "overview"]);
   });
 
   it("is 'vocab' when required vocabulary is missing from the transcript", () => {
@@ -91,7 +89,7 @@ describe("analyzeSpeakingResult — verdict", () => {
     expect(result.verdict).toBe("vocab");
     expect(result.hasFix).toBe(true);
     expect(result.hasPhrasePractice).toBe(true);
-    expect(result.steps).toEqual(["overview", "fix", "practice"]);
+    expect(result.steps).toEqual(["overview", "fix"]);
   });
 
   it("is 'join' on a multi-part script that isn't ready yet, once every part matches", () => {

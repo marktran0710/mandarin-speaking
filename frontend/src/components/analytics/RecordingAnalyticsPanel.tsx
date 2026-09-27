@@ -20,7 +20,7 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
         </div>
         <div className="teacher-empty-panel">
           <strong>No recordings yet</strong>
-          <p>Fluency and tone accuracy trends will appear here once students submit recordings.</p>
+          <p>Fluency and tone accuracy trends will appear here once students submit recordings. Tone accuracy is experimental — not validated against human raters.</p>
         </div>
       </section>
     );
@@ -69,7 +69,7 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
         <DashboardStat
           label="Avg. tone accuracy"
           value={avgTone === null ? "--" : `${avgTone}%`}
-          note="Praat tone accuracy"
+          note="Experimental — not validated against human raters"
         />
       </section>
 
@@ -77,7 +77,9 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
         <div className="teacher-panel-header">
           <div>
             <p className="stories-kicker">Speaking trend</p>
-            <h2>Fluency &amp; tone accuracy over time</h2>
+            <h2 title="Tone accuracy is experimental — not validated against human raters. Fluency is not affected.">
+              Fluency &amp; tone accuracy over time
+            </h2>
           </div>
         </div>
         {timeSeries.length === 0 ? (

@@ -126,8 +126,8 @@ def _voice_thresholds() -> dict:
     return {
         "SYLLABLE_PASS_THRESHOLD": {
             "value": 58.0,
-            "purpose": "Legacy per-syllable score pass bar. This is the ONLY threshold that actually unlocks lesson progression - the diagnostic states below (CORRECT/UNCERTAIN/INCORRECT/INVALID_AUDIO) are shown to students as feedback but explicitly do not drive progression (see domain/speech/tone_decision.py's module docstring).",
-            "controlsProgression": True,
+            "purpose": "Legacy per-syllable score pass bar. Used to feed pronunciation_mastery.passed, which no longer gates student-facing lesson progression (progression is content_match alone, since an OMPAL corpus validation found per-syllable tone verdicts unreliable vs human raters - kappa 0.015 vs expert-vs-expert 0.445). Still computed and returned for teacher/research visibility.",
+            "controlsProgression": False,
             "provenance": "ENGINEERING_DEFAULT",
         },
         "TONE_CONFIRM_THRESHOLD": {
@@ -180,14 +180,14 @@ def _voice_thresholds() -> dict:
         },
         "PHRASE_SHAPE_WEIGHT": {
             "value": 0.50,
-            "purpose": "Shape weight in the legacy combined tone_accuracy score (0.50/0.50 with PHRASE_DIRECTIONAL_WEIGHT) that feeds the legacy per-word pass path - distinct from both the diagnostic verdict (not a blend) and the display-only composite below.",
-            "controlsProgression": True,
+            "purpose": "Shape weight in the legacy combined tone_accuracy score (0.50/0.50 with PHRASE_DIRECTIONAL_WEIGHT) that feeds the legacy per-word pass path - distinct from both the diagnostic verdict (not a blend) and the display-only composite below. That per-word pass path no longer gates student-facing lesson progression (progression is content_match alone; see SYLLABLE_PASS_THRESHOLD).",
+            "controlsProgression": False,
             "provenance": "PROJECT_HEURISTIC",
         },
         "PHRASE_DIRECTIONAL_WEIGHT": {
             "value": 0.50,
             "purpose": "Direction weight paired with PHRASE_SHAPE_WEIGHT.",
-            "controlsProgression": True,
+            "controlsProgression": False,
             "provenance": "PROJECT_HEURISTIC",
         },
         "DISPLAY_SHAPE_WEIGHT": {
@@ -204,8 +204,8 @@ def _voice_thresholds() -> dict:
         },
         "SENTENCE_SYLLABLE_PASS_RATIO": {
             "value": SENTENCE_SYLLABLE_PASS_RATIO,
-            "purpose": "Fraction of judged syllables in a sentence that must pass for the sentence-level pronunciation verdict to pass.",
-            "controlsProgression": True,
+            "purpose": "Fraction of judged syllables in a sentence that must pass for the sentence-level pronunciation verdict (pronunciation_mastery.passed) to pass. That verdict no longer gates student-facing lesson progression (progression is content_match alone); still computed for teacher/research visibility.",
+            "controlsProgression": False,
             "provenance": "ENGINEERING_DEFAULT",
         },
     }
@@ -276,9 +276,15 @@ def _voice_section() -> dict:
                 "The diagnostic verdict (CORRECT/UNCERTAIN/INCORRECT/INVALID_AUDIO) is NOT a weighted blend - "
                 "it's rule/branch logic over the shape and direction scores as separate signals. Two other, "
                 "separate weighted combinations exist elsewhere: a legacy 0.50/0.50 shape+direction composite "
-                "that does feed lesson-progression pass/fail, and a purely cosmetic 0.70/0.30 composite shown "
-                "only in progress history. See docs/learning-engine.md for exact per-tone formulas. Every "
-                "verdict payload the API returns ships threshold_validated=false explicitly."
+                "feeding pronunciation_mastery.passed, and a purely cosmetic 0.70/0.30 composite shown only in "
+                "progress history - neither gates student-facing lesson progression (progression is "
+                "content_match alone). An OMPAL corpus validation (1,586 utterances / 17,765 syllables, 3 expert "
+                "raters) found per-syllable tone verdicts unreliable vs human raters (kappa 0.015 vs "
+                "expert-vs-expert 0.445) and sentence tone_accuracy weakly correlated with expert accuracy "
+                "(Spearman 0.16 vs experts' 0.54), which is why these scores are no longer surfaced to students "
+                "as pass/fail and no longer gate progression - they remain visible to teachers/researchers only, "
+                "and every verdict payload the API returns ships threshold_validated=false explicitly. See "
+                "docs/learning-engine.md for exact per-tone formulas."
             ),
         },
         "qualityGate": {

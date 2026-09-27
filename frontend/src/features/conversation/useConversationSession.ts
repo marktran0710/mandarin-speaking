@@ -111,7 +111,7 @@ export function useConversationSession({
     const analysis = analyzeSpeakingResult({
       modelSentence: currentTurn.targetText || currentTurn.text,
       praatMetrics: result.metrics,
-      ready: result.masteryPassed && result.contentPassed,
+      ready: result.contentPassed,
       selectedImageIndex: currentTurn.sceneIndex ?? 0,
     });
     setLastResult(result);

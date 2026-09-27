@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { DiagnosticStatus, PraatMetrics, WordProsody } from "@entities/speech";
+import type { PraatMetrics, WordProsody } from "@entities/speech";
 import MiniContourChart from "../../components/pitch/MiniContourChart";
 import PraatTimeline from "../../components/pitch/PraatTimeline";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
@@ -16,12 +16,10 @@ interface SpeechResultReviewProps {
   audioBlob?: Blob | null;
   audioUrl?: string;
   meaningPassed: boolean;
-  pronunciationPassed: boolean;
 }
 
 interface ScriptUnit {
   text: string;
-  status: DiagnosticStatus | "NOT_MEASURED";
   word?: WordProsody;
 }
 
@@ -32,7 +30,6 @@ export default function SpeechResultReview({
   audioBlob,
   audioUrl,
   meaningPassed,
-  pronunciationPassed,
 }: SpeechResultReviewProps) {
   const words = metrics.word_prosody ?? [];
   const units = useMemo(() => buildScriptUnits(targetScript, words), [targetScript, words]);
@@ -65,22 +62,14 @@ export default function SpeechResultReview({
 
       <div className="sa-result-review__summary" aria-label="Result summary">
         <ResultBadge label="Meaning" ok={meaningPassed} />
-        <ResultBadge label="Pronunciation" ok={pronunciationPassed} />
       </div>
 
-      <div className="sa-result-review__legend" aria-label="Word result legend">
-        <Legend status="CORRECT" label="Correct" />
-        <Legend status="INCORRECT" label="Needs work" />
-        <Legend status="UNCERTAIN" label="Uncertain" />
-        <Legend status="NOT_MEASURED" label="Not measured" />
-      </div>
-
-      <div className="sa-result-review__script" aria-label="Word by word pronunciation result">
+      <div className="sa-result-review__script" aria-label="Word by word script">
         {units.map((unit, index) => (
           <button
             key={`${unit.text}-${index}`}
             type="button"
-            className={`sa-script-token is-${unit.status.toLowerCase()}`}
+            className="sa-script-token"
             disabled={!unit.word}
             aria-label={`${unit.text}: 選擇以比較`}
             aria-pressed={selectedIndex === unit.word?.index}
@@ -162,11 +151,6 @@ function WordDetail({ word, audioBlob }: { word: WordProsody; audioBlob?: Blob |
         </div>
         <SegmentPlayButton audioBlob={audioBlob} start={word.start_time} end={word.end_time} label="Play word" />
       </div>
-      <p className={`sa-result-review__detail-status is-${statusKey(wordStatus(word))}`}>
-        <StudentIcon name={statusIcon(wordStatus(word))} size={16} role="decorative" />
-        {statusLabel(wordStatus(word))}
-        {word.feedback && <span> · {word.feedback}</span>}
-      </p>
       {hasPitch ? (
         <div className="sa-result-review__mini-chart">
           <MiniContourChart
@@ -313,38 +297,6 @@ function ResultBadge({ label, ok }: { label: string; ok: boolean }) {
   );
 }
 
-function Legend({ status, label }: { status: DiagnosticStatus | "NOT_MEASURED"; label: string }) {
-  return <span className={`sa-result-legend is-${statusKey(status)}`}><i aria-hidden="true" />{label}</span>;
-}
-
-function wordStatus(word: WordProsody): DiagnosticStatus | "NOT_MEASURED" {
-  return word.verdict ?? word.diagnostic_status ?? (word.passed === true ? "CORRECT" : word.passed === false ? "INCORRECT" : "NOT_MEASURED");
-}
-
-function statusKey(status: DiagnosticStatus | "NOT_MEASURED"): string {
-  return status.toLowerCase();
-}
-
-function statusLabel(status: DiagnosticStatus | "NOT_MEASURED"): string {
-  switch (status) {
-    case "CORRECT": return "Correct";
-    case "INCORRECT": return "Needs pronunciation work";
-    case "UNCERTAIN": return "Uncertain";
-    case "INVALID_AUDIO": return "Could not evaluate";
-    default: return "Not measured";
-  }
-}
-
-function statusIcon(status: DiagnosticStatus | "NOT_MEASURED"): string {
-  switch (status) {
-    case "CORRECT": return "check_circle";
-    case "INCORRECT": return "priority_high";
-    case "UNCERTAIN": return "help";
-    case "INVALID_AUDIO": return "mic_off";
-    default: return "horizontal_rule";
-  }
-}
-
 function getAiFeedback(metrics: PraatMetrics): string {
   const corrective = metrics.ai_feedback?.corrective_feedback;
   const feedback = corrective?.hint?.trim()
@@ -387,12 +339,11 @@ function buildScriptUnits(script: string, words: WordProsody[]): ScriptUnit[] {
   const units: ScriptUnit[] = [];
   scriptChars.forEach((char, index) => {
     const word = assignments.get(index);
-    const status = word ? wordStatus(word) : "NOT_MEASURED";
     const previous = units[units.length - 1];
     if (word && previous?.word?.index === word.index) {
       previous.text += char;
     } else {
-      units.push({ text: char, status, word });
+      units.push({ text: char, word });
     }
   });
   return units;

@@ -20,7 +20,6 @@ export default function TurnFeedback({ session, continueLabel }: TurnFeedbackPro
         audioBlob={lastResult.audioBlob}
         audioUrl={lastResult.audioUrl}
         meaningPassed={lastAnalysis.accepted}
-        pronunciationPassed={lastResult.masteryPassed}
       />
       {lastResult.verified && <p className="sa-conversation__verified"><StudentSystemText k="verifiedRecording" /></p>}
       <ConversationFooter

@@ -14,8 +14,7 @@
 .sa-speaking__feedback-step.is-current { background: var(--color-primary-container); color: var(--color-on-primary-container); }
 .sa-speaking__feedback-step.is-done { background: var(--color-success-container); color: var(--color-success-ink); }
 
-.sa-speaking__fix,
-.sa-speaking__practice {
+.sa-speaking__fix {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -60,31 +59,6 @@
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.sa-speaking__practice-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.sa-speaking__practice-item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-soft);
-}
-.sa-speaking__practice-word {
-  font-family: var(--font-hanzi);
-  font-size: var(--font-size-body);
-  color: var(--color-ink);
-  flex-shrink: 0;
-}
-.sa-speaking__practice-feedback {
-  font-family: var(--font-ui);
-  font-size: var(--font-size-body);
-  color: var(--color-ink-variant);
 }
 
 .sa-speaking__media {
@@ -215,16 +189,12 @@
 
 /* Bright adult pastel treatment for recording and feedback states. */
 .sa-speaking__fix,
-.sa-speaking__practice,
 .sa-speaking__overview,
 .sa-speaking__target,
 .sa-speaking__action { border-radius: 18px; }
 .sa-speaking__fix { background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-primary) 16%, transparent); box-shadow: 0 8px 24px color-mix(in srgb, var(--color-ink) 7%, transparent); }
 .sa-speaking__fix-error { background: var(--color-peach); color: var(--color-error); }
-.sa-speaking__fix-correct,
-.sa-speaking__practice-item { background: var(--color-sky); }
-.sa-speaking__practice-item { min-height: 56px; border-radius: 12px; }
-.sa-speaking__practice-feedback { color: var(--color-muted); }
+.sa-speaking__fix-correct { background: var(--color-sky); }
 .sa-speaking__target { background: var(--color-sky); }
 .sa-speaking__target-label,
 .sa-speaking__stage { color: var(--color-muted); }
@@ -239,7 +209,6 @@
 @media (max-width: 560px) {
   .sa-speaking__feedback-steps { overflow-x: auto; padding-bottom: 4px; }
   .sa-speaking__feedback-step { min-height: 40px; display: inline-flex; align-items: center; white-space: nowrap; }
-  .sa-speaking__practice-item { align-items: flex-start; flex-direction: column; gap: 4px; }
   .sa-self-eval-row { align-items: stretch; flex-direction: column; }
   .sa-self-eval-row__options { display: grid; grid-template-columns: repeat(3, 1fr); }
   .sa-self-eval-row__option { width: 100%; padding-inline: 8px; }

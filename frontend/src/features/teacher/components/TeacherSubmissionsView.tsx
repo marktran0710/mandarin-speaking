@@ -158,7 +158,12 @@ export default function TeacherSubmissionsView({
                     <strong>{sub.studentName}</strong>
                     <span className="story-submission-row-story">{sub.storyTitle}</span>
                   </div>
-                  <span className="story-submission-row-score">{overallScore(sub)}%</span>
+                  <span
+                    className="story-submission-row-score"
+                    title="Blends vocab, tone, and pronunciation. Tone/pronunciation are experimental — not validated against human raters."
+                  >
+                    {overallScore(sub)}%
+                  </span>
                   <span className="story-submission-row-date">
                     {new Date(sub.submittedAt).toLocaleDateString()}
                   </span>
@@ -240,7 +245,10 @@ export default function TeacherSubmissionsView({
                         <div key={key} className="story-submission-scene">
                           <div className="sss-header">
                             <span className="sss-scene-num">{label}</span>
-                            <span className="sss-score" title="Vocab / Tone / Character-by-character prosody">
+                            <span
+                              className="sss-score"
+                              title="Vocab / Tone / Character-by-character prosody. Tone and Prosody are experimental — not validated against human raters."
+                            >
                               Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore}%
                             </span>
                           </div>

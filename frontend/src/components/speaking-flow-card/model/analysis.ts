@@ -1,8 +1,4 @@
-import {
-  failedProsodyWords,
-  isContentAccepted,
-  weakToneGuideItems,
-} from "../../../utils/storyRecorderFeedback";
+import { isContentAccepted } from "../../../utils/storyRecorderFeedback";
 import {
   scoreScriptChunks,
   scriptMismatchTokens,
@@ -11,7 +7,8 @@ import {
 } from "@entities/speech";
 import { assessVoiceFeedbackReliability } from "@entities/speech";
 import type { PraatMetrics } from "../../story-recorder/StoryRecorder";
-import { buildPracticeTargets, type PracticeTarget, type ResultsStep } from "./practiceTargets";
+
+export type ResultsStep = "selfEval" | "overview" | "fix" | "practice";
 
 export interface SpeakingResultAnalysisInput {
   modelSentence?: string;
@@ -21,7 +18,7 @@ export interface SpeakingResultAnalysisInput {
   selectedImageIndex: number;
 }
 
-export type SpeakingResultVerdict = "meaning" | "vocab" | "pronounce" | "join" | "ready";
+export type SpeakingResultVerdict = "meaning" | "vocab" | "join" | "ready";
 
 type LanguageFeedback = NonNullable<PraatMetrics["ai_feedback"]>;
 
@@ -42,31 +39,22 @@ export interface SpeakingResultAnalysis {
   isChunked: boolean;
   chunkScores: ReturnType<typeof scoreScriptChunks>;
   failedChunks: ReturnType<typeof scoreScriptChunks>;
-  weakItems: ReturnType<typeof weakToneGuideItems>;
-  pronunciationMastery: PraatMetrics["pronunciation_mastery"];
-  masteryCounts: { passed: number; total: number } | undefined;
   contentAccuracy: LanguageFeedback["content_accuracy"];
   corrective: LanguageFeedback["corrective_feedback"];
   meaningJudged: boolean;
   feedbackReliability: ReturnType<typeof assessVoiceFeedbackReliability>;
-  failedWords: ReturnType<typeof failedProsodyWords>;
   contentMatchVerified: boolean;
   contentNeedsRetry: boolean;
   contentMismatchChunks: ReturnType<typeof scoreScriptChunks>;
   hasChunkMismatch: boolean;
   effectiveScriptMismatches: string[];
-  legacyPracticeWords: ReturnType<typeof failedProsodyWords>;
   hasScriptMismatch: boolean;
   needsPhrasePractice: boolean;
   phrasePracticeItems: string[];
-  practicePartLabels: string[];
-  practiceTargets: PracticeTarget[];
-  practicePartCount: number;
   verdict: SpeakingResultVerdict;
   showCorrective: boolean;
   hasFix: boolean;
   hasPhrasePractice: boolean;
-  hasPractice: boolean;
   steps: ResultsStep[];
 }
 
@@ -94,14 +82,6 @@ export function analyzeSpeakingResult({
     ? scoreScriptChunks(targetScript, recognizedText, praatMetrics.word_prosody)
     : [];
   const failedChunks = chunkScores.filter((chunk) => !chunk.passed);
-  const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
-  const pronunciationMastery = praatMetrics.pronunciation_mastery;
-  const masteryCounts =
-    pronunciationMastery &&
-    typeof pronunciationMastery.passed_syllables === "number" &&
-    typeof pronunciationMastery.total_syllables === "number"
-      ? { passed: pronunciationMastery.passed_syllables, total: pronunciationMastery.total_syllables }
-      : undefined;
   const contentAccuracy = ai?.content_accuracy;
   const corrective = ai?.corrective_feedback;
   const meaningJudged = Boolean(contentAccuracy?.judged);
@@ -112,7 +92,6 @@ export function analyzeSpeakingResult({
     wordProsody: praatMetrics.word_prosody,
     transcription: recognizedText,
   });
-  const failedWords = failedProsodyWords(praatMetrics.word_prosody);
   const contentMatchVerified = praatMetrics.content_match === true;
   const contentNeedsRetry = hasTargetScript && !contentMatchVerified;
   const contentMismatchChunks = contentMatchVerified
@@ -120,9 +99,6 @@ export function analyzeSpeakingResult({
     : failedChunks.filter((chunk) => chunk.mismatch.length > 0);
   const hasChunkMismatch = isChunked && contentMismatchChunks.length > 0;
   const effectiveScriptMismatches = contentMatchVerified ? [] : scriptMismatches;
-  const legacyPracticeWords = [...failedWords].sort(
-    (a, b) => (a.shape_accuracy ?? a.tone_accuracy ?? 0) - (b.shape_accuracy ?? b.tone_accuracy ?? 0),
-  );
   const hasScriptMismatch =
     contentNeedsRetry || (isChunked ? hasChunkMismatch : effectiveScriptMismatches.length > 0);
   const needsPhrasePractice =
@@ -137,39 +113,24 @@ export function analyzeSpeakingResult({
           })()
       : scriptChunks
     : [];
-  const practicePartLabels = pronunciationMastery
-    ? pronunciationMastery.practice_parts ??
-      Array.from(
-        new Set([
-          ...(pronunciationMastery.failed_words ?? []),
-          ...(pronunciationMastery.missing_target_units ?? []),
-        ]),
-      )
-    : legacyPracticeWords.map((word) => word.token);
-  const practiceTargets = buildPracticeTargets(practicePartLabels, praatMetrics.word_prosody ?? []);
-  const practicePartCount = practiceTargets.length;
   const verdict: SpeakingResultVerdict =
     !accepted || hasScriptMismatch
       ? "meaning"
       : missing.length > 0
         ? "vocab"
-        : isChunked && !ready
-          ? "join"
-          : ready
-            ? "ready"
-            : "pronounce";
+        : ready
+          ? "ready"
+          : "join";
   const showCorrective =
     !(accepted && missing.length === 0) &&
     Boolean(corrective) &&
     Boolean(corrective!.errors.length > 0 || corrective!.hint || corrective!.correct_version);
   const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
   const hasPhrasePractice = phrasePracticeItems.length > 0;
-  const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceTargets.length > 0);
   const steps: ResultsStep[] = [
     ...(ready ? (["selfEval"] as const) : []),
     "overview",
     ...(hasFix ? (["fix"] as const) : []),
-    ...(hasPractice ? (["practice"] as const) : []),
   ];
 
   return {
@@ -184,31 +145,22 @@ export function analyzeSpeakingResult({
     isChunked,
     chunkScores,
     failedChunks,
-    weakItems,
-    pronunciationMastery,
-    masteryCounts,
     contentAccuracy,
     corrective,
     meaningJudged,
     feedbackReliability,
-    failedWords,
     contentMatchVerified,
     contentNeedsRetry,
     contentMismatchChunks,
     hasChunkMismatch,
     effectiveScriptMismatches,
-    legacyPracticeWords,
     hasScriptMismatch,
     needsPhrasePractice,
     phrasePracticeItems,
-    practicePartLabels,
-    practiceTargets,
-    practicePartCount,
     verdict,
     showCorrective,
     hasFix,
     hasPhrasePractice,
-    hasPractice,
     steps,
   };
 }

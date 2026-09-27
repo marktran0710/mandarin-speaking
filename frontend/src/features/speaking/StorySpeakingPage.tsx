@@ -28,12 +28,11 @@ import "./StorySpeakingPage.css";
 // Self-evaluation is a deliberate stage between analysis and the feedback
 // result, so the learner reports their impression before seeing the verdict.
 type Stage = "recording" | "selfEval" | "feedback";
-type FeedbackStep = "overview" | "fix" | "practice";
+type FeedbackStep = "overview" | "fix";
 
 const FEEDBACK_STEP_LABEL: Record<FeedbackStep, string> = {
   overview: "Overview",
   fix: "Fix",
-  practice: "Practice",
 };
 
 interface StorySpeakingPageProps {
@@ -123,7 +122,7 @@ export default function StorySpeakingPage({
       analyzeSpeakingResult({
         modelSentence: targetText,
         praatMetrics: result.metrics,
-        ready: result.masteryPassed && result.contentPassed,
+        ready: result.contentPassed,
         selectedImageIndex,
       }),
     );
@@ -230,13 +229,12 @@ export default function StorySpeakingPage({
   };
 
   // Old SpeakingResultsFlow logic: after the verdict, walk Fix (script/
-  // vocab correction) then Practice (per-word drill) when the attempt
-  // actually needs them (analysis.steps already decided that) ??never
-  // both unconditionally, never invented beyond what analyzeSpeakingResult
+  // vocab correction) when the attempt actually needs it (analysis.steps
+  // already decided that) ??never invented beyond what analyzeSpeakingResult
   // found. "selfEval" is excluded here since this page already ran its own
   // self-evaluation step earlier, unconditionally, per the approved design.
   const feedbackSteps: FeedbackStep[] = lastAnalysis
-    ? (lastAnalysis.steps.filter((s): s is FeedbackStep => s !== "selfEval"))
+    ? (lastAnalysis.steps.filter((s): s is FeedbackStep => s === "overview" || s === "fix"))
     : ["overview"];
   const feedbackStepIndex = feedbackSteps.indexOf(feedbackStep);
   const isLastFeedbackStep = feedbackStepIndex === -1 || feedbackStepIndex === feedbackSteps.length - 1;
@@ -283,15 +281,6 @@ export default function StorySpeakingPage({
         primary: (
           <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
             {continueLabel}
-          </StudentButton>
-        ),
-      };
-    } else if (feedbackStep === "practice") {
-      actions = {
-        secondary: recordAgainButton,
-        primary: (
-          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={advanceFeedback}>
-            {nextSceneLabel}
           </StudentButton>
         ),
       };
@@ -398,7 +387,6 @@ export default function StorySpeakingPage({
                 audioBlob={lastResult.audioBlob}
                 audioUrl={lastResult.audioUrl}
                 meaningPassed={lastAnalysis.accepted}
-                pronunciationPassed={lastGates?.masteryPassed ?? false}
               />
             )}
 
@@ -417,25 +405,6 @@ export default function StorySpeakingPage({
                     <BilingualWord hanzi={lastAnalysis.corrective.correct_version} size="inline" />
                   </div>
                 )}
-              </StudentSection>
-            )}
-
-            {feedbackStep === "practice" && (
-              <StudentSection variant="panel" className="sa-speaking__practice">
-                <div className="sa-speaking__fix-head">
-                  <StudentIcon name="fitness_center" size={18} role="decorative" />
-                  <h3>Practice these words</h3>
-                </div>
-                <div className="sa-speaking__practice-list">
-                  {lastAnalysis.practiceTargets.map((target) => (
-                    <div key={target.key} className="sa-speaking__practice-item">
-                      <span lang="zh-Hant" className="sa-speaking__practice-word">{target.label}</span>
-                      {target.word?.feedback && (
-                        <span className="sa-speaking__practice-feedback">{target.word.feedback}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
               </StudentSection>
             )}
           </>

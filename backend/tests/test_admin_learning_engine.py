@@ -38,9 +38,10 @@ def test_admin_sees_runtime_bkt_srs_and_voice_metadata(admin_client):
     assert voice["acousticEngine"]["technology"] == "Praat via python-parselmouth"
     thresholds = voice["thresholds"]
     assert thresholds["SYLLABLE_PASS_THRESHOLD"]["value"] == 58.0
-    assert thresholds["SYLLABLE_PASS_THRESHOLD"]["controlsProgression"] is True
-    # The diagnostic thresholds are feedback-only and must not be mislabeled
-    # as progression-gating - see domain/speech/tone_decision.py's docstring.
+    # Pronunciation/tone scoring no longer gates student-facing lesson
+    # progression (progression is content_match alone) - see
+    # domain/speech/tone_decision.py's docstring.
+    assert thresholds["SYLLABLE_PASS_THRESHOLD"]["controlsProgression"] is False
     assert thresholds["TONE_CONFIRM_THRESHOLD"]["controlsProgression"] is False
     assert isinstance(voice["asrProviders"], list) and voice["asrProviders"]
 

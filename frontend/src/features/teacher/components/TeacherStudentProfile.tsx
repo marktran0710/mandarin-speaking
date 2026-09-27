@@ -133,11 +133,19 @@ export default function TeacherStudentProfile({
           <>
             <section className="teacher-stat-grid" aria-label={`${assessment.studentName} speaking snapshot`}>
               <DashboardStat label="Avg. fluency" value={score(assessment.speaking.avgFluencyScore, "/100")} note="Praat fluency score" />
-              <DashboardStat label="Avg. tone accuracy" value={score(assessment.speaking.avgToneAccuracy, "%")} note="Praat tone accuracy" />
+              <DashboardStat
+                label="Avg. tone accuracy"
+                value={score(assessment.speaking.avgToneAccuracy, "%")}
+                note="Experimental — not validated against human raters"
+              />
               <DashboardStat label="Avg. AI feedback" value={score(assessment.speaking.avgAiFeedbackScore, "/100")} note="Available feedback dimensions" />
             </section>
             <div className="quiz-analytics-chart-card">
-              <h3>Fluency and tone over time</h3>
+              <h3
+                title="Tone accuracy is experimental — not validated against human raters. Fluency is not affected."
+              >
+                Fluency and tone over time
+              </h3>
               {speakingPoints.length === 0 ? (
                 <p className="quiz-analytics-empty-note">No analyzed speaking recordings linked to this student yet.</p>
               ) : <FluencyToneTimeChart points={speakingPoints} />}

@@ -112,6 +112,16 @@ export default function RecordCard({
                 </span>
               </div>
             </div>
+            <span
+              className="score-experimental-notice"
+              title="Validated against a 1,586-utterance expert-rated corpus (OMPAL): tone/accuracy agreement with human raters was far below expert-vs-expert agreement. Treat these two numbers as unvalidated engineering output, not a grade."
+            >
+              <BiLabel
+                zh="實驗性數據，未經人工評分驗證"
+                pinyin="Shíyànxìng shùjù, wèi jīng réngōng pínggū yànzhèng"
+                en="Experimental — not validated against human raters"
+              />
+            </span>
 
             {record.praatMetrics.pitch_contour?.length > 0 && (
               <div className="story-prosody-chart">
