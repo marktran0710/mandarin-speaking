@@ -29,11 +29,12 @@ const bktPresets: Array<[string, Record<string, unknown>]> = [
 ];
 
 const sm2Presets: Array<[string, Record<string, unknown>]> = [
-  ["Production enrollment", { operation: "enroll", repetitions: 0, intervalDays: 0, ease: 2.5, quality: 4 }],
-  ["First correct review", { operation: "review", repetitions: 0, intervalDays: 0, ease: 2.5, quality: 4 }],
-  ["Second success", { operation: "review", repetitions: 1, intervalDays: 1, ease: 2.5, quality: 4 }],
-  ["Third success", { operation: "review", repetitions: 2, intervalDays: 6, ease: 2.5, quality: 4 }],
-  ["Failure", { operation: "review", repetitions: 3, intervalDays: 15, ease: 2.5, quality: 2 }],
+  ["Enroll STRONG word (create first schedule)", { operation: "enroll", repetitions: 0, intervalDays: 0, ease: 2.5, quality: 4 }],
+  ["1st correct review after enrollment", { operation: "review", repetitions: 1, intervalDays: 1, ease: 2.5, quality: 4 }],
+  ["2nd correct review after enrollment", { operation: "review", repetitions: 2, intervalDays: 6, ease: 2.5, quality: 4 }],
+  ["3rd correct review after enrollment", { operation: "review", repetitions: 3, intervalDays: 15, ease: 2.5, quality: 4 }],
+  ["Correct review after failure (rep 0)", { operation: "review", repetitions: 0, intervalDays: 1, ease: 2.18, quality: 4 }],
+  ["Failed due review", { operation: "review", repetitions: 3, intervalDays: 15, ease: 2.5, quality: 2 }],
   ["Quality 3", { operation: "review", repetitions: 2, intervalDays: 6, ease: 2.5, quality: 3 }],
   ["Quality 5", { operation: "review", repetitions: 2, intervalDays: 6, ease: 2.5, quality: 5 }],
   ["Minimum ease", { operation: "review", repetitions: 2, intervalDays: 6, ease: 1.3, quality: 2 }],
@@ -81,14 +82,71 @@ function BktWorkbench({ bootstrap, refreshKey, onStatus }: { bootstrap: Algorith
 }
 
 function Sm2Workbench({ onStatus }: { onStatus: (status: string) => void }) {
-  const [input, setInput] = useState<Record<string, unknown>>({ repetitions: 0, intervalDays: 0, ease: 2.5, quality: 4, now: "2026-08-01T00:00:00Z", daySeconds: 86400 });
+  const [input, setInput] = useState<Record<string, unknown>>({ operation: "review", repetitions: 1, intervalDays: 1, ease: 2.5, quality: 4, now: "2026-08-02T00:00:00Z", daySeconds: 86400 });
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState("");
+  const enrolling = input.operation === "enroll";
+  const changeInput = (changes: Record<string, unknown>) => {
+    setInput((current) => ({ ...current, ...changes }));
+    setResult(null);
+    setError("");
+    onStatus("NOT RUN");
+  };
   const run = () => { setError(""); void runSm2Verification(input).then((next) => { setResult(next); onStatus(String(next.result)); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Could not run SM-2.")); };
   const production = result?.production as Record<string, unknown> | undefined;
   const reference = result?.reference as Record<string, unknown> | undefined;
-  const effectiveOperation = String((result?.inputs as Record<string, unknown> | undefined)?.operation ?? "review");
-  return <div className="algorithm-verifier-stack"><section className="algorithm-verifier-panel"><div className="algorithm-verifier-panel-heading"><div><span className="admin-eyebrow">Modified SM-2 behavior</span><h2>Manual transition</h2><p>Inputs are the state before this operation. Student grading is narrower than original SM-2: correct maps to q=4 and wrong maps to q=2.</p></div><ResultBadge result={result ? String(result.result) : "NOT RUN"} /></div><div className="algorithm-verifier-form-grid"><label>Operation<select value={String(input.operation ?? "review")} onChange={(event) => setInput({ ...input, operation: event.target.value })}><option value="review">Review</option><option value="enroll">Production enrollment</option></select></label><label>Previous repetitions<input type="number" min="0" value={String(input.repetitions ?? 0)} onChange={(event) => setInput({ ...input, repetitions: Number(event.target.value) })} /></label><label>Previous interval<input type="number" min="0" value={String(input.intervalDays ?? 0)} onChange={(event) => setInput({ ...input, intervalDays: Number(event.target.value) })} /></label><label>Ease factor<input type="number" min="1.3" step="0.01" value={String(input.ease ?? 2.5)} onChange={(event) => setInput({ ...input, ease: Number(event.target.value) })} /></label><label>Quality (0-5)<input type="number" min="0" max="5" value={String(input.quality ?? 4)} onChange={(event) => setInput({ ...input, quality: Number(event.target.value) })} /></label><label>Review timestamp<input type="datetime-local" value={String(input.now).slice(0, 16)} onChange={(event) => setInput({ ...input, now: `${event.target.value}:00Z` })} /></label><label>Scheduling day seconds<input type="number" min="1" value={String(input.daySeconds ?? 86400)} onChange={(event) => setInput({ ...input, daySeconds: Number(event.target.value) })} /></label></div><div className="algorithm-verifier-actions"><button type="button" className="admin-primary-button" onClick={run}>Run SM-2 transition</button><div className="algorithm-verifier-presets"><span>Presets</span>{sm2Presets.map(([label, preset]) => <button type="button" key={label} onClick={() => setInput({ ...input, ...preset })}>{label}</button>)}</div></div>{error && <p className="admin-error" role="alert">{error}</p>}</section>{result && <section className="algorithm-verifier-panel algorithm-verifier-results"><div className="algorithm-verifier-results-grid"><article><h3>Production output</h3><dl><div><dt>Operation</dt><dd>{effectiveOperation}</dd></div><div><dt>Repetitions</dt><dd>{String(production?.repetitions)}</dd></div><div><dt>Interval</dt><dd>{String(production?.intervalDays)} days</dd></div><div><dt>Ease</dt><dd>{displayNumber(production?.ease)}</dd></div><div><dt>Last reviewed</dt><dd>{String(production?.lastReviewedOn ?? "None")}</dd></div><div><dt>Next due</dt><dd>{String(production?.nextDue)}</dd></div></dl></article><article><h3>Independent reference output</h3><dl><div><dt>Repetitions</dt><dd>{String(reference?.repetitions)}</dd></div><div><dt>Interval</dt><dd>{String(reference?.intervalDays)} days</dd></div><div><dt>Ease</dt><dd>{displayNumber(reference?.ease)}</dd></div><div><dt>Next due</dt><dd>{String(reference?.nextDue)}</dd></div></dl></article><article><h3>Raw arithmetic</h3><dl><div><dt>Raw interval product</dt><dd>{displayNumber(result.rawInterval)}</dd></div><div><dt>Quality mapping</dt><dd>correct -&gt; 4 / wrong -&gt; 2</dd></div><div><dt>Minimum ease</dt><dd>1.300000</dd></div></dl></article></div><p className="algorithm-verifier-note">Inputs above are the pre-transition state. Outputs below are the resulting state. Enrollment creates production's first schedule at repetition 1 / interval 1; a first correct review from zero state also transitions to repetition 1 / interval 1. Intervals use Python round() ties-to-even, including 2.5 -&gt; 2 and 7.5 -&gt; 8.</p></section>}</div>;
+  const completedInputs = result?.inputs as Record<string, unknown> | undefined;
+  const enrolled = completedInputs?.operation === "enroll";
+  return <div className="algorithm-verifier-stack">
+    <section className="algorithm-verifier-panel">
+      <div className="algorithm-verifier-panel-heading">
+        <div><span className="admin-eyebrow">Modified SM-2 behavior</span><h2>Enrollment or due review</h2><p>Production enrollment creates the first schedule at rep=1, interval=1, ease=2.5, with no review quality. The first correct due review then moves to rep=2, interval=6.</p></div>
+        <ResultBadge result={result ? String(result.result) : "NOT RUN"} />
+      </div>
+      <div className="algorithm-verifier-form-grid">
+        <label>Operation<select value={String(input.operation)} onChange={(event) => changeInput({ operation: event.target.value })}><option value="review">Review an existing schedule</option><option value="enroll">Enroll STRONG word (create first schedule)</option></select></label>
+        <label>Repetitions before review<input type="number" min="0" disabled={enrolling} value={String(input.repetitions ?? 0)} onChange={(event) => changeInput({ repetitions: Number(event.target.value) })} /></label>
+        <label>Interval before review (scheduling days)<input type="number" min="0" disabled={enrolling} value={String(input.intervalDays ?? 0)} onChange={(event) => changeInput({ intervalDays: Number(event.target.value) })} /></label>
+        <label>Ease before review<input type="number" min="1.3" step="0.01" disabled={enrolling} value={String(input.ease ?? 2.5)} onChange={(event) => changeInput({ ease: Number(event.target.value) })} /></label>
+        <label>Review quality (0-5)<input type="number" min="0" max="5" disabled={enrolling} value={String(input.quality ?? 4)} onChange={(event) => changeInput({ quality: Number(event.target.value) })} /></label>
+        <label>{enrolling ? "Enrollment timestamp (UTC)" : "Review timestamp (UTC)"}<input type="datetime-local" value={String(input.now).slice(0, 16)} onChange={(event) => changeInput({ now: `${event.target.value}:00Z` })} /></label>
+        <label>Scheduling day seconds<input type="number" min="1" value={String(input.daySeconds ?? 86400)} onChange={(event) => changeInput({ daySeconds: Number(event.target.value) })} /></label>
+      </div>
+      <p className="algorithm-verifier-note">{enrolling
+        ? "Enrollment requires no existing schedule. The disabled review fields are ignored; no answer is graded and no quality is used. The timestamp starts the one-day wait until the first due review."
+        : "Inputs describe the state before the review; the resulting state appears below after Run. Repetitions include the initial schedule created at enrollment. Student grading maps correct to q=4 and wrong to q=2."}</p>
+      <div className="algorithm-verifier-actions">
+        <button type="button" className="admin-primary-button" onClick={run}>{enrolling ? "Calculate enrollment schedule" : "Calculate review result"}</button>
+        <div className="algorithm-verifier-presets"><span>Presets</span>{sm2Presets.map(([label, preset]) => <button type="button" key={label} onClick={() => changeInput(preset)}>{label}</button>)}</div>
+      </div>
+      {error && <p className="admin-error" role="alert">{error}</p>}
+    </section>
+    {result && <section className="algorithm-verifier-panel algorithm-verifier-results" aria-label="SM-2 result after operation">
+      <div className="algorithm-verifier-panel-heading"><div><h2>{enrolled ? "After enrollment: first schedule" : "After review: next schedule"}</h2><p>{enrolled ? "Before enrollment: no SRS record and no due date. Quality: none." : `Before review: rep=${String(completedInputs?.repetitions)}, interval=${String(completedInputs?.intervalDays)}, ease=${displayNumber(completedInputs?.ease)}. Quality: ${String(completedInputs?.quality)}.`}</p></div></div>
+      <div className="algorithm-verifier-results-grid">
+        <article><h3>Production output</h3><dl>
+          <div><dt>Operation</dt><dd>{enrolled ? "Enrollment: create first schedule" : "Review: update existing schedule"}</dd></div>
+          <div><dt>Repetitions after operation</dt><dd>{String(production?.repetitions)}</dd></div>
+          <div><dt>Interval after operation</dt><dd>{String(production?.intervalDays)} scheduling days</dd></div>
+          <div><dt>Ease</dt><dd>{displayNumber(production?.ease)}</dd></div>
+          <div><dt>Operation timestamp (UTC)</dt><dd>{String(completedInputs?.now)}</dd></div>
+          <div><dt>Next due</dt><dd>{String(production?.nextDue)}</dd></div>
+        </dl></article>
+        <article><h3>Independent reference output</h3><dl>
+          <div><dt>Repetitions after operation</dt><dd>{String(reference?.repetitions)}</dd></div>
+          <div><dt>Interval after operation</dt><dd>{String(reference?.intervalDays)} scheduling days</dd></div>
+          <div><dt>Ease</dt><dd>{displayNumber(reference?.ease)}</dd></div>
+          <div><dt>Next due</dt><dd>{String(reference?.nextDue)}</dd></div>
+        </dl></article>
+        <article><h3>Raw arithmetic</h3><dl>
+          <div><dt>Raw interval product</dt><dd>{displayNumber(result.rawInterval)}</dd></div>
+          <div><dt>Quality used</dt><dd>{enrolled ? "None (enrollment)" : String(completedInputs?.quality)}</dd></div>
+          <div><dt>Minimum ease</dt><dd>1.300000</dd></div>
+        </dl></article>
+      </div>
+      <p className="algorithm-verifier-note">Production timeline: enrollment at T0 schedules T0 + 1D; a correct review at that due time schedules T0 + 7D (6D after the review). Each preset is an independent calculation. These calculations do not write student data or enforce the production due-cycle guards. Production advances only an existing, due schedule, once per due cycle. Intervals use Python round() ties-to-even, including 2.5 -&gt; 2 and 7.5 -&gt; 8.</p>
+    </section>}
+  </div>;
 }
 
 function IntegrationWorkbench({ bootstrap, onStatus }: { bootstrap: AlgorithmVerifierBootstrap; onStatus: (status: string) => void }) {
