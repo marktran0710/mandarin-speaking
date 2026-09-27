@@ -1,3 +1,5 @@
+import pytest
+
 from analytics.learner_model.bkt.mastery import story_scope_ids
 from services import vocab_quiz_progression_service as progression
 
@@ -75,6 +77,8 @@ def test_partial_response_without_completed_attempt_does_not_create_a_star(monke
 
     assert result["quizStars"] == 2
     assert result["tiers"]["tier3"]["totalQuestions"] == 0
+    assert result["speakingUnlocked"] is False
+    assert result["conversationUnlocked"] is False
 
 
 def test_tier_three_alone_does_not_unlock_the_contiguous_ladder(monkeypatch):
@@ -85,6 +89,7 @@ def test_tier_three_alone_does_not_unlock_the_contiguous_ladder(monkeypatch):
 
     assert result["quizStars"] == 0
     assert result["speakingUnlocked"] is False
+    assert result["conversationUnlocked"] is False
 
 
 def test_story_scope_ids_normalize_teacher_and_legacy_suffixes():
@@ -93,7 +98,7 @@ def test_story_scope_ids_normalize_teacher_and_legacy_suffixes():
     assert {"story-5-1", "teacher-story-5-1", "teacher-story-5-1-medium", "teacher-story-5-1-hard"} <= expected
 
 
-def test_invalid_conversation_turns_keep_conversation_locked(monkeypatch):
+def test_invalid_conversation_content_does_not_change_the_shared_practice_gate(monkeypatch):
     attempts = [_attempt("tier1", "q1"), _attempt("tier2", "q2"), _attempt("tier3", "q3")]
     responses = _responses("tier1", "q1", 7) + _responses("tier2", "q2", 9) + _responses("tier3", "q3", 9)
     monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
@@ -103,7 +108,23 @@ def test_invalid_conversation_turns_keep_conversation_locked(monkeypatch):
     assert result["quizStars"] == 3
     assert result["speakingUnlocked"] is True
     assert result["conversationAvailable"] is False
-    assert result["conversationUnlocked"] is False
+    assert result["conversationUnlocked"] is True
+
+
+@pytest.mark.parametrize("stars", [0, 1, 2, 3])
+@pytest.mark.parametrize("has_content", [False, True])
+def test_both_practices_share_the_same_gate_at_every_star_count(monkeypatch, stars, has_content):
+    tiers = ["tier1", "tier2", "tier3"][:stars]
+    attempts = [_attempt(tier, tier) for tier in tiers]
+    responses = [row for tier in tiers for row in _responses(tier, tier, 10)]
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+
+    result = progression.get_progression(_Db(responses, _conversation() if has_content else None), "student-1", "story-5-1")
+
+    assert result["quizStars"] == stars
+    assert result["conversationAvailable"] is has_content
+    assert result["speakingUnlocked"] is (stars == 3)
+    assert result["conversationUnlocked"] is (stars == 3)
 
 
 def test_shared_story_frames_make_conversation_available_without_saved_turns(monkeypatch):

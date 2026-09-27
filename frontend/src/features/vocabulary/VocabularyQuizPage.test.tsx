@@ -141,6 +141,9 @@ describe("VocabularyQuizPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /right/ }));
     fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
     fireEvent.click(screen.getByRole("button", { name: "下一題" }));
+    // Both modes remain selectable peers, including a topic with no turns.
+    expect(screen.getByRole("button", { name: "口語練習" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "對話練習" })).not.toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "口語練習" }));
 
     expect(onFinished).toHaveBeenCalledTimes(1);

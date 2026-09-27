@@ -25,7 +25,6 @@ interface VocabularyQuizPageProps {
   lessonLabel: string;
   onFinished: () => void;
   onStartPractice?: (practice: "story-speaking" | "conversation") => void;
-  hasConversation?: boolean;
 }
 
 const ROUND_DESCRIPTION_KEYS: Record<TierMode, "roundOneDescription" | "roundTwoDescription" | "roundThreeDescription"> = {
@@ -177,7 +176,7 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
   );
 }
 
-function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<typeof useVocabQuizFlow>; isLastTier: boolean; hasConversation: boolean }) {
+function ResultView({ flow, isLastTier }: { flow: ReturnType<typeof useVocabQuizFlow>; isLastTier: boolean }) {
   if (flow.view === "round-result" && flow.roundResult) {
     return (
       <div className="sa-quiz__result-layout">
@@ -189,7 +188,7 @@ function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<ty
           {flow.roundResult.passed ? isLastTier ? (
             <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path">
                <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}><StudentSystemText k="storySpeaking" withinControl /></StudentButton>
-               {hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}><StudentSystemText k="conversation" withinControl /></StudentButton>}
+               <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}><StudentSystemText k="conversation" withinControl /></StudentButton>
              </div>
            ) : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}><StudentSystemText k="continue" withinControl /></StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}><StudentSystemText k="retry" withinControl /></StudentButton>}
         </StudentSection>
@@ -212,7 +211,7 @@ function ResultView({ flow, isLastTier, hasConversation }: { flow: ReturnType<ty
   return null;
 }
 
-export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onStartPractice, hasConversation = false }: VocabularyQuizPageProps) {
+export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onStartPractice }: VocabularyQuizPageProps) {
   const flow = useVocabQuizFlow({ topic, onFinished, onStartPractice });
   const [draftAnswer, setDraftAnswer] = useState<string | null>(null);
   const [pinyinDraft, setPinyinDraft] = useState("");
@@ -262,7 +261,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   return (
     <StudentPage layout="task" wide header={header}>
       <QuizStatusBar flow={flow} question={question} />
-      {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} hasConversation={hasConversation} /> : question ? (
+      {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} /> : question ? (
         <div className="sa-quiz__workspace">
           <QuizQuestionSurface
             question={question}

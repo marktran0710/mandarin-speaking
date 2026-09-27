@@ -151,13 +151,15 @@ def get_progression(db: Any, student_id: str, story_id: str) -> dict[str, Any]:
         stars += 1
 
     conversation_available = _story_conversation_available(db, canonical)
-    speaking_unlocked = stars >= REQUIRED_STARS
+    practice_unlocked = stars >= REQUIRED_STARS
     return {
         "storyId": canonical,
         "quizStars": stars,
         "requiredStars": REQUIRED_STARS,
         "tiers": tiers,
-        "speakingUnlocked": speaking_unlocked,
+        "speakingUnlocked": practice_unlocked,
         "conversationAvailable": conversation_available,
-        "conversationUnlocked": speaking_unlocked and conversation_available,
+        # Both modes share one progression gate. Content readiness is
+        # reported separately so it cannot change either mode's lock state.
+        "conversationUnlocked": practice_unlocked,
     }

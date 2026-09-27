@@ -39,23 +39,13 @@ interface StudentSidebarProps {
   studentName: string;
   activeSection: StudentTopSection;
   activePhase?: StudentPhase | null;
-  /** The active topic has no teacher-authored conversationTurns — hide the
-   */
-  /** Conversation is always visible in the lesson phase navigation. */
   quizStars?: number;
   maxQuizStars?: number;
-  /** The furthest phase this lesson attempt has actually reached — phases
-   * beyond it are locked (defaults to `activePhase`, so a sidebar rendered
-   * without this prop only ever treats the phase it's currently showing as
-   * reached, never unlocking ahead of it). */
+  /** The furthest phase reached gates preview, quiz and submission.
+   * Both practice modes use the shared vocabulary gate below. */
   furthestPhase?: StudentPhase | null;
-  /** Whether the vocab-quiz 3★ gate has been cleared for the active topic —
-   * gates the "story-speaking" item specifically, independent of the
-   * furthest-phase watermark (defaults to true so callers that omit it see
-   * unchanged behavior). */
-  speakingUnlocked?: boolean;
-  conversationUnlocked?: boolean;
-  /** Allows either practice to be selected directly after the quiz gate. */
+  /** Unlocks Speaking and Conversation together, independently of the
+   * furthest phase and conversation content availability. */
   practiceChoicesUnlocked?: boolean;
   currentLessonTitle?: string;
   onNavigateSection: (section: StudentTopSection) => void;
@@ -70,8 +60,6 @@ export default function StudentSidebar({
   quizStars = 0,
   maxQuizStars = 0,
   furthestPhase,
-  speakingUnlocked = true,
-  conversationUnlocked = false,
   practiceChoicesUnlocked = false,
   currentLessonTitle,
   onNavigateSection,
@@ -81,7 +69,6 @@ export default function StudentSidebar({
   const furthestIndex = PHASE_ORDER.indexOf(
     furthestPhase ?? activePhase ?? PHASE_ORDER[0],
   );
-  const quizReached = furthestIndex >= PHASE_ORDER.indexOf("vocab-quiz");
 
   return (
     <aside className="sa-sidebar">
@@ -183,18 +170,10 @@ export default function StudentSidebar({
               <StudentSystemText k="lessonPhase" />
             </p>
             {PHASE_NAV.map((phase) => {
-              const starLocked =
-                phase.id === "story-speaking" && !speakingUnlocked;
-              const practiceOpen =
-                quizReached &&
-                practiceChoicesUnlocked &&
-                (phase.id === "story-speaking"
-                  ? speakingUnlocked
-                  : phase.id === "conversation" && conversationUnlocked);
-              const locked =
-                (!practiceOpen &&
-                  PHASE_ORDER.indexOf(phase.id) > furthestIndex) ||
-                starLocked;
+              const isPractice = phase.id === "story-speaking" || phase.id === "conversation";
+              const locked = isPractice
+                ? !practiceChoicesUnlocked
+                : PHASE_ORDER.indexOf(phase.id) > furthestIndex;
               return (
                 <button
                   key={phase.id}
@@ -202,7 +181,7 @@ export default function StudentSidebar({
                   className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""} ${locked ? "is-locked" : ""}`}
                   aria-current={activePhase === phase.id ? "page" : undefined}
                   disabled={locked}
-                  aria-label={locked ? (starLocked ? "完成三星後解鎖" : "請先完成前一個步驟") : undefined}
+                  aria-label={locked ? (isPractice ? "完成三星後解鎖" : "請先完成前一個步驟") : undefined}
                   onClick={() => onNavigatePhase(phase.id)}
                 >
                   {locked ? (
