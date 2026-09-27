@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 import security.auth as auth
 from db import connect_db
 from repositories import verified_speech_repository as repo
+from services import student_service
 
 router = APIRouter()
 
@@ -233,6 +234,13 @@ async def analyze_verified_speech(
     if file is None:
         raise HTTPException(status_code=400, detail="No audio file provided.")
 
+    try:
+        with connect_db() as db:
+            pitch_profile_snapshot = student_service.get_pitch_profile_snapshot(db, identity.id)
+    except Exception:
+        # Keep verified scoring available if the optional settings read fails.
+        pitch_profile_snapshot = None
+
     content = await file.read()
     app_main = _main_module()
     if len(content) > app_main._MAX_AUDIO_BYTES:
@@ -274,6 +282,7 @@ async def analyze_verified_speech(
                     reference_word_curves=scene["reference_word_curves"],
                     scene_target_text=scene["target_text"],
                     attempt_id=attempt_id,
+                    pitch_profile_snapshot=pitch_profile_snapshot,
                 )
 
         stable = await asyncio.wait_for(run_stable_analysis(), timeout=app_main.ANALYZE_TIMEOUT_SECONDS)

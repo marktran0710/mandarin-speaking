@@ -16,6 +16,7 @@ import asyncio
 import os
 import tempfile
 import time
+from statistics import median
 from typing import Any, Callable, Dict, Optional
 
 from starlette.concurrency import run_in_threadpool
@@ -23,7 +24,7 @@ from starlette.concurrency import run_in_threadpool
 import helpers.caf_metrics as caf_metrics
 from helpers.pinyin_service import canonical_pinyin
 from api.schemas.models import AnalysisResponse, ProcessingTrace, ProcessingTraceStage
-from domain.speech.acoustics import analyze_all
+from domain.speech.acoustics import analyze_all, extract_pitch
 from services.asr import transcribe_audio_content
 from services.content.verification import (
     assess_recording_quality,
@@ -44,6 +45,68 @@ from services.pronunciation_scoring import (
     classify_vowel_quality,
     build_tone_direction,
 )
+
+_PITCH_PROFILE_VERSION = "pitch-profile-comparison-v1"
+_PRIMARY_PITCH_RANGE_HZ = (75, 500)
+_PITCH_PROFILE_RANGES = {
+    "male": (75, 300),
+    "female": (100, 500),
+}
+
+
+def _measure_pitch_profile_comparison(
+    audio_path: str,
+    snapshot: Optional[Dict[str, str]],
+) -> Optional[dict]:
+    """Measure an additive pitch profile without touching scoring evidence."""
+    if not snapshot or snapshot.get("voice_hint_mode") != "avatar":
+        return None
+    suggestion = snapshot.get("student_mascot")
+    comparison_range = _PITCH_PROFILE_RANGES.get(suggestion or "")
+    if comparison_range is None:
+        return {
+            "config_version": _PITCH_PROFILE_VERSION,
+            "suggestion": suggestion,
+            "primary_range_hz": list(_PRIMARY_PITCH_RANGE_HZ),
+            "comparison_range_hz": None,
+            "contour": [],
+            "voiced_frame_count": 0,
+            "median_f0_hz": None,
+            "status": "invalid_profile",
+            "appliedToScoring": False,
+        }
+
+    try:
+        contour = extract_pitch(
+            audio_path,
+            pitch_floor=comparison_range[0],
+            pitch_ceiling=comparison_range[1],
+        )
+        frequencies = [frequency for _, frequency in contour if frequency > 0]
+        return {
+            "config_version": _PITCH_PROFILE_VERSION,
+            "suggestion": suggestion,
+            "primary_range_hz": list(_PRIMARY_PITCH_RANGE_HZ),
+            "comparison_range_hz": list(comparison_range),
+            "contour": contour,
+            "voiced_frame_count": len(frequencies),
+            "median_f0_hz": float(median(frequencies)) if frequencies else None,
+            "status": "measured" if frequencies else "no_voiced_frames",
+            "appliedToScoring": False,
+        }
+    except Exception as exc:
+        return {
+            "config_version": _PITCH_PROFILE_VERSION,
+            "suggestion": suggestion,
+            "primary_range_hz": list(_PRIMARY_PITCH_RANGE_HZ),
+            "comparison_range_hz": list(comparison_range),
+            "contour": [],
+            "voiced_frame_count": 0,
+            "median_f0_hz": None,
+            "status": "failed",
+            "error": str(exc),
+            "appliedToScoring": False,
+        }
 async def _do_analyze(
     content: bytes,
     transcription: str,
@@ -69,6 +132,7 @@ async def _do_analyze(
     attempt_number: int = 1,
     attempt_type: str = "WHOLE_SENTENCE_INITIAL",
     study_phase: str = "",
+    pitch_profile_snapshot: Optional[Dict[str, str]] = None,
 ) -> AnalysisResponse:
     tmp_path = None
     trace_started_at = time.perf_counter()
@@ -536,6 +600,9 @@ async def _do_analyze(
         # the classroom build. Keep the response field for compatibility with
         # older clients, but never compute or persist research-only data.
         assistive_feedback_result = None
+        pitch_profile_comparison = await run_in_threadpool(
+            _measure_pitch_profile_comparison, tmp_path, pitch_profile_snapshot
+        )
 
         return AnalysisResponse(
             description=description,
@@ -550,6 +617,7 @@ async def _do_analyze(
             speech_rate=speech_rate,
             fluency_score=fluency_score,
             pitch_statistics=pitch_stats,
+            pitch_profile_comparison=pitch_profile_comparison,
             tone_direction=tone_direction,
             pause_analysis=pause_analysis,
             feedback=feedback,

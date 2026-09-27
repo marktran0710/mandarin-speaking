@@ -86,6 +86,22 @@ export default function DebugPipelineDetails(props: DebugPipelineDetailsProps) {
         <article><span>Content gate</span><strong>{contentGate}</strong><small>{content.judged === false ? "Placeholder, not a score" : "AI scene comparison"}</small></article>
       </div>}
 
+      {outputReady && praat.pitch_profile_comparison && (
+        <section className="pdebug-comparison" aria-labelledby="pdebug-comparison-heading">
+          <div>
+            <span>EXPERIMENTAL COMPARISON</span>
+            <h3 id="pdebug-comparison-heading">Avatar pitch profile</h3>
+          </div>
+          <div className="pdebug-comparison-grid">
+            <span>Status<strong>{String(praat.pitch_profile_comparison.status || "unknown")}</strong></span>
+            <span>Suggestion<strong>{String(praat.pitch_profile_comparison.suggestion || "not set")}</strong></span>
+            <span>Voiced frames<strong>{String(praat.pitch_profile_comparison.voiced_frame_count ?? 0)}</strong></span>
+            <span>Median F0<strong>{typeof praat.pitch_profile_comparison.median_f0_hz === "number" ? `${praat.pitch_profile_comparison.median_f0_hz.toFixed(1)} Hz` : "Not available"}</strong></span>
+          </div>
+          <small>Primary 75–500 Hz remains the scoring measurement. Comparison is applied to scoring: {String(praat.pitch_profile_comparison.appliedToScoring ?? false)}.</small>
+        </section>
+      )}
+
       <div className="pdebug-layer-grid">
         {stageDefinitions.map((definition) => {
           const displayDefinition = definition.id === "capture" && inputSource === "upload"

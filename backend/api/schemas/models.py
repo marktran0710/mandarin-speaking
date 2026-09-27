@@ -361,6 +361,7 @@ class AnalysisResponse(BaseModel):
     speech_rate: float
     fluency_score: float
     pitch_statistics: dict
+    pitch_profile_comparison: Optional[Dict[str, Any]] = None
     tone_direction: str = ""
     pause_analysis: dict = {}
     feedback: str

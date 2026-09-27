@@ -11,6 +11,8 @@ import services.asr as asr_service
 from api.schemas.models import AnalysisResponse
 from services.asr import AsrStatusResponse, TranscriptionResponse
 from services.text_normalization import correct_homophones
+from db import connect_db
+from services import student_service
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
@@ -85,6 +87,7 @@ async def analyze_speech(
     attempt_type: str = Form("WHOLE_SENTENCE_INITIAL"),
     study_phase: str = Form(""),
     req: Request = None,
+    identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     """
     Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
@@ -120,6 +123,16 @@ async def analyze_speech(
     """
     if not file:
         raise HTTPException(status_code=400, detail="No audio file provided")
+
+    pitch_profile_snapshot = None
+    if getattr(identity, "role", None) == "student":
+        try:
+            with connect_db() as db:
+                pitch_profile_snapshot = student_service.get_pitch_profile_snapshot(db, identity.id)
+        except Exception:
+            # The comparison is diagnostic only; an unavailable settings read
+            # must never take down the primary analysis path.
+            pitch_profile_snapshot = None
 
     if req is not None:
         client_ip = req.client.host if req.client else "unknown"
@@ -158,6 +171,7 @@ async def analyze_speech(
                 participant_id=participant_id, item_id=item_id, session_id=session_id,
                 attempt_id=attempt_id, attempt_number=attempt_number, attempt_type=attempt_type,
                 study_phase=study_phase,
+                pitch_profile_snapshot=pitch_profile_snapshot,
             )
 
     try:

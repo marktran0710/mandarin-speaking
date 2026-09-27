@@ -58,6 +58,14 @@
 .pdebug-score-grid article { display: grid; gap: .2rem; padding: 1rem; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-card); }
 .pdebug-score-grid span, .pdebug-score-grid small { color: var(--clay-muted); font-size: .76rem; }
 .pdebug-score-grid strong { font-size: 1.35rem; }
+.pdebug-comparison { display: grid; gap: .75rem; padding: 1rem 1.15rem; border: 1px solid color-mix(in srgb, var(--tone1) 42%, var(--clay-hairline)); border-radius: var(--clay-radius-md); background: color-mix(in srgb, var(--tone1-soft) 42%, var(--clay-surface-card)); }
+.pdebug-comparison > div:first-child { display: grid; gap: .2rem; }
+.pdebug-comparison > div:first-child > span { color: var(--tone1-deep); font-size: .68rem; font-weight: 900; letter-spacing: .09em; }
+.pdebug-comparison h3 { margin: 0; font-size: 1rem; }
+.pdebug-comparison-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; }
+.pdebug-comparison-grid span { display: grid; gap: .18rem; color: var(--clay-muted); font-size: .74rem; }
+.pdebug-comparison-grid strong { color: var(--clay-ink); font-size: .95rem; }
+.pdebug-comparison small { color: var(--clay-muted); font-size: .75rem; }
 .pdebug-layer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .pdebug-layer { min-width: 0; padding: 1.1rem; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-card); box-shadow: var(--shadow-sm); }
 .pdebug-layer-wide { grid-column: 1 / -1; }
@@ -94,4 +102,5 @@
 @media (max-width: 650px) { .pdebug-recorder-controls { grid-template-columns: 1fr; } .pdebug-recorder-action { align-items: stretch; flex-direction: column; } .pdebug-recorder-action button, .pdebug-recorder-action audio { width: 100%; } }
 @media (max-width: 650px) { .pdebug-trace-list { grid-template-columns: 1fr; } .pdebug-trace-list li:not(:last-child)::after { content: "↓"; right: .75rem; top: auto; bottom: -.62rem; } }
 @media (max-width: 900px) { .pdebug-callout { align-items: stretch; flex-direction: column; } .pdebug-score-grid { grid-template-columns: repeat(2, 1fr); } .pdebug-rubrics { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .pdebug-comparison-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 650px) { .pdebug-layer-grid, .pdebug-score-grid, .pdebug-rubric-list, .pdebug-decisions { grid-template-columns: 1fr; } .pdebug-layer-wide { grid-column: auto; } .pdebug-layer dl div { grid-template-columns: 1fr; gap: .12rem; } }

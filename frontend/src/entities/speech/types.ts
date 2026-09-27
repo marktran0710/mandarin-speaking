@@ -133,6 +133,18 @@ export interface PraatMetrics {
   speech_rate: number;
   fluency_score: number;
   pitch_statistics: Record<string, number>;
+  pitch_profile_comparison?: {
+    config_version?: string;
+    suggestion?: "male" | "female";
+    primary_range_hz?: [number, number] | number[] | null;
+    comparison_range_hz?: [number, number] | number[] | null;
+    contour?: Array<[number, number]>;
+    voiced_frame_count?: number;
+    median_f0_hz?: number | null;
+    status?: string;
+    appliedToScoring?: boolean;
+    error?: string;
+  } | null;
   tone_direction?: string;
   pause_analysis?: PauseAnalysis;
   feedback: string;

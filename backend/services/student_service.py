@@ -137,6 +137,17 @@ def get_student_settings(db, student_id: str) -> dict:
     return row_to_student_settings(row)
 
 
+def get_pitch_profile_snapshot(db, student_id: str) -> dict | None:
+    row = repo.get_settings(db, student_id)
+    if row is None:
+        return None
+    settings = row_to_student_settings(row)
+    return {
+        "voice_hint_mode": settings["voiceHintMode"],
+        "student_mascot": settings["studentMascot"],
+    }
+
+
 def update_student_settings(db, student_id: str, request) -> dict:
     fields = request.model_dump(exclude_none=True)
     try:
