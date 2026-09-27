@@ -341,7 +341,7 @@ class TestFallbackLanguageFeedback:
             praat_pause_analysis=pause_analysis,
             praat_speech_rate=1.0,
         )
-        assert "syllables/sec" in result["pronunciation_note"]["feedback"]
+        assert "You're speaking" in result["pronunciation_note"]["feedback"]
 
     def test_pron_feedback_flags_choppy_pause_against_reference(self):
         from services.ai_feedback import fallback_language_feedback
@@ -387,7 +387,7 @@ class TestFallbackLanguageFeedback:
         )
         details = {d["key"]: d["text"] for d in result["pronunciation_note"]["details"]}
         assert "rhythm_pace" in details
-        assert "syllables/sec" in details["rhythm_pace"]
+        assert "You're speaking" in details["rhythm_pace"]
 
     def test_details_includes_pausing_entry_when_judged(self):
         from services.ai_feedback import fallback_language_feedback
@@ -491,12 +491,13 @@ class TestFallbackStoryFeedbackDimensions:
 
     def test_slow_articulation_rate_mentioned_in_rhythm_pace_feedback(self):
         from services.ai_feedback import fallback_story_feedback
+        from helpers.caf_metrics import speech_rate_verdict
         result = fallback_story_feedback(
             "我喜歡貓。牠很可愛。",
             avg_fluency_score=70.0,
             avg_articulation_rate=1.5,
         )
-        assert "syllables/sec" in result["rhythm_pace"]["feedback"]
+        assert result["rhythm_pace"]["feedback"] == speech_rate_verdict(1.5)["text"]
 
     def test_tone_dimension_grounded_in_avg_tone_accuracy(self):
         from services.ai_feedback import fallback_story_feedback

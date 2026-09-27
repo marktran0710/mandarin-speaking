@@ -349,20 +349,20 @@ def fallback_language_feedback(
     coherence_corrections: list = []
     if complexity["length"] < 4:
         coherence_feedback = (
-            f"Very short — only {complexity['length']} words. "
-            "Aim for subject + verb + object."
+            "Your sentence was quite short — try adding a subject and a verb "
+            "so it reads as a complete idea."
         )
         coherence_corrections = ["Add a subject (誰)", "Add a verb (做什麼)"]
     elif not complexity["connectives"]:
         coherence_feedback = (
-            f"{complexity['length']} words but no connectives. "
-            "Link ideas with words like 因為 / 所以 / 然後."
+            "Try linking your ideas with a connective like 因為 / 所以 / 然後 "
+            "to make a longer, more natural sentence."
         )
         coherence_corrections = ["Join two clauses with 然後 or 因為"]
     else:
         coherence_feedback = (
-            f"{complexity['length']} words with connectives "
-            f"{', '.join(complexity['connectives'][:3])} — good clause linking."
+            f"Good job linking your ideas with "
+            f"{', '.join(complexity['connectives'][:3])} — that reads naturally."
         )
 
     # ── Pronunciation: tone-contour proxy for Goodness of Pronunciation ─────
@@ -374,13 +374,20 @@ def fallback_language_feedback(
     pron_details: List[Dict] = []
     if tone_pct >= 80 and fluency_pct >= 75:
         pron_score = 88
-        tone_text = f"Tones sound strong ({tone_pct}% tone-contour match)."
+        tone_text = "Tones sounded clear and confident — nice work."
     elif tone_pct >= 60:
         pron_score = 65
-        tone_text = f"Tone-contour match {tone_pct}% — keep working on the weaker tones."
+        tone_text = (
+            "A few tones need more contrast — check the pitch chart above and "
+            "try exaggerating the rise or fall on the syllables that look flat."
+        )
     elif tone_pct > 0:
         pron_score = 45
-        tone_text = f"Tone-contour match {tone_pct}% — focus on the tones marked in the pitch chart."
+        tone_text = (
+            "Several tones were hard to make out — slow down and hold each "
+            "syllable's pitch shape a little longer; compare your line with "
+            "the reference above."
+        )
     else:
         pron_score = 50
         tone_text = "Speak clearly and hold each syllable long enough for tone recognition."
@@ -393,7 +400,7 @@ def fallback_language_feedback(
         rate_verdict = caf_metrics.speech_rate_verdict(fluency["articulation_rate"])
         pron_details.append({
             "key": "rhythm_pace",
-            "text": f"{rate_verdict['text']} (mean run {fluency['mean_length_of_run']} syllables.)",
+            "text": rate_verdict["text"],
         })
 
         reference_text = scene_suggested_answer.strip() or text
@@ -750,6 +757,7 @@ Feedback style rules (apply to EVERY feedback / hint / practice_prompt string):
 - Anchor every point to a specific word the student actually said — quote it in 「」.
 - pronunciation_note.feedback: name the exact syllable to fix and give ONE concrete vocal action (e.g. 「賣」: start high and fall firmly). When a tone was wrong, add one minimal pair to contrast, e.g. 買 mǎi (tone 3) vs 賣 mài (tone 4).
 - Never give generic advice ("practice more", "watch your tones", "good job") — every sentence must contain a specific word, sound, or pattern the student can act on right now.
+- Don't cite raw measurements (percentages, syllables/sec, word counts) — describe the concrete action instead.
 """
 
 

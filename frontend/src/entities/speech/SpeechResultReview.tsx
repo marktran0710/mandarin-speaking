@@ -116,13 +116,24 @@ export default function SpeechResultReview({
         </p>
       )}
 
-      {selectedWord ? (
-        <WordDetail word={selectedWord} audioBlob={audioBlob} />
-      ) : selectedPhrase ? (
-        <PhraseDetail phrase={selectedPhrase} metrics={metrics} audioBlob={audioBlob} />
-      ) : (
-        <p className="sa-result-review__prompt">Select a word to see its tone shape and timing.</p>
-      )}
+      <div className="sa-result-review__tone">
+        <p className="sa-result-review__eyebrow">Visualized tone</p>
+        <PraatTimeline
+          audioBlob={audioBlob}
+          pitchContour={metrics.pitch_contour ?? []}
+          wordProsody={words}
+          transcription={targetScript}
+          showReferenceOverlay={words.some((word) => (word.reference_contour?.length ?? 0) > 1)}
+          useFallbackWordSegments={false}
+        />
+        {selectedWord ? (
+          <WordDetail word={selectedWord} audioBlob={audioBlob} />
+        ) : selectedPhrase ? (
+          <PhraseDetail phrase={selectedPhrase} metrics={metrics} audioBlob={audioBlob} />
+        ) : (
+          <p className="sa-result-review__prompt">Tap a word above to inspect it closely.</p>
+        )}
+      </div>
 
       {aiFeedback && (
         <div className="sa-result-review__coach">
@@ -302,7 +313,6 @@ function getAiFeedback(metrics: PraatMetrics): string {
   const feedback = corrective?.hint?.trim()
     || metrics.ai_feedback?.pronunciation_note?.feedback?.trim()
     || metrics.ai_feedback?.coherence?.feedback?.trim()
-    || metrics.feedback?.trim()
     || "";
   if (feedback) return feedback;
   const provenance = metrics.feedback_provenance;

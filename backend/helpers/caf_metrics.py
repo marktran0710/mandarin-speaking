@@ -264,22 +264,21 @@ def speech_rate_verdict(articulation_rate: float) -> Dict:
         return {
             "verdict": "slow",
             "text": (
-                f"You're speaking quite slowly ({rate:.1f} syllables/sec) — "
-                "most learners at this level land around 3-5/sec. Try linking "
-                "syllables together more closely."
+                "You're speaking quite slowly — try linking syllables together "
+                "more closely so words flow into each other."
             ),
         }
     if rate > 6.5:
         return {
             "verdict": "fast",
             "text": (
-                f"You're speaking quite fast ({rate:.1f} syllables/sec) — "
-                "slowing down toward 3-5/sec will make each tone easier to hear."
+                "You're speaking quite fast — slow down a little so each tone "
+                "has time to land."
             ),
         }
     return {
         "verdict": "good",
-        "text": f"Your pace ({rate:.1f} syllables/sec) is in a good range.",
+        "text": "You're speaking at a natural pace — keep it up.",
     }
 
 
