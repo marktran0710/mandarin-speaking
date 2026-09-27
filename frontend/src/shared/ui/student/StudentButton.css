@@ -76,7 +76,7 @@
 .sa-button__tooltip {
   position: absolute;
   z-index: 30;
-  inset-block-start: calc(100% + 7px);
+  inset-block-end: calc(100% + 7px);
   inset-inline-start: 50%;
   display: inline-flex;
   max-inline-size: min(28rem, calc(100vw - 24px));
@@ -95,20 +95,20 @@
   opacity: 0;
   pointer-events: none;
   text-align: center;
-  transform: translate(-50%, -4px);
+  transform: translate(-50%, 4px);
   transition: opacity 120ms ease, transform 120ms ease;
   white-space: normal;
 }
 
 .sa-button__tooltip::after {
   position: absolute;
-  inset-block-end: 100%;
+  inset-block-start: 100%;
   inset-inline-start: 50%;
   width: 7px;
   height: 7px;
   background: var(--color-ink);
   content: "";
-  transform: translate(-50%, 4px) rotate(45deg);
+  transform: translate(-50%, -4px) rotate(45deg);
 }
 
 .sa-button__tooltip-pinyin,

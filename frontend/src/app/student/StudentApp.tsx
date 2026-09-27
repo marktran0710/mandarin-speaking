@@ -5,7 +5,7 @@ import { normalizeConversationTurns } from "../../components/story-recorder/Stor
 import { canUseDatabase, createStorySubmission, type SceneSubmission } from "../../services/database";
 import { getVocabularyProgression, type VocabularyProgression } from "../../services/api/quiz-analytics";
 import { computeStudyRowStatuses, nextTopicInSequence, topicStoryId } from "../../utils/lessonGroups";
-import { computeQuizStarsSummary, loadLocalStars, topicHasQuiz } from "@entities/vocabulary";
+import { computeQuizStarsSummary, loadLocalStars, PRACTICE_UNLOCK_STARS, topicHasQuiz } from "@entities/vocabulary";
 import { getStudentId } from "../../utils/studentSession";
 import { loadPhaseFlags } from "@shared/lib/studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
@@ -44,9 +44,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // done (e.g. straight to Story Speaking with 0 quiz stars). Only ever
   // moves forward; see advancePhase.
   const [furthestPhase, setFurthestPhase] = useState<StudentPhase>("vocab-preview");
-  // The route watermark reaches Vocab Quiz as soon as the preview action is
-  // clicked. Keep a separate completion gate so practice cannot be opened
-  // while that quiz is still in progress.
+  // Tracks the furthest phase reached in the current lesson flow. A saved
+  // three-star result can seed this past the quiz when the lesson reopens.
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
   // Every scene/turn's latest submission for the topic currently in
@@ -58,13 +57,19 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const [activeProgression, setActiveProgression] = useState<VocabularyProgression | null>(null);
 
   const openTopic = (topic: Topic) => {
+    const hasQuiz = topicHasQuiz(topic);
+    const quizAlreadyPassed = hasQuiz && loadLocalStars(topicStoryId(topic)) >= PRACTICE_UNLOCK_STARS;
     setActiveTopic(topic);
+    setActiveProgression(null);
     setSceneIndex(0);
     setSceneSubmissions({});
     setCompletedPractice("speaking");
     setPhase("vocab-preview");
-    setFurthestPhase("vocab-preview");
-    setQuizCompleted(false);
+    // A previously earned three-star quiz is a completed gate when the
+    // learner reopens the lesson; don't force the quiz just to re-enter
+    // either practice path.
+    setFurthestPhase(quizAlreadyPassed ? "story-speaking" : "vocab-preview");
+    setQuizCompleted(!hasQuiz || quizAlreadyPassed);
   };
 
   const backToStudy = () => {
@@ -78,7 +83,18 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     if (!activeTopic || !studentId || !storyId || !canUseDatabase()) return;
     let cancelled = false;
     getVocabularyProgression(storyId, studentId)
-      .then((progression) => { if (!cancelled) setActiveProgression(progression); })
+      .then((progression) => {
+        if (cancelled) return;
+        setActiveProgression(progression);
+        if (progression.quizStars >= PRACTICE_UNLOCK_STARS) {
+          setQuizCompleted(true);
+          setFurthestPhase((prev) => (
+            PHASE_ORDER.indexOf(prev) >= PHASE_ORDER.indexOf("story-speaking")
+              ? prev
+              : "story-speaking"
+          ));
+        }
+      })
       .catch(() => { /* local mirror remains the offline fallback */ });
     return () => { cancelled = true; };
   }, [activeTopic]);

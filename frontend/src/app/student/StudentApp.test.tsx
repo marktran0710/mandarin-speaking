@@ -292,20 +292,20 @@ describe("StudentApp", () => {
       ).getByRole("button", { name: /繼續/ }),
     );
 
-    // Freshly opened: preview is the only reachable phase. Stars do not skip
-    // the required vocabulary quiz.
+    // Reopening a three-star lesson keeps both practice paths available;
+    // the learner may still review the vocabulary quiz.
     const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
     const phaseButton = (label: string) => within(phaseNav).getByText(label).closest("button")!;
     expect(
       phaseButton("生詞預習"),
     ).not.toBeDisabled();
-    expect(phaseButton("詞彙練習")).toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toBeDisabled();
     expect(
       phaseButton("口語練習"),
-    ).toBeDisabled();
+    ).not.toBeDisabled();
     expect(
       phaseButton("對話練習"),
-    ).toBeDisabled();
+    ).not.toBeDisabled();
     expect(phaseButton("提交")).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
@@ -314,10 +314,10 @@ describe("StudentApp", () => {
     ).not.toBeDisabled();
     expect(
       phaseButton("口語練習"),
-    ).toBeDisabled();
+    ).not.toBeDisabled();
     expect(
       phaseButton("對話練習"),
-    ).toBeDisabled();
+    ).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "完成測驗" }));
     // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
@@ -334,6 +334,42 @@ describe("StudentApp", () => {
     expect(
       phaseButton("提交"),
     ).not.toBeDisabled();
+  });
+
+  it("reopens lesson 5-1 with both practice paths available after three stars", () => {
+    const fiveOne = makeTopic({
+      id: "story-5-1",
+      name: "Lesson 5-1",
+      lessonNumber: 5,
+      lessonSubOrder: 1,
+      conversationTurns,
+    });
+    recordLocalStars("story-5-1", 3);
+
+    render(
+      <StudentApp
+        studentName="Student One"
+        topics={[fiveOne]}
+        onAddRecord={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      within(screen.getByText("Lesson 5-1", { selector: ".study-row-title" }).closest("article")!)
+        .getByRole("button"),
+    );
+
+    const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
+    const phaseButton = (label: string) => within(phaseNav).getByText(label).closest("button")!;
+    expect(phaseButton("口語練習")).not.toBeDisabled();
+    expect(phaseButton("對話練習")).not.toBeDisabled();
+
+    fireEvent.click(phaseButton("口語練習"));
+    expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
+
+    fireEvent.click(phaseButton("對話練習"));
+    expect(screen.getByTestId("conversation-mock")).toBeInTheDocument();
   });
 
   it("records the practice branch chosen from the unlocked sidebar before Submit", () => {
