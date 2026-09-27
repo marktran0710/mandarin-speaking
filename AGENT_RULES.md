@@ -1,5 +1,9 @@
 # Agent Coding Rules
 
+## Git workflow
+
+Follow [the Git workflow rules in AGENTS.md](AGENTS.md#git-workflow-commit-every-completed-task): commit each completed and verified task immediately, work in the current checkout without creating worktrees, and warn the user immediately if a commit or edit conflicts with the task. Commit only the task's changes and report its commit hash.
+
 ## 0. Documentation Sources
 
 Before planning or implementing a change, the agent MUST read the relevant source-of-truth documentation:
