@@ -550,9 +550,21 @@ def _round_has_complete_run(
     return False
 
 
-def _completed_diagnostic_quizzes(db: Any, student_id: str, story_id: str | None = None, params: BktConfig = BKT_CONFIG) -> int:
-    metrics = _diagnostic_round_metrics(db, student_id, story_id)
-    known = _known_words(db, story_id=story_id)
+def _completed_diagnostic_quizzes(
+    db: Any,
+    student_id: str,
+    story_id: str | None = None,
+    params: BktConfig = BKT_CONFIG,
+    *,
+    metrics: dict[str, dict[str, Any]] | None = None,
+    known: dict[str, dict[str, Any]] | None = None,
+) -> int:
+    # Callers that already read the round metrics / published word pool in
+    # the same transaction pass them in to skip re-running both queries.
+    if metrics is None:
+        metrics = _diagnostic_round_metrics(db, student_id, story_id)
+    if known is None:
+        known = _known_words(db, story_id=story_id)
     known_word_ids = set(known) if known else None
     known_count = len(known)
     if not known_count:
@@ -571,9 +583,20 @@ def has_completed_weak_word_diagnostic(db: Any, student_id: str, params: BktConf
     return _completed_diagnostic_quizzes(db, student_id, params=params) >= params.required_diagnostic_quizzes
 
 
-def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, params: BktConfig = BKT_CONFIG) -> dict[str, Any]:
-    round_metrics = _diagnostic_round_metrics(db, student_id, story_id)
-    known = _known_words(db, story_id=story_id)
+def diagnostic_status(
+    db: Any,
+    student_id: str,
+    story_id: str | None = None,
+    params: BktConfig = BKT_CONFIG,
+    *,
+    round_metrics: dict[str, dict[str, Any]] | None = None,
+    published_known: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if round_metrics is None:
+        round_metrics = _diagnostic_round_metrics(db, student_id, story_id)
+    if published_known is None:
+        published_known = _known_words(db, story_id=story_id)
+    known = published_known
     # A unit-test or a newly published lesson may not have a row in
     # custom_stories yet. In that narrow case, use the server-validated words
     # already observed for this learner as the temporary coverage universe;
@@ -602,7 +625,10 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
         }
     known_word_ids = set(known)
     known_count = len(known)
-    completed = _completed_diagnostic_quizzes(db, student_id, story_id=story_id, params=params)
+    completed = _completed_diagnostic_quizzes(
+        db, student_id, story_id=story_id, params=params,
+        metrics=round_metrics, known=published_known,
+    )
     scope_filter, scope_params = _lesson_scope_filter(story_id)
     coverage = {
         row["word_id"]: int(row["count"])
@@ -689,9 +715,24 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
     return known
 
 
-def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, story_id: str | None = None) -> list[dict[str, Any]]:
-    diagnostic_complete = _completed_diagnostic_quizzes(db, student_id, story_id=story_id, params=params) >= params.required_diagnostic_quizzes
-    known = _known_words(db, story_id=story_id)
+def get_vocabulary_mastery(
+    db: Any,
+    student_id: str,
+    params: BktConfig = BKT_CONFIG,
+    story_id: str | None = None,
+    *,
+    diagnostic_complete: bool | None = None,
+    published_known: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    if published_known is None:
+        published_known = _known_words(db, story_id=story_id)
+    if diagnostic_complete is None:
+        diagnostic_complete = _completed_diagnostic_quizzes(
+            db, student_id, story_id=story_id, params=params, known=published_known,
+        ) >= params.required_diagnostic_quizzes
+    # Copy: the loop below adds observed-only words to this mapping, and the
+    # caller's published pool must stay the published pool.
+    known = dict(published_known)
     scope_filter, scope_params = _lesson_scope_filter(story_id)
     raw_words = db.execute(
         f"""
@@ -811,9 +852,21 @@ def rank_review_candidates(candidates: Iterable[dict[str, Any]], review_count: i
 def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] | None = None, params: BktConfig = BKT_CONFIG) -> dict[str, Any]:
     options = options or {}
     review_count = max(1, min(int(options.get("reviewCount", params.review_count)), 50))
-    diagnostic = diagnostic_status(db, student_id, story_id=options.get("storyId"), params=params)
     story_id = options.get("storyId")
-    mastery = get_vocabulary_mastery(db, student_id, params, story_id=story_id)
+    # diagnostic_status and get_vocabulary_mastery both need the same round
+    # metrics and published word pool (the pool query drags every story's
+    # frames JSONB along). Read each once per request instead of 3-4 times.
+    published_known = _known_words(db, story_id=story_id)
+    diagnostic = diagnostic_status(
+        db, student_id, story_id=story_id, params=params,
+        round_metrics=_diagnostic_round_metrics(db, student_id, story_id),
+        published_known=published_known,
+    )
+    mastery = get_vocabulary_mastery(
+        db, student_id, params, story_id=story_id,
+        diagnostic_complete=diagnostic["unlocked"],
+        published_known=published_known,
+    )
     include_all_weak = bool(options.get("includeAllWeak"))
     eligible = [
         row for row in mastery

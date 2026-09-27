@@ -109,7 +109,7 @@ def create_vocab_quiz_attempt(
 
 
 @router.post("/api/vocab-quiz-responses")
-async def record_vocab_quiz_response(
+def record_vocab_quiz_response(
     attempt: VocabQuizAttemptRequest,
     today: Optional[str] = None,
     identity: auth.Identity = Depends(auth.require_student),

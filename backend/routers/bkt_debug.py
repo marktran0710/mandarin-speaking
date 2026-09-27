@@ -75,7 +75,7 @@ def _fake_result(item: dict[str, Any], word_id: str, correct: bool, exposure: in
 
 
 @router.post("/api/admin/bkt-debug/inject")
-async def inject_bkt_debug_responses(request: BktDebugInjectRequest) -> dict[str, Any]:
+def inject_bkt_debug_responses(request: BktDebugInjectRequest) -> dict[str, Any]:
     if not _PATTERN_RE.match(request.pattern):
         raise HTTPException(status_code=400, detail="Pattern must be 1-50 characters of 0/1 only.")
 

@@ -63,19 +63,19 @@ class QuizVocabularyWordInput(BaseModel):
 
 
 @router.post("/api/custom-stories/{story_id}/quiz-vocabulary")
-async def create_quiz_vocabulary_word(story_id: str, word: QuizVocabularyWordInput):
+def create_quiz_vocabulary_word(story_id: str, word: QuizVocabularyWordInput):
     with connect_db() as db:
         return story_quiz_vocabulary_service.create_word(db, story_id, word)
 
 
 @router.put("/api/custom-stories/{story_id}/quiz-vocabulary/{word_id}")
-async def update_quiz_vocabulary_word(story_id: str, word_id: str, word: QuizVocabularyWordInput):
+def update_quiz_vocabulary_word(story_id: str, word_id: str, word: QuizVocabularyWordInput):
     with connect_db() as db:
         return story_quiz_vocabulary_service.update_word(db, story_id, word_id, word)
 
 
 @router.delete("/api/custom-stories/{story_id}/quiz-vocabulary/{word_id}")
-async def delete_quiz_vocabulary_word(
+def delete_quiz_vocabulary_word(
     story_id: str,
     word_id: str,
     expected_revision: str | None = Query(default=None, alias="expectedRevision", min_length=64, max_length=64, pattern="^[0-9a-f]{64}$"),
