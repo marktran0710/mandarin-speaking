@@ -78,10 +78,6 @@
     height: clamp(340px, 64vw, 520px);
   }
 
-  .how-it-works {
-    margin-top: var(--space-xl);
-  }
-
   .practice-focus {
     grid-template-columns: 1fr;
     gap: var(--space-lg);
@@ -91,14 +87,6 @@
     max-width: 22ch;
   }
 
-  .how-it-works-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .how-it-works-tile {
-    min-height: 176px;
-  }
 }
 
 @media (max-width: 600px) {
@@ -148,10 +136,6 @@
     gap: var(--space-sm);
   }
 
-  .how-it-works {
-    padding-top: var(--space-md);
-  }
-
   .practice-focus {
     margin-top: var(--space-xl);
     padding: var(--space-lg) 0;
@@ -170,22 +154,6 @@
     padding: var(--space-md);
   }
 
-  .how-it-works-kicker {
-    font-size: 22px;
-  }
-
-  .how-it-works-tile {
-    min-height: 0;
-    padding: var(--space-md);
-  }
-
-  .how-it-works-title {
-    font-size: 22px;
-  }
-
-  .how-it-works-desc {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

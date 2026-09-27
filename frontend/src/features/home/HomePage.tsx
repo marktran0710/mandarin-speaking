@@ -40,24 +40,6 @@ const STATS: Array<{ key: "fourTones" | "sixScenes" | "aiFeedback" }> = [
   { key: "aiFeedback" },
 ];
 
-const HOW_IT_WORKS: Array<{
-  zh: string;
-  descZh: string;
-}> = [
-  {
-    zh: "看圖片",
-    descZh: "先看清楚圖片，找出故事裡的人、地點和動作。",
-  },
-  {
-    zh: "說故事",
-    descZh: "說一句中文，錄下來，把圖片變成故事。",
-  },
-  {
-    zh: "看回饋",
-    descZh: "看看小提醒，再說一次會更自然。",
-  },
-];
-
 const PRACTICE_FOCUS: Array<{
   key: "pronunciation" | "vocabulary" | "practicalUse";
   descZh: string;
@@ -204,26 +186,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
         </ul>
       </section>
 
-      <section className="how-it-works" aria-label="使用方式">
-        <p className="how-it-works-kicker">
-          <StudentSystemText k="threeSteps" />
-        </p>
-        <ol className="how-it-works-grid">
-          {HOW_IT_WORKS.map((step, i) => (
-            <li key={step.zh} className="how-it-works-tile">
-              <span className="how-it-works-num" aria-hidden="true">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <strong className="how-it-works-title">
-                <StudentSystemText k={i === 0 ? "lookAtImages" : i === 1 ? "tellStory" : "seeFeedback"} />
-              </strong>
-              <span className="how-it-works-desc">
-                {step.descZh}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
       <SourceAttribution />
     </div>
   );
