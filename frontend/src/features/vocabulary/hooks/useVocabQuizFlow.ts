@@ -144,6 +144,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     timeLimitMs: session.timeLimitMs,
     selected: session.selected,
     results: session.results,
+    isFinishing: session.isFinishing,
     choose: session.choose,
     next: session.next,
     stars: session.stars ?? 0,

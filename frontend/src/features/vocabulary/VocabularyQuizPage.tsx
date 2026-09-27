@@ -274,6 +274,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
             onPinyinChange={setPinyinDraft}
             showingFeedback={showingFeedback}
             lastResult={lastResult}
+            isFinishing={flow.isFinishing}
             onSubmit={submitAnswer}
             onNext={flow.next}
           />

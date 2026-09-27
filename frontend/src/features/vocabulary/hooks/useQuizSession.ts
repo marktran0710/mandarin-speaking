@@ -94,7 +94,10 @@ export function useQuizSession({
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
+  // Lock handlers synchronously, including calls made before React renders.
+  const questionStateRef = useRef({ index: 0, answered: false });
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
   const quizIdRef = useRef<string | null>(null);
@@ -171,6 +174,7 @@ export function useQuizSession({
   const finish = async (finalResults: VocabQuizQuestionResult[]) => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    setIsFinishing(true);
     const correctCount = finalResults.filter((result) => result.correct).length;
     if (!isRetryRound) {
       const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
@@ -222,10 +226,13 @@ export function useQuizSession({
       onComplete?.(summary);
     }
     setScreen("summary");
+    setIsFinishing(false);
   };
 
   const choose = (option: string) => {
-    if (selected) return;
+    if (screen !== "quiz" || !question || finishedRef.current
+      || questionStateRef.current.index !== index || questionStateRef.current.answered) return;
+    questionStateRef.current.answered = true;
     const entry = roundEntries.find((candidate) => candidate.word === question.word);
     const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
     const assessment = question.kind === "assessment" ? question.assessment : null;
@@ -332,8 +339,12 @@ export function useQuizSession({
   };
 
   const next = () => {
-    setSelected(null);
+    if (screen !== "quiz" || finishedRef.current || selected === null
+      || questionStateRef.current.index !== index || !questionStateRef.current.answered) return;
+    // Keep final feedback visible until persistence completes.
     if (isLast) return void finish(results);
+    questionStateRef.current = { index: index + 1, answered: false };
+    setSelected(null);
     questionStartRef.current = Date.now();
     setIndex(index + 1);
   };
@@ -352,6 +363,10 @@ export function useQuizSession({
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
+    setIsFinishing(false); questionStateRef.current = { index: 0, answered: false };
+    quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    attemptStartedAtRef.current = new Date().toISOString();
+    quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
     const startedEvent = picked === "tier1"
       ? "round1_started"
       : picked === "tier2"
@@ -373,9 +388,6 @@ export function useQuizSession({
       setQuestions(questions);
       setQuestionLimit(questions.length);
       setRequestedQuestionCount(questions.length);
-      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      attemptStartedAtRef.current = new Date().toISOString();
-      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
       return;
     }
     const importedQuestions = hasAssessmentBank && (picked === "tier1" || picked === "tier2" || picked === "tier3")
@@ -399,9 +411,6 @@ export function useQuizSession({
       setQuestions(questions);
       setQuestionLimit(questions.length);
       setRequestedQuestionCount(questions.length);
-      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      attemptStartedAtRef.current = new Date().toISOString();
-      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
       return;
     }
     const requestedCount = limit ?? entriesForRound.length;
@@ -409,9 +418,6 @@ export function useQuizSession({
       (entry, planMode, context) => buildQuizQuestion(entry, distractorPool, planMode, context));
     plannedQuestionCountRef.current = plan.questions.length;
     setQuestions(plan.questions); setQuestionLimit(plan.questions.length); setRequestedQuestionCount(requestedCount);
-    quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    attemptStartedAtRef.current = new Date().toISOString();
-    quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
   };
 
   const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, entries.length); };
@@ -483,7 +489,7 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
+    question, index, selected, results, isFinishing, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
     startResearchPractice, researchDueEntries, startResearchReview, startWeakWords, startDueReview, returnToModes, sessionReady,

@@ -32,6 +32,7 @@ interface QuizQuestionSurfaceProps {
   onPinyinChange: (value: string) => void;
   showingFeedback: boolean;
   lastResult?: VocabQuizQuestionResult;
+  isFinishing?: boolean;
   onSubmit: () => void;
   onNext: () => void;
 }
@@ -137,6 +138,7 @@ export default function QuizQuestionSurface({
   onPinyinChange,
   showingFeedback,
   lastResult,
+  isFinishing = false,
   onSubmit,
   onNext,
 }: QuizQuestionSurfaceProps) {
@@ -243,7 +245,7 @@ export default function QuizQuestionSurface({
             {!showingFeedback && freeText && <span><StudentSystemText k="submitReadingHint" /></span>}
           </div>
           {showingFeedback ? (
-            <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onNext}><StudentSystemText k="nextQuestion" withinControl /></StudentButton>
+            <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={isFinishing} onClick={onNext}><StudentSystemText k={isFinishing ? "saving" : "nextQuestion"} withinControl /></StudentButton>
           ) : (
             <StudentButton variant="primary" disabled={freeText ? !pinyinDraft.trim() : !draftAnswer} onClick={onSubmit}>
               <StudentSystemText k={freeText ? "checkAnswer" : "submitAnswer"} withinControl />
