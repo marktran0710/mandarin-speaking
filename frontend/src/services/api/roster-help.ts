@@ -7,7 +7,24 @@ export async function listHelpRequests(): Promise<HelpRequest[]> { const respons
 export async function createHelpRequest(request: HelpRequest): Promise<HelpRequest> { const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) }); if (!response.ok) throw new Error("Could not send the help request."); return response.json() as Promise<HelpRequest>; }
 export async function resolveHelpRequest(id: string): Promise<HelpRequest> { const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests/${encodeURIComponent(id)}/resolve`, { method: "POST" }); if (!response.ok) throw new Error("Could not resolve the help request."); return response.json() as Promise<HelpRequest>; }
 export async function listStudents(): Promise<Student[]> { const response = await fetchWithRetry(`${BACKEND_URL}/api/students`); if (!response.ok) throw new Error("Could not load the student roster."); const data = await response.json(); return Array.isArray(data) ? data : []; }
-export async function loginStudent(params: { studentId?: string; name?: string; password: string }): Promise<Student> { const response = await fetchWithRetry(`${BACKEND_URL}/api/students/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params) }); if (response.status === 401 || response.status === 404) { const error = new Error("Wrong name or password."); (error as Error & { wrongCredentials?: boolean; notFound?: boolean }).wrongCredentials = true; (error as Error & { wrongCredentials?: boolean; notFound?: boolean }).notFound = response.status === 404; throw error; } if (!response.ok) throw new Error("Could not sign in."); return response.json() as Promise<Student>; }
+export async function loginStudent(params: { studentId?: string; name?: string; password: string }): Promise<Student> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!response.ok) {
+    const payload = await response.clone().json().catch(() => null) as { detail?: unknown } | null;
+    const detail = typeof payload?.detail === "string" ? payload.detail : undefined;
+    throw Object.assign(new Error(detail ?? "Could not sign in."), {
+      status: response.status,
+      detail,
+      wrongCredentials: response.status === 401 || response.status === 404,
+      notFound: response.status === 404,
+    });
+  }
+  return response.json() as Promise<Student>;
+}
 export async function logoutStudent(): Promise<void> { await fetchWithRetry(`${BACKEND_URL}/api/students/logout`, { method: "POST" }); }
 export async function createStudent(name: string, password: string): Promise<Student> { const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, password }) }); if (!response.ok) throw new Error("Could not add the student to the roster."); return response.json() as Promise<Student>; }
 export async function deleteStudent(id: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(id)}`, { method: "DELETE" }); if (!response.ok) throw new Error("Could not remove the student from the roster."); }

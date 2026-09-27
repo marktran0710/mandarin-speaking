@@ -43,4 +43,52 @@ describe("StudentLoginPage", () => {
 
     vi.unstubAllGlobals();
   });
+
+  it("shows a reset-required message for a 403 with a reset-password detail", async () => {
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ detail: "Student password reset required" }),
+          { status: 403, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    render(<StudentLoginPage onLogin={onLogin} />);
+    await user.type(screen.getByPlaceholderText("打上你的名字"), "Student 42");
+    await user.type(screen.getByPlaceholderText("輸入教師提供的密碼"), "123456");
+    await user.click(screen.getByRole("button", { name: "進入學生模式" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("這個帳號需要先重設密碼");
+    expect(onLogin).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("shows an inactive-account message for a 403 without a reset-password detail", async () => {
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ detail: "Student account is inactive" }),
+          { status: 403, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    render(<StudentLoginPage onLogin={onLogin} />);
+    await user.type(screen.getByPlaceholderText("打上你的名字"), "Student 42");
+    await user.type(screen.getByPlaceholderText("輸入教師提供的密碼"), "123456");
+    await user.click(screen.getByRole("button", { name: "進入學生模式" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("這個帳號目前停用");
+    expect(onLogin).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
 });

@@ -18,7 +18,7 @@ export default function StudentLoginPage({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<"empty" | "password" | "server" | null>(
+  const [error, setError] = useState<"empty" | "password" | "inactive" | "resetRequired" | "server" | null>(
     null,
   );
   const [busy, setBusy] = useState(false);
@@ -42,9 +42,13 @@ export default function StudentLoginPage({
       const student = await loginStudent({ name: trimmed, password });
       startSession(student.name, student.id);
     } catch (err) {
-      const flags = err as { wrongCredentials?: boolean };
+      const flags = err as { wrongCredentials?: boolean; status?: number; detail?: string };
       if (flags.wrongCredentials) {
         setError("password");
+      } else if (flags.status === 403 && flags.detail?.toLowerCase().includes("reset")) {
+        setError("resetRequired");
+      } else if (flags.status === 403) {
+        setError("inactive");
       } else {
         setError("server");
       }
@@ -139,6 +143,12 @@ export default function StudentLoginPage({
                 )}
                 {error === "password" && (
                   <StudentSystemText k="loginPasswordError" />
+                )}
+                {error === "resetRequired" && (
+                  <StudentSystemText k="loginResetRequiredError" />
+                )}
+                {error === "inactive" && (
+                  <StudentSystemText k="loginInactiveError" />
                 )}
                 {error === "server" && (
                   <StudentSystemText k="loginServerError" />

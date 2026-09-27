@@ -207,6 +207,8 @@ const baseStudentUiCopy = {
   studentPasswordPlaceholder: { zh: "輸入教師提供的密碼", pinyin: "Shūrù jiàoshī tígōng de mìmǎ" },
   loginEmptyError: { zh: "請輸入名字和密碼。", pinyin: "Qǐng shūrù míngzi hé mìmǎ." },
   loginPasswordError: { zh: "密碼不對，再試一次。", pinyin: "Mìmǎ bú duì, zài shì yí cì." },
+  loginResetRequiredError: { zh: "這個帳號需要先重設密碼，請聯絡教師。", pinyin: "Zhège zhànghào xūyào xiān chóngshè mìmǎ, qǐng liánluò jiàoshī." },
+  loginInactiveError: { zh: "這個帳號目前停用，請聯絡教師。", pinyin: "Zhège zhànghào mùqián tíngyòng, qǐng liánluò jiàoshī." },
   loginServerError: { zh: "連不上伺服器，等一下再試。", pinyin: "Lián bú shàng fúwùqì, děng yíxià zài shì." },
   enterStudentMode: { zh: "進入學生模式", pinyin: "Jìnrù xuéshēng móshì" },
   meaningCheck: { zh: "意思確認", pinyin: "Yìsi quèrèn" },
