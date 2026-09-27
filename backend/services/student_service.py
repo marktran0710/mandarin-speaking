@@ -19,6 +19,7 @@ from repositories.database import (
     delete_student_cascade,
     row_to_audio_record,
     row_to_student,
+    row_to_student_settings,
 )
 
 _OVERVIEW_AUDIO_LIMIT = 1000
@@ -129,6 +130,37 @@ def authenticate_student(
     return row
 
 
+def get_student_settings(db, student_id: str) -> dict:
+    row = repo.get_settings(db, student_id)
+    if row is None:
+        raise StudentServiceError(404, "Student not found")
+    return row_to_student_settings(row)
+
+
+def update_student_settings(db, student_id: str, request) -> dict:
+    fields = request.model_dump(exclude_none=True)
+    try:
+        row = repo.update_settings(db, student_id, fields)
+    except KeyError as exc:
+        raise StudentServiceError(400, "Invalid student settings.") from exc
+    if row is None:
+        raise StudentServiceError(404, "Student not found")
+    return row_to_student_settings(row)
+
+
+def change_student_password(db, student_id: str, current_password: str, new_password: str) -> None:
+    row = repo.find_by_id(db, student_id)
+    if row is None:
+        raise StudentServiceError(404, "Student not found")
+    valid, _ = auth.verify_password(row.get("password"), current_password)
+    if not valid:
+        # Deliberately avoid 401: a bad current password is a form error, not
+        # an expired session, so the frontend must not log the learner out.
+        raise StudentServiceError(400, "Current password is incorrect.")
+    auth.validate_password_policy(new_password)
+    repo.reset_password(db, student_id, auth.hash_password(new_password))
+
+
 def reset_student_password(db, student_id: str, password: str) -> dict:
     auth.validate_password_policy(password)
     row = repo.reset_password(db, student_id, auth.hash_password(password))
@@ -151,7 +183,11 @@ def update_student(db, student_id: str, request) -> dict:
         params.append(name)
     if request.password is not None:
         auth.validate_password_policy(request.password)
-        set_clauses.extend(["password = %s", "password_reset_required = false"])
+        set_clauses.extend([
+            "password = %s",
+            "password_reset_required = false",
+            "password_version = password_version + 1",
+        ])
         params.append(auth.hash_password(request.password))
     if request.status is not None:
         set_clauses.append("status = %s")

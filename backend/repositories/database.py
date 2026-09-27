@@ -247,6 +247,14 @@ def row_to_student(row: dict) -> dict:
     }
 
 
+def row_to_student_settings(row: dict) -> dict:
+    return {
+        "studentMascot": row.get("student_mascot") or "male",
+        "partnerMascot": row.get("partner_mascot") or "fox",
+        "voiceHintMode": row.get("voice_hint_mode") or "auto",
+    }
+
+
 # Every table keyed by student_id, i.e. everything a deleted student's account
 # must not leave behind. There is no DB-level FK/cascade for these (students
 # rows predate most of them), so a student delete has to walk this list itself.

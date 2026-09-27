@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useStudentSettingsValue } from "@app/student/StudentSettingsContext";
 
 type RoleAvatarProps = {
   role: "character" | "student";
@@ -49,15 +50,20 @@ const DIZZY_WINDOW = 1600;
 const DIZZY_END = 1100;
 
 const mascotBase = `${import.meta.env.BASE_URL}mascots`;
-const characterMascot = {
-  directions: `${mascotBase}/fox-directions.webp`,
-  reactions: `${mascotBase}/fox-reactions.webp`,
-};
-const studentMascot = {
-  directions: `${mascotBase}/beard-directions.webp`,
-  reactions: `${mascotBase}/beard-reactions.webp`,
-};
-
+const mascotAssets = {
+  fox: {
+    directions: `${mascotBase}/fox-directions.webp`,
+    reactions: `${mascotBase}/fox-reactions.webp`,
+  },
+  male: {
+    directions: `${mascotBase}/beard-directions.webp`,
+    reactions: `${mascotBase}/beard-reactions.webp`,
+  },
+  female: {
+    directions: `${mascotBase}/ballerina-directions.webp`,
+    reactions: `${mascotBase}/ballerina-reactions.webp`,
+  },
+} as const;
 const spriteLayer: CSSProperties = {
   position: "absolute",
   inset: 0,
@@ -205,7 +211,10 @@ function SpriteMascot({ directions, reactions, size, label, className }: MascotP
 }
 
 export default function RoleAvatar({ role, compact = false }: RoleAvatarProps) {
-  const assets = role === "character" ? characterMascot : studentMascot;
+  const settings = useStudentSettingsValue();
+  const assets = role === "character"
+    ? mascotAssets[settings.partnerMascot]
+    : mascotAssets[settings.studentMascot];
   return (
     <SpriteMascot
       directions={assets.directions}

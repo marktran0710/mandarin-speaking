@@ -235,6 +235,23 @@ class StudentUpdateRequest(BaseModel):
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
 
 
+class StudentSettings(BaseModel):
+    studentMascot: Literal["male", "female"] = "male"
+    partnerMascot: Literal["fox", "male", "female"] = "fox"
+    voiceHintMode: Literal["auto", "avatar"] = "auto"
+
+
+class StudentSettingsUpdate(BaseModel):
+    studentMascot: Optional[Literal["male", "female"]] = None
+    partnerMascot: Optional[Literal["fox", "male", "female"]] = None
+    voiceHintMode: Optional[Literal["auto", "avatar"]] = None
+
+
+class StudentPasswordChangeRequest(BaseModel):
+    currentPassword: str = Field(..., min_length=1, max_length=100)
+    newPassword: str = Field(..., min_length=1, max_length=100)
+
+
 class StudentLoginRequest(BaseModel):
     # Either the roster id (preferred, stable) or the display name ??    # whichever the login form has in hand.
     studentId: Optional[str] = None

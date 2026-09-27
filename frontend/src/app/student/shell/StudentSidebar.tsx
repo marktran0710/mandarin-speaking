@@ -2,7 +2,7 @@ import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./StudentSidebar.css";
 
-export type StudentTopSection = "study" | "progress" | "placement";
+export type StudentTopSection = "study" | "progress" | "placement" | "settings";
 export type StudentPhase =
   | "vocab-preview"
   | "vocab-quiz"
@@ -132,6 +132,19 @@ export default function StudentSidebar({
               <StudentIcon name="flag" size={18} role="decorative" />
               <span>
                 <StudentSystemText k="placement" withinControl />
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`sa-sidebar__nav-item ${activeSection === "settings" ? "is-active" : ""}`}
+            aria-current={activeSection === "settings" ? "page" : undefined}
+            onClick={() => onNavigateSection("settings")}
+          >
+            <span className="sa-sidebar__nav-item-main">
+              <StudentIcon name="settings" size={18} role="decorative" />
+              <span>
+                <StudentSystemText k="settings" withinControl />
               </span>
             </span>
           </button>

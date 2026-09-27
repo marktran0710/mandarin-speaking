@@ -74,9 +74,40 @@ def update_password_hash(db, student_id: str, password_hash: str) -> None:
     )
 
 
+def get_settings(db, student_id: str) -> Optional[dict]:
+    return db.execute(
+        "SELECT student_mascot, partner_mascot, voice_hint_mode "
+        "FROM students WHERE id = %s",
+        (student_id,),
+    ).fetchone()
+
+
+def update_settings(db, student_id: str, fields: dict[str, str]) -> Optional[dict]:
+    if not fields:
+        return get_settings(db, student_id)
+    columns = {
+        "studentMascot": "student_mascot",
+        "partnerMascot": "partner_mascot",
+        "voiceHintMode": "voice_hint_mode",
+    }
+    clauses = []
+    params = []
+    for key, value in fields.items():
+        column = columns[key]
+        clauses.append(f"{column} = %s")
+        params.append(value)
+    params.append(student_id)
+    return db.execute(
+        f"UPDATE students SET {', '.join(clauses)} WHERE id = %s "
+        "RETURNING student_mascot, partner_mascot, voice_hint_mode",
+        tuple(params),
+    ).fetchone()
+
+
 def reset_password(db, student_id: str, password_hash: str) -> Optional[dict]:
     return db.execute(
-        "UPDATE students SET password = %s, password_reset_required = false "
+        "UPDATE students SET password = %s, password_reset_required = false, "
+        "password_version = password_version + 1 "
         "WHERE id = %s RETURNING *",
         (password_hash, student_id),
     ).fetchone()

@@ -9,6 +9,8 @@ from main import (
     StudentLoginRequest,
     StudentPasswordResetRequest,
     StudentUpdateRequest,
+    StudentSettingsUpdate,
+    StudentPasswordChangeRequest,
 )
 
 router = APIRouter()
@@ -80,7 +82,7 @@ def login_student(
         except student_service.StudentServiceError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
-    token = auth.issue_token("student", row["id"])
+    token = auth.issue_token("student", row["id"], row.get("password_version", 0))
     auth.set_session_cookie(response, token, "student")
     return row_to_student(row)
 
@@ -96,6 +98,42 @@ def reset_student_password(
             return student_service.reset_student_password(db, student_id, request.password)
         except student_service.StudentServiceError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/api/students/me/settings")
+def get_my_student_settings(identity: auth.Identity = Depends(auth.require_student)):
+    with connect_db() as db:
+        try:
+            return student_service.get_student_settings(db, identity.id)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.patch("/api/students/me/settings")
+def patch_my_student_settings(
+    request: StudentSettingsUpdate,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    with connect_db() as db:
+        try:
+            return student_service.update_student_settings(db, identity.id, request)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/api/students/me/password")
+def change_my_student_password(
+    request: StudentPasswordChangeRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    with connect_db() as db:
+        try:
+            student_service.change_student_password(
+                db, identity.id, request.currentPassword, request.newPassword
+            )
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    return {"passwordChanged": True, "reauthenticate": True}
 
 
 @router.patch("/api/students/{student_id}")

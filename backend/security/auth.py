@@ -159,9 +159,10 @@ def check_login_rate_limit(key: str, max_attempts: int = 10, window_seconds: int
 class Identity:
     role: str
     id: str
+    password_version: int = 0
 
 
-def issue_token(role: str, subject_id: str) -> str:
+def issue_token(role: str, subject_id: str, password_version: int = 0) -> str:
     if role not in VALID_ROLES:
         raise ValueError(f"Unknown role: {role!r}")
     if not subject_id:
@@ -173,6 +174,8 @@ def issue_token(role: str, subject_id: str) -> str:
         "iat": now,
         "exp": now + TOKEN_TTL_SECONDS,
     }
+    if role == "student":
+        payload["pv"] = max(0, int(password_version))
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
@@ -188,7 +191,12 @@ def decode_token(token: str) -> Identity:
     subject_id = payload.get("sub")
     if role not in VALID_ROLES or not subject_id:
         raise HTTPException(status_code=401, detail="Invalid session.")
-    return Identity(role=role, id=subject_id)
+    raw_version = payload.get("pv", 0)
+    try:
+        password_version = max(0, int(raw_version))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid session.")
+    return Identity(role=role, id=subject_id, password_version=password_version)
 
 
 def set_session_cookie(response: Response, token: str, role: str | None = None) -> None:
@@ -238,13 +246,18 @@ def _validate_identity(identity: Identity) -> Identity:
         from db import connect_db
 
         table = "students" if identity.role == "student" else "teachers"
-        select = "status"
+        select = "status, password_version" if identity.role == "student" else "status"
         with connect_db() as db:
             row = db.execute(
                 f"SELECT {select} FROM {table} WHERE id = %s", (identity.id,)
             ).fetchone()
         if row is None or row.get("status") != "active":
             raise HTTPException(status_code=401, detail="Account is no longer active.")
+        if (
+            identity.role == "student"
+            and identity.password_version != int(row.get("password_version") or 0)
+        ):
+            raise HTTPException(status_code=401, detail="Session expired, please log in again.")
     return identity
 
 

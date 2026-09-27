@@ -19,6 +19,8 @@ import SubmitStoryPage from "../../features/submit/SubmitStoryPage";
 import CompletionPage from "../../features/completion/CompletionPage";
 import ProgressPage from "../../features/progress/ProgressPage";
 import PlacementPage from "../../features/placement/PlacementPage";
+import StudentSettingsPage from "../../features/settings/StudentSettingsPage";
+import { StudentSettingsProvider } from "./StudentSettingsContext";
 import { loadSubmittedStoryIds, markStoryLevelSubmitted } from "../../utils/storyLevelProgress";
 
 interface StudentAppProps {
@@ -186,7 +188,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
 
   let body: React.ReactNode;
 
-  if (section === "progress") {
+  if (section === "settings") {
+    body = <StudentSettingsPage onRequireRelogin={onLogout} />;
+  } else if (section === "progress") {
     body = <ProgressPage topics={topics} />;
   } else if (section === "placement") {
     body = <PlacementPage live />;
@@ -283,45 +287,48 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   }
 
   return (
-    <StudentShell
-      studentName={studentName}
-      currentLessonTitle={currentLessonTitle}
-      activeSection={section}
-      activePhase={activeTopic ? phase : null}
-      quizStars={totalQuizStars}
-      maxQuizStars={maxQuizStars}
-      furthestPhase={furthestPhase}
-      speakingUnlocked={speakingUnlocked}
-      conversationUnlocked={conversationUnlocked}
-      practiceChoicesUnlocked={practiceChoicesUnlocked}
-      onNavigateSection={(next) => {
-        setSection(next);
-        if (next === "study") setActiveTopic(null);
-      }}
-      onNavigatePhase={
-        activeTopic
-          ? (next) => {
-              const practiceReachable = next === "story-speaking"
-                ? speakingUnlocked
-                : next === "conversation"
-                  ? conversationUnlocked
-                  : false;
-              const reachable = next === "story-speaking" || next === "conversation"
-                ? practiceChoicesUnlocked && practiceReachable
-                : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
-              const starBlocked = next === "story-speaking" && !speakingUnlocked;
-              if (reachable && !starBlocked) {
-                if (next === "story-speaking" || next === "conversation") {
-                  setCompletedPractice(next === "conversation" ? "conversation" : "speaking");
+    <StudentSettingsProvider>
+      <StudentShell
+        studentName={studentName}
+        currentLessonTitle={currentLessonTitle}
+        activeSection={section}
+        activePhase={section === "study" && activeTopic ? phase : null}
+        quizStars={totalQuizStars}
+        maxQuizStars={maxQuizStars}
+        furthestPhase={furthestPhase}
+        speakingUnlocked={speakingUnlocked}
+        conversationUnlocked={conversationUnlocked}
+        practiceChoicesUnlocked={practiceChoicesUnlocked}
+        onNavigateSection={(next) => {
+          const cameFromSettings = section === "settings";
+          setSection(next);
+          if (next === "study" && !cameFromSettings) setActiveTopic(null);
+        }}
+        onNavigatePhase={
+          activeTopic
+            ? (next) => {
+                const practiceReachable = next === "story-speaking"
+                  ? speakingUnlocked
+                  : next === "conversation"
+                    ? conversationUnlocked
+                    : false;
+                const reachable = next === "story-speaking" || next === "conversation"
+                  ? practiceChoicesUnlocked && practiceReachable
+                  : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
+                const starBlocked = next === "story-speaking" && !speakingUnlocked;
+                if (reachable && !starBlocked) {
+                  if (next === "story-speaking" || next === "conversation") {
+                    setCompletedPractice(next === "conversation" ? "conversation" : "speaking");
+                  }
+                  setPhase(next);
                 }
-                setPhase(next);
               }
-            }
-          : undefined
-      }
-      onLogout={onLogout}
-    >
-      {body}
-    </StudentShell>
+            : undefined
+        }
+        onLogout={onLogout}
+      >
+        {body}
+      </StudentShell>
+    </StudentSettingsProvider>
   );
 }
