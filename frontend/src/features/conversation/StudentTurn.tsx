@@ -1,6 +1,7 @@
 import type { ConversationTurn } from "../../components/story-recorder/StoryRecorder";
 import type { ConversationSession } from "./useConversationSession";
 import StudentButton from "@shared/ui/student/StudentButton";
+import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentAudioUpload from "@shared/ui/student/StudentAudioUpload";
 import BilingualWord from "@shared/ui/student/BilingualWord";
 import ConversationRoleHeader from "./ConversationRoleHeader";
@@ -22,6 +23,13 @@ export default function StudentTurn({ turn, session }: StudentTurnProps) {
           gloss={turn.translation}
           size="display"
         />
+        {(turn.targetAudioUrl || turn.audioUrl) && (
+          <StudentAudioControl
+            audioUrl={turn.targetAudioUrl || turn.audioUrl}
+            labelKey="modelAudio"
+            showDuration
+          />
+        )}
         {recorder.error && <p className="sa-conversation__error" role="alert">{recorder.error}</p>}
         <div className="sa-conversation__record-actions">
           <StudentButton

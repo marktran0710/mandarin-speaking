@@ -32,7 +32,7 @@ function makeTopic(overrides: Partial<Topic> = {}): Topic {
 
 const turns: ConversationTurn[] = [
   { id: "t0", speaker: "system", text: "你好嗎？", pinyin: "nǐ hǎo ma", translation: "How are you?" },
-  { id: "t1", speaker: "student", text: "我很好", targetText: "我很好", pinyin: "wǒ hěn hǎo", translation: "I'm good" },
+  { id: "t1", speaker: "student", text: "我很好", targetText: "我很好", pinyin: "wǒ hěn hǎo", translation: "I'm good", targetAudioUrl: "/uploads/audio/student-model.mp3" },
 ];
 
 function recorderMock(overrides: Partial<ReturnType<typeof useSpeakingRecorder>> = {}) {
@@ -180,6 +180,7 @@ describe("ConversationPage", () => {
     // System turn: listen, then Continue moves to the student's turn.
     expect(screen.getByText("你好嗎？")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
+    expect(screen.getByRole("button", { name: "示範音" })).toBeInTheDocument();
 
     // Student turn: analysis opens the self-evaluation step first.
     fireEvent.click(screen.getByRole("button", { name: "錄音" }));
