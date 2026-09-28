@@ -36,7 +36,7 @@ import StoryBuilderLibrary from "./library";
 import { useStoryBuilderFrameActions } from "./frameActions";
 import { useBulkAudioUpload } from "./bulkAudioUpload";
 export type { CustomStoryValidationErrors } from "./modelHelpers";
-export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: () => void }) {
+export default function StoryBuilderSection({ onStorySaved, showBulkAudio = false }: { onStorySaved?: () => void; showBulkAudio?: boolean }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),
   );
@@ -429,6 +429,7 @@ export default function StoryBuilderSection({ onStorySaved }: { onStorySaved?: (
           onExport={handleExportStory}
           onDelete={handleDeleteCustomStory}
           onBulkUploadAudio={handleBulkUploadAudio}
+          showBulkAudio={showBulkAudio}
           bulkAudioNotice={bulkAudioNotice}
           bulkAudioError={bulkAudioError}
           isBulkUploadingAudio={isBulkUploadingAudio}

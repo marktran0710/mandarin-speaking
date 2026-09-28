@@ -24,6 +24,12 @@ from services.content.vocabulary_import import (
     build_vocabulary_import_template,
     preview_vocabulary_import,
 )
+from services.content.materials_import import (
+    apply_materials,
+    build_images_template,
+    build_scripts_template,
+    preview_materials,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -166,3 +172,56 @@ async def confirm_vocabulary_audio_import_upload(
             return apply_vocabulary_audio_import(db, content)
     except (ValueError, LookupError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/materials/{kind}/preview")
+async def preview_materials_upload(
+    kind: str,
+    file: list[UploadFile] = File(...),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Read-only preview for lesson 5-8 image or script materials."""
+    uploads = [(upload.filename or "", await upload.read()) for upload in file]
+    try:
+        with connect_db() as db:
+            return preview_materials(db, kind, uploads)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/materials/{kind}/confirm")
+async def confirm_materials_upload(
+    kind: str,
+    file: list[UploadFile] = File(...),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Re-validate and atomically apply lesson 5-8 image or script materials."""
+    uploads = [(upload.filename or "", await upload.read()) for upload in file]
+    try:
+        with connect_db() as db:
+            return apply_materials(db, kind, uploads)
+    except (ValueError, LookupError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/materials/{kind}/template")
+def download_materials_template(
+    kind: str,
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    """Download the current scripts CSV or image filename guide."""
+    if kind == "scripts":
+        with connect_db() as db:
+            content = build_scripts_template(db)
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="lessons-5-8.csv"'},
+        )
+    if kind == "images":
+        return Response(
+            content=build_images_template(),
+            media_type="application/zip",
+            headers={"Content-Disposition": 'attachment; filename="lesson-5-8-images-template.zip"'},
+        )
+    raise HTTPException(status_code=404, detail="Materials template kind must be images or scripts.")

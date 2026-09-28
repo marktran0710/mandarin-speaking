@@ -367,7 +367,7 @@ def persist_story_conversation_audio(
 
 def _refresh_scene_reference_curves(
     story_id: str, frame_index: int, frame: dict, old_frame: dict, suffix: str, audio_url: str
-) -> None:
+) -> bool:
     """Re-derives a scene's per-word target pitch curves from its real model
     recording whenever a teacher uploads or re-records one, so the "target
     shape" a student practices against always reflects the actual final
@@ -381,7 +381,7 @@ def _refresh_scene_reference_curves(
         frame.get(f"listenScript{suffix}") or frame.get(f"suggestedAnswer{suffix}") or ""
     ).strip()
     if not sentence_text:
-        return
+        return False
 
     vocab_text = frame.get(f"vocabulary{suffix}") or ""
     words = [word.strip() for word in vocab_text.split(",") if word.strip()]
@@ -389,7 +389,7 @@ def _refresh_scene_reference_curves(
     relative_path = audio_url.removeprefix("/uploads/").replace("/", os.sep)
     audio_path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
     if not os.path.exists(audio_path):
-        return
+        return False
 
     try:
         word_results = (
@@ -410,7 +410,7 @@ def _refresh_scene_reference_curves(
             "Reference-curve extraction failed for story=%s frame=%s tier=%s",
             story_id, frame_index, suffix or "easy", exc_info=True,
         )
-        return
+        return False
 
     try:
         old_word_urls = json.loads(old_frame.get(f"vocabularyAudioUrls{suffix}") or "[]")
@@ -430,6 +430,7 @@ def _refresh_scene_reference_curves(
     frame[f"sentenceModelContour{suffix}"] = json.dumps(
         model_contour, ensure_ascii=False
     )
+    return True
 
 
 def _clear_scene_reference_curves(old_frame: dict, frame: dict, suffix: str) -> None:

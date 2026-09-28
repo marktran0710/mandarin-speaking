@@ -66,7 +66,7 @@ function BulkAudioUpload({ onBulkUploadAudio, isBulkUploadingAudio }) {
 
 export default function StoryBuilderLibrary({ customStories, filteredCustomStories, lessonNumbersInUse, hasStoriesWithoutLesson,
   lessonFilter, onLessonFilterChange, importError, importNotice, onImport, onTogglePublish, onEdit, onExport, onDelete,
-  onBulkUploadAudio, bulkAudioNotice, bulkAudioError, isBulkUploadingAudio }) {
+  onBulkUploadAudio, bulkAudioNotice, bulkAudioError, isBulkUploadingAudio, showBulkAudio = true }) {
   return <div className="custom-story-library" aria-label="Saved custom stories"><div className="custom-story-library-header"><h3>Admin Story Library</h3>
     {(lessonNumbersInUse.length > 0 || hasStoriesWithoutLesson) && <select className="custom-story-lesson-filter" aria-label="Filter stories by lesson" value={lessonFilter} onChange={(event) => onLessonFilterChange(event.target.value)}>
       <option value="all">All lessons</option>{lessonNumbersInUse.map((lessonNumber) => <option key={lessonNumber} value={String(lessonNumber)}>Lesson {lessonNumber}</option>)}{hasStoriesWithoutLesson && <option value="others">Others</option>}
@@ -74,7 +74,7 @@ export default function StoryBuilderLibrary({ customStories, filteredCustomStori
     <label className="btn-import-custom-story">Import story<input type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) onImport(file); }} /></label>
   </div>
   {importError && <div className="teacher-form-alert" role="alert">{importError}</div>}{importNotice && <div className="teacher-form-success" role="status">{importNotice}</div>}
-  {onBulkUploadAudio && <BulkAudioUpload onBulkUploadAudio={onBulkUploadAudio} isBulkUploadingAudio={isBulkUploadingAudio} />}
+  {showBulkAudio && onBulkUploadAudio && <BulkAudioUpload onBulkUploadAudio={onBulkUploadAudio} isBulkUploadingAudio={isBulkUploadingAudio} />}
   {bulkAudioError && <div className="teacher-form-alert" role="alert">{bulkAudioError}</div>}{bulkAudioNotice && <div className="teacher-form-success" role="status">{bulkAudioNotice}</div>}
   {filteredCustomStories.length === 0 ? <div className="teacher-empty-panel"><strong>{customStories.length === 0 ? "No custom stories yet" : "No stories for this lesson"}</strong><p>{customStories.length === 0 ? "Add image links and prompts to prepare a reusable classroom speaking activity." : "Try a different lesson filter."}</p></div> :
     <div className="custom-story-list">{filteredCustomStories.map((story) => <StoryLibraryItem key={story.id} story={story} onTogglePublish={onTogglePublish} onEdit={onEdit} onExport={onExport} onDelete={onDelete} />)}</div>}
