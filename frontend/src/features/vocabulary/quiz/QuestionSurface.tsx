@@ -7,7 +7,6 @@ import type {
 import BilingualWord from "@shared/ui/student/BilingualWord";
 import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentButton from "@shared/ui/student/StudentButton";
-import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import ToneKeypad from "./ToneKeypad";
@@ -212,7 +211,6 @@ export default function QuizQuestionSurface({
                 >
                   <span className="sa-quiz__option-index">{index + 1}</span>
                   <OptionLabel option={option} surface={presentation.surface} entries={entries} />
-                  <StudentIcon name={selected ? "check_circle" : "radio_button_unchecked"} size={20} role="decorative" />
                 </button>
               );
             })}

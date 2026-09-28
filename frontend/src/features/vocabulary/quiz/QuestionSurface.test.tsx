@@ -61,9 +61,10 @@ function SurfaceHarness({ question, onSubmit }: { question: VocabQuizQuestion; o
 describe("QuizQuestionSurface", () => {
   it("stages a meaning choice and only submits after explicit confirmation", () => {
     const onSubmit = vi.fn();
-    render(<SurfaceHarness question={makeQuestion("basic_meaning_mcq", "single_choice", "What does 電話 mean?")} onSubmit={onSubmit} />);
+    const { container } = render(<SurfaceHarness question={makeQuestion("basic_meaning_mcq", "single_choice", "What does 電話 mean?")} onSubmit={onSubmit} />);
 
     fireEvent.click(screen.getByRole("button", { name: "選項 1：電話" }));
+    expect(container.querySelectorAll(".sa-quiz__option .sa-icon")).toHaveLength(0);
     expect(screen.getByRole("button", { name: "提交答案" })).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
 
