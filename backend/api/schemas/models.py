@@ -144,6 +144,13 @@ class SceneSubmission(BaseModel):
     # verdict. Absent when the student skipped the prompt.
     selfEvalContent: Optional[Literal["good", "ok", "bad"]] = None
     selfEvalPronunciation: Optional[Literal["good", "ok", "bad"]] = None
+    # Conversation-turn identity. Without these a conversation turn was
+    # indistinguishable from a story scene once stored (the fields were
+    # silently dropped), so the teacher view could not tell them apart.
+    conversationId: Optional[str] = Field(default=None, max_length=200)
+    turnId: Optional[str] = Field(default=None, max_length=200)
+    turnIndex: Optional[int] = Field(default=None, ge=0)
+    promptId: Optional[str] = Field(default=None, max_length=300)
 
 
 class StorySubmissionRequest(BaseModel):
@@ -195,6 +202,11 @@ class VocabQuizQuestionResult(BaseModel):
     questionPrompt: Optional[str] = Field(default=None, max_length=2000)
     answeredAt: Optional[str] = None
     questionIndex: Optional[int] = Field(default=None, ge=0)
+    # Diagnostic rounds offer one hinted retry after a wrong first answer.
+    # Analysis-only annotations on the original response: ``correct`` (the
+    # first try) remains the score and the BKT evidence.
+    hintUsed: Optional[bool] = None
+    retryCorrect: Optional[bool] = None
 
 
 class VocabQuizAttemptRequest(BaseModel):

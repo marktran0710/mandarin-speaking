@@ -5,54 +5,61 @@ import {
   starsFromAttempts,
   isTierUnlocked,
   practiceUnlocked,
-  nextStarGap,
+  latestRoundScores,
   loadLocalStars,
+  roundScore,
   recordLocalStars,
 } from "@entities/vocabulary";
 
 describe("TIER_CONFIGS", () => {
-  it("defines the three star tiers with dynamic pass ratios", () => {
-    expect(TIER_CONFIGS.tier1).toMatchObject({
-      tier: 1,
-      passRatio: 0.70,
-      timeLimitMs: null,
-    });
-    expect(TIER_CONFIGS.tier2).toMatchObject({
-      tier: 2,
-      passRatio: 0.82,
-      timeLimitMs: null,
-    });
-    expect(TIER_CONFIGS.tier3).toMatchObject({
-      tier: 3,
-      passRatio: 0.88,
-      timeLimitMs: 150_000,
-    });
+  it("defines the three rounds; only Use It is timed", () => {
+    expect(TIER_CONFIGS.tier1).toEqual({ tier: 1, mode: "tier1", timeLimitMs: null });
+    expect(TIER_CONFIGS.tier2).toEqual({ tier: 2, mode: "tier2", timeLimitMs: null });
+    expect(TIER_CONFIGS.tier3).toEqual({ tier: 3, mode: "tier3", timeLimitMs: 150_000 });
   });
 });
 
 describe("attemptEarnsStar", () => {
-  it("returns the tier number when the attempt meets its pass threshold", () => {
-    expect(attemptEarnsStar("tier1", 14)).toBe(1);
-    expect(attemptEarnsStar("tier2", 18)).toBe(2);
-    expect(attemptEarnsStar("tier3", 25)).toBe(3);
+  it("earns the round for any finished run, whatever the accuracy", () => {
+    expect(attemptEarnsStar("tier1", 14, 20)).toBe(1);
+    expect(attemptEarnsStar("tier1", 0, 20)).toBe(1);
+    expect(attemptEarnsStar("tier2", 3, 22)).toBe(2);
+    expect(attemptEarnsStar("tier3", 1, 25)).toBe(3);
   });
 
-  it("returns null when the attempt is below the threshold", () => {
-    expect(attemptEarnsStar("tier1", 13, 20)).toBeNull();
-    expect(attemptEarnsStar("tier3", 21, 25)).toBeNull();
-  });
-
-  it("preserves the pass ratio when a leak-free session has fewer distinct concepts", () => {
-    expect(attemptEarnsStar("tier1", 4, 5)).toBe(1);
-    expect(attemptEarnsStar("tier1", 3, 5)).toBeNull();
-    expect(attemptEarnsStar("tier2", 5, 5)).toBe(2);
+  it("returns null for an empty run", () => {
+    expect(attemptEarnsStar("tier1", 0, 0)).toBeNull();
+    expect(attemptEarnsStar("tier1", 5)).toBeNull();
   });
 
   it("returns null for non-tier modes (speed, strikes, weak_words, null)", () => {
-    expect(attemptEarnsStar("speed", 20)).toBeNull();
-    expect(attemptEarnsStar("strikes", 20)).toBeNull();
-    expect(attemptEarnsStar("weak_words", 20)).toBeNull();
-    expect(attemptEarnsStar(null, 20)).toBeNull();
+    expect(attemptEarnsStar("speed", 20, 20)).toBeNull();
+    expect(attemptEarnsStar("strikes", 20, 20)).toBeNull();
+    expect(attemptEarnsStar("weak_words", 20, 20)).toBeNull();
+    expect(attemptEarnsStar(null, 20, 20)).toBeNull();
+  });
+});
+
+describe("roundScore", () => {
+  it("scales first-try correct answers to 0–100", () => {
+    expect(roundScore(7, 10)).toBe(70);
+    expect(roundScore(2, 3)).toBe(67);
+    expect(roundScore(0, 12)).toBe(0);
+    expect(roundScore(12, 12)).toBe(100);
+    expect(roundScore(0, 0)).toBe(0);
+  });
+});
+
+describe("latestRoundScores", () => {
+  it("reports each round's most recent finished attempt, not its best", () => {
+    expect(
+      latestRoundScores([
+        { mode: "tier1", correctCount: 9, totalQuestions: 10, completedAt: "2026-09-01T00:00:00.000Z" },
+        { mode: "tier1", correctCount: 4, totalQuestions: 10, completedAt: "2026-09-02T00:00:00.000Z" },
+        { mode: "tier2", correctCount: 5, totalQuestions: 10, completedAt: "2026-09-01T00:00:00.000Z" },
+        { mode: "weak_words", correctCount: 3, totalQuestions: 3, completedAt: "2026-09-03T00:00:00.000Z" },
+      ]),
+    ).toEqual({ tier1: 40, tier2: 50 });
   });
 });
 
@@ -61,21 +68,20 @@ describe("starsFromAttempts", () => {
     expect(starsFromAttempts([])).toBe(0);
   });
 
-  it("returns the highest contiguous tier any attempt passed", () => {
+  it("counts contiguous finished rounds", () => {
     expect(
       starsFromAttempts([
-        { mode: "tier1", correctCount: 15, totalQuestions: 20 },
-        { mode: "tier2", correctCount: 19, totalQuestions: 22 },
-        { mode: "tier2", correctCount: 3 },
+        { mode: "tier1", correctCount: 2, totalQuestions: 20 },
+        { mode: "tier2", correctCount: 0, totalQuestions: 22 },
       ]),
     ).toBe(2);
   });
 
-  it("does not let a lone tier 3 pass unlock the ladder", () => {
+  it("does not let a lone tier 3 run unlock the ladder", () => {
     expect(starsFromAttempts([{ mode: "tier3", correctCount: 25, totalQuestions: 25 }])).toBe(0);
   });
 
-  it("does not skip tier 2 when tier 1 and tier 3 pass", () => {
+  it("does not skip tier 2 when tiers 1 and 3 were finished", () => {
     expect(
       starsFromAttempts([
         { mode: "tier1", correctCount: 14, totalQuestions: 20 },
@@ -84,31 +90,21 @@ describe("starsFromAttempts", () => {
     ).toBe(1);
   });
 
-  it("accepts all three passed tiers regardless of attempt order", () => {
+  it("accepts all three finished rounds regardless of attempt order", () => {
     expect(
       starsFromAttempts([
-        { mode: "tier3", correctCount: 22, totalQuestions: 25 },
-        { mode: "tier1", correctCount: 14, totalQuestions: 20 },
-        { mode: "tier2", correctCount: 19, totalQuestions: 22 },
+        { mode: "tier3", correctCount: 2, totalQuestions: 25 },
+        { mode: "tier1", correctCount: 1, totalQuestions: 20 },
+        { mode: "tier2", correctCount: 0, totalQuestions: 22 },
       ]),
     ).toBe(3);
   });
 
-  it("does not count failed tiers toward the contiguous proof", () => {
-    expect(
-      starsFromAttempts([
-        { mode: "tier1", correctCount: 14, totalQuestions: 20 },
-        { mode: "tier2", correctCount: 17, totalQuestions: 22 },
-        { mode: "tier3", correctCount: 25, totalQuestions: 25 },
-      ]),
-    ).toBe(1);
-  });
-
-  it("ignores failing attempts and legacy modes", () => {
+  it("ignores legacy modes and empty runs", () => {
     expect(
       starsFromAttempts([
         { mode: "speed", correctCount: 20, totalQuestions: 20 },
-        { mode: "tier1", correctCount: 10, totalQuestions: 20 },
+        { mode: "tier1", correctCount: 0, totalQuestions: 0 },
       ]),
     ).toBe(0);
   });
@@ -134,7 +130,7 @@ describe("starsByStory", () => {
       starsByStory([
         { storyId: "a", mode: "tier1", correctCount: 15, totalQuestions: 20 },
         { storyId: "a", mode: "tier2", correctCount: 19, totalQuestions: 22 },
-        { storyId: "b", mode: "tier1", correctCount: 3, totalQuestions: 20 },
+        { storyId: "b", mode: "tier2", correctCount: 3, totalQuestions: 20 },
         { storyId: "c", mode: "speed", correctCount: 20, totalQuestions: 20 },
       ]),
     ).toEqual({ a: 2, b: 0, c: 0 });
@@ -158,25 +154,6 @@ describe("practiceUnlocked", () => {
         { storyId: "partial", mode: "tier3", correctCount: 25, totalQuestions: 25 },
       ]),
     ).toEqual({ skipped: 0, partial: 1 });
-  });
-});
-
-describe("nextStarGap", () => {
-  it("reports how many more correct answers this run needed to pass", () => {
-    expect(nextStarGap("tier2", 16, 22)).toBe(3);
-  });
-
-  it("reports 0 when the run passed", () => {
-    expect(nextStarGap("tier2", 19, 22)).toBe(0);
-    expect(nextStarGap("tier2", 22, 22)).toBe(0);
-  });
-
-  it("returns null for non-tier modes", () => {
-    expect(nextStarGap("weak_words", 3)).toBeNull();
-  });
-
-  it("uses the scaled threshold for a reduced session", () => {
-    expect(nextStarGap("tier1", 3, 5)).toBe(1);
   });
 });
 

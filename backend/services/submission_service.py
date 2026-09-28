@@ -25,6 +25,7 @@ import main
 import services.media as media_service
 from helpers.audio_concat import concatenate_scene_audio
 from repositories import submission_repository as repo
+from services import vocab_quiz_progression_service
 from repositories.database import row_to_story_submission
 from services.ai_feedback import generate_story_feedback
 
@@ -65,16 +66,60 @@ def update_story_submission_review(db, submission_id: str, status: str, note) ->
     return row_to_story_submission(updated)
 
 
+def _practice_path(scenes: list) -> Optional[str]:
+    """Which practice path(s) the submitted scenes came from."""
+    has_conversation = any(scene.conversationId or scene.turnId for scene in scenes)
+    has_speaking = any(not (scene.conversationId or scene.turnId) for scene in scenes)
+    if has_conversation and has_speaking:
+        return "both"
+    if has_conversation:
+        return "conversation"
+    return "speaking" if has_speaking else None
+
+
+def _quiz_scores(db, student_id: str, story_id: str) -> Optional[dict]:
+    """Each quiz round's latest finished score, from the server's own
+    progression (never the client). Best-effort: a lookup failure must not
+    block the hand-in."""
+    try:
+        # Savepoint: a failed lookup must not abort the submission's transaction.
+        with db.transaction():
+            progression = vocab_quiz_progression_service.get_progression(db, student_id, story_id)
+    except Exception as exc:
+        main.logger.error("Quiz scores lookup failed for %s/%s: %s", student_id, story_id, exc)
+        return None
+    return {
+        tier: {
+            "finished": bool(info.get("earned")),
+            "score": info.get("score") if info.get("earned") else None,
+            "correctCount": info.get("correctCount"),
+            "totalQuestions": info.get("totalQuestions"),
+            "completedAt": info.get("completedAt"),
+        }
+        for tier, info in (progression.get("tiers") or {}).items()
+    }
+
+
 def persist_submission_scenes(db, submission) -> list:
     """Ownership-check and durably upsert the scene list. Returns the
     scenes sorted by sceneIndex, as the caller needs that ordering for the
     best-effort audio-concat/feedback step that follows.
+
+    One submission per student per lesson: when the student already handed
+    this lesson in, ``submission.id`` is switched to that submission's id so
+    the new work overwrites it (and goes back to pending review) instead of
+    creating a duplicate.
     """
     scenes_sorted = sorted(submission.scenes, key=lambda s: s.sceneIndex)
 
     existing = repo.find_owner(db, submission.id)
     if existing is not None and existing.get("student_id") != submission.studentId:
         raise SubmissionServiceError(409, "Submission already belongs to another student.")
+    previous = repo.find_latest_for_student_story(db, submission.studentId, submission.storyId)
+    submission_count = 1
+    if previous is not None:
+        submission.id = previous["id"]
+        submission_count = int(previous.get("submission_count") or 1) + 1
     repo.upsert_scenes(
         db,
         id=submission.id,
@@ -84,6 +129,9 @@ def persist_submission_scenes(db, submission) -> list:
         student_id=submission.studentId,
         submitted_at=submission.submittedAt,
         scenes=[s.model_dump() for s in scenes_sorted],
+        practice_path=_practice_path(scenes_sorted),
+        quiz_scores=_quiz_scores(db, submission.studentId, submission.storyId),
+        submission_count=submission_count,
     )
     return scenes_sorted
 

@@ -18,7 +18,13 @@ from uuid import uuid4
 from psycopg.types.json import Jsonb
 
 from analytics.learner_model.bkt.calibration import calibrate_bkt
+from analytics.learner_model.bkt.format_aware_fit import calibrate_format_aware_bkt, config_from_parameters
 from analytics.learner_model.knowledge_tracing import BKTParameters, ResponseRecord
+
+
+CalibrationModel = Literal["format-aware", "global"]
+# How many individual word-level status changes an impact preview lists.
+IMPACT_EXAMPLE_LIMIT = 25
 
 
 CalibrationOrigin = Literal["real", "synthetic"]
@@ -269,6 +275,10 @@ def persist_calibration_candidate(
                 "candidate": candidate,
                 "production": report["production_parameters"],
                 "constraints": report["parameter_constraints"],
+                "model_scope": report.get("model_scope"),
+                "identifiability": report.get("identifiability"),
+                "gates_passed": report.get("gates_passed"),
+                "impact": report.get("impact"),
             }),
             Jsonb(report["metrics"]),
         ),
@@ -282,8 +292,9 @@ def persist_calibration_candidate(
         """
         INSERT INTO bkt_model_versions
             (version, fit_run_id, evidence_origin, initial_mastery, learn_rate,
-             guess_rate, slip_rate, parameter_fingerprint)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+             guess_rate, slip_rate, parameter_fingerprint,
+             guess_rate_typed, slip_rate_typed, model_scope)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             model_version,
@@ -294,9 +305,89 @@ def persist_calibration_candidate(
             candidate["guess"],
             candidate["slip"],
             _parameter_fingerprint(candidate),
+            candidate.get("guess_typed"),
+            candidate.get("slip_typed"),
+            report.get("model_scope"),
         ),
     )
     return run_id, model_version
+
+
+def preview_status_changes(
+    db: Any,
+    student_ids: list[str],
+    candidate: dict[str, float],
+    *,
+    example_limit: int = IMPACT_EXAMPLE_LIMIT,
+) -> dict[str, Any]:
+    """What learners would see if ``candidate`` replaced the serving parameters.
+
+    Replays each learner through the real serving projection
+    (get_vocabulary_mastery) twice - currently deployed parameters, then the
+    candidate - and reports per-word review-status and BKT-status transitions,
+    the P(learned) shift, and the most affected words. Read only.
+    """
+    from analytics.learner_model.bkt.core import BKT_CONFIG
+    from analytics.learner_model.bkt.deployment import serving_bkt_config
+    from analytics.learner_model.bkt.mastery import get_vocabulary_mastery
+
+    current_config = serving_bkt_config(db, BKT_CONFIG)
+    candidate_config = config_from_parameters(candidate, current_config)
+    transitions: dict[str, int] = {}
+    bkt_transitions: dict[str, int] = {}
+    changes: list[dict[str, Any]] = []
+    words = changed = 0
+    students_changed: set[str] = set()
+    strong_before = strong_after = 0
+    for student_id in sorted(set(student_ids)):
+        before = {row["wordId"]: row for row in get_vocabulary_mastery(db, student_id, current_config)}
+        after = {row["wordId"]: row for row in get_vocabulary_mastery(db, student_id, candidate_config)}
+        for word_id, old in before.items():
+            new = after.get(word_id)
+            if new is None or not old["observationCount"]:
+                continue
+            words += 1
+            old_bkt = old["vocabularyState"]["bkt"]["status"]
+            new_bkt = new["vocabularyState"]["bkt"]["status"]
+            strong_before += old_bkt == "STRONG"
+            strong_after += new_bkt == "STRONG"
+            if old_bkt != new_bkt:
+                key = f"{old_bkt} -> {new_bkt}"
+                bkt_transitions[key] = bkt_transitions.get(key, 0) + 1
+            if old["status"] != new["status"]:
+                changed += 1
+                students_changed.add(student_id)
+                key = f"{old['status']} -> {new['status']}"
+                transitions[key] = transitions.get(key, 0) + 1
+            changes.append({
+                "studentId": student_id, "wordId": word_id, "word": old["word"],
+                "observations": old["observationCount"], "correct": old["correctCount"],
+                "before": {"status": old["status"], "bktStatus": old_bkt, "pLearned": round(float(old["pLearned"]), 4)},
+                "after": {"status": new["status"], "bktStatus": new_bkt, "pLearned": round(float(new["pLearned"]), 4)},
+                "delta": float(new["pLearned"]) - float(old["pLearned"]),
+            })
+    deltas = [abs(change["delta"]) for change in changes]
+    # Status changes first, then the largest probability shifts.
+    changes.sort(key=lambda change: (
+        change["before"]["status"] == change["after"]["status"]
+        and change["before"]["bktStatus"] == change["after"]["bktStatus"],
+        -abs(change["delta"]),
+    ))
+    return {
+        "students": len(set(student_ids)),
+        "studentsWithChanges": len(students_changed),
+        "observedWords": words,
+        "changedWords": changed,
+        "strongBefore": strong_before,
+        "strongAfter": strong_after,
+        "meanAbsolutePLearnedChange": round(sum(deltas) / len(deltas), 4) if deltas else 0.0,
+        "maxAbsolutePLearnedChange": round(max(deltas), 4) if deltas else 0.0,
+        "transitions": dict(sorted(transitions.items())),
+        "bktTransitions": dict(sorted(bkt_transitions.items())),
+        "examples": [
+            {**change, "delta": round(change["delta"], 4)} for change in changes[:example_limit]
+        ],
+    }
 
 
 def run_calibration_candidate(
@@ -306,9 +397,17 @@ def run_calibration_candidate(
     force: bool = False,
     iterations: int = 80,
     production_parameters: BKTParameters = BKTParameters(),
+    model: CalibrationModel = "global",
 ) -> dict[str, Any]:
-    """Run one locked offline fit and persist a candidate, never a deployment."""
+    """Run one locked offline fit and persist a candidate, never a deployment.
+
+    ``model="format-aware"`` fits the six parameters production serves and
+    compares them with the currently deployed configuration; ``"global"`` is
+    the legacy single guess/slip diagnostic fit.
+    """
     origin = _validate_origin(evidence_origin)
+    if model not in ("format-aware", "global"):
+        raise ValueError("model must be 'format-aware' or 'global'.")
     lock = db.execute(
         "SELECT pg_try_advisory_xact_lock(hashtext(%s)) AS acquired",
         (f"{CALIBRATION_LOCK_NAMESPACE}:{origin}",),
@@ -329,12 +428,28 @@ def run_calibration_candidate(
         }
 
     requested_at = datetime.now(timezone.utc)
-    report = calibrate_bkt(
-        snapshot.records,
-        synthetic=origin == "synthetic",
-        iterations=iterations,
-        production_parameters=production_parameters,
-    )
+    if model == "format-aware":
+        from analytics.learner_model.bkt.core import BKT_CONFIG
+        from analytics.learner_model.bkt.deployment import serving_bkt_config
+
+        report = calibrate_format_aware_bkt(
+            snapshot.records,
+            synthetic=origin == "synthetic",
+            iterations=iterations,
+            production=serving_bkt_config(db, BKT_CONFIG),
+        )
+        report["impact"] = preview_status_changes(
+            db,
+            [record.student_id for record in snapshot.records],
+            report["candidate_parameters"],
+        )
+    else:
+        report = calibrate_bkt(
+            snapshot.records,
+            synthetic=origin == "synthetic",
+            iterations=iterations,
+            production_parameters=production_parameters,
+        )
     completed_at = datetime.now(timezone.utc)
     run_id, model_version = persist_calibration_candidate(
         db,
@@ -357,4 +472,8 @@ def run_calibration_candidate(
         "metrics": report["metrics"],
         "gates": report["gates"],
         "decision": decision,
+        "modelScope": report.get("model_scope"),
+        "gatesPassed": report.get("gates_passed", all(report["gates"].values())),
+        "identifiability": report.get("identifiability"),
+        "impact": report.get("impact"),
     }

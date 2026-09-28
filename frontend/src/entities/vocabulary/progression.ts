@@ -1,6 +1,8 @@
-// The star-tier ladder for the story vocabulary quiz: each story's quiz is
-// played as three progressively harder tiers (⭐ / ⭐⭐ / ⭐⭐⭐), unlocked in
-// order — pass tier N's threshold once and star N is earned for good. Stars
+// The round ladder for the story vocabulary quiz: each story's quiz is
+// played as three progressively harder rounds (Know It / Say It / Use It),
+// unlocked in order — finish round N once and "star" N is earned for good.
+// There is no accuracy threshold: finishing a round is what counts, and the
+// round's score (0–100) is reported alongside, never used as a gate. Stars
 // are *derived* from vocab_quiz_attempts history (mode = "tier1"|"tier2"|
 // "tier3") rather than stored, so teacher analytics and weak-words keep
 // working off the same table; the localStorage mirror below covers the
@@ -17,19 +19,15 @@ export type DiagnosticKnowledgeDimension = "meaning" | "pinyin_production" | "co
 export interface TierConfig {
   tier: QuizTier;
   mode: TierMode;
-  /** The source lesson vocabulary determines the run length. */
-  passRatio: number;
   // Total time cap for the whole run (the Speed-mode engine), or null for
   // an untimed tier.
   timeLimitMs: number | null;
 }
 
 export const TIER_CONFIGS: Record<TierMode, TierConfig> = {
-  // These ratios preserve the old difficulty curve without making the quiz
-  // depend on a fixed number of words.
-  tier1: { tier: 1, mode: "tier1", passRatio: 0.70, timeLimitMs: null },
-  tier2: { tier: 2, mode: "tier2", passRatio: 0.82, timeLimitMs: null },
-  tier3: { tier: 3, mode: "tier3", passRatio: 0.88, timeLimitMs: 150_000 },
+  tier1: { tier: 1, mode: "tier1", timeLimitMs: null },
+  tier2: { tier: 2, mode: "tier2", timeLimitMs: null },
+  tier3: { tier: 3, mode: "tier3", timeLimitMs: 150_000 },
 };
 
 export interface DiagnosticRoundConfig {
@@ -68,42 +66,48 @@ export function effectiveTimeLimitMs(mode: string | null | undefined): number | 
   return tierConfigFromMode(mode)?.timeLimitMs ?? null;
 }
 
-/** Preserve a tier's pass ratio when a leak-free planner has fewer distinct
- * concepts than the tier's nominal question count. */
-export function effectiveTierPassCount(config: TierConfig, totalQuestions: number): number {
+/** A round's score on a 0–100 scale: the share of questions answered
+ * correctly on the first try (a hinted retry never changes it). */
+export function roundScore(correctCount: number, totalQuestions: number): number {
   if (totalQuestions <= 0) return 0;
-  return Math.max(1, Math.ceil(config.passRatio * totalQuestions));
+  return Math.round((100 * Math.max(0, Math.min(correctCount, totalQuestions))) / totalQuestions);
 }
 
-/** The star (tier number) a finished attempt earns, or null if it failed
- * its tier's threshold or wasn't a tier run at all.
- *
- * Epic 3 (research-mode plan), Task 3.2/3.3/3.5: for an active research
- * participant, completing a round earns its star regardless of accuracy -
- * only the production default gates on the pass threshold below. Reads the
- * ambient research context (see researchContext.ts) rather than taking a
- * policy parameter, since this function's callers span code reached
- * through a minified, unmodifiable build artifact
- * (StoryRecorderRuntime.js) that cannot be changed to pass a new prop
- * through. This is the single point where policy actually changes star
- * derivation - every caller (starsFromAttempts below, TopicSelector,
- * StudentSidebar, MyStoriesPage, the quiz session itself) inherits correct
- * behavior automatically without being individually policy-aware. */
+/** The star (round number) a finished attempt earns, or null if it wasn't a
+ * finished tier run at all. Finishing the round is the only requirement —
+ * the score is shown to the learner but does not gate the next round or the
+ * speaking practice (the same rule research participants always had). This
+ * is the single point where star derivation is decided — every caller
+ * (starsFromAttempts below, TopicSelector, StudentSidebar, MyStoriesPage,
+ * the quiz session itself) inherits it. */
 export function attemptEarnsStar(
   mode: string | null | undefined,
-  correctCount: number,
+  _correctCount: number,
   totalQuestions?: number,
 ): QuizTier | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  if (getCachedResearchContext().coreCompletionPolicy === "research_coverage") {
-    // This function is only ever called with a finished round's totals, so
-    // a positive totalQuestions is the completion signal - accuracy is
-    // recorded elsewhere for display but does not gate the star.
-    return (totalQuestions ?? 0) > 0 ? config.tier : null;
+  // Only ever called with a finished round's totals, so a positive
+  // totalQuestions is the completion signal.
+  return (totalQuestions ?? 0) > 0 ? config.tier : null;
+}
+
+/** The most recent score (0–100) of each round, from an attempt history in
+ * any order. Rounds never finished are absent. */
+export function latestRoundScores(
+  attempts: Array<{ mode?: string | null; correctCount: number; totalQuestions?: number; completedAt?: string }>,
+): Partial<Record<TierMode, number>> {
+  const latest: Partial<Record<TierMode, { at: string; score: number }>> = {};
+  for (const attempt of attempts) {
+    const config = tierConfigFromMode(attempt.mode);
+    if (!config || !(attempt.totalQuestions && attempt.totalQuestions > 0)) continue;
+    const at = attempt.completedAt ?? "";
+    const current = latest[config.mode];
+    if (!current || at >= current.at) {
+      latest[config.mode] = { at, score: roundScore(attempt.correctCount, attempt.totalQuestions) };
+    }
   }
-  const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
-  return correctCount >= passCount ? config.tier : null;
+  return Object.fromEntries(Object.entries(latest).map(([mode, entry]) => [mode, entry!.score])) as Partial<Record<TierMode, number>>;
 }
 
 /** Highest contiguous star earned across an attempt history (0 = none yet).
@@ -164,20 +168,6 @@ export const PRACTICE_UNLOCK_STARS = 3;
 export function practiceUnlocked(stars: number): boolean {
   if (isAdminSession()) return true;
   return stars >= PRACTICE_UNLOCK_STARS;
-}
-
-/** How many more correct answers this run needed to pass its tier — 0 means
- * it passed, null means the run wasn't a tier run. Drives the near-miss
- * message on the summary screen ("just 2 more right answers for ⭐⭐!"). */
-export function nextStarGap(
-  mode: string | null | undefined,
-  correctCount: number,
-  totalQuestions?: number,
-): number | null {
-  const config = tierConfigFromMode(mode);
-  if (!config) return null;
-  const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
-  return Math.max(0, passCount - correctCount);
 }
 
 // ── localStorage mirror ────────────────────────────────────────────────

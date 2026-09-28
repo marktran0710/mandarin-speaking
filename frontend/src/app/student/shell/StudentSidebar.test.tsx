@@ -1,9 +1,26 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import StudentSidebar from "./StudentSidebar";
+import { computeLessonSteps } from "../lessonSteps";
+
+const lockedAfterPreview = computeLessonSteps({
+  hasQuiz: true,
+  previewDone: true,
+  quizDone: false,
+  sceneCount: 2,
+  scenesRecorded: 0,
+  turnCount: 1,
+  turnsRecorded: 0,
+  conversationAvailable: true,
+  submitted: false,
+});
+
+function phaseButton(phase: string) {
+  return document.querySelector(`[data-phase="${phase}"]`) as HTMLButtonElement;
+}
 
 describe("StudentSidebar", () => {
-  it("provides pinyin tooltips for static navigation labels", () => {
+  it("shows every lesson step, with Story Speaking and Conversation grouped as a choice", () => {
     render(
       <StudentSidebar
         studentName="Student One"
@@ -15,26 +32,12 @@ describe("StudentSidebar", () => {
       />,
     );
 
-    expect(screen.getByTitle("Kèchéng")).toBeInTheDocument();
-    expect(screen.getByTitle("Jìndù")).toBeInTheDocument();
-    expect(screen.getByTitle("Rùmén cèyàn")).toBeInTheDocument();
-    expect(screen.getByTitle("Kǒuyǔ liànxí")).toBeInTheDocument();
-  });
-
-  it("keeps Conversation visible as a first-class lesson phase", () => {
-    render(
-      <StudentSidebar
-        studentName="Student One"
-        activeSection="study"
-        activePhase="story-speaking"
-        onNavigateSection={vi.fn()}
-        onNavigatePhase={vi.fn()}
-        onLogout={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByTitle("Kǒuyǔ liànxí")).toBeInTheDocument();
-    expect(screen.getByTitle("Duìhuà liànxí")).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "選一個" });
+    expect(within(group).getByRole("button", { name: /口語練習/ })).toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: /對話練習/ })).toBeInTheDocument();
+    for (const phase of ["vocab-preview", "vocab-quiz", "story-speaking", "conversation", "submit"]) {
+      expect(phaseButton(phase)).toBeInTheDocument();
+    }
   });
 
   it("makes Placement a real, non-disabled nav button that calls onNavigateSection", () => {
@@ -86,52 +89,50 @@ describe("StudentSidebar", () => {
     expect(screen.queryByLabelText("學習星星")).not.toBeInTheDocument();
   });
 
-  it("locks phase-nav items beyond furthestPhase and never calls onNavigatePhase for them", () => {
+  it("marks locked steps aria-disabled and explains why on click, without navigating", () => {
     const onNavigatePhase = vi.fn();
     render(
       <StudentSidebar
         studentName="Student One"
         activeSection="study"
         activePhase="vocab-quiz"
-        furthestPhase="vocab-quiz"
-        speakingUnlocked
+        steps={lockedAfterPreview}
         onNavigateSection={vi.fn()}
         onNavigatePhase={onNavigatePhase}
         onLogout={vi.fn()}
       />,
     );
 
-    const vocabQuiz = screen.getByTitle("Cíhuì liànxí").closest("button") as HTMLButtonElement;
-    const speaking = screen.getByTitle("Kǒuyǔ liànxí").closest("button") as HTMLButtonElement;
-    expect(vocabQuiz).not.toBeDisabled();
-    expect(speaking).toBeDisabled();
-
-    fireEvent.click(vocabQuiz);
+    expect(phaseButton("vocab-quiz")).not.toHaveAttribute("aria-disabled");
+    fireEvent.click(phaseButton("vocab-quiz"));
     expect(onNavigatePhase).toHaveBeenCalledWith("vocab-quiz");
 
     onNavigatePhase.mockClear();
+    const speaking = phaseButton("story-speaking");
+    expect(speaking).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(speaking);
     expect(onNavigatePhase).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("做完三輪詞彙練習後解鎖");
+
+    fireEvent.click(phaseButton("submit"));
+    expect(screen.getByRole("status")).toHaveTextContent("先完成口語練習或對話練習");
   });
 
-  it("locks Story Speaking specifically when speakingUnlocked is false, even if furthestPhase already reached it", () => {
-    const onNavigatePhase = vi.fn();
+  it("shows a check on finished steps", () => {
     render(
       <StudentSidebar
         studentName="Student One"
         activeSection="study"
-        activePhase="story-speaking"
-        furthestPhase="story-speaking"
-        speakingUnlocked={false}
+        activePhase="vocab-quiz"
+        steps={lockedAfterPreview}
         onNavigateSection={vi.fn()}
-        onNavigatePhase={onNavigatePhase}
+        onNavigatePhase={vi.fn()}
         onLogout={vi.fn()}
       />,
     );
 
-    const speaking = screen.getByTitle("Kǒuyǔ liànxí").closest("button") as HTMLButtonElement;
-    expect(speaking).toBeDisabled();
-    fireEvent.click(speaking);
-    expect(onNavigatePhase).not.toHaveBeenCalled();
+    expect(phaseButton("vocab-preview")).toHaveClass("is-done");
+    expect(phaseButton("vocab-preview")).toHaveTextContent("已完成");
+    expect(phaseButton("vocab-quiz")).not.toHaveClass("is-done");
   });
 });

@@ -7,6 +7,7 @@ from typing import Any, Iterable
 from analytics.learner_model.bkt.core import (
     BKT_CONFIG,
     BKT_MODEL_VERSION,
+    BktConfig,
     bkt_parameter_fingerprint,
     guess_slip_for,
     mastery_status,
@@ -62,26 +63,40 @@ GOLDEN_FIXTURES: tuple[dict[str, Any], ...] = (
 )
 
 
-def golden_contract_status() -> str:
+def golden_contract_status(config: BktConfig = BKT_CONFIG) -> str:
     return (
         "MATCH"
         if BKT_MODEL_VERSION == GOLDEN_FIXTURE_VERSION
-        and bkt_parameter_fingerprint(BKT_CONFIG) == GOLDEN_PARAMETER_FINGERPRINT
+        and bkt_parameter_fingerprint(config) == GOLDEN_PARAMETER_FINGERPRINT
         else "MODEL CONTRACT CHANGED"
     )
 
 
-def _reference_guess_slip(question_type: str | None) -> tuple[float, float]:
-    if question_type and question_type.strip().lower() in _REFERENCE_TYPED_TYPES:
+def _reference_guess_slip(question_type: str | None, parameters: BktConfig | None = None) -> tuple[float, float]:
+    typed = bool(question_type) and question_type.strip().lower() in _REFERENCE_TYPED_TYPES
+    if parameters is not None:
+        # An activated fitted model: re-derive the arithmetic independently,
+        # but with the values actually serving learners.
+        return (
+            (parameters.guess_rate_typed, parameters.slip_rate_typed)
+            if typed
+            else (parameters.guess_rate, parameters.slip_rate)
+        )
+    if typed:
         return _GOLDEN_TYPED_GUESS, _GOLDEN_TYPED_SLIP
     return _GOLDEN_MCQ_GUESS, _GOLDEN_MCQ_SLIP
 
 
-def _reference_trace(observations: Iterable[dict[str, Any]], initial_mastery: float = _GOLDEN_INITIAL_MASTERY) -> list[dict[str, Any]]:
+def _reference_trace(
+    observations: Iterable[dict[str, Any]],
+    initial_mastery: float = _GOLDEN_INITIAL_MASTERY,
+    parameters: BktConfig | None = None,
+) -> list[dict[str, Any]]:
+    learn_rate = parameters.learn_rate if parameters is not None else _GOLDEN_LEARN_RATE
     trace: list[dict[str, Any]] = []
     mastery = initial_mastery
     for index, observation in enumerate(observations, start=1):
-        guess, slip = _reference_guess_slip(observation.get("questionType"))
+        guess, slip = _reference_guess_slip(observation.get("questionType"), parameters)
         if observation["correct"]:
             numerator = mastery * (1.0 - slip)
             denominator = numerator + (1.0 - mastery) * guess
@@ -89,7 +104,7 @@ def _reference_trace(observations: Iterable[dict[str, Any]], initial_mastery: fl
             numerator = mastery * slip
             denominator = numerator + (1.0 - mastery) * (1.0 - guess)
         posterior = numerator / denominator if denominator else mastery
-        resulting = posterior + (1.0 - posterior) * _GOLDEN_LEARN_RATE
+        resulting = posterior + (1.0 - posterior) * learn_rate
         trace.append({
             "step": index,
             "prior": mastery,
@@ -99,17 +114,19 @@ def _reference_trace(observations: Iterable[dict[str, Any]], initial_mastery: fl
             "guess": guess,
             "slip": slip,
             "posterior": posterior,
-            "learningTransition": _GOLDEN_LEARN_RATE,
+            "learningTransition": learn_rate,
             "resultingMastery": resulting,
         })
         mastery = resulting
     return trace
 
 
-def _reference_status(observation_count: int, p_learned: float) -> str:
-    if observation_count < _GOLDEN_MINIMUM_OBSERVATIONS:
+def _reference_status(observation_count: int, p_learned: float, parameters: BktConfig | None = None) -> str:
+    minimum = parameters.minimum_observations if parameters is not None else _GOLDEN_MINIMUM_OBSERVATIONS
+    threshold = parameters.mastery_threshold if parameters is not None else _GOLDEN_MASTERY_THRESHOLD
+    if observation_count < minimum:
         return "UNASSESSED"
-    return "STRONG" if p_learned >= _GOLDEN_MASTERY_THRESHOLD else "DEVELOPING"
+    return "STRONG" if p_learned >= threshold else "DEVELOPING"
 
 
 def _production_trace(observations: list[dict[str, Any]]) -> list[dict[str, Any]]:

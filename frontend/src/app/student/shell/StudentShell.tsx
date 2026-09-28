@@ -3,6 +3,7 @@ import StudentSidebar, {
   type StudentPhase,
   type StudentTopSection,
 } from "./StudentSidebar";
+import type { LessonSteps } from "../lessonSteps";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./StudentShell.css";
@@ -13,10 +14,7 @@ interface StudentShellProps {
   activePhase?: StudentPhase | null;
   quizStars?: number;
   maxQuizStars?: number;
-  furthestPhase?: StudentPhase | null;
-  speakingUnlocked?: boolean;
-  conversationUnlocked?: boolean;
-  practiceChoicesUnlocked?: boolean;
+  steps?: LessonSteps;
   currentLessonTitle?: string;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
@@ -35,10 +33,7 @@ export default function StudentShell({
   activePhase,
   quizStars,
   maxQuizStars,
-  furthestPhase,
-  speakingUnlocked,
-  conversationUnlocked,
-  practiceChoicesUnlocked,
+  steps,
   currentLessonTitle,
   onNavigateSection,
   onNavigatePhase,
@@ -60,10 +55,7 @@ export default function StudentShell({
           activePhase={activePhase}
           quizStars={quizStars}
           maxQuizStars={maxQuizStars}
-          furthestPhase={furthestPhase}
-          speakingUnlocked={speakingUnlocked}
-          conversationUnlocked={conversationUnlocked}
-          practiceChoicesUnlocked={practiceChoicesUnlocked}
+          steps={steps}
           currentLessonTitle={currentLessonTitle}
           onNavigateSection={(section) => {
             onNavigateSection(section);

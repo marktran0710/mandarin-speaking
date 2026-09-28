@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 import security.auth as auth
+from db import connect_db
 from services.learning_engine_service import get_learning_engine_metadata
 
 
@@ -16,4 +17,5 @@ router = APIRouter(
 
 @router.get("/api/admin/learning-engine")
 def get_admin_learning_engine() -> dict:
-    return get_learning_engine_metadata()
+    with connect_db() as db:
+        return get_learning_engine_metadata(db)

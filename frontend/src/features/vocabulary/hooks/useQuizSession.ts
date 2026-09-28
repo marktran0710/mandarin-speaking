@@ -11,7 +11,6 @@ import {
   canUseDatabase,
   createVocabQuizAttempt,
   recordVocabQuizResponse,
-  type VocabPriorityReviewWord,
 } from "../../../services/database";
 import {
   TIMER_TICK_MS,
@@ -34,6 +33,7 @@ import { postResearchPracticeSession } from "../../../services/api/vocabulary-re
 import { getCachedResearchContext } from "../../../utils/researchContext";
 import { saveLessonAttempt } from "../model/lesson-vocab-progress";
 import type { VocabQuizAttempt } from "../../../services/api/quiz-analytics";
+import { correctAnswer, entriesInServerPriorityOrder } from "./answerKey";
 import { useQuizSessionData } from "./useQuizSessionData";
 
 export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
@@ -51,35 +51,7 @@ type UseQuizSessionProps = {
   onComplete?: (summary: VocabQuizSummary) => void;
 };
 
-export function correctAnswer(question: VocabQuizQuestion) {
-  switch (question.kind) {
-    case "translation": return question.correctTranslation;
-    case "cloze": return question.correctWord;
-    case "pinyin": return question.correctPinyin;
-    case "pos": return question.correctPos;
-    case "synonym": return question.correctSynonym;
-    case "reverse":
-    case "listening": return question.correctWord;
-    case "assessment": return question.correctAnswer;
-  }
-}
-
-export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priorityReviewWords: VocabPriorityReviewWord[]): VocabQuizEntry[] {
-  return priorityReviewWords.flatMap((priorityWord) => {
-    const entry = entries.find((candidate) => candidate.wordId === priorityWord.wordId)
-      ?? entries.find((candidate) => candidate.word === priorityWord.word);
-    if (!entry) return [];
-    return priorityWord.seenQuestionTypes?.length || priorityWord.failedQuestionTypes?.length
-      ? [{
-        ...entry,
-        bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
-        bktFailedQuestionKinds: priorityWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
-        bktObservationCount: priorityWord.observationCount,
-        bktLastResponseAt: priorityWord.lastResponseAt,
-      }]
-      : [entry];
-  });
-}
+export { correctAnswer, entriesInServerPriorityOrder } from "./answerKey";
 
 export function useQuizSession({
   entries, storyId, baseStoryId, level, studentId, studentName, onComplete,
@@ -94,6 +66,11 @@ export function useQuizSession({
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
+  // Diagnostic rounds give one hinted retry after a wrong first answer. The
+  // first answer alone is the score and the BKT evidence; the retry only
+  // annotates that same result (hintUsed / retryCorrect).
+  const [awaitingRetry, setAwaitingRetry] = useState(false);
+  const [retryOutcome, setRetryOutcome] = useState<{ answer: string; correct: boolean } | null>(null);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
@@ -108,6 +85,7 @@ export function useQuizSession({
   const pendingResponsesRef = useRef(new Set<Promise<unknown>>());
   const {
     stars,
+    attempts,
     setAttempts,
     setStars,
     recordLessonEvent,
@@ -268,11 +246,12 @@ export function useQuizSession({
     const quizId = quizIdRef.current ?? `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}`;
     quizIdRef.current = quizId;
     setSelected(option);
+    const firstTryCorrect = question.kind === "assessment"
+      ? assessmentAnswerIsCorrect(question, option)
+      : option === answer;
     const nextResults = [...results, {
       word: question.word,
-      correct: question.kind === "assessment"
-        ? assessmentAnswerIsCorrect(question, option)
-        : option === answer,
+      correct: firstTryCorrect,
       timeMs: Date.now() - questionStartRef.current,
       itemId,
       conceptId, questionKind: resultQuestionKind, tier: diagnosticConfig?.mode,
@@ -300,6 +279,8 @@ export function useQuizSession({
       quizId,
     }];
     setResults(nextResults);
+    setRetryOutcome(null);
+    setAwaitingRetry(diagnosticMode && !firstTryCorrect);
 
     // BKT evidence is recorded immediately after each eligible diagnostic
     // answer. The list remains locked for speaking until all three tiers are
@@ -331,8 +312,26 @@ export function useQuizSession({
     }
   };
 
+  /** The single hinted retry after a wrong diagnostic answer. It never
+   * creates a new BKT response and never changes `correct`; it only records
+   * that a hint was used and whether the retry was right, on the original
+   * result (sent with the completed attempt). */
+  const chooseRetry = (option: string) => {
+    if (!awaitingRetry || !question) return;
+    const retryCorrect = question.kind === "assessment"
+      ? assessmentAnswerIsCorrect(question, option)
+      : option === correctAnswer(question);
+    setResults((current) => current.map((result) => (
+      result.questionIndex === index ? { ...result, hintUsed: true, retryCorrect } : result
+    )));
+    setAwaitingRetry(false);
+    setRetryOutcome({ answer: option, correct: retryCorrect });
+  };
+
   const next = () => {
     setSelected(null);
+    setAwaitingRetry(false);
+    setRetryOutcome(null);
     if (isLast) return void finish(results);
     questionStartRef.current = Date.now();
     setIndex(index + 1);
@@ -351,7 +350,7 @@ export function useQuizSession({
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
-    setSelected(null); setResults([]); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
+    setSelected(null); setResults([]); setAwaitingRetry(false); setRetryOutcome(null); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
     const startedEvent = picked === "tier1"
       ? "round1_started"
       : picked === "tier2"
@@ -483,8 +482,8 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
-    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
+    question, index, selected, results, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
+    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, chooseRetry, awaitingRetry, retryOutcome, next, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
     startResearchPractice, researchDueEntries, startResearchReview, startWeakWords, startDueReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,

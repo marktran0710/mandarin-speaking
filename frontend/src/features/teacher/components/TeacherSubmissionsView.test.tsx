@@ -147,6 +147,25 @@ describe("TeacherSubmissionsView", () => {
     expect(screen.getByText("Scene 1")).toBeInTheDocument();
   });
 
+  it("shows the lesson context stored with a resubmitted submission", () => {
+    render(
+      <TeacherSubmissionsView
+        submissions={[{
+          ...submissions[0],
+          practicePath: "conversation",
+          quizScores: {
+            tier1: { finished: true, score: 70 },
+            tier2: { finished: true, score: 45 },
+            tier3: { finished: false, score: null },
+          },
+          submissionCount: 2,
+        }]}
+        onReviewUpdate={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Conversation · Quiz 70 / 45 / — · Submission #2")).toBeInTheDocument();
+  });
+
   it("narrows the list with the student filter", async () => {
     const user = userEvent.setup();
 

@@ -113,6 +113,11 @@ export interface VocabQuizQuestionResult {
   questionIndex?: number;
   lessonId?: string;
   quizId?: string;
+  /** Diagnostic rounds: the first answer was wrong and a hint was shown. */
+  hintUsed?: boolean;
+  /** Whether the single hinted retry was right. Recorded for analysis only —
+   * `correct` (the first try) stays the score and the BKT evidence. */
+  retryCorrect?: boolean;
 }
 
 /** Normalized concept identity shared by all question types and story levels. */

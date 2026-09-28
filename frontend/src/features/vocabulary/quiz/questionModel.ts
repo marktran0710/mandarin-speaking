@@ -3,7 +3,7 @@ import type {
   VocabQuizQuestion,
   VocabQuizQuestionResult,
 } from "@entities/vocabulary";
-import { toPinyin, toPinyinSyllables } from "@entities/vocabulary";
+import { numericToToneMarked, toPinyin, toPinyinSyllables } from "@entities/vocabulary";
 import type { StudentUiCopyKey } from "../../../i18n/student-ui-copy";
 
 export type QuizQuestionSurface = "meaning" | "pinyin" | "context";
@@ -229,4 +229,119 @@ export function applyToneMark(
   const editedSyllable = syllableCharacters.map((character, index) => index === vowelIndex ? replacement : character).join("");
   const next = [...characters.slice(0, start), editedSyllable, ...characters.slice(end)].join("");
   return { value: next, cursor: start + vowelIndex + 1 };
+}
+
+// ── Hints for the one retry after a wrong diagnostic answer ────────────────
+// A hint points the learner in the right direction without revealing the
+// answer: Know It gets the word in a lesson sentence (or its word class) —
+// its pinyin is already on screen; Say It gets the English meaning plus which
+// syllable is off (tone / initial / final); Use It gets the pinyin of the
+// missing word (the options already show English glosses).
+
+export type SyllableIssue = "tone" | "initial" | "final";
+
+export interface QuestionHint {
+  /** Lesson sentence containing the word (Know It). */
+  example?: string;
+  /** Word class, when no lesson sentence is available (Know It). */
+  wordClass?: string;
+  /** English meaning (Say It). */
+  meaning?: string;
+  /** Pinyin of the missing word (Use It). */
+  pinyin?: string;
+  /** Per-syllable diagnosis of a typed reading (Say It), 1-based. */
+  syllableIssues?: Array<{ syllable: number; issue: SyllableIssue }>;
+  /** The typed reading has a different number of syllables. */
+  syllableCountWrong?: boolean;
+}
+
+const MARKED_VOWELS: Record<string, [string, number]> = Object.fromEntries(
+  Object.entries(TONE_MARKS).flatMap(([base, marks]) => marks.map((mark, index) => [mark, [base, index + 1] as [string, number]])),
+);
+
+const INITIALS = ["zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "r", "z", "c", "s", "y", "w"];
+
+interface ParsedSyllable { base: string; tone: number }
+
+/** "nǐ hǎo" / "ni3 hao3" → [{base:"ni",tone:3},{base:"hao",tone:3}]; tone 5 = none. */
+function parseSyllable(raw: string): ParsedSyllable {
+  const marked = numericToToneMarked(raw.normalize("NFC").toLowerCase());
+  let tone = 5;
+  let base = "";
+  for (const character of Array.from(marked)) {
+    const mark = MARKED_VOWELS[character];
+    if (mark) {
+      base += mark[0];
+      tone = mark[1];
+    } else if (/[a-zü]/u.test(character)) {
+      base += character;
+    } else if (character === "v") {
+      base += "ü";
+    }
+  }
+  return { base: base.replace(/v/g, "ü"), tone };
+}
+
+function splitReading(reading: string): string[] {
+  return reading.normalize("NFC").trim().split(/[\s'’·-]+/u).filter(Boolean);
+}
+
+function initialOf(base: string): string {
+  return INITIALS.find((initial) => base.startsWith(initial)) ?? "";
+}
+
+/** Which syllables of a typed reading are off, without revealing the answer.
+ * Unspaced input ("ni3hao3") is aligned by the expected syllables' spelling. */
+export function diagnosePinyin(typed: string, expected: string): Pick<QuestionHint, "syllableIssues" | "syllableCountWrong"> {
+  const want = splitReading(expected).map(parseSyllable);
+  let got = splitReading(typed).map(parseSyllable);
+  if (want.length === 0) return {};
+  if (got.length !== want.length) {
+    // Re-split a run-together reading using the expected syllable spellings;
+    // numeric tones are attached per syllable ("ni3hao3") so split on them.
+    const numericSplit = typed.normalize("NFC").toLowerCase().match(/[a-züv]+[1-5]?/giu) ?? [];
+    const candidate = numericSplit.length === want.length ? numericSplit.map(parseSyllable) : null;
+    if (candidate) {
+      got = candidate;
+    } else {
+      const joined = got.map((syllable) => syllable.base).join("");
+      const wantJoined = want.map((syllable) => syllable.base).join("");
+      if (joined !== wantJoined) return { syllableCountWrong: true };
+      // Same letters, different spacing: tones cannot be located reliably.
+      return { syllableIssues: [] };
+    }
+  }
+  const issues: NonNullable<QuestionHint["syllableIssues"]> = [];
+  want.forEach((expectedSyllable, index) => {
+    const typedSyllable = got[index];
+    if (typedSyllable.base !== expectedSyllable.base) {
+      const issue: SyllableIssue = initialOf(typedSyllable.base) !== initialOf(expectedSyllable.base) ? "initial" : "final";
+      issues.push({ syllable: index + 1, issue });
+    } else if (typedSyllable.tone !== expectedSyllable.tone) {
+      issues.push({ syllable: index + 1, issue: "tone" });
+    }
+  });
+  return { syllableIssues: issues };
+}
+
+function lessonSentenceFor(word: string, entry?: VocabQuizEntry): string | undefined {
+  return entry?.lessonSentences?.map((sentence) => sentence.trim()).find((sentence) => sentence && sentence.includes(word));
+}
+
+export function questionHint(question: VocabQuizQuestion, entry: VocabQuizEntry | undefined, attemptedAnswer: string): QuestionHint {
+  const surface = surfaceFor(question);
+  const assessment = question.kind === "assessment" ? question.assessment : undefined;
+  if (surface === "meaning") {
+    const example = lessonSentenceFor(question.word, entry);
+    if (example) return { example };
+    const wordClass = assessment?.pos || entry?.pos;
+    return wordClass ? { wordClass } : {};
+  }
+  if (surface === "pinyin") {
+    const meaning = assessment?.simpleEnglishMeaning || entry?.translation || undefined;
+    const expected = question.kind === "assessment" ? question.correctAnswer : question.kind === "pinyin" ? question.correctPinyin : "";
+    return { meaning, ...diagnosePinyin(attemptedAnswer, expected) };
+  }
+  const pinyin = assessment?.pinyin || entry?.pinyin || toPinyin(question.word) || undefined;
+  return pinyin ? { pinyin } : {};
 }
