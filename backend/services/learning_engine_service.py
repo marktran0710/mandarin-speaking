@@ -126,7 +126,7 @@ def _voice_thresholds() -> dict:
     return {
         "SYLLABLE_PASS_THRESHOLD": {
             "value": 58.0,
-            "purpose": "Legacy per-syllable score pass bar. Used to feed pronunciation_mastery.passed, which no longer gates student-facing lesson progression (progression is content_match alone, since an OMPAL corpus validation found per-syllable tone verdicts unreliable vs human raters - kappa 0.015 vs expert-vs-expert 0.445). Still computed and returned for teacher/research visibility.",
+            "purpose": "Legacy per-syllable score pass bar. Used to feed pronunciation_mastery.passed, which no longer gates student-facing lesson progression (progression is content_match alone, since an OMPAL corpus validation found per-syllable tone verdicts unreliable vs human raters). Still computed and returned for teacher/research visibility.",
             "controlsProgression": False,
             "provenance": "ENGINEERING_DEFAULT",
         },
@@ -279,8 +279,8 @@ def _voice_section() -> dict:
                 "feeding pronunciation_mastery.passed, and a purely cosmetic 0.70/0.30 composite shown only in "
                 "progress history - neither gates student-facing lesson progression (progression is "
                 "content_match alone). An OMPAL corpus validation (1,586 utterances / 17,765 syllables, 3 expert "
-                "raters) found per-syllable tone verdicts unreliable vs human raters (kappa 0.015 vs "
-                "expert-vs-expert 0.445) and sentence tone_accuracy weakly correlated with expert accuracy "
+                "raters) found per-syllable tone verdicts unreliable vs human raters "
+                "and sentence tone_accuracy weakly correlated with expert accuracy "
                 "(Spearman 0.16 vs experts' 0.54), which is why these scores are no longer surfaced to students "
                 "as pass/fail and no longer gate progression - they remain visible to teachers/researchers only, "
                 "and every verdict payload the API returns ships threshold_validated=false explicitly. See "
