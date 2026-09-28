@@ -91,7 +91,7 @@ function roundForLegacyLevel(level: VocabAssessmentLevel): VocabAssessmentRound 
   return level === "easy" ? 1 : level === "medium" ? 2 : 3;
 }
 
-function assessmentRound(assessment: VocabAssessmentQuestion): VocabAssessmentRound | null {
+export function assessmentRound(assessment: VocabAssessmentQuestion): VocabAssessmentRound | null {
   if (assessment.round) return assessment.round;
   if (assessment.level) return roundForLegacyLevel(assessment.level);
   return roundForQuestionType(assessment.questionType);

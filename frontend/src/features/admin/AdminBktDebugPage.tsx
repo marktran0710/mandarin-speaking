@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Student } from "../../services/api/roster-help";
 import { listCustomStories, type StoredCustomStory } from "../../services/api/stories-submissions";
 import { injectBktDebugResponses, type BktDebugResult } from "../../services/api/bkt-debug";
+import { assessmentRound } from "../../entities/vocabulary/quizGeneration";
 import "./AdminBktDebugPage.css";
 
 const PATTERN_RE = /^[01]{1,50}$/;
@@ -40,7 +41,7 @@ export default function AdminBktDebugPage({ students }: { students: Student[] })
   const words = useMemo(() => {
     const seen = new Map<string, string>();
     for (const item of selectedStory?.vocabAssessment ?? []) {
-      if (item.level === "easy" && !seen.has(item.wordId)) seen.set(item.wordId, item.targetWord);
+      if (assessmentRound(item) === 1 && !seen.has(item.wordId)) seen.set(item.wordId, item.targetWord);
     }
     return [...seen.entries()];
   }, [selectedStory]);
@@ -92,7 +93,7 @@ export default function AdminBktDebugPage({ students }: { students: Student[] })
         <label>
           Word
           <select value={wordId} onChange={(event) => setWordId(event.target.value)} disabled={words.length === 0}>
-            {words.length === 0 && <option value="">No tier1 (easy) word in this story</option>}
+            {words.length === 0 && <option value="">No round 1 word in this story</option>}
             {words.map(([id, targetWord]) => (
               <option key={id} value={id}>{targetWord}</option>
             ))}
