@@ -13,6 +13,8 @@ export interface MaterialsImportChange {
   scenes?: number;
   before: string;
   after: string;
+  beforeCharacter?: string;
+  afterCharacter?: string;
   bytes?: number;
 }
 

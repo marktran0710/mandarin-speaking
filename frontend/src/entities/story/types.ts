@@ -27,6 +27,8 @@ export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
   vocabulary: string;
+  /** Author metadata reserved for future character-aware conversation turns. */
+  character?: string;
   vocabularyGroups?: VocabGroup[];
   phrases?: string;
   phrasesTranslation?: string;

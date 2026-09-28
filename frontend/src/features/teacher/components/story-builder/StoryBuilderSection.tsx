@@ -106,6 +106,7 @@ export default function StoryBuilderSection({ onStorySaved, showBulkAudio = fals
       listenAudioUrls: resizeTiers(draft.listenAudioUrls, clamped),
       listenAudioSources: resizeTiers(draft.listenAudioSources, clamped),
       listenScripts: resizeTiers(draft.listenScripts, clamped),
+      characters: resizeToCount(draft.characters, clamped, ""),
     }));
     setValidationErrors((errors) => ({ ...errors, frames: undefined, form: undefined }));
   };

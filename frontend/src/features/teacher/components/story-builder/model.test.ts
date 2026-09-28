@@ -8,6 +8,18 @@ import {
 import { blankConversationExchange, emptyCustomStoryDraft } from "./modelHelpers";
 
 describe("story-wide learning content", () => {
+  it("preserves imported character metadata while editing a story", () => {
+    const story = createCustomStory({
+      ...emptyCustomStoryDraft,
+      imageUrls: { easy: ["image"], medium: [""], hard: [""] },
+      prompts: { easy: ["Say this"], medium: [""], hard: [""] },
+      characters: ["中明"],
+    });
+
+    expect(story.frames[0].character).toBe("中明");
+    expect(storyToDraft(story).characters).toEqual(["中明"]);
+  });
+
   it("serializes vocabulary and phrases outside the frame list", () => {
     const draft = {
       ...emptyCustomStoryDraft,

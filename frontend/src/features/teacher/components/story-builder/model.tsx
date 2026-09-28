@@ -126,6 +126,8 @@ export function createCustomStory(
         frame.listenAudioSource = draft.listenAudioSources.easy[index] as "teacher";
       if (draft.listenScripts.easy[index]?.trim())
         frame.listenScript = draft.listenScripts.easy[index].trim();
+      if (draft.characters[index]?.trim())
+        frame.character = draft.characters[index].trim();
       return frame;
     }),
     storyVocabulary: draft.storyVocabulary,
@@ -252,6 +254,7 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
     listenAudioUrls: tiersFor("listenAudioUrls"),
     listenAudioSources: tiersFor("listenAudioSources"),
     listenScripts: tiersFor("listenScripts"),
+    characters: frames.map((frame) => frame?.character || ""),
     conversationEnabled: Boolean(story.conversationTurns?.length),
     conversationExchanges: conversationTurnsToExchanges(story.conversationTurns),
   };

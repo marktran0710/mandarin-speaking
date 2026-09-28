@@ -98,7 +98,7 @@ export default function MaterialsImportDialog({
         <p className="materials-dialog-note">
           {kind === "images"
             ? "Choose one complete image per story (5-1.png through 8-3.png), or a ZIP containing them."
-            : "Choose one UTF-8 CSV. Each row maps lesson, story, and scene to the shared script."}
+            : "Choose one UTF-8 CSV with columns lesson, story, scene, character, script. Each row maps to the shared script."}
         </p>
         <div className="materials-dialog-actions">
           <label className="admin-upload-button">
@@ -132,7 +132,14 @@ export default function MaterialsImportDialog({
                 {preview.changes.map((change, index) => (
                   <div className="materials-change" key={`${change.storyId}-${change.scene ?? index}`}>
                     <strong>{changeLabel(change)}</strong>
-                    <span>{change.before || "(empty)"} → {change.after}</span>
+                    <div className="materials-change-details">
+                      <span>{change.before || "(empty)"} → {change.after || "(empty)"}</span>
+                      {(change.beforeCharacter !== undefined || change.afterCharacter !== undefined) && (
+                        <small className="materials-change-character">
+                          Character: {change.beforeCharacter || "(empty)"} → {change.afterCharacter || "(empty)"}
+                        </small>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

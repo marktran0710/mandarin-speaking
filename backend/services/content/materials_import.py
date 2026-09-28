@@ -31,7 +31,7 @@ MAX_ARCHIVE_BYTES = 200 * 1024 * 1024
 MAX_IMAGE_BYTES = 25 * 1024 * 1024
 MAX_SCRIPT_LENGTH = 4000
 IMAGE_NAME_RE = re.compile(r"^(?P<lesson>[5-8])-(?P<story>[1-3])(?P<extension>\.png|\.jpe?g|\.webp)$", re.IGNORECASE)
-SCRIPT_COLUMNS = ("lesson", "story", "scene", "script")
+SCRIPT_COLUMNS = ("lesson", "story", "scene", "character", "script")
 
 
 def expected_image_names() -> list[str]:
@@ -175,6 +175,7 @@ def _parse_script_rows(content: bytes) -> tuple[list[dict[str, Any]], list[str]]
             issues.append(str(exc))
             continue
         script = str(values.get("script") or "").strip()
+        character = str(values.get("character") or "").strip()
         key = (lesson, story, scene)
         if lesson < LESSON_MIN or lesson > LESSON_MAX or story < 1 or story > STORIES_PER_LESSON:
             issues.append(f"Row {row_number}: lesson/story must be one of 5-1 through 8-3.")
@@ -184,10 +185,20 @@ def _parse_script_rows(content: bytes) -> tuple[list[dict[str, Any]], list[str]]
             issues.append(f"Row {row_number}: script cannot be empty.")
         elif len(script) > MAX_SCRIPT_LENGTH:
             issues.append(f"Row {row_number}: script is too long (maximum {MAX_SCRIPT_LENGTH} characters).")
+        if len(character) > 100:
+            issues.append(f"Row {row_number}: character is too long (maximum 100 characters).")
         if key in seen:
             issues.append(f"Row {row_number}: duplicate target {lesson}-{story} scene {scene}.")
         seen.add(key)
-        rows.append({"row": row_number, "lesson": lesson, "story": story, "scene": scene, "script": script, "storyKey": _story_key(lesson, story)})
+        rows.append({
+            "row": row_number,
+            "lesson": lesson,
+            "story": story,
+            "scene": scene,
+            "character": character,
+            "script": script,
+            "storyKey": _story_key(lesson, story),
+        })
     if not rows and not issues:
         issues.append("Scripts CSV does not contain any data rows.")
     return rows, issues
@@ -207,10 +218,12 @@ def _script_preview(locations: dict[str, dict[str, Any]], rows: list[dict[str, A
             continue
         frame = frames[index] if isinstance(frames[index], dict) else {}
         before = str(frame.get("listenScript") or frame.get("suggestedAnswer") or "")
+        before_character = str(frame.get("character") or "")
         changes.append({
             "lesson": item["lesson"], "story": item["story"], "scene": item["scene"],
             "storyId": location["id"], "storyTitle": location["title"], "before": before,
-            "after": item["script"],
+            "after": item["script"], "beforeCharacter": before_character,
+            "afterCharacter": item["character"],
         })
     return {"kind": "scripts", "rows": len(rows), "changes": changes, "issues": issues, "valid": not issues}
 
@@ -294,6 +307,7 @@ def _apply_scripts(db: Any, rows: list[dict[str, Any]]) -> tuple[dict[str, Any],
                 raise ValueError(f"{story_key} scene {item['scene']}: scene is outside the existing story range.")
             old_frame = dict(frames[index])
             frame = dict(old_frame)
+            frame["character"] = item["character"]
             frame["suggestedAnswer"] = item["script"]
             frame["listenScript"] = item["script"]
             audio_url = str(frame.get("listenAudioUrl") or "")
@@ -308,6 +322,7 @@ def _apply_scripts(db: Any, rows: list[dict[str, Any]]) -> tuple[dict[str, Any],
             updated.append({
                 "lesson": item["lesson"], "story": item["story"], "scene": item["scene"],
                 "storyId": locked["id"], "storyTitle": locked["title"], "script": item["script"],
+                "character": item["character"],
                 "alignment": "refreshed" if refreshed else "cleared",
             })
         db.execute(
@@ -371,6 +386,7 @@ def build_scripts_template(db: Any) -> bytes:
                 continue
             writer.writerow([
                 row["lesson_number"], row["lesson_sub_order"], scene,
+                str(frame.get("character") or ""),
                 str(frame.get("listenScript") or frame.get("suggestedAnswer") or ""),
             ])
     return b"\xef\xbb\xbf" + output.getvalue().encode("utf-8")

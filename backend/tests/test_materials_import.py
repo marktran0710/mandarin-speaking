@@ -10,17 +10,18 @@ from services.content.materials_import import (
 
 
 def test_scripts_parse_utf8_bom_and_quoted_traditional_chinese():
-    content = "\ufefflesson,story,scene,script\r\n5,1,1,\"友美，妳這個週末要做什麼？\"\r\n".encode("utf-8")
+    content = "\ufefflesson,story,scene,character,script\r\n5,1,1,中明,\"友美，妳這個週末要做什麼？\"\r\n".encode("utf-8")
 
     rows, issues = _parse_script_rows(content)
 
     assert issues == []
     assert rows[0]["storyKey"] == "5-1"
+    assert rows[0]["character"] == "中明"
     assert rows[0]["script"] == "友美，妳這個週末要做什麼？"
 
 
 def test_scripts_reject_duplicate_targets_and_out_of_range_codes():
-    content = b"lesson,story,scene,script\n5,1,1,one\n5,1,1,two\n9,1,1,bad\n"
+    content = b"lesson,story,scene,character,script\n5,1,1,,one\n5,1,1,,two\n9,1,1,,bad\n"
 
     rows, issues = _parse_script_rows(content)
 
@@ -63,7 +64,11 @@ def test_scripts_endpoint_updates_shared_frame_text_and_clears_conversation_over
         "conversationTurns": [{"id": "override", "speaker": "system", "text": "legacy"}],
     }
     assert admin_client.post("/api/custom-stories", json=story).status_code == 200
-    csv_content = "\ufefflesson,story,scene,script\r\n5,1,1,\"新句子一\"\r\n5,1,2,\"新句子二\"\r\n".encode("utf-8")
+    csv_content = "\ufefflesson,story,scene,character,script\r\n5,1,1,中明,\"新句子一\"\r\n5,1,2,友美,\"新句子二\"\r\n".encode("utf-8")
+
+    template = admin_client.get("/api/admin/materials/scripts/template")
+    assert template.status_code == 200
+    assert template.content.decode("utf-8-sig").splitlines()[0] == "lesson,story,scene,character,script"
 
     preview = admin_client.post(
         "/api/admin/materials/scripts/preview",
@@ -83,6 +88,7 @@ def test_scripts_endpoint_updates_shared_frame_text_and_clears_conversation_over
     assert saved["conversationTurns"] is None
     assert [frame["suggestedAnswer"] for frame in saved["frames"]] == ["新句子一", "新句子二"]
     assert [frame["listenScript"] for frame in saved["frames"]] == ["新句子一", "新句子二"]
+    assert [frame["character"] for frame in saved["frames"]] == ["中明", "友美"]
 
 
 def test_images_endpoint_reuses_one_stored_url_for_every_scene(admin_client, tmp_path, monkeypatch):

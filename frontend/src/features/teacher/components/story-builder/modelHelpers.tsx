@@ -233,6 +233,8 @@ export const emptyCustomStoryDraft = {
   listenAudioUrls: blankTiers(6),
   listenAudioSources: blankTiers(6),
   listenScripts: blankTiers(6),
+  // Preserved author metadata from bulk script imports; UI editing comes later.
+  characters: new Array(6).fill(""),
   conversationEnabled: false,
   conversationExchanges: [] as ConversationExchangeDraft[],
 };

@@ -150,7 +150,7 @@ export default function AdminMaterialsPage({ initialTool }: { initialTool?: Admi
         <article className="admin-materials-upload-card">
           <Icon name="file" size={20} />
           <h3>Upload scripts</h3>
-          <p>Import one CSV for all scenes with <code>lesson,story,scene,script</code>.</p>
+          <p>Import one CSV for all scenes with <code>lesson,story,scene,character,script</code>.</p>
           <button type="button" className="admin-upload-button" onClick={() => { setError(""); setImportKind("scripts"); }}><Icon name="upload" size={16} /> Choose CSV</button>
         </article>
       </div>

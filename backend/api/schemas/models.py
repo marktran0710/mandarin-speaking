@@ -60,6 +60,8 @@ class CustomStoryFrameRequest(BaseModel):
     imageUrl: str
     prompt: str
     vocabulary: str = ""
+    # Optional author metadata reserved for future conversation speaker labels.
+    character: Optional[str] = None
     vocabularyGroups: Optional[List[dict]] = None
     grammarPattern: Optional[str] = None
     grammarExample: Optional[str] = None
