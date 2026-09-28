@@ -43,6 +43,12 @@ export function selectStudyHeroTopic(
   );
 }
 const phases: StudentUiCopyKey[] = ["phaseVocabulary", "phaseQuiz", "phaseSpeaking", "phaseConversation"];
+const phaseIcons: Partial<Record<StudentUiCopyKey, string>> = {
+  phaseVocabulary: "book",
+  phaseQuiz: "quiz",
+  phaseSpeaking: "microphone",
+  phaseConversation: "message",
+};
 export default function StudyPage({
   topics,
   statusByStoryId,
@@ -266,7 +272,7 @@ export default function StudyPage({
                             name={
                               entry.phases && Object.values(entry.phases)[i]
                                 ? "check_circle"
-                                : "radio_button_unchecked"
+                                : (phaseIcons[label] ?? "book")
                             }
                             size={15}
                             role="decorative"
