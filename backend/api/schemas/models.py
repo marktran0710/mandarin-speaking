@@ -205,6 +205,7 @@ class VocabQuizAttemptRequest(BaseModel):
     mode: Optional[str] = None
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     level: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
+    vocabularyVersion: Optional[int] = Field(default=None, ge=1)
     completedAt: str
     totalQuestions: int = Field(..., ge=1)
     correctCount: int = Field(..., ge=0)

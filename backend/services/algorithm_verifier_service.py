@@ -61,7 +61,7 @@ def _iso(value: datetime | None) -> str | None:
 def _fixture(db: Any) -> dict[str, Any]:
     row = db.execute(
         """
-        SELECT id, title, lesson_number, lesson_sub_order, vocab_assessment
+        SELECT id, title, lesson_number, lesson_sub_order, vocab_assessment, vocabulary_version
         FROM custom_stories
         WHERE published = TRUE AND lesson_number = %s AND lesson_sub_order = %s
         ORDER BY id
@@ -86,6 +86,7 @@ def _fixture(db: Any) -> dict[str, Any]:
     revision_payload = json.dumps(assessment, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
     return {
         "storyId": row["id"],
+        "vocabularyVersion": row["vocabulary_version"],
         "title": row.get("title"),
         "lesson": row.get("lesson_number"),
         "section": row.get("lesson_sub_order"),
@@ -274,6 +275,7 @@ def _attempt(fixture: dict[str, Any], mode: str, results: list[dict[str, Any]], 
         id=attempt_id,
         storyId=fixture["storyId"],
         baseStoryId=fixture["storyId"],
+        vocabularyVersion=fixture.get("vocabularyVersion"),
         studentName="Algorithm Verifier Integration",
         mode=mode,
         level=mode,

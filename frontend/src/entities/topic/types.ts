@@ -30,6 +30,7 @@ export interface Topic {
   difficultyLevel?: StoryDifficultyLevel;
   sourceStory?: CustomTeacherStory;
   vocabAssessment?: VocabAssessmentQuestion[];
+  vocabularyVersion?: number;
 }
 
 export interface TopicStartOptions {

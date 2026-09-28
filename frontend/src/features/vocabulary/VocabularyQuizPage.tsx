@@ -243,6 +243,13 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   }
 
   if (flow.view === "loading") return <StudentPage layout="task" header={header} state="loading" />;
+  if (flow.vocabularyChanged) return (
+    <StudentPage layout="task" header={header} state="empty"
+      emptyTitle={<StudentSystemText k="lessonVocabularyUpdated" />}
+      emptyText={<StudentSystemText k="lessonVocabularyRestart" />}
+      emptyAction={<StudentButton variant="primary" onClick={() => window.location.reload()}><StudentSystemText k="reloadLesson" withinControl /></StudentButton>}
+    />
+  );
 
   const question = flow.question;
   const entry = question ? flow.entries.find((candidate) => candidate.word === question.word) : undefined;

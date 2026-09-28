@@ -7,7 +7,7 @@ import { getVocabularyProgression, type VocabularyProgression } from "../../serv
 import { computeStudyRowStatuses, nextTopicInSequence, topicStoryId } from "../../utils/lessonGroups";
 import { computeQuizStarsSummary, loadLocalStars, PRACTICE_UNLOCK_STARS, topicHasQuiz } from "@entities/vocabulary";
 import { getStudentId } from "../../utils/studentSession";
-import { syncServerVocabularyProgress } from "../../utils/serverVocabularyProgress";
+import { resetLocalVocabularyProgress, syncServerVocabularyProgress } from "../../utils/serverVocabularyProgress";
 import { loadPhaseFlags } from "@shared/lib/studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
 import { PHASE_ORDER, type StudentPhase, type StudentTopSection } from "./shell/StudentSidebar";
@@ -83,6 +83,16 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const vocabularyPracticeUnlocked = Boolean(activeTopic && vocabularyPreviewCompleted);
 
   useEffect(() => {
+    if (activeTopic) {
+      const latest = topics.find((topic) => topicStoryId(topic) === topicStoryId(activeTopic));
+      const currentVersion = activeTopic.sourceStory?.vocabularyVersion ?? activeTopic.vocabularyVersion;
+      const latestVersion = latest?.sourceStory?.vocabularyVersion ?? latest?.vocabularyVersion;
+      if (latest && latestVersion !== undefined && latestVersion !== currentVersion) {
+        resetLocalVocabularyProgress(topicStoryId(latest));
+        openTopic(latest);
+        return;
+      }
+    }
     setActiveProgression(null);
     const studentId = getStudentId();
     if (!studentId || !requiresServerProgression || (activeTopic && !topicHasQuiz(activeTopic))) return;

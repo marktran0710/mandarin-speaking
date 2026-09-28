@@ -9,8 +9,17 @@ import { clearVocabQuizCompleted } from "./vocabQuizStorage";
 export function syncServerVocabularyProgress(progress: VocabularyProgression): void {
   syncLocalStars(progress.storyId, progress.quizStars);
   if (progress.quizStars < PRACTICE_UNLOCK_STARS) {
-    clearStoryLevelSubmitted(progress.storyId);
-    clearVocabQuizCompleted(progress.storyId);
-    clearPhaseFlags(progress.storyId);
+    clearCompletion(progress.storyId);
   }
+}
+
+function clearCompletion(storyId: string): void {
+  clearStoryLevelSubmitted(storyId);
+  clearVocabQuizCompleted(storyId);
+  clearPhaseFlags(storyId);
+}
+
+export function resetLocalVocabularyProgress(storyId: string): void {
+  syncLocalStars(storyId, 0);
+  clearCompletion(storyId);
 }

@@ -48,6 +48,7 @@ export interface LessonVocabularyProgress {
 }
 
 export interface LessonProgressSnapshot {
+  vocabularyVersion?: number;
   initialStatuses: Record<string, LearnerVocabularyStatus>;
   initialStrongCount?: number;
   challengeBestScore?: number;
@@ -111,12 +112,16 @@ function snapshotStorageKey(studentScope: string | undefined, lessonId: string):
   return `${SNAPSHOT_KEY}:${studentScope || "anonymous"}:${lessonId}`;
 }
 
-export function loadLessonProgressSnapshot(studentScope: string | undefined, lessonId: string): LessonProgressSnapshot {
+export function loadLessonProgressSnapshot(studentScope: string | undefined, lessonId: string, vocabularyVersion?: number): LessonProgressSnapshot {
   if (typeof window === "undefined") return { initialStatuses: {} };
   try {
     const raw = window.localStorage.getItem(snapshotStorageKey(studentScope, lessonId));
     const value = raw ? JSON.parse(raw) as Partial<LessonProgressSnapshot> : {};
+    if (vocabularyVersion !== undefined && value.vocabularyVersion !== vocabularyVersion) {
+      return { initialStatuses: {}, vocabularyVersion };
+    }
     return {
+      vocabularyVersion: value.vocabularyVersion,
       initialStatuses: value.initialStatuses && typeof value.initialStatuses === "object" ? value.initialStatuses : {},
       initialStrongCount: typeof value.initialStrongCount === "number" ? value.initialStrongCount : undefined,
       challengeBestScore: typeof value.challengeBestScore === "number" ? value.challengeBestScore : undefined,
@@ -132,7 +137,7 @@ export function saveLessonAttempt(
   lessonId: string,
   attempt: VocabQuizAttempt,
 ): LessonProgressSnapshot {
-  const snapshot = loadLessonProgressSnapshot(studentScope, lessonId);
+  const snapshot = loadLessonProgressSnapshot(studentScope, lessonId, attempt.vocabularyVersion);
   const attempts = [...(snapshot.attempts || []).filter((item) => item.id !== attempt.id), attempt].slice(-40);
   const challengeAttempts = attempts.filter((item) => item.mode === "challenge");
   const challengeBestScore = challengeAttempts.length
@@ -197,6 +202,7 @@ export function buildLessonVocabularyProgress({
   roundPresence,
   studentScope,
   currentAttempt,
+  vocabularyVersion,
 }: {
   lessonId: string;
   entries: VocabQuizEntry[];
@@ -209,6 +215,7 @@ export function buildLessonVocabularyProgress({
   roundPresence?: VocabPriorityReviewResponse["roundPresence"];
   studentScope?: string;
   currentAttempt?: VocabQuizSummary;
+  vocabularyVersion?: number;
 }): LessonVocabularyProgress {
   const uniqueEntries = entries.filter((entry, index, all) => entryId(entry) && all.findIndex((candidate) => entryId(candidate) === entryId(entry)) === index);
   const totalWords = uniqueEntries.length;
@@ -217,7 +224,7 @@ export function buildLessonVocabularyProgress({
   const sayItAttempt = latestAttempt(allAttempts, "tier2");
   const useItAttempt = latestAttempt(allAttempts, "tier3");
   const diagnosticComplete = serverDiagnosticComplete;
-  const snapshot = loadLessonProgressSnapshot(studentScope, lessonId);
+  const snapshot = loadLessonProgressSnapshot(studentScope, lessonId, vocabularyVersion);
   const statuses = currentStatuses(uniqueEntries, mastery);
   const masteryById = new Map(mastery.map((word) => [word.wordId, word] as const));
   const masteryByWord = new Map(mastery.map((word) => [word.word, word] as const));

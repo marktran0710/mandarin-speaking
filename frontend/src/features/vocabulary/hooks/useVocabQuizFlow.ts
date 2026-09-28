@@ -30,6 +30,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     entries,
     storyId: topic.id,
     baseStoryId: topic.sourceStory?.id,
+    vocabularyVersion: topic.sourceStory?.vocabularyVersion ?? topic.vocabularyVersion,
     level: "easy",
     studentId: getStudentId(),
     studentName: getStudentName(),
@@ -124,6 +125,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
 
   return {
     view,
+    vocabularyChanged: session.vocabularyChanged,
     entries,
     tierPos,
     roundResult,

@@ -76,8 +76,10 @@ def create_story(story) -> dict:
             conversation_turns=stored_conversation_turns,
             assessment_update_clause=assessment_update,
         )
+        stored = db.execute("SELECT vocabulary_version FROM custom_stories WHERE id = %s", (story.id,)).fetchone()
     return {
         **story.model_dump(),
+        "vocabularyVersion": stored["vocabulary_version"],
         "frames": stored_frames,
         "conversationTurns": stored_conversation_turns,
     }

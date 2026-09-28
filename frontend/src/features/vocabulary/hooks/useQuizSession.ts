@@ -33,7 +33,8 @@ import {
 import { postResearchPracticeSession } from "../../../services/api/vocabulary-research";
 import { getCachedResearchContext } from "../../../utils/researchContext";
 import { saveLessonAttempt } from "../model/lesson-vocab-progress";
-import type { VocabQuizAttempt } from "../../../services/api/quiz-analytics";
+import { VocabularyChangedError, type VocabQuizAttempt } from "../../../services/api/quiz-analytics";
+import { resetLocalVocabularyProgress } from "../../../utils/serverVocabularyProgress";
 import { useQuizSessionData } from "./useQuizSessionData";
 
 export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
@@ -42,6 +43,7 @@ type UseQuizSessionProps = {
   entries: VocabQuizEntry[];
   storyId?: string;
   baseStoryId?: string;
+  vocabularyVersion?: number;
   // Story text level. Stories are single-level now, so this is always "easy";
   // kept as a field only as the fallback response level when a word has no
   // published bank question (see the numeric round metadata below).
@@ -82,7 +84,7 @@ export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priority
 }
 
 export function useQuizSession({
-  entries, storyId, baseStoryId, level, studentId, studentName, onComplete,
+  entries, storyId, baseStoryId, vocabularyVersion, level, studentId, studentName, onComplete,
 }: UseQuizSessionProps) {
   const [screen, setScreen] = useState<QuizScreen>("mode-select");
   const [mode, setMode] = useState<VocabQuizMode | null>(null);
@@ -95,6 +97,7 @@ export function useQuizSession({
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [vocabularyChanged, setVocabularyChanged] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   // Lock handlers synchronously, including calls made before React renders.
   const questionStateRef = useRef({ index: 0, answered: false });
@@ -129,6 +132,7 @@ export function useQuizSession({
     entries,
     storyId,
     baseStoryId,
+    vocabularyVersion,
     studentId,
     studentName,
     quizIdRef,
@@ -170,18 +174,18 @@ export function useQuizSession({
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
   const timeLimitMs = effectiveTimeLimitMs(mode);
+  const revokeStaleSession = () => {
+    setVocabularyChanged(true);
+    setStars(0);
+    if (baseStoryId ?? storyId) resetLocalVocabularyProgress(baseStoryId ?? storyId!);
+  };
 
   const finish = async (finalResults: VocabQuizQuestionResult[]) => {
-    if (finishedRef.current) return;
+    if (finishedRef.current || vocabularyChanged) return;
     finishedRef.current = true;
     setIsFinishing(true);
     const correctCount = finalResults.filter((result) => result.correct).length;
     if (!isRetryRound) {
-      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
-      if (earned !== null) {
-        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
-        setStars((current) => earned > current ? earned : current);
-      }
       const summary: VocabQuizSummary = {
         mode: mode!, totalQuestions: finalResults.length, correctCount,
         totalTimeMs: Date.now() - quizStartRef.current, questionResults: finalResults,
@@ -191,6 +195,7 @@ export function useQuizSession({
         storyId: baseStoryId ?? storyId ?? "lesson",
         studentName: studentName ?? "Student",
         studentId,
+        vocabularyVersion,
         mode: summary.mode,
         level,
         completedAt: new Date().toISOString(),
@@ -204,10 +209,20 @@ export function useQuizSession({
           // A completed attempt is the server completion boundary. Await it
           // before exposing the tier result so a refresh cannot race the save.
           await createVocabQuizAttempt(attempt);
-        } catch {
-          // The local snapshot remains a recoverable migration queue. It will
-          // be POST-validated the next time progression is read.
+        } catch (error) {
+          if (error instanceof VocabularyChangedError) {
+            revokeStaleSession();
+            setIsFinishing(false);
+            return;
+          }
+          // The local result may be displayed, but only server evidence
+          // opens the lesson's practice gate.
         }
+      }
+      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
+      if (earned !== null) {
+        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
+        setStars((current) => earned > current ? earned : current);
       }
       setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
       saveLessonAttempt(studentScope, attempt.storyId, attempt);
@@ -318,6 +333,7 @@ export function useQuizSession({
         storyId,
         studentName: studentName ?? "Student",
         studentId,
+        vocabularyVersion,
         mode: mode!,
         baseStoryId: baseStoryId ?? storyId,
         level,
@@ -327,7 +343,10 @@ export function useQuizSession({
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: nextResults,
       })
-        .catch(() => { /* final attempt persistence remains the fallback */ })
+        .catch((error) => {
+          if (error instanceof VocabularyChangedError) revokeStaleSession();
+          /* final attempt persistence remains the fallback for other errors */
+        })
         .finally(() => { pendingResponsesRef.current.delete(saved); });
       pendingResponsesRef.current.add(saved);
       if (isLast) {
@@ -488,7 +507,7 @@ export function useQuizSession({
   };
 
   return {
-    screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
+    screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount, vocabularyChanged,
     question, index, selected, results, isFinishing, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,

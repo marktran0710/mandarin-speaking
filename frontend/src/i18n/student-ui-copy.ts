@@ -357,6 +357,9 @@ const baseStudentUiCopy = {
   startingAssessment: { zh: "正在開始測驗…", pinyin: "Zhèngzài kāishǐ cèyàn..." },
   placementProgress: { zh: "入門測驗進度", pinyin: "Rùmén cèyàn jìndù" },
   answerOptions: { zh: "答案選項", pinyin: "Dá'àn xuǎnxiàng" },
+  lessonVocabularyUpdated: { zh: "這一課的詞彙已更新", pinyin: "Zhè yì kè de cíhuì yǐ gēngxīn", en: "This lesson's vocabulary has changed" },
+  lessonVocabularyRestart: { zh: "請重新載入課程，從新的詞彙開始練習。", pinyin: "Qǐng chóngxīn zàirù kèchéng, cóng xīn de cíhuì kāishǐ liànxí.", en: "Reload the lesson and start practising the updated vocabulary." },
+  reloadLesson: { zh: "重新載入課程", pinyin: "Chóngxīn zàirù kèchéng", en: "Reload lesson" },
 } satisfies Record<string, StudentUiCopy>;
 
 export const studentUiCopy = Object.fromEntries(

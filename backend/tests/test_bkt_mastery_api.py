@@ -69,6 +69,12 @@ def _publish_attempt_items(attempt: dict) -> None:
 
 def _post_attempt(client, attempt: dict, *, partial: bool = False, today: str | None = None):
     _publish_attempt_items(attempt)
+    with db.connect_db() as conn:
+        version = conn.execute(
+            "SELECT vocabulary_version FROM custom_stories WHERE id = %s",
+            (attempt["storyId"],),
+        ).fetchone()["vocabulary_version"]
+    attempt = {**attempt, "vocabularyVersion": version}
     endpoint = "/api/vocab-quiz-responses" if partial else "/api/vocab-quiz-attempts"
     params = {"today": today} if today else None
     return client.post(endpoint, params=params, json=attempt)

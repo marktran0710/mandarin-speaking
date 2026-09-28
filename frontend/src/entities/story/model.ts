@@ -144,6 +144,7 @@ export function storyToTopic(
     name: story.title,
     ...(conversationTurns ? { conversationTurns } : {}),
     ...(vocabAssessment ? { vocabAssessment } : {}),
+    vocabularyVersion: story.vocabularyVersion,
     description: "Teacher published activity",
     skillFocus: "Teacher published activity",
     images: story.frames.map((frame) => resolveImageUrl(tierText(frame, "imageUrl", difficultyLevel) || "")),

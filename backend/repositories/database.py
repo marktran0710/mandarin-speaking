@@ -162,6 +162,7 @@ def row_to_custom_story(row: dict) -> dict:
         "storyPhrases": row.get("story_phrases"),
         "vocabAssessment": vocab_assessment,
         "vocabAssessmentRevision": vocab_assessment_revision(vocab_assessment),
+        "vocabularyVersion": row.get("vocabulary_version", 1),
         "published": bool(row["published"]),
         "lessonNumber": row["lesson_number"],
         "lessonSubOrder": row.get("lesson_sub_order"),

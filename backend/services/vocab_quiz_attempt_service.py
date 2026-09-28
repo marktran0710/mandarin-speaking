@@ -21,6 +21,7 @@ from application.research.response_routing import (
 )
 from api.schemas.models import VocabQuizAttemptRequest
 from repositories import quiz_attempt_repository as repo
+from domain.vocabulary.story_scope import canonical_story_id
 
 logger = logging.getLogger("speaking_app")
 
@@ -50,6 +51,18 @@ def list_attempts(
 
 def _validated_question_results(db, attempt: VocabQuizAttemptRequest) -> list[dict]:
     """Resolve answers to published assessment facts before BKT sees them."""
+    # Hold the story lock until the write commits. A vocabulary update either
+    # archives this write afterward or finishes first and makes it stale.
+    story_id = canonical_story_id(attempt.baseStoryId or attempt.storyId)
+    story = db.execute(
+        "SELECT vocabulary_version FROM custom_stories WHERE id = %s FOR SHARE", (story_id,),
+    ).fetchone()
+    if story:
+        version = story["vocabulary_version"]
+        if (attempt.vocabularyVersion is None and version > 1) or (
+            attempt.vocabularyVersion is not None and attempt.vocabularyVersion != version
+        ):
+            raise ValueError("Lesson vocabulary changed. Reload the lesson and start the quiz again.")
     question_results = []
     for result in attempt.questionResults:
         payload = result.model_dump(exclude_none=True, exclude_defaults=True)

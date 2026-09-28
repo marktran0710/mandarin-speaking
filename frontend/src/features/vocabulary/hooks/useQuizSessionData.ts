@@ -30,6 +30,7 @@ type QuizSessionDataProps = {
   entries: VocabQuizEntry[];
   storyId?: string;
   baseStoryId?: string;
+  vocabularyVersion?: number;
   studentId?: string;
   studentName?: string;
   quizIdRef: RefObject<string | null>;
@@ -39,6 +40,7 @@ export function useQuizSessionData({
   entries,
   storyId,
   baseStoryId,
+  vocabularyVersion,
   studentId,
   studentName,
   quizIdRef,
@@ -50,7 +52,7 @@ export function useQuizSessionData({
   const [serverProgression, setServerProgression] = useState<import("../../../services/api/quiz-analytics").VocabularyProgression | null>(null);
   const studentScope = studentId || studentName || getStudentScopeKey();
   const [attempts, setAttempts] = useState<VocabQuizAttempt[]>(() => (
-    storyId ? loadLessonProgressSnapshot(studentScope, baseStoryId ?? storyId).attempts ?? [] : []
+    storyId ? loadLessonProgressSnapshot(studentScope, baseStoryId ?? storyId, vocabularyVersion).attempts ?? [] : []
   ));
   const recordLessonEvent = (name: MeasurementEventName, properties: Record<string, string | number | boolean | null> = {}) => {
     if (!storyId) return;
@@ -218,7 +220,8 @@ export function useQuizSessionData({
     diagnosticComplete: diagnosticComplete === true,
     roundPresence,
     studentScope,
-  }), [attempts, baseStoryId, diagnosticComplete, entries, masteryWords, priorityReviewWords, roundPresence, storyId, studentScope]);
+    vocabularyVersion,
+  }), [attempts, baseStoryId, diagnosticComplete, entries, masteryWords, priorityReviewWords, roundPresence, storyId, studentScope, vocabularyVersion]);
 
 
   return {

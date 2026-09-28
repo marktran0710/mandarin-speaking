@@ -94,6 +94,8 @@ TRUNCATED_TABLES = (
     "bkt_model_fit_runs",
     "audio_records",
     "custom_stories",
+    "learning_measurement_events",
+    "lesson_vocabulary_reset_archive",
     "help_requests",
     "speaking_progress",
     "story_submissions",

@@ -54,4 +54,5 @@ export interface CustomTeacherStory {
   lessonSubOrder?: number | null;
   rubricScores?: Record<string, unknown> | null;
   vocabAssessment?: VocabAssessmentQuestion[];
+  vocabularyVersion?: number;
 }
