@@ -1,15 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NewAudioRecord } from "../../components/story-recorder/StoryRecorder";
 import type { Topic } from "@entities/topic";
 import { normalizeConversationTurns } from "../../components/story-recorder/StoryRecorder";
-import { canUseDatabase, createStorySubmission, type SceneSubmission } from "../../services/database";
+import { canUseDatabase, createStorySubmission, listSpeakingProgress, type SceneSubmission } from "../../services/database";
 import { getVocabularyProgression, type VocabularyProgression } from "../../services/api/quiz-analytics";
 import { computeStudyRowStatuses, nextTopicInSequence, topicStoryId } from "../../utils/lessonGroups";
 import { computeQuizStarsSummary, loadLocalStars, PRACTICE_UNLOCK_STARS, topicHasQuiz } from "@entities/vocabulary";
-import { getStudentId } from "../../utils/studentSession";
-import { loadPhaseFlags } from "@shared/lib/studyProgressFlags";
+import { getStudentId, isAdminSession } from "../../utils/studentSession";
+import { loadPhaseFlags, markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import StudentShell from "./shell/StudentShell";
-import { PHASE_ORDER, type StudentPhase, type StudentTopSection } from "./shell/StudentSidebar";
+import type { StudentPhase, StudentTopSection } from "./shell/StudentSidebar";
+import {
+  computeLessonSteps,
+  conversationPathDone,
+  countRecorded,
+  firstUnfinishedPhase,
+  sceneSubmissionsFromProgress,
+  scenesForSubmission,
+  speakingPathDone,
+  type LessonProgressInput,
+} from "./lessonSteps";
 import StudyPage, { type StudyTopicStatus } from "../../features/study/StudyPage";
 import VocabularyPreviewPage from "../../features/vocabulary/VocabularyPreviewPage";
 import VocabularyQuizPage from "../../features/vocabulary/VocabularyQuizPage";
@@ -41,37 +51,29 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const [section, setSection] = useState<StudentTopSection>("study");
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
   const [phase, setPhase] = useState<StudentPhase>("vocab-preview");
-  // The furthest phase this lesson attempt has actually reached — gates the
-  // sidebar's phase-nav so a student can't jump ahead of work they haven't
-  // done (e.g. straight to Story Speaking with 0 quiz stars). Only ever
-  // moves forward; see advancePhase.
-  const [furthestPhase, setFurthestPhase] = useState<StudentPhase>("vocab-preview");
-  // Tracks the furthest phase reached in the current lesson flow. A saved
-  // three-star result can seed this past the quiz when the lesson reopens.
-  const [quizCompleted, setQuizCompleted] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
-  // Every scene/turn's latest submission for the topic currently in
-  // progress, keyed so a re-recorded attempt replaces its own entry rather
-  // than duplicating it — assembled into one StorySubmission when the
-  // student turns work in on the Submit screen.
+  // Every scene/turn's latest submission for the open topic, keyed
+  // `speaking:<scene>` / `conversation:<turn>` so a re-recorded attempt
+  // replaces its own entry. Seeded from the server's saved speaking progress
+  // when the lesson opens, so a refresh doesn't lose finished work.
   const [sceneSubmissions, setSceneSubmissions] = useState<Record<string, SceneSubmission>>({});
-  const [completedPractice, setCompletedPractice] = useState<"speaking" | "conversation">("speaking");
   const [activeProgression, setActiveProgression] = useState<VocabularyProgression | null>(null);
+  // Bumped whenever saved progress changes outside React state (quiz rounds
+  // write localStorage, pages write the phase flags) so derived gates re-read.
+  const [progressVersion, setProgressVersion] = useState(0);
+  const bumpProgress = () => setProgressVersion((version) => version + 1);
+  // True until the learner navigates in the reopened lesson: once saved
+  // progress finishes loading we may move them to the first unfinished step,
+  // but never yank them away from a step they picked themselves.
+  const autoLandingRef = useRef(false);
 
   const openTopic = (topic: Topic) => {
-    const hasQuiz = topicHasQuiz(topic);
-    const quizAlreadyPassed = hasQuiz && loadLocalStars(topicStoryId(topic)) >= PRACTICE_UNLOCK_STARS;
     setActiveTopic(topic);
     setActiveProgression(null);
     setSceneIndex(0);
     setSceneSubmissions({});
-    setCompletedPractice("speaking");
-    setPhase("vocab-preview");
-    // A previously earned three-star quiz is a completed gate when the
-    // learner reopens the lesson; don't force the quiz just to re-enter
-    // either practice path.
-    setFurthestPhase(quizAlreadyPassed ? "story-speaking" : "vocab-preview");
-    setQuizCompleted(!hasQuiz || quizAlreadyPassed);
+    autoLandingRef.current = true;
+    setPhase(firstUnfinishedPhase(progressInputFor(topic, {}, null)));
   };
 
   const backToStudy = () => {
@@ -84,34 +86,85 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     const storyId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
     if (!activeTopic || !studentId || !storyId || !canUseDatabase()) return;
     let cancelled = false;
-    getVocabularyProgression(storyId, studentId)
-      .then((progression) => {
-        if (cancelled) return;
-        setActiveProgression(progression);
-        if (progression.quizStars >= PRACTICE_UNLOCK_STARS) {
-          setQuizCompleted(true);
-          setFurthestPhase((prev) => (
-            PHASE_ORDER.indexOf(prev) >= PHASE_ORDER.indexOf("story-speaking")
-              ? prev
-              : "story-speaking"
-          ));
-        }
+    const progressionRequest = getVocabularyProgression(storyId, studentId)
+      .then((progression) => { if (!cancelled) setActiveProgression(progression); return progression; })
+      .catch(() => null /* local mirror remains the offline fallback */);
+    const recordsRequest = listSpeakingProgress(studentId, activeTopic.id)
+      .then((rows) => {
+        const restored = sceneSubmissionsFromProgress(rows);
+        // Anything recorded in this tab while the request was in flight wins.
+        if (!cancelled) setSceneSubmissions((current) => ({ ...restored, ...current }));
+        return restored;
       })
-      .catch(() => { /* local mirror remains the offline fallback */ });
+      .catch(() => ({} as Record<string, SceneSubmission>));
+    void Promise.all([progressionRequest, recordsRequest]).then(([progression, restored]) => {
+      if (cancelled || !autoLandingRef.current) return;
+      setPhase(firstUnfinishedPhase(progressInputFor(activeTopic, restored, progression)));
+    });
     return () => { cancelled = true; };
+    // progressInputFor reads only the arguments and saved storage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTopic]);
 
-  // The only path that should ever move `phase` forward on its own (a
-  // page's onDone/onFinished callback deciding its own work is actually
-  // done) — bumps the watermark alongside it, never backward.
-  const advancePhase = (next: StudentPhase) => {
-    setPhase(next);
-    setFurthestPhase((prev) => (PHASE_ORDER.indexOf(next) > PHASE_ORDER.indexOf(prev) ? next : prev));
-  };
+  const conversationTurnsFor = (topic: Topic) => normalizeConversationTurns(topic.conversationTurns);
+  const conversationAvailableFor = (topic: Topic, progression: VocabularyProgression | null) =>
+    Boolean(conversationTurnsFor(topic)) && (progression?.conversationAvailable ?? true);
+
+  // Every lesson gate derives from saved data (quiz attempts, recordings,
+  // submission status, saved phase flags) — see lessonSteps.ts.
+  function progressInputFor(
+    topic: Topic,
+    submissions: Record<string, SceneSubmission>,
+    progression: VocabularyProgression | null,
+  ): LessonProgressInput {
+    const storyId = topicStoryId(topic);
+    const flags = loadPhaseFlags(storyId);
+    const hasQuiz = topicHasQuiz(topic);
+    const roundsDone = Math.max(progression?.quizStars ?? 0, loadLocalStars(topic.sourceStory?.id ?? topic.id));
+    const sceneIndexes = topic.images.map((_, index) => index);
+    const conversationAvailable = conversationAvailableFor(topic, progression);
+    const studentTurnIndexes = conversationAvailable
+      ? (conversationTurnsFor(topic) ?? []).flatMap((turn, index) => (turn.speaker === "student" ? [index] : []))
+      : [];
+    // A finished path's saved flag stands in for recordings the server could
+    // not return (offline mode, or a failed progress read).
+    const scenesRecorded = flags.speaking ? sceneIndexes.length : countRecorded(submissions, "speaking", sceneIndexes);
+    const turnsRecorded = flags.conversation
+      ? studentTurnIndexes.length
+      : countRecorded(submissions, "conversation", studentTurnIndexes);
+    return {
+      hasQuiz,
+      previewDone: flags.vocab,
+      quizDone: !hasQuiz || isAdminSession() || roundsDone >= PRACTICE_UNLOCK_STARS,
+      sceneCount: sceneIndexes.length,
+      scenesRecorded,
+      turnCount: studentTurnIndexes.length,
+      turnsRecorded,
+      conversationAvailable,
+      submitted: loadSubmittedStoryIds().has(storyId),
+    };
+  }
 
   const handleSceneSubmission = (key: string, submission: SceneSubmission) => {
     setSceneSubmissions((prev) => ({ ...prev, [key]: submission }));
   };
+
+  const navigateTo = (next: StudentPhase) => {
+    autoLandingRef.current = false;
+    setPhase(next);
+  };
+
+  // Read on every render (not memoized): quiz rounds and page flags update
+  // localStorage, and progressVersion forces the re-render that picks it up.
+  void progressVersion;
+  const progressInput = activeTopic ? progressInputFor(activeTopic, sceneSubmissions, activeProgression) : null;
+  const computedSteps = progressInput ? computeLessonSteps(progressInput) : undefined;
+  // Admin previews every step without doing the work first.
+  const lessonSteps = computedSteps && isAdminSession()
+    ? (Object.fromEntries(Object.entries(computedSteps).map(([phase, step]) => [phase, { ...step, unlocked: true }])) as typeof computedSteps)
+    : computedSteps;
+  const speakingDone = progressInput ? speakingPathDone(progressInput) : false;
+  const conversationDone = progressInput ? conversationPathDone(progressInput) : false;
 
   // The one deliberate "hand it in" gesture (SubmitStoryPage) — only once
   // this resolves does completion actually record: a real backend failure
@@ -127,19 +180,20 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         studentName,
         studentId: getStudentId(),
         submittedAt: new Date().toISOString(),
-        scenes: Object.values(sceneSubmissions),
+        scenes: scenesForSubmission(sceneSubmissions, { speaking: speakingDone, conversation: conversationDone }),
       });
     }
     markStoryLevelSubmitted(topicStoryId(activeTopic));
-    advancePhase("completion");
+    bumpProgress();
+    navigateTo("completion");
   };
 
-  const conversationTurns = activeTopic ? normalizeConversationTurns(activeTopic.conversationTurns) : null;
+  const conversationTurns = activeTopic ? conversationTurnsFor(activeTopic) : null;
   // Conversation is a first-class lesson phase, like Story Speaking. Keep it
   // visible even when a story has not received teacher-authored turns yet;
   // ConversationPage renders a useful empty state for that case instead of
   // silently routing the learner to Submit.
-  const conversationContentAvailable = Boolean(conversationTurns) && (activeProgression?.conversationAvailable ?? true);
+  const conversationContentAvailable = activeTopic ? conversationAvailableFor(activeTopic, activeProgression) : false;
   const availableConversationTurns = conversationContentAvailable ? (conversationTurns ?? []) : [];
 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
@@ -166,25 +220,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       })()
     : activeTopic.name;
 
-  // coreRoundsCompleted (not the sibling speakingUnlocked field) is the
-  // right read here: speakingUnlocked is a bare practiceUnlocked(stars)
-  // with no topicHasQuiz check, so a quiz-less topic — which never earns
-  // stars — would show as permanently locked; coreRoundsCompleted already
-  // exempts that case the same way isStoryFinished does.
   const activeStoryId = activeTopic?.sourceStory?.id ?? activeTopic?.id;
   const activeStars = activeProgression?.quizStars ?? (activeStoryId ? loadLocalStars(activeStoryId) : 0);
-  const practiceChoicesUnlocked = activeTopic
-    ? (!topicHasQuiz(activeTopic) || quizCompleted)
-    : false;
-  const speakingUnlocked = activeTopic
-    ? practiceChoicesUnlocked && (!topicHasQuiz(activeTopic) || activeStars >= 3)
-    : false;
-  const conversationUnlocked = practiceChoicesUnlocked && conversationContentAvailable;
-
-  const finishVocabularyQuiz = () => {
-    setQuizCompleted(true);
-    advancePhase("story-speaking");
-  };
 
   let body: React.ReactNode;
 
@@ -201,7 +238,10 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <VocabularyPreviewPage
         topic={activeTopic}
         lessonLabel={activeTopic.name}
-        onStartSpeaking={() => advancePhase(topicHasQuiz(activeTopic) ? "vocab-quiz" : "story-speaking")}
+        onStartSpeaking={() => {
+          bumpProgress();
+          navigateTo(topicHasQuiz(activeTopic) ? "vocab-quiz" : "story-speaking");
+        }}
       />
     );
   } else if (phase === "vocab-quiz") {
@@ -210,11 +250,14 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         topic={activeTopic}
         lessonLabel={activeTopic.name}
         hasConversation={conversationContentAvailable}
-        onFinished={finishVocabularyQuiz}
+        onFinished={() => {
+          bumpProgress();
+          navigateTo("story-speaking");
+        }}
+        onRoundCompleted={bumpProgress}
+        onOpenPreview={() => navigateTo("vocab-preview")}
         onStartPractice={(practice) => {
-          setQuizCompleted(true);
-          setCompletedPractice(practice === "conversation" ? "conversation" : "speaking");
-          setActiveProgression(null);
+          bumpProgress();
           const studentId = getStudentId();
           const storyId = activeTopic.sourceStory?.id ?? activeTopic.id;
           if (studentId && canUseDatabase()) {
@@ -222,7 +265,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
               .then(setActiveProgression)
               .catch(() => { /* local star mirror is the fallback */ });
           }
-          advancePhase(practice);
+          navigateTo(practice);
         }}
       />
     );
@@ -235,8 +278,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         onAddRecord={onAddRecord}
         onSceneSubmission={handleSceneSubmission}
         onDone={() => {
-          setCompletedPractice("speaking");
-          advancePhase("submit");
+          markPhaseSeen(topicStoryId(activeTopic), "speaking");
+          bumpProgress();
+          navigateTo("submit");
         }}
       />
     );
@@ -248,8 +292,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         onAddRecord={onAddRecord}
         onSceneSubmission={handleSceneSubmission}
         onDone={() => {
-          setCompletedPractice("conversation");
-          advancePhase("submit");
+          if (availableConversationTurns.length > 0) markPhaseSeen(topicStoryId(activeTopic), "conversation");
+          bumpProgress();
+          navigateTo("submit");
         }}
         onBack={backToStudy}
       />
@@ -258,9 +303,11 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
     body = (
       <SubmitStoryPage
         topic={activeTopic}
-        sceneCount={activeTopic.images.length}
-        hasConversation={conversationContentAvailable}
-        completedPractice={completedPractice}
+        sceneCount={progressInput?.sceneCount ?? 0}
+        scenesRecorded={progressInput?.scenesRecorded ?? 0}
+        turnCount={progressInput?.turnCount ?? 0}
+        turnsRecorded={progressInput?.turnsRecorded ?? 0}
+        alreadySubmitted={lessonSteps?.submit.done ?? false}
         onSubmit={handleSubmitStory}
       />
     );
@@ -295,10 +342,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         activePhase={section === "study" && activeTopic ? phase : null}
         quizStars={totalQuizStars}
         maxQuizStars={maxQuizStars}
-        furthestPhase={furthestPhase}
-        speakingUnlocked={speakingUnlocked}
-        conversationUnlocked={conversationUnlocked}
-        practiceChoicesUnlocked={practiceChoicesUnlocked}
+        steps={lessonSteps}
         onNavigateSection={(next) => {
           const cameFromSettings = section === "settings";
           setSection(next);
@@ -307,21 +351,8 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         onNavigatePhase={
           activeTopic
             ? (next) => {
-                const practiceReachable = next === "story-speaking"
-                  ? speakingUnlocked
-                  : next === "conversation"
-                    ? conversationUnlocked
-                    : false;
-                const reachable = next === "story-speaking" || next === "conversation"
-                  ? practiceChoicesUnlocked && practiceReachable
-                  : PHASE_ORDER.indexOf(next) <= PHASE_ORDER.indexOf(furthestPhase);
-                const starBlocked = next === "story-speaking" && !speakingUnlocked;
-                if (reachable && !starBlocked) {
-                  if (next === "story-speaking" || next === "conversation") {
-                    setCompletedPractice(next === "conversation" ? "conversation" : "speaking");
-                  }
-                  setPhase(next);
-                }
+                if (next !== "completion" && lessonSteps && !lessonSteps[next].unlocked) return;
+                navigateTo(next);
               }
             : undefined
         }

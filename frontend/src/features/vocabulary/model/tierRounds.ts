@@ -1,4 +1,4 @@
-import { nextStarGap, type TierMode } from "@entities/vocabulary";
+import { roundScore, type TierMode } from "@entities/vocabulary";
 import type { VocabQuizQuestionResult } from "@entities/vocabulary";
 
 export const TIER_SEQUENCE: TierMode[] = ["tier1", "tier2", "tier3"];
@@ -8,32 +8,32 @@ export interface RoundResult {
   tier: TierMode;
   correctCount: number;
   totalQuestions: number;
-  passed: boolean;
-  /** How many more correct answers this tier's threshold needed — 0 when
-   * `passed` is true, for the "2 more correct for ⭐⭐" near-miss message. */
-  starGap: number | null;
+  /** 0–100: first-try correct answers over all questions. */
+  score: number;
+  /** Words missed on the first try (hanzi only, in question order, unique) —
+   * the round's review list. A word fixed on the hinted retry still lands
+   * here, since the retry never counts as knowing it. */
+  reviewWords: string[];
 }
 
 /**
- * Shapes one finished tier's raw quiz results into what the round-result
- * screen displays. `passed` is decided by the caller (from useQuizSession's
- * own post-attempt `stars`, which already ran attemptEarnsStar) — this
- * function never re-derives pass/fail itself, only the score/near-miss
- * numbers around it.
+ * Shapes one finished round's raw quiz results into what the round-result
+ * screen displays. There is no pass/fail: finishing the round is what
+ * unlocks the next one, and the score is reported for the learner only.
  */
 export function computeRoundResult(
   tierIndex: number,
   results: VocabQuizQuestionResult[],
-  passed: boolean,
 ): RoundResult {
   const tier = TIER_SEQUENCE[tierIndex];
   const correctCount = results.filter((result) => result.correct).length;
   const totalQuestions = results.length;
+  const reviewWords = [...new Set(results.filter((result) => !result.correct).map((result) => result.word))];
   return {
     tier,
     correctCount,
     totalQuestions,
-    passed,
-    starGap: nextStarGap(tier, correctCount, totalQuestions),
+    score: roundScore(correctCount, totalQuestions),
+    reviewWords,
   };
 }

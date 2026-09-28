@@ -1,13 +1,14 @@
 """Server-authoritative vocabulary quiz progression for one story.
 
-The completed-attempt table is the completion boundary.  The normalized
-response ledger is used for correctness so a client cannot manufacture stars
-by changing ``correctCount`` or ``correct`` in its JSON payload.
+A round ("tier") is earned once the learner has finished it: a completed
+attempt whose answers are all present in the normalized response ledger.
+There is no accuracy threshold — the score is reported, never a gate.  Each
+round reports its most recent finished attempt's score (correct/total from
+the ledger, so a client cannot inflate it by editing ``correctCount``).
 """
 
 from __future__ import annotations
 
-from math import ceil
 from typing import Any
 
 from domain.vocabulary.story_scope import canonical_story_id, story_scope_ids
@@ -15,7 +16,6 @@ from repositories import quiz_attempt_repository
 
 
 REQUIRED_STARS = 3
-_PASS_RATIOS = {"tier1": 0.70, "tier2": 0.82, "tier3": 0.88}
 _TIERS = ("tier1", "tier2", "tier3")
 
 
@@ -118,30 +118,28 @@ def get_progression(db: Any, student_id: str, story_id: str) -> dict[str, Any]:
 
     for tier in _TIERS:
         tier_attempts = [attempt for attempt in attempts if attempt.get("mode") == tier]
-        best: dict[str, int] | None = None
-        best_attempt: dict | None = None
+        latest: dict[str, int] | None = None
+        latest_at = ""
         for attempt in tier_attempts:
             score = scores.get(f"{attempt['id']}:{tier}")
+            # A round counts as finished only when every answer of the
+            # completed attempt reached the ledger.
             if not score or score["totalQuestions"] < int(attempt.get("totalQuestions") or 0):
                 continue
-            if best is None or (score["correctCount"], score["totalQuestions"]) > (best["correctCount"], best["totalQuestions"]):
-                best = score
-                best_attempt = attempt
-        total = best["totalQuestions"] if best else 0
-        correct = best["correctCount"] if best else 0
-        required = max(1, ceil(_PASS_RATIOS[tier] * total)) if total else 0
-        # The policy belongs to the selected completed attempt. Production is
-        # the default; research coverage remains separate from BKT status.
-        passed = bool(best and best_attempt and (
-            best_attempt.get("progressionPolicy") == "research_coverage" or correct >= required
-        ))
+            completed_at = str(attempt.get("completedAt") or "")
+            if latest is None or completed_at >= latest_at:
+                latest = score
+                latest_at = completed_at
+        total = latest["totalQuestions"] if latest else 0
+        correct = latest["correctCount"] if latest else 0
         tiers[tier] = {
-            "earned": passed,
+            "earned": latest is not None,
             "correctCount": correct,
             "totalQuestions": total,
-            "requiredCorrect": required,
+            "score": round(100 * correct / total) if total else 0,
+            "completedAt": latest_at or None,
         }
-        if passed:
+        if latest is not None:
             earned_tiers.add(tier)
 
     stars = 0

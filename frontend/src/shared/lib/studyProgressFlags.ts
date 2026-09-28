@@ -10,9 +10,12 @@ function flagKey(topicId: string): string {
   return `${FLAG_KEY_PREFIX}${getStudentScopeKey()}:${topicId}`;
 }
 
+// localStorage (not sessionStorage) so a finished step stays finished after a
+// refresh or when the lesson is reopened later; the sidebar's step gates read
+// these flags alongside quiz attempts and saved recordings.
 export function loadPhaseFlags(topicId: string): StudyPhaseFlags {
   try {
-    const raw = sessionStorage.getItem(flagKey(topicId));
+    const raw = localStorage.getItem(flagKey(topicId)) ?? sessionStorage.getItem(flagKey(topicId));
     if (!raw) return { ...EMPTY_FLAGS };
     return { ...EMPTY_FLAGS, ...JSON.parse(raw) };
   } catch {
@@ -24,7 +27,7 @@ export function markPhaseSeen(topicId: string, phase: StudyPhaseKey): void {
   try {
     const current = loadPhaseFlags(topicId);
     current[phase] = true;
-    sessionStorage.setItem(flagKey(topicId), JSON.stringify(current));
+    localStorage.setItem(flagKey(topicId), JSON.stringify(current));
   } catch {
     /* storage unavailable; the phase strip simply stays unchanged */
   }

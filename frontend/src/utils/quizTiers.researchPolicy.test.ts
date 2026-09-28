@@ -47,13 +47,13 @@ describe("attemptEarnsStar under research_coverage policy", () => {
   });
 });
 
-describe("attemptEarnsStar under production_accuracy policy (default, unchanged)", () => {
+describe("attemptEarnsStar under production_accuracy policy (default)", () => {
   afterEach(() => vi.clearAllMocks());
 
-  it("still gates on the accuracy threshold", () => {
+  it("also earns the round on completion — production has no accuracy gate either", () => {
     mockPolicy("production_accuracy");
-    expect(attemptEarnsStar("tier1", 2, 20)).toBeNull(); // 10% < 70%
-    expect(attemptEarnsStar("tier1", 14, 20)).toBe(1); // 70% passes
+    expect(attemptEarnsStar("tier1", 2, 20)).toBe(1);
+    expect(attemptEarnsStar("tier1", 14, 20)).toBe(1);
   });
 });
 

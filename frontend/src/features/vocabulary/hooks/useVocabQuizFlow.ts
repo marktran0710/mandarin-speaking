@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Topic } from "@entities/topic";
-import type { VocabQuizMode } from "@entities/vocabulary";
-import { topicQuizEntries } from "@entities/vocabulary";
+import type { TierMode, VocabQuizMode } from "@entities/vocabulary";
+import { isTierUnlocked, latestRoundScores, topicQuizEntries } from "@entities/vocabulary";
 import { getStudentId, getStudentName } from "../../../utils/studentSession";
 import { topicStoryId } from "../../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
@@ -12,6 +12,8 @@ interface UseVocabQuizFlowArgs {
   topic: Topic;
   onFinished: () => void;
   onStartPractice?: (practice: "story-speaking" | "conversation") => void;
+  /** A diagnostic round was just finished (its attempt is saved). */
+  onRoundCompleted?: () => void;
 }
 
 export interface PracticeResult {
@@ -22,9 +24,10 @@ export interface PracticeResult {
 
 export type VocabQuizFlowView = "loading" | "mode-select" | "quiz" | "round-result" | "practice-result";
 
-/** Production quiz navigation: diagnostic BKT rounds plus server-selected
- * weak-word practice and due SM-2 maintenance review. */
-export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVocabQuizFlowArgs) {
+/** Production quiz navigation: three diagnostic rounds finished in order
+ * (the score is shown, never a gate), then any round can be redone, plus
+ * server-selected weak-word practice and due SM-2 maintenance review. */
+export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCompleted }: UseVocabQuizFlowArgs) {
   const entries = useMemo(() => topicQuizEntries(topic), [topic]);
   const session = useQuizSession({
     entries,
@@ -34,21 +37,24 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     studentId: getStudentId(),
     studentName: getStudentName(),
   });
+  const roundsDone = session.stars ?? 0;
   const [tierPos, setTierPos] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [practiceResult, setPracticeResult] = useState<PracticeResult | null>(null);
+  const latestScores = latestRoundScores(session.attempts ?? []);
 
   useEffect(() => {
     if (session.screen === "mode-select" && !roundResult && !practiceResult) {
-      setTierPos(Math.min(session.stars ?? 0, TIER_SEQUENCE.length - 1));
+      setTierPos(Math.min(roundsDone, TIER_SEQUENCE.length - 1));
     }
-  }, [practiceResult, roundResult, session.screen, session.stars]);
+  }, [practiceResult, roundResult, session.screen, roundsDone]);
 
   useEffect(() => {
     if (session.screen !== "summary") return;
     const diagnosticMode = session.mode === "tier1" || session.mode === "tier2" || session.mode === "tier3";
     if (diagnosticMode) {
-      setRoundResult(computeRoundResult(tierPos, session.results, (session.stars ?? 0) >= tierPos + 1));
+      setRoundResult(computeRoundResult(tierPos, session.results));
+      onRoundCompleted?.();
     } else if (session.mode) {
       setPracticeResult({
         mode: session.mode,
@@ -59,27 +65,29 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.screen]);
 
-  const startTier = () => {
+  const startRound = (tier: TierMode) => {
+    const position = TIER_SEQUENCE.indexOf(tier);
+    if (position < 0 || !isTierUnlocked((position + 1) as 1 | 2 | 3, roundsDone)) return;
     setRoundResult(null);
     setPracticeResult(null);
-    session.startTier(TIER_SEQUENCE[tierPos]);
+    setTierPos(position);
+    session.startTier(tier);
   };
 
-  const retry = () => {
-    setRoundResult(null);
-    session.startTier(TIER_SEQUENCE[tierPos]);
-  };
+  /** The next round the learner has not finished yet (or the last round). */
+  const startTier = () => startRound(TIER_SEQUENCE[Math.min(roundsDone, TIER_SEQUENCE.length - 1)]);
 
+  const retry = () => startRound(TIER_SEQUENCE[tierPos]);
+
+  const allRoundsDone = roundsDone >= TIER_SEQUENCE.length;
+
+  /** From a round result: go on to the first unfinished round. */
   const continueToNext = () => {
-    if (!roundResult?.passed) return;
-    setRoundResult(null);
-    const nextPos = tierPos + 1;
-    if (nextPos < TIER_SEQUENCE.length) {
-      setTierPos(nextPos);
-      session.startTier(TIER_SEQUENCE[nextPos]);
-    } else {
-      finishQuiz();
+    if (allRoundsDone) {
+      returnToModes();
+      return;
     }
+    startRound(TIER_SEQUENCE[roundsDone]);
   };
 
   const finishQuiz = () => {
@@ -103,11 +111,11 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     session.startDueReview?.();
   };
 
-  const returnToModes = () => {
+  function returnToModes() {
     setRoundResult(null);
     setPracticeResult(null);
     session.returnToModes();
-  };
+  }
 
   const ready = session.sessionReady !== false;
   const view: VocabQuizFlowView = !ready
@@ -126,6 +134,9 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     view,
     entries,
     tierPos,
+    roundsDone,
+    allRoundsDone,
+    latestScores,
     roundResult,
     practiceResult,
     mode: session.mode,
@@ -134,6 +145,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     finishQuiz,
     choosePractice,
     startTier,
+    startRound,
     startWeakWords,
     startDueReview,
     returnToModes,
@@ -145,8 +157,11 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice }: UseVoca
     selected: session.selected,
     results: session.results,
     choose: session.choose,
+    chooseRetry: session.chooseRetry,
+    awaitingRetry: session.awaitingRetry,
+    retryOutcome: session.retryOutcome,
     next: session.next,
-    stars: session.stars ?? 0,
+    stars: roundsDone,
     weakEntries: session.weakEntries ?? [],
     interimReviewEntries: session.interimReviewEntries ?? [],
     dueWords: session.dueWords ?? [],

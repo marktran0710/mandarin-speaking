@@ -195,6 +195,11 @@ class VocabQuizQuestionResult(BaseModel):
     questionPrompt: Optional[str] = Field(default=None, max_length=2000)
     answeredAt: Optional[str] = None
     questionIndex: Optional[int] = Field(default=None, ge=0)
+    # Diagnostic rounds offer one hinted retry after a wrong first answer.
+    # Analysis-only annotations on the original response: ``correct`` (the
+    # first try) remains the score and the BKT evidence.
+    hintUsed: Optional[bool] = None
+    retryCorrect: Optional[bool] = None
 
 
 class VocabQuizAttemptRequest(BaseModel):

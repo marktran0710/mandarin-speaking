@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import type { StudentUiCopyKey } from "../../../i18n/student-ui-copy";
+import type { LessonNavPhase, LessonStepState, LessonSteps } from "../lessonSteps";
 import "./StudentSidebar.css";
 
 export type StudentTopSection = "study" | "progress" | "placement" | "settings";
@@ -28,6 +31,10 @@ const PHASE_COPY = {
   submit: "submit",
 } as const;
 
+/** Story speaking and conversation are equivalent paths — the learner picks
+ * one, so the sidebar groups them under a "choose one" label. */
+const PRACTICE_PATHS: LessonNavPhase[] = ["story-speaking", "conversation"];
+
 /** "completion" has no nav button but is a real reachable StudentPhase —
  * appended so watermark comparisons below never miss it. */
 export const PHASE_ORDER: StudentPhase[] = [
@@ -39,29 +46,18 @@ interface StudentSidebarProps {
   studentName: string;
   activeSection: StudentTopSection;
   activePhase?: StudentPhase | null;
-  /** The active topic has no teacher-authored conversationTurns — hide the
-   */
-  /** Conversation is always visible in the lesson phase navigation. */
   quizStars?: number;
   maxQuizStars?: number;
-  /** The furthest phase this lesson attempt has actually reached — phases
-   * beyond it are locked (defaults to `activePhase`, so a sidebar rendered
-   * without this prop only ever treats the phase it's currently showing as
-   * reached, never unlocking ahead of it). */
-  furthestPhase?: StudentPhase | null;
-  /** Whether the vocab-quiz 3★ gate has been cleared for the active topic —
-   * gates the "story-speaking" item specifically, independent of the
-   * furthest-phase watermark (defaults to true so callers that omit it see
-   * unchanged behavior). */
-  speakingUnlocked?: boolean;
-  conversationUnlocked?: boolean;
-  /** Allows either practice to be selected directly after the quiz gate. */
-  practiceChoicesUnlocked?: boolean;
+  /** Per-step gate state for the open lesson, derived from saved progress
+   * (see app/student/lessonSteps.ts). Omitted → every step is open. */
+  steps?: LessonSteps;
   currentLessonTitle?: string;
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
 }
+
+const OPEN_STEP: LessonStepState = { visible: true, unlocked: true, done: false };
 
 export default function StudentSidebar({
   studentName,
@@ -69,19 +65,60 @@ export default function StudentSidebar({
   activePhase,
   quizStars = 0,
   maxQuizStars = 0,
-  furthestPhase,
-  speakingUnlocked = true,
-  conversationUnlocked = false,
-  practiceChoicesUnlocked = false,
+  steps,
   currentLessonTitle,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
 }: StudentSidebarProps) {
-  const furthestIndex = PHASE_ORDER.indexOf(
-    furthestPhase ?? activePhase ?? PHASE_ORDER[0],
-  );
-  const quizReached = furthestIndex >= PHASE_ORDER.indexOf("vocab-quiz");
+  const [lockNotice, setLockNotice] = useState<{ phase: StudentPhase; reason: StudentUiCopyKey } | null>(null);
+
+  useEffect(() => {
+    setLockNotice(null);
+  }, [activePhase]);
+
+  const renderPhase = (phase: { id: LessonNavPhase }) => {
+    const step = steps?.[phase.id] ?? OPEN_STEP;
+    if (!step.visible) return null;
+    const locked = !step.unlocked;
+    const noticeId = `sa-phase-lock-${phase.id}`;
+    const showNotice = locked && lockNotice?.phase === phase.id;
+    return (
+      <div key={phase.id} className="sa-sidebar__phase-row">
+        <button
+          type="button"
+          className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""} ${locked ? "is-locked" : ""} ${step.done ? "is-done" : ""}`}
+          aria-current={activePhase === phase.id ? "page" : undefined}
+          aria-disabled={locked || undefined}
+          aria-describedby={showNotice ? noticeId : undefined}
+          data-phase={phase.id}
+          onClick={() => {
+            if (locked) {
+              setLockNotice(step.lockReason ? { phase: phase.id, reason: step.lockReason } : null);
+              return;
+            }
+            setLockNotice(null);
+            onNavigatePhase?.(phase.id);
+          }}
+        >
+          {locked ? (
+            <StudentIcon name="lock" size={14} role="decorative" />
+          ) : step.done ? (
+            <StudentIcon name="check_circle" size={14} role="decorative" filled />
+          ) : (
+            <span className="sa-sidebar__phase-dot" aria-hidden="true" />
+          )}
+          <StudentSystemText k={PHASE_COPY[phase.id]} withinControl />
+          {step.done && <span className="sa-sidebar__sr-only" lang="zh-Hant">（已完成）</span>}
+        </button>
+        {showNotice && lockNotice && (
+          <p id={noticeId} className="sa-sidebar__lock-notice" role="status">
+            <StudentSystemText k={lockNotice.reason} />
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <aside className="sa-sidebar">
@@ -182,41 +219,14 @@ export default function StudentSidebar({
             <p className="sa-sidebar__nav-label">
               <StudentSystemText k="lessonPhase" />
             </p>
-            {PHASE_NAV.map((phase) => {
-              const starLocked =
-                phase.id === "story-speaking" && !speakingUnlocked;
-              const practiceOpen =
-                quizReached &&
-                practiceChoicesUnlocked &&
-                (phase.id === "story-speaking"
-                  ? speakingUnlocked
-                  : phase.id === "conversation" && conversationUnlocked);
-              const locked =
-                (!practiceOpen &&
-                  PHASE_ORDER.indexOf(phase.id) > furthestIndex) ||
-                starLocked;
-              return (
-                <button
-                  key={phase.id}
-                  type="button"
-                  className={`sa-sidebar__phase-item ${activePhase === phase.id ? "is-active" : ""} ${locked ? "is-locked" : ""}`}
-                  aria-current={activePhase === phase.id ? "page" : undefined}
-                  disabled={locked}
-                  aria-label={locked ? (starLocked ? "完成三星後解鎖" : "請先完成前一個步驟") : undefined}
-                  onClick={() => onNavigatePhase(phase.id)}
-                >
-                  {locked ? (
-                    <StudentIcon name="lock" size={14} role="decorative" />
-                  ) : (
-                    <span
-                      className="sa-sidebar__phase-dot"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <StudentSystemText k={PHASE_COPY[phase.id]} withinControl />
-                </button>
-              );
-            })}
+            {PHASE_NAV.filter((phase) => !PRACTICE_PATHS.includes(phase.id) && phase.id !== "submit").map(renderPhase)}
+            <div className="sa-sidebar__phase-group" role="group" aria-labelledby="sa-phase-choose-one">
+              <p id="sa-phase-choose-one" className="sa-sidebar__phase-group-label">
+                <StudentSystemText k="chooseOne" />
+              </p>
+              {PHASE_NAV.filter((phase) => PRACTICE_PATHS.includes(phase.id)).map(renderPhase)}
+            </div>
+            {PHASE_NAV.filter((phase) => phase.id === "submit").map(renderPhase)}
           </nav>
         )}
       </div>

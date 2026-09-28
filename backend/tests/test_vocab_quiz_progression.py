@@ -30,6 +30,7 @@ def _attempt(mode, quiz_id, total=10, correct=0):
         "storyId": "story-5-1",
         "studentId": "student-1",
         "mode": mode,
+        "completedAt": "2026-09-01T00:00:00Z",
         "totalQuestions": total,
         # Deliberately wrong: progression must use the validated ledger below.
         "correctCount": correct,
@@ -120,3 +121,42 @@ def test_shared_story_frames_make_conversation_available_without_saved_turns(mon
 
     assert result["conversationAvailable"] is True
     assert result["conversationUnlocked"] is True
+
+
+def test_finishing_a_round_earns_it_regardless_of_accuracy(monkeypatch):
+    # 1/10, 0/10, 2/10 would have failed every old pass ratio (70/82/88%);
+    # finishing each round is now what counts.
+    attempts = [_attempt("tier1", "q1"), _attempt("tier2", "q2"), _attempt("tier3", "q3")]
+    responses = _responses("tier1", "q1", 1) + _responses("tier2", "q2", 0) + _responses("tier3", "q3", 2)
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+
+    result = progression.get_progression(_Db(responses, _conversation()), "student-1", "story-5-1")
+
+    assert result["quizStars"] == 3
+    assert result["speakingUnlocked"] is True
+    assert result["tiers"]["tier1"] == {
+        "earned": True, "correctCount": 1, "totalQuestions": 10, "score": 10, "completedAt": "2026-09-01T00:00:00Z",
+    }
+    assert result["tiers"]["tier2"]["score"] == 0
+
+
+def test_each_round_reports_its_latest_finished_attempt_not_its_best(monkeypatch):
+    early = {**_attempt("tier1", "q-early"), "completedAt": "2026-09-01T00:00:00Z"}
+    late = {**_attempt("tier1", "q-late"), "completedAt": "2026-09-02T00:00:00Z"}
+    unfinished = {**_attempt("tier1", "q-unfinished"), "completedAt": "2026-09-03T00:00:00Z"}
+    responses = (
+        _responses("tier1", "q-early", 9)
+        + _responses("tier1", "q-late", 4)
+        # Only 3 of its 10 answers reached the ledger, so it is not a finished round.
+        + _responses("tier1", "q-unfinished", 3, total=3)
+    )
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: [late, unfinished, early])
+
+    result = progression.get_progression(_Db(responses, None), "student-1", "story-5-1")
+
+    assert result["quizStars"] == 1
+    assert result["tiers"]["tier1"]["score"] == 40
+    assert result["tiers"]["tier1"]["completedAt"] == "2026-09-02T00:00:00Z"
+    assert result["tiers"]["tier2"] == {
+        "earned": False, "correctCount": 0, "totalQuestions": 0, "score": 0, "completedAt": None,
+    }

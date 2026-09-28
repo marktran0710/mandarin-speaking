@@ -191,12 +191,12 @@ describe("StudentApp", () => {
           .closest("article")!,
       ).getByRole("button", { name: /繼續/ }),
     );
-    expect(sessionStorage.getItem("studentPhaseFlags:student-1:s1")).toBeNull();
+    expect(localStorage.getItem("studentPhaseFlags:student-1:s1")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
     expect(
       JSON.parse(
-        sessionStorage.getItem("studentPhaseFlags:student-1:s1") ?? "{}",
+        localStorage.getItem("studentPhaseFlags:student-1:s1") ?? "{}",
       ).vocab,
     ).toBe(true);
 
@@ -272,9 +272,64 @@ describe("StudentApp", () => {
     expect(screen.queryByTestId("quiz-mock")).not.toBeInTheDocument();
   });
 
-  it("gates the sidebar's phase-nav by furthest phase reached and the real quiz-stars gate", () => {
+  it("derives the sidebar locks from saved progress, so they survive reopening the lesson", () => {
     const s1 = makeTopic({ id: "s1", conversationTurns });
     recordLocalStars("s1", 3);
+    const view = render(
+      <StudentApp
+        studentName="Student One"
+        topics={[s1]}
+        onAddRecord={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+    const openLesson = () => fireEvent.click(
+      within(
+        screen
+          .getByText("故事一", { selector: ".study-row-title" })
+          .closest("article")!,
+      ).getByRole("button"),
+    );
+
+    openLesson();
+    // All three rounds are finished, so the lesson resumes at practice.
+    expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
+    const phaseNav = () => screen.getByRole("navigation", { name: "課程階段" });
+    const phaseButton = (label: string) => within(phaseNav()).getByText(label).closest("button")!;
+    expect(phaseButton("生詞預習")).not.toHaveAttribute("aria-disabled");
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled");
+    expect(phaseButton("口語練習")).not.toHaveAttribute("aria-disabled");
+    expect(phaseButton("對話練習")).not.toHaveAttribute("aria-disabled");
+    expect(phaseButton("提交")).toHaveAttribute("aria-disabled", "true");
+
+    // A locked step explains itself instead of navigating.
+    fireEvent.click(phaseButton("提交"));
+    expect(within(phaseNav()).getByRole("status")).toHaveTextContent("先完成口語練習或對話練習");
+    expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
+
+    // Completing either practice branch is the point at which Submit opens.
+    fireEvent.click(screen.getByRole("button", { name: "完成口說" }));
+    expect(phaseButton("提交")).not.toHaveAttribute("aria-disabled");
+    expect(phaseButton("口語練習")).toHaveClass("is-done");
+
+    // Reopening (or refreshing) keeps every unlock and lands on Submit.
+    view.unmount();
+    render(
+      <StudentApp
+        studentName="Student One"
+        topics={[s1]}
+        onAddRecord={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+    openLesson();
+    expect(screen.getByRole("button", { name: "提交給老師" })).toBeInTheDocument();
+    expect(phaseButton("提交")).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("keeps both practice paths locked until the three quiz rounds are finished", () => {
+    const s1 = makeTopic({ id: "s1", conversationTurns });
+    localStorage.setItem("studentPhaseFlags:student-1:s1", JSON.stringify({ vocab: true }));
     render(
       <StudentApp
         studentName="Student One"
@@ -285,55 +340,17 @@ describe("StudentApp", () => {
     );
 
     fireEvent.click(
-      within(
-        screen
-          .getByText("故事一", { selector: ".study-row-title" })
-          .closest("article")!,
-      ).getByRole("button", { name: /繼續/ }),
+      within(screen.getAllByRole("article")[0]).getByRole("button"),
     );
-
-    // Reopening a three-star lesson keeps both practice paths available;
-    // the learner may still review the vocabulary quiz.
+    // The preview is done, so the lesson resumes at the quiz.
+    expect(screen.getByTestId("quiz-mock")).toBeInTheDocument();
     const phaseNav = screen.getByRole("navigation", { name: "課程階段" });
     const phaseButton = (label: string) => within(phaseNav).getByText(label).closest("button")!;
-    expect(
-      phaseButton("生詞預習"),
-    ).not.toBeDisabled();
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
-    expect(
-      phaseButton("口語練習"),
-    ).not.toBeDisabled();
-    expect(
-      phaseButton("對話練習"),
-    ).not.toBeDisabled();
-    expect(phaseButton("提交")).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
-    expect(
-      phaseButton("詞彙練習"),
-    ).not.toBeDisabled();
-    expect(
-      phaseButton("口語練習"),
-    ).not.toBeDisabled();
-    expect(
-      phaseButton("對話練習"),
-    ).not.toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: "完成測驗" }));
-    // The 3 real stars seeded above clear the star gate once the watermark also reaches it.
-    expect(
-      phaseButton("口語練習"),
-    ).not.toBeDisabled();
-    expect(
-      phaseButton("對話練習"),
-    ).not.toBeDisabled();
-    expect(phaseButton("提交")).toBeDisabled();
-
-    // Completing either practice branch is the point at which Submit opens.
-    fireEvent.click(screen.getByRole("button", { name: "完成口說" }));
-    expect(
-      phaseButton("提交"),
-    ).not.toBeDisabled();
+    expect(phaseButton("口語練習")).toHaveAttribute("aria-disabled", "true");
+    expect(phaseButton("對話練習")).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(phaseButton("對話練習"));
+    expect(within(phaseNav).getByRole("status")).toHaveTextContent("做完三輪詞彙練習後解鎖");
+    expect(screen.getByTestId("quiz-mock")).toBeInTheDocument();
   });
 
   it("reopens lesson 5-1 with both practice paths available after three stars", () => {
@@ -389,12 +406,11 @@ describe("StudentApp", () => {
         screen.getAllByRole("article")[0],
       ).getByRole("button", { name: /繼續/ }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
-    fireEvent.click(screen.getByRole("button", { name: "完成測驗" }));
     fireEvent.click(screen.getByRole("button", { name: /對話練習/ }));
     fireEvent.click(screen.getByRole("button", { name: "完成對話" }));
 
     expect(screen.getByText(/對話已完成/)).toBeInTheDocument();
+    expect(screen.getByText("1 / 1")).toBeInTheDocument();
   });
 
   it("makes Placement a real, reachable section (not disabled) alongside Progress", () => {

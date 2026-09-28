@@ -63,3 +63,22 @@ def test_listing_attempts_includes_the_stamped_policy(logged_in_student):
     assert response.status_code == 200
     attempts = response.json()
     assert attempts[0]["progressionPolicy"] == "production_accuracy"
+
+
+def test_hinted_retry_annotations_are_kept_on_the_stored_attempt(logged_in_student):
+    client, student = logged_in_student
+    payload = _attempt("attempt-hinted")
+    payload["correctCount"] = 0
+    payload["questionResults"] = [{
+        "word": "學習", "correct": False, "timeMs": 900, "hintUsed": True, "retryCorrect": True,
+    }]
+    response = client.post("/api/vocab-quiz-attempts", json=payload)
+    assert response.status_code == 200
+
+    listed = client.get("/api/vocab-quiz-attempts", params={"story_id": "story-1"}).json()
+    stored = next(attempt for attempt in listed if attempt["id"] == "attempt-hinted")
+    result = stored["questionResults"][0]
+    # The retry is an annotation only: the first try stays the scored answer.
+    assert result["correct"] is False
+    assert result["hintUsed"] is True
+    assert result["retryCorrect"] is True

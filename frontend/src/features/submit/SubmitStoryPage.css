@@ -47,3 +47,11 @@
 .sa-submit__check-item.is-done { color: var(--color-ink); background: var(--color-mint); }
 .sa-submit__check-item.is-done .sa-icon { color: var(--color-success); }
 .sa-submit__error { padding: 12px 14px; border-radius: 12px; background: var(--color-peach); color: var(--color-error); }
+
+.sa-submit__note {
+  margin: 0;
+  max-width: 420px;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+}
