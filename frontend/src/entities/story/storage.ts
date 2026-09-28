@@ -20,8 +20,16 @@ export function loadCustomStories(): CustomTeacherStory[] {
 }
 
 export function saveCustomStories(stories: CustomTeacherStory[]) {
-  if (typeof window !== "undefined") {
+  if (typeof window === "undefined") return;
+  try {
     window.localStorage.setItem(CUSTOM_STORY_STORAGE_KEY, JSON.stringify(stories));
+  } catch {
+    // Best-effort cache: a full localStorage quota (the story list is
+    // megabytes) must never block the caller. Drop the stale copy rather
+    // than leave outdated stories behind.
+    try {
+      window.localStorage.removeItem(CUSTOM_STORY_STORAGE_KEY);
+    } catch {/* storage unavailable */}
   }
 }
 

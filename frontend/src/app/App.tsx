@@ -163,8 +163,8 @@ export default function App() {
     const request = (async () => {
       try {
         const stories = await listCustomStories();
-        saveCustomStories(stories);
         setPublishedTopics(publishedTopicsFromStories(stories));
+        saveCustomStories(stories);
       } catch {/* keep current */}
     })().finally(() => { publishedTopicsRequestRef.current = null; });
     publishedTopicsRequestRef.current = request;
