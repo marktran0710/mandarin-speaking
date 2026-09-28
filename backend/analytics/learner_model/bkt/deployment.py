@@ -1,9 +1,10 @@
 """Which BKT parameters serve learners: the active deployment, else code defaults.
 
 ``bkt_model_active_deployment`` points at one immutable ``bkt_model_versions``
-row. The database only accepts a deployment of a promotable, real-evidence
-version (migration 0031). Serving reads that row through a short TTL cache; with
-no deployment, or one that is not a format-aware version, the engineering
+row. The database accepts a promotable, real-evidence version by default; an
+explicit transaction-local test flag can deploy a synthetic version in local
+development. Serving reads that row through a short TTL cache; with no
+deployment, or one that is not a format-aware version, the engineering
 defaults in :data:`BKT_CONFIG` apply exactly as before.
 
 Only callers that use the default ``params`` (the production recommendation
@@ -113,11 +114,18 @@ def clear_active_config_cache() -> None:
     _active_config_cache.clear()
 
 
-def promote_model_version(db: Any, model_version: str, reason: str) -> dict[str, Any]:
+def promote_model_version(
+    db: Any,
+    model_version: str,
+    reason: str,
+    *,
+    allow_synthetic: bool = False,
+) -> dict[str, Any]:
     """Point serving at ``model_version`` and rebuild every learner's cache.
 
-    Raises ValueError for an unknown or non-format-aware version; the database
-    trigger rejects any version that is not promotable real evidence.
+    Synthetic activation is an explicit local/dev test operation. The session
+    flag is consumed by the database trigger so an ordinary caller cannot
+    accidentally deploy synthetic evidence.
     """
     from analytics.learner_model.bkt.mastery import rebuild_all_vocabulary_mastery
 
@@ -128,6 +136,17 @@ def promote_model_version(db: Any, model_version: str, reason: str) -> dict[str,
         raise ValueError(f"Unknown BKT model version: {model_version}")
     if row.get("model_scope") != FORMAT_AWARE_MODEL_SCOPE or row.get("guess_rate_typed") is None or row.get("slip_rate_typed") is None:
         raise ValueError(f"{model_version} is not a format-aware model and cannot serve learners.")
+    evidence_origin = row.get("evidence_origin")
+    if evidence_origin == "synthetic":
+        if not allow_synthetic:
+            raise ValueError(
+                "Synthetic BKT activation requires the explicit allow_synthetic test flag."
+            )
+        if os.getenv("APP_ENV", "development").lower() == "production":
+            raise ValueError("Synthetic BKT activation is disabled when APP_ENV=production.")
+        # The trigger checks this transaction-local setting for both the
+        # deployment pointer and its audit event.
+        db.execute("SELECT set_config('mandarin.allow_synthetic_bkt_deployment', 'on', true)")
     previous = load_active_deployment(db)
     db.execute(
         """
@@ -148,6 +167,8 @@ def promote_model_version(db: Any, model_version: str, reason: str) -> dict[str,
     return {
         "modelVersion": model_version,
         "previousModelVersion": previous["model_version"] if previous else None,
+        "evidenceOrigin": evidence_origin,
+        "syntheticTestDeployment": evidence_origin == "synthetic",
         "parameters": asdict(config),
     }
 

@@ -2,9 +2,10 @@
 
 Activation points serving at one immutable candidate created by
 ``scripts.refit_bkt_parameters`` and rebuilds every learner's cached mastery.
-The database only accepts candidates that are format-aware, fitted on real
-learner evidence and passed every promotion gate. Deactivation returns serving
-to the engineering defaults in ``analytics/learner_model/bkt/core.py``.
+Normal activation requires candidates that are format-aware, fitted on real
+learner evidence and passed every promotion gate. A synthetic candidate can
+be activated only with an explicit local test flag. Deactivation returns
+serving to the engineering defaults in ``analytics/learner_model/bkt/core.py``.
 
 Serving processes pick up a change within BKT_ACTIVE_CONFIG_TTL_SECONDS
 (default 30s).
@@ -14,6 +15,7 @@ Examples, run from ``backend/``::
     python -m scripts.promote_bkt_model status
     python -m scripts.promote_bkt_model candidates
     python -m scripts.promote_bkt_model activate bkt-real-candidate-... --reason "Spring pilot fit"
+    python -m scripts.promote_bkt_model activate bkt-synthetic-candidate-... --reason "Local SIM runtime test" --allow-synthetic
     python -m scripts.promote_bkt_model deactivate
 """
 
@@ -66,9 +68,14 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="Show the active deployment.")
     commands.add_parser("candidates", help="List recent candidates.")
-    activate = commands.add_parser("activate", help="Serve a promotable candidate.")
+    activate = commands.add_parser("activate", help="Serve a candidate.")
     activate.add_argument("model_version")
     activate.add_argument("--reason", required=True)
+    activate.add_argument(
+        "--allow-synthetic",
+        action="store_true",
+        help="Allow a synthetic candidate for an explicit local/dev runtime test.",
+    )
     commands.add_parser("deactivate", help="Return to the engineering defaults.")
     args = parser.parse_args()
 
@@ -78,8 +85,15 @@ def main() -> None:
         elif args.command == "candidates":
             _candidates(db)
         elif args.command == "activate":
-            result = promote_model_version(db, args.model_version, args.reason)
+            result = promote_model_version(
+                db,
+                args.model_version,
+                args.reason,
+                allow_synthetic=args.allow_synthetic,
+            )
             print(f"Activated {result['modelVersion']} (previous: {result['previousModelVersion'] or 'defaults'}).")
+            if result["syntheticTestDeployment"]:
+                print("WARNING: synthetic test candidate is now active for all learners in this database.")
             print("Every learner's cached mastery was rebuilt with the new parameters.")
         else:
             result = deactivate_deployment(db)

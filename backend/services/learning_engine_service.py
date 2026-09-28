@@ -14,6 +14,7 @@ Provenance tags used throughout (see docs/learning-engine.md):
   PROJECT_HEURISTIC             - project-specific logic with no external validation
   ENGINEERING_DEFAULT           - a runtime constant chosen for launch, not calibrated
   FITTED:<model version>        - fitted on learner evidence and activated (BKT model parameters)
+  SYNTHETIC_TEST:<model version> - explicit local test deployment from SIM evidence
 """
 
 from typing import Any
@@ -34,7 +35,14 @@ from services.pronunciation_scoring import SENTENCE_SYLLABLE_PASS_RATIO
 
 def _bkt_section(config: BktConfig = BKT_CONFIG, deployment: dict | None = None) -> dict:
     fitted = deployment is not None and config is not BKT_CONFIG
-    model_provenance = f"FITTED:{deployment['model_version']}" if fitted else "ENGINEERING_DEFAULT"
+    synthetic = fitted and deployment.get("evidence_origin") == "synthetic"
+    model_provenance = (
+        f"SYNTHETIC_TEST:{deployment['model_version']}"
+        if synthetic
+        else f"FITTED:{deployment['model_version']}"
+        if fitted
+        else "ENGINEERING_DEFAULT"
+    )
     return {
         "name": "Bayesian Knowledge Tracing",
         "version": BKT_MODEL_VERSION,
@@ -82,18 +90,22 @@ def _bkt_section(config: BktConfig = BKT_CONFIG, deployment: dict | None = None)
                 "provenance": "ENGINEERING_DEFAULT",
             },
         },
-        "parameterStatus": "fitted" if fitted else "provisional",
+        "parameterStatus": "synthetic_test" if synthetic else "fitted" if fitted else "provisional",
         "activeDeployment": (
             {
                 "modelVersion": deployment["model_version"],
                 "evidenceOrigin": deployment["evidence_origin"],
+                "syntheticTest": synthetic,
                 "deployedAt": str(deployment["updated_at"]),
             }
             if fitted
             else None
         ),
         "calibrationStatus": (
-            "P(L0), P(T) and guess/slip were fitted on learner evidence (scripts/refit_bkt_parameters.py) and "
+            "SYNTHETIC TEST DEPLOYMENT: parameters were fitted from SIM responses and are active for this local database only. "
+            "They are not human calibration. Mastery threshold and minimum observations remain policy defaults."
+            if synthetic
+            else "P(L0), P(T) and guess/slip were fitted on learner evidence (scripts/refit_bkt_parameters.py) and "
             "activated with scripts/promote_bkt_model.py. Mastery threshold and minimum observations remain policy defaults."
             if fitted
             else "Needs pilot/human-rater calibration - source code labels these ENGINEERING DEFAULTS, not calibrated cutoffs (analytics/bkt.py)."
