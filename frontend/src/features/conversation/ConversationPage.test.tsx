@@ -194,6 +194,8 @@ describe("ConversationPage", () => {
     expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(onAddRecord.mock.calls[0][0].model).toBe("ctwhisper");
     expect(saveSpeakingProgress).toHaveBeenCalledTimes(1);
+    expect(document.querySelector(".sa-result-review__footer")).toBeTruthy();
+    expect(document.querySelector(".sa-result-review__footer .sa-conversation__footer")).toBeTruthy();
 
     // Only one exchange in this fixture -> the feedback continue button reads "Finish".
     fireEvent.click(screen.getByRole("button", { name: "完成" }));

@@ -153,7 +153,7 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
             )}
 
             {currentTurn && state.step === "feedback" && (
-              <div className="sa-bubble-row is-student is-current">
+              <div className="sa-bubble-row sa-bubble-row--feedback is-student is-current">
                 <ConversationRoleHeader role="student" />
                 <TurnFeedback
                   session={session}

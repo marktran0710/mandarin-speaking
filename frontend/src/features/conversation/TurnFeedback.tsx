@@ -23,12 +23,16 @@ export default function TurnFeedback({ session, continueLabel, topic }: TurnFeed
         audioUrl={lastResult.audioUrl}
         meaningPassed={lastAnalysis.accepted}
         modelContour={topic.sentenceModelContours?.[session.currentTurn?.sceneIndex ?? -1]}
-      />
-      {lastResult.verified && <p className="sa-conversation__verified"><StudentSystemText k="verifiedRecording" /></p>}
-      <ConversationFooter
-        continueLabel={continueLabel}
-        onRecordAgain={session.recordAgain}
-        onContinue={session.nextTurn}
+        footer={(
+          <>
+            {lastResult.verified && <p className="sa-conversation__verified"><StudentSystemText k="verifiedRecording" /></p>}
+            <ConversationFooter
+              continueLabel={continueLabel}
+              onRecordAgain={session.recordAgain}
+              onContinue={session.nextTurn}
+            />
+          </>
+        )}
       />
     </section>
   );

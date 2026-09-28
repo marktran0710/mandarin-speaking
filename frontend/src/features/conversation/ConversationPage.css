@@ -224,10 +224,22 @@
   border-top: 1px solid var(--color-sky-strongest);
 }
 
-.sa-bubble--feedback {
+.sa-bubble-row--feedback {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* The review card owns the feedback surface; this wrapper only preserves the
+   conversation row structure and its role label. */
+.sa-bubble-row.is-student .sa-bubble--feedback {
+  width: 100%;
+  min-width: 0;
   align-items: stretch;
-  background: var(--color-surface);
-  border-color: var(--color-sky-strongest);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .sa-conversation__you-said {

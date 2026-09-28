@@ -1,8 +1,10 @@
 .sa-result-review {
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
+  gap: var(--space-3);
+  padding: var(--space-5);
   border: 1px solid var(--color-sky-strongest);
   border-radius: var(--radius-control-md);
   background: var(--color-surface);
@@ -15,6 +17,14 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.sa-result-review__heading > div,
+.sa-result-review__detail-heading > div {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .sa-result-review__eyebrow,
@@ -57,6 +67,8 @@
 .sa-result-badge.is-attention { background: var(--color-error-container); color: var(--color-error); }
 
 .sa-result-review__script {
+  width: 100%;
+  min-width: 0;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
@@ -94,21 +106,27 @@
 .sa-result-review__phrases button { min-height: 36px; padding: 0 var(--space-3); border: 1px solid var(--color-sky-strongest); border-radius: var(--radius-control-full); background: var(--color-surface); color: var(--color-ink-variant); font: inherit; cursor: pointer; }
 .sa-result-review__phrases button.is-selected { border-color: var(--color-primary); background: var(--color-primary-container); color: var(--color-on-primary-container); }
 
-.sa-result-review__tone { display: flex; flex-direction: column; gap: var(--space-3); }
+.sa-result-review__tone { display: flex; min-width: 0; flex-direction: column; gap: var(--space-3); }
 .sa-result-review__detail { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-sky-strongest); border-radius: var(--radius-control); background: var(--color-surface-soft); }
 .sa-result-review__detail-heading strong { color: var(--color-ink); font-family: var(--font-hanzi); font-size: var(--font-size-heading); font-weight: 500; }
 .sa-result-review__mini-chart { display: flex; flex-direction: column; gap: var(--space-2); max-width: 22rem; }
 .sa-result-review__mini-chart svg { width: 100%; height: 5rem; border-radius: var(--radius-sm); background: var(--color-surface); }
 .sa-result-review__disclosure { display: inline-flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0; border: 0; border-top: 1px solid var(--color-sky-strongest); background: transparent; color: var(--color-ink-variant); font: inherit; font-size: var(--font-size-small); font-weight: 700; cursor: pointer; }
+.sa-result-review__timeline,
+.sa-result-review .praat-timeline-card,
+.sa-result-review .praat-timeline-scroll { width: 100%; min-width: 0; }
 .sa-result-review__timeline { overflow-x: auto; }
+.sa-result-review .praat-timeline-header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.sa-result-review .praat-timeline { display: block; width: 100%; min-width: 0; height: auto; }
 .sa-result-review__hidden-audio { display: none; }
 .sa-result-review__timeline .praat-timeline-card { margin-top: var(--space-2); }
 .sa-result-review__coach { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-control); background: var(--color-mint); color: var(--color-success-ink); }
 .sa-result-review__coach strong { display: block; font-family: var(--font-ui); font-size: var(--font-size-small); }
 .sa-result-review__coach p { margin: var(--space-1) 0 0; color: var(--color-ink-variant); font-family: var(--font-ui); font-size: var(--font-size-body); line-height: 1.5; }
+.sa-result-review__footer { display: flex; min-width: 0; flex-direction: column; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-sky-strongest); }
+.sa-result-review__footer .sa-conversation__footer { padding-top: 0; border-top: 0; }
 
 @media (max-width: 560px) {
   .sa-result-review { padding: var(--space-4); }
-  .sa-result-review__heading { align-items: stretch; flex-direction: column; }
   .sa-result-review__script { padding: var(--space-4); }
 }

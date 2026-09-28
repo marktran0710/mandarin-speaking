@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { PraatMetrics, WordProsody } from "@entities/speech";
 import MiniContourChart from "../../components/pitch/MiniContourChart";
 import PraatTimeline from "../../components/pitch/PraatTimeline";
@@ -19,6 +20,8 @@ interface SpeechResultReviewProps {
   meaningPassed: boolean;
   /** The scene's teacher model-voice shape, when one was recorded. */
   modelContour?: SentenceModelContour | null;
+  /** Optional content rendered inside the review card after the feedback. */
+  footer?: ReactNode;
 }
 
 interface ScriptUnit {
@@ -34,6 +37,7 @@ export default function SpeechResultReview({
   audioUrl,
   meaningPassed,
   modelContour,
+  footer,
 }: SpeechResultReviewProps) {
   const words = metrics.word_prosody ?? [];
   const modelOverlay = useMemo(
@@ -158,6 +162,8 @@ export default function SpeechResultReview({
           </div>
         </div>
       )}
+
+      {footer && <div className="sa-result-review__footer">{footer}</div>}
     </section>
   );
 }
