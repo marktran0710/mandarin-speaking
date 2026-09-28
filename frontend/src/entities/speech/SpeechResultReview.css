@@ -107,6 +107,8 @@
 .sa-result-review__phrases button.is-selected { border-color: var(--color-primary); background: var(--color-primary-container); color: var(--color-on-primary-container); }
 
 .sa-result-review__tone { display: flex; min-width: 0; flex-direction: column; gap: var(--space-3); }
+.sa-result-review__similarity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin: 0; color: var(--color-ink-variant); font-family: var(--font-ui); }
+.sa-result-review__similarity strong { color: var(--color-primary); font-size: 1.25rem; }
 .sa-result-review__detail { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-sky-strongest); border-radius: var(--radius-control); background: var(--color-surface-soft); }
 .sa-result-review__detail-heading strong { color: var(--color-ink); font-family: var(--font-hanzi); font-size: var(--font-size-heading); font-weight: 500; }
 .sa-result-review__mini-chart { display: flex; flex-direction: column; gap: var(--space-2); max-width: 22rem; }

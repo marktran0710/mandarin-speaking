@@ -149,6 +149,11 @@ class SceneSubmission(BaseModel):
     # verdict. Absent when the student skipped the prompt.
     selfEvalContent: Optional[Literal["good", "ok", "bad"]] = None
     selfEvalPronunciation: Optional[Literal["good", "ok", "bad"]] = None
+    # "Similar to the model voice", 0-100: Pearson r (floored at 0) between
+    # the student's and the teacher recording's pitch shape, computed by the
+    # student app. Stored for later review only; never gates progress and is
+    # not part of tone scoring. Absent when there was nothing to compare.
+    modelSimilarity: Optional[float] = Field(default=None, ge=0, le=100)
     # Conversation-turn identity. Without these a conversation turn was
     # indistinguishable from a story scene once stored (the fields were
     # silently dropped), so the teacher view could not tell them apart.

@@ -241,6 +241,7 @@ export const englishKeyOverrides: Record<string, string> = {
   chartLegend: "Chart legend",
   yourCurve: "Your curve",
   exampleCurve: "Example curve",
+  modelSimilarity: "Similar to the model voice",
   practiceTip: "Practice tip",
   evidencePracticeTip: "Practice tip from the data",
   noCourses: "No courses available",

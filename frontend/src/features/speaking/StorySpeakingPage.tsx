@@ -23,6 +23,7 @@ import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { SpeechResultReview, SpeechSelfEvaluation, type SelfEvalLevel } from "@entities/speech";
 import type { SpeakingAnalysisResult } from "./hooks/useSpeakingRecorder";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
+import { attemptModelSimilarity } from "@entities/speech/modelSimilarity";
 import "./StorySpeakingPage.css";
 
 // Self-evaluation is a deliberate stage between analysis and the feedback
@@ -95,6 +96,13 @@ export default function StorySpeakingPage({
     setAttempts(nextAttempt);
 
     const coverage = result.metrics.ai_feedback?.vocabulary_coverage;
+    const similarity = attemptModelSimilarity({
+      contour: topic.sentenceModelContours?.[selectedImageIndex],
+      targetScript: targetText,
+      transcript: result.metrics.transcription,
+      words: result.metrics.word_prosody ?? [],
+      pitchContour: result.metrics.pitch_contour ?? [],
+    });
     const submission: SceneSubmission = {
       sceneIndex: selectedImageIndex,
       imageUrl: selectedImage,
@@ -111,6 +119,7 @@ export default function StorySpeakingPage({
       utteranceCount: result.metrics.pause_analysis?.utterance_count ?? 0,
       choppyPauseCount: result.metrics.pause_analysis?.choppy_pause_count ?? 0,
       articulationRate: result.metrics.pause_analysis?.articulation_rate ?? 0,
+      modelSimilarity: similarity?.score ?? null,
       baseStoryId,
       difficultyLevel: topic.difficultyLevel ?? "easy",
       promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${selectedImageIndex}`,

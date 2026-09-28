@@ -19,6 +19,7 @@ import { topicStoryId } from "../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import { useSpeakingRecorder, type SpeakingAnalysisResult } from "../speaking/hooks/useSpeakingRecorder";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
+import { attemptModelSimilarity } from "@entities/speech/modelSimilarity";
 import type { SelfEvalLevel } from "@entities/speech";
 
 interface UseConversationSessionArgs {
@@ -129,6 +130,13 @@ export function useConversationSession({
       pronScore: Math.round(result.metrics.tone_accuracy ?? 0),
       fluencyScore: Math.round(result.metrics.fluency_score ?? 0),
       audioUrl: result.audioUrl,
+      modelSimilarity: attemptModelSimilarity({
+        contour: topic.sentenceModelContours?.[currentTurn.sceneIndex ?? -1],
+        targetScript: currentTurn.targetText || currentTurn.text,
+        transcript: transcription,
+        words: result.metrics.word_prosody ?? [],
+        pitchContour: result.metrics.pitch_contour ?? [],
+      })?.score ?? null,
       conversationId: conversationIdRef.current,
       turnId: currentTurn.id,
       turnIndex: state.turnIndex,

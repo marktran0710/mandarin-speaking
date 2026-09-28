@@ -321,6 +321,7 @@ const baseStudentUiCopy = {
   chartLegend: { zh: "圖表圖例", pinyin: "Túbiǎo túlì" },
   yourCurve: { zh: "你的曲線", pinyin: "Nǐ de qūxiàn" },
   exampleCurve: { zh: "示範曲線", pinyin: "Shìfàn qūxiàn" },
+  modelSimilarity: { zh: "像老師的聲音", pinyin: "Xiàng lǎoshī de shēngyīn" },
   practiceTip: { zh: "練習提示", pinyin: "Liànxí tíshì" },
   evidencePracticeTip: { zh: "根據資料的練習提示", pinyin: "Gēnjù zīliào de liànxí tíshì" },
   noCourses: { zh: "目前沒有可學的課程", pinyin: "Mùqián méiyǒu kě xué de kèchéng" },
