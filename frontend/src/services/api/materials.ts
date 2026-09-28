@@ -1,6 +1,9 @@
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 
 export type MaterialsImportKind = "images" | "scripts";
+// Script confirmation can rebuild reference curves for every scene, so it is
+// intentionally allowed more time than ordinary CRUD requests.
+export const MATERIALS_IMPORT_TIMEOUT_MS = 300_000;
 
 export interface MaterialsImportChange {
   filename?: string;
@@ -39,7 +42,12 @@ export interface MaterialsImportResult {
 async function postMaterials<T>(kind: MaterialsImportKind, path: "preview" | "confirm", files: File[]): Promise<T> {
   const body = new FormData();
   files.forEach((file) => body.append("file", file, file.name));
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/materials/${kind}/${path}`, { method: "POST", body }, 1);
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/admin/materials/${kind}/${path}`,
+    { method: "POST", body },
+    1,
+    MATERIALS_IMPORT_TIMEOUT_MS,
+  );
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
     throw new Error(typeof payload?.detail === "string" ? payload.detail : "Could not process the materials import.");
