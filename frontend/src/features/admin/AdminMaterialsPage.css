@@ -6,6 +6,33 @@
 
 .admin-materials-card .tdash-card-note { margin-top: -6px; }
 
+.admin-materials-tool-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.admin-materials-inline-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.admin-materials-inline-copy { min-width: 0; }
+.admin-materials-inline-copy strong { display: block; margin-top: 3px; color: var(--clay-ink); font-size: .94rem; }
+.admin-materials-inline-copy small { display: block; max-width: 62ch; margin-top: 3px; color: var(--clay-muted); font-size: .8rem; line-height: 1.4; }
+.admin-materials-inline-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.admin-materials-inline-toolbar > .admin-materials-notice,
+.admin-materials-inline-toolbar > .admin-materials-error { grid-column: 1 / -1; margin: 0; }
+.admin-template-button--upload input { display: none; }
+
 .admin-materials-upload-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -81,6 +108,8 @@
 @media (max-width: 760px) {
   .admin-materials-upload-grid { grid-template-columns: minmax(0, 1fr); }
   .admin-materials-upload-card p { min-height: 0; }
+  .admin-materials-inline-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .admin-materials-inline-actions { justify-content: flex-start; }
 }
 
 @media (max-width: 520px) {
@@ -88,4 +117,6 @@
   .materials-dialog { max-height: calc(100dvh - 20px); }
   .materials-change { grid-template-columns: 1fr; gap: 3px; }
   .materials-dialog-footer > * { width: 100%; }
+  .admin-materials-inline-toolbar { padding: var(--space-md); }
+  .admin-materials-inline-actions > * { flex: 1 1 100%; }
 }

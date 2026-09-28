@@ -26,6 +26,56 @@ const MATERIALS_TOOLS: Array<{ id: AdminMaterialsTool; icon: UiIconName; title: 
   },
 ];
 
+function MaterialsInlineUploadBar({
+  isBulkUploadingAudio,
+  onBulkUploadAudio,
+  onOpenImport,
+  bulkAudioNotice,
+  bulkAudioError,
+}: {
+  isBulkUploadingAudio: boolean;
+  onBulkUploadAudio: (files: File[]) => void;
+  onOpenImport: (kind: "images" | "scripts") => void;
+  bulkAudioNotice: string;
+  bulkAudioError: string;
+}) {
+  return (
+    <section className="admin-materials-inline-toolbar" aria-label="Material uploads">
+      <div className="admin-materials-inline-copy">
+        <span className="admin-eyebrow">Shared lesson assets</span>
+        <strong>Upload materials for lessons 5–8</strong>
+        <small>Audio, full-story images, and shared scene scripts are available here while you edit a story.</small>
+      </div>
+      <div className="admin-materials-inline-actions">
+        <label className="admin-template-button admin-template-button--upload">
+          <Icon name="volume" size={16} />
+          {isBulkUploadingAudio ? "Uploading…" : "Upload audios"}
+          <input
+            type="file"
+            hidden
+            multiple
+            accept="audio/*,.zip,application/zip,application/x-zip-compressed"
+            disabled={isBulkUploadingAudio}
+            aria-label="Upload audio files for lessons 5 to 8"
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = "";
+              if (files.length) onBulkUploadAudio(files);
+            }}
+          />
+        </label>
+        <button type="button" className="admin-template-button" onClick={() => onOpenImport("images")}>
+          <Icon name="image" size={16} /> Upload images
+        </button>
+        <button type="button" className="admin-template-button" onClick={() => onOpenImport("scripts")}>
+          <Icon name="file" size={16} /> Upload scripts
+        </button>
+      </div>
+      {(bulkAudioNotice || bulkAudioError) && <p className={bulkAudioError ? "admin-materials-error" : "admin-materials-notice"} role={bulkAudioError ? "alert" : "status"}>{bulkAudioError || bulkAudioNotice}</p>}
+    </section>
+  );
+}
+
 export default function AdminMaterialsPage({ initialTool }: { initialTool?: AdminMaterialsTool } = {}) {
   const [tool, setTool] = useState<AdminMaterialsTool | null>(initialTool ?? null);
   const [importKind, setImportKind] = useState<"images" | "scripts" | null>(null);
@@ -42,13 +92,23 @@ export default function AdminMaterialsPage({ initialTool }: { initialTool?: Admi
 
   if (tool) {
     return (
-      <>
+      <div className="admin-materials-tool-page">
         <button type="button" className="tdash-back" onClick={() => setTool(null)}>
           Back to Materials
         </button>
+        <MaterialsInlineUploadBar
+          isBulkUploadingAudio={isBulkUploadingAudio}
+          onBulkUploadAudio={(files) => { void handleBulkUploadAudio(files); }}
+          onOpenImport={(kind) => { setError(""); setImportKind(kind); }}
+          bulkAudioNotice={bulkAudioNotice}
+          bulkAudioError={bulkAudioError}
+        />
         {tool === "builder" && <StoryBuilderSection showBulkAudio={false} />}
         {tool === "imageBuilder" && <TeacherImageBuilderPage />}
-      </>
+        {error && <p className="admin-materials-error" role="alert">{error}</p>}
+        {importKind && <MaterialsImportDialog kind={importKind} onClose={() => setImportKind(null)} onConfirmed={(message) => { setNotice(message); setError(""); void listCustomStories().then(setCustomStories).catch(() => {}); }} />}
+        {notice && <p className="admin-materials-notice" role="status">{notice}</p>}
+      </div>
     );
   }
 

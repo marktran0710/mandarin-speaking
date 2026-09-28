@@ -17,4 +17,16 @@ describe("Admin Materials bulk imports", () => {
     expect(screen.getByRole("dialog", { name: "Upload images" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download sample" })).toBeInTheDocument();
   });
+
+  it("keeps the three upload actions visible inside Create Story Activity", async () => {
+    const user = userEvent.setup();
+    render(<AdminMaterialsPage />);
+
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
+
+    expect(screen.getByRole("region", { name: "Material uploads" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload images" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload scripts" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Upload audio files for lessons 5 to 8")).toBeInTheDocument();
+  });
 });
