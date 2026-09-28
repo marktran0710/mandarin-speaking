@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { VocabAssessmentQuestion, VocabQuizQuestion } from "@entities/vocabulary";
 import QuizQuestionSurface from "./QuestionSurface";
@@ -87,8 +88,8 @@ describe("QuizQuestionSurface", () => {
     render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={onSubmit} />);
 
     const input = screen.getByRole("textbox") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "ni3" } });
-    input.setSelectionRange(3, 3);
+    fireEvent.change(input, { target: { value: "n" } });
+    input.setSelectionRange(1, 1);
     fireEvent.click(screen.getByRole("button", { name: "i tone 2: í" }));
     expect(input).toHaveValue("ní");
 
@@ -96,17 +97,55 @@ describe("QuizQuestionSurface", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps each tone keypad column mapped to its numbered tone", () => {
+  it("inserts the displayed character from every vowel row", () => {
     render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={vi.fn()} />);
 
     const input = screen.getByRole("textbox") as HTMLInputElement;
-    const marks = ["ā", "á", "ǎ", "à"];
-    marks.forEach((mark, index) => {
-      fireEvent.change(input, { target: { value: "ma" } });
-      input.setSelectionRange(2, 2);
-      fireEvent.click(screen.getByRole("button", { name: `a tone ${index + 1}: ${mark}` }));
-      expect(input).toHaveValue(mark === "ā" ? "mā" : mark === "á" ? "má" : mark === "ǎ" ? "mǎ" : "mà");
+    const marks = [
+      "ā", "á", "ǎ", "à", "ē", "é", "ě", "è",
+      "ī", "í", "ǐ", "ì", "ō", "ó", "ǒ", "ò",
+      "ū", "ú", "ǔ", "ù", "ǖ", "ǘ", "ǚ", "ǜ",
+    ];
+    marks.forEach((mark) => {
+      fireEvent.change(input, { target: { value: "" } });
+      input.setSelectionRange(0, 0);
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(`: ${mark}$`) }));
+      expect(input).toHaveValue(mark);
     });
+  });
+
+  it("inserts at the cursor and restores focus for continued typing", async () => {
+    const user = userEvent.setup();
+    render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={vi.fn()} />);
+
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "n hao" } });
+    input.focus();
+    input.setSelectionRange(1, 1);
+    await user.click(screen.getByRole("button", { name: "i tone 3: ǐ" }));
+
+    expect(input).toHaveValue("nǐ hao");
+    await waitFor(() => {
+      expect(input).toHaveFocus();
+      expect(input.selectionStart).toBe(2);
+      expect(input.selectionEnd).toBe(2);
+    });
+    await user.keyboard("men");
+    expect(input).toHaveValue("nǐmen hao");
+  });
+
+  it("replaces only the selected text with the chosen character", async () => {
+    const user = userEvent.setup();
+    render(<SurfaceHarness question={makeQuestion("character_to_pinyin_typing", "free_text", "Type the pinyin reading.")} onSubmit={vi.fn()} />);
+
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "ni hao" } });
+    input.focus();
+    input.setSelectionRange(0, 2);
+    await user.click(screen.getByRole("button", { name: "e tone 2: é" }));
+
+    expect(input).toHaveValue("é hao");
+    await waitFor(() => expect(input.selectionStart).toBe(1));
   });
 
   it("renders a context blank as a dedicated answer slot", () => {

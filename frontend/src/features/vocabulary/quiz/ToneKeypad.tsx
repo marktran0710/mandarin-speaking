@@ -1,6 +1,5 @@
 import type { RefObject } from "react";
 import StudentIcon from "@shared/ui/student/StudentIcon";
-import { applyToneMark } from "./questionModel";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 
 interface ToneKeypadProps {
@@ -20,15 +19,15 @@ const TONE_GROUPS = [
 ] as const;
 
 export default function ToneKeypad({ inputRef, value, onChange, disabled = false }: ToneKeypadProps) {
-  const insertTone = (tone: 1 | 2 | 3 | 4) => {
+  const insertTone = (mark: string) => {
     const input = inputRef.current;
     const selectionStart = input?.selectionStart ?? value.length;
     const selectionEnd = input?.selectionEnd ?? selectionStart;
-    const edit = applyToneMark(value, tone, selectionStart, selectionEnd);
-    onChange(edit.value);
+    const cursor = selectionStart + mark.length;
+    onChange(value.slice(0, selectionStart) + mark + value.slice(selectionEnd));
     requestAnimationFrame(() => {
       inputRef.current?.focus();
-      inputRef.current?.setSelectionRange(edit.cursor, edit.cursor);
+      inputRef.current?.setSelectionRange(cursor, cursor);
     });
   };
 
@@ -49,7 +48,7 @@ export default function ToneKeypad({ inputRef, value, onChange, disabled = false
                 className="sa-quiz__tone-key"
                 disabled={disabled}
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => insertTone((index + 1) as 1 | 2 | 3 | 4)}
+                onClick={() => insertTone(mark)}
                 aria-label={`${group.base} tone ${index + 1}: ${mark}`}
               >
                 {mark}
