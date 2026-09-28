@@ -27,6 +27,19 @@ class WordReference(TypedDict):
     curve: List[float]
 
 
+_MODEL_POINTS_PER_TOKEN = 24
+
+
+class ModelContourToken(TypedDict):
+    token: str
+    points: List[List[float]]
+
+
+class SentenceModelContour(TypedDict):
+    text: str
+    tokens: List[ModelContourToken]
+
+
 def _tone_hint_for_sentence(sentence_text: str) -> str:
     hanzi = "".join(
         char for char in sentence_text if "\u4e00" <= char <= "\u9fff"
@@ -81,21 +94,53 @@ def extract_scene_reference_curves(
     the same token alignment as student analysis so those tokens do not fall
     back to a synthetic tone template when a teacher recording exists.
     """
+    curves, _contour = extract_scene_model_references(sentence_audio_path, sentence_text)
+    return curves
+
+
+def extract_sentence_model_contour(
+    sentence_audio_path: str,
+    sentence_text: str,
+) -> SentenceModelContour:
+    """The model recording's whole-sentence pitch shape, for display only.
+
+    See ``extract_scene_model_references``."""
+    _curves, contour = extract_scene_model_references(sentence_audio_path, sentence_text)
+    return contour
+
+
+def extract_scene_model_references(
+    sentence_audio_path: str,
+    sentence_text: str,
+) -> Tuple[dict[str, List[float]], SentenceModelContour]:
+    """One analysis pass over a teacher recording, returning both the
+    per-token scoring curves and the display-only sentence model contour.
+
+    The contour stores, per scored token, points as ``[relative_time,
+    semitones]``: time relative to that token's own span (0..1) so the
+    student chart can stretch each token onto the student's own timing, and
+    pitch in semitones relative to the model speaker's median so only the
+    *shape* carries over — a student with a different voice range imitates
+    the rises and falls, not the teacher's absolute pitch. It is never read
+    by scoring.
+    """
     text = sentence_text.strip()
     if not text:
         raise ValueError("Scene has no model sentence text to align against.")
 
+    empty_contour: SentenceModelContour = {"text": text, "tokens": []}
     pitch_contour = extract_pitch(sentence_audio_path)
     if len(pitch_contour) < 2:
-        return {}
+        return {}, empty_contour
 
     analysis = analyze_all(
         sentence_audio_path,
         text,
         pinyin_hint=_tone_hint_for_sentence(text),
     )
+    words = analysis[5] or []
     curves: dict[str, List[float]] = {}
-    for word in analysis[5] or []:
+    for word in words:
         token = str(word.get("token") or "").strip()
         if not token or not word.get("expected_tones"):
             continue
@@ -106,7 +151,43 @@ def extract_scene_reference_curves(
         )
         if curve:
             curves.setdefault(token, curve)
-    return curves
+    return curves, _sentence_model_contour(text, words, pitch_contour)
+
+
+def _sentence_model_contour(
+    text: str,
+    words: List[dict],
+    pitch_contour: List[Tuple[float, float]],
+) -> SentenceModelContour:
+    voiced = [float(freq) for _, freq in pitch_contour if float(freq) > 0]
+    if not voiced:
+        return {"text": text, "tokens": []}
+    median_hz = float(np.median(voiced))
+
+    tokens: List[ModelContourToken] = []
+    for word in words:
+        token = str(word.get("token") or "").strip()
+        if not token or not any("\u4e00" <= char <= "\u9fff" for char in token):
+            continue
+        start = float(word.get("start_time", 0.0))
+        end = float(word.get("end_time", 0.0))
+        span = end - start
+        points = [
+            (float(t), float(f))
+            for t, f in pitch_contour
+            if start <= float(t) <= end and float(f) > 0
+        ] if span > 0 else []
+        if len(points) > _MODEL_POINTS_PER_TOKEN:
+            picks = np.linspace(0, len(points) - 1, _MODEL_POINTS_PER_TOKEN).round().astype(int)
+            points = [points[i] for i in picks]
+        tokens.append({
+            "token": token,
+            "points": [
+                [round((t - start) / span, 3), round(12.0 * float(np.log2(f / median_hz)), 2)]
+                for t, f in points
+            ],
+        })
+    return {"text": text, "tokens": tokens}
 
 
 def _slice_word_references(

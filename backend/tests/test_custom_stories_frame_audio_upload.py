@@ -86,6 +86,8 @@ def test_uploaded_audio_persists_and_derives_reference_curves(admin_client, isol
         curves = json.loads(frame["vocabularyReferenceCurves"])
         sentence_curves = json.loads(frame["sentenceReferenceCurves"])
         assert sentence_curves
+        model_contour = json.loads(frame["sentenceModelContour"])
+        assert model_contour["tokens"]
         audio_urls = json.loads(frame["vocabularyAudioUrls"])
         assert len(curves) == 2  # 咖啡, 喝 — both appear in the sentence
         assert len(audio_urls) == 2
@@ -153,6 +155,7 @@ def test_clearing_audio_removes_the_file_and_resets_curves(admin_client, isolate
         assert json.loads(cleared["vocabularyAudioUrls"]) == []
         assert json.loads(cleared["vocabularyReferenceCurves"]) == []
         assert json.loads(cleared["sentenceReferenceCurves"]) == {}
+        assert cleared["sentenceModelContour"] == ""
     finally:
         admin_client.delete(f"/api/custom-stories/{story_id}")
 

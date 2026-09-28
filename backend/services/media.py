@@ -32,7 +32,7 @@ from pydantic import BaseModel
 from config import settings
 from db import connect_db
 from services.speech.reference_voice import (
-    extract_scene_reference_curves,
+    extract_scene_model_references,
     extract_scene_reference_from_audio,
 )
 
@@ -404,7 +404,7 @@ def _refresh_scene_reference_curves(
             if words
             else []
         )
-        sentence_curves = extract_scene_reference_curves(audio_path, sentence_text)
+        sentence_curves, model_contour = extract_scene_model_references(audio_path, sentence_text)
     except Exception:
         logger.warning(
             "Reference-curve extraction failed for story=%s frame=%s tier=%s",
@@ -427,6 +427,9 @@ def _refresh_scene_reference_curves(
     frame[f"sentenceReferenceCurves{suffix}"] = json.dumps(
         sentence_curves, ensure_ascii=False
     )
+    frame[f"sentenceModelContour{suffix}"] = json.dumps(
+        model_contour, ensure_ascii=False
+    )
 
 
 def _clear_scene_reference_curves(old_frame: dict, frame: dict, suffix: str) -> None:
@@ -445,6 +448,7 @@ def _clear_scene_reference_curves(old_frame: dict, frame: dict, suffix: str) -> 
     frame[f"vocabularyAudioUrls{suffix}"] = "[]"
     frame[f"vocabularyReferenceCurves{suffix}"] = "[]"
     frame[f"sentenceReferenceCurves{suffix}"] = "{}"
+    frame[f"sentenceModelContour{suffix}"] = ""
 
 
 def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:

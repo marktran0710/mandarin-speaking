@@ -1,6 +1,7 @@
 import type { Topic } from "@entities/topic";
 import { buildConversationTurnsFromScenes } from "@entities/conversation";
 import { numericToToneMarked } from "@entities/vocabulary";
+import { parseSentenceModelContour, type SentenceModelContour } from "../speech/modelOverlay";
 import { resolveImageUrl, splitCsvField, tierText, TIER_SUFFIX } from "./storyText";
 import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "./types";
 
@@ -29,6 +30,7 @@ export function storyToTopic(
   const vocabularyAudioUrls: Record<number, (string | null)[]> = {};
   const vocabularyReferenceCurves: Record<number, number[][]> = {};
   const sentenceReferenceCurves: Record<number, Record<string, number[]>> = {};
+  const sentenceModelContours: Record<number, SentenceModelContour> = {};
 
   story.frames.forEach((frame, index) => {
     const words = splitCsvField(tierText(frame, "vocabulary", difficultyLevel));
@@ -83,6 +85,8 @@ export function storyToTopic(
       });
       if (Object.keys(safeCurves).length) sentenceReferenceCurves[index] = safeCurves;
     }
+    const modelContour = parseSentenceModelContour(frame[`sentenceModelContour${suffix}` as keyof CustomStoryFrame]);
+    if (modelContour) sentenceModelContours[index] = modelContour;
   });
 
   // Story-wide learning content is represented by one logical scene so the
@@ -163,6 +167,7 @@ export function storyToTopic(
     ...(!canonicalVocabulary.length && Object.keys(vocabularyAudioUrls).length ? { vocabularyAudioUrls } : {}),
     ...(!canonicalVocabulary.length && Object.keys(vocabularyReferenceCurves).length ? { vocabularyReferenceCurves } : {}),
     ...(Object.keys(sentenceReferenceCurves).length ? { sentenceReferenceCurves } : {}),
+    ...(Object.keys(sentenceModelContours).length ? { sentenceModelContours } : {}),
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),
     difficultyLevel,

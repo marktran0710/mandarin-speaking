@@ -1,6 +1,7 @@
 import type { ConversationTurn } from "../conversation";
 import type { CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "../story";
 import type { VocabAssessmentQuestion } from "../vocabulary";
+import type { SentenceModelContour } from "../speech/modelOverlay";
 
 export interface Topic {
   id: string;
@@ -25,6 +26,9 @@ export interface Topic {
   vocabularyAudioUrls?: Record<number, (string | null)[]>;
   vocabularyReferenceCurves?: Record<number, number[][]>;
   sentenceReferenceCurves?: Record<number, Record<string, number[]>>;
+  /** Display-only whole-sentence shape of the teacher's model recording,
+   * per scene. See `buildModelOverlay`. */
+  sentenceModelContours?: Record<number, SentenceModelContour>;
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
   difficultyLevel?: StoryDifficultyLevel;

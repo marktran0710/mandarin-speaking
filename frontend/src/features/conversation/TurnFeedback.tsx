@@ -1,3 +1,4 @@
+import type { Topic } from "@entities/topic";
 import type { ConversationSession } from "./useConversationSession";
 import ConversationFooter from "./ConversationFooter";
 import { SpeechResultReview } from "@entities/speech";
@@ -6,8 +7,9 @@ import StudentSystemText from "@shared/ui/student/StudentSystemText";
 interface TurnFeedbackProps {
   session: ConversationSession;
   continueLabel: "next" | "finish";
+  topic: Topic;
 }
-export default function TurnFeedback({ session, continueLabel }: TurnFeedbackProps) {
+export default function TurnFeedback({ session, continueLabel, topic }: TurnFeedbackProps) {
   const { lastAnalysis, lastResult, lastRecognizedText } = session;
   if (!lastAnalysis || !lastResult) return null;
 
@@ -20,6 +22,7 @@ export default function TurnFeedback({ session, continueLabel }: TurnFeedbackPro
         audioBlob={lastResult.audioBlob}
         audioUrl={lastResult.audioUrl}
         meaningPassed={lastAnalysis.accepted}
+        modelContour={topic.sentenceModelContours?.[session.currentTurn?.sceneIndex ?? -1]}
       />
       {lastResult.verified && <p className="sa-conversation__verified"><StudentSystemText k="verifiedRecording" /></p>}
       <ConversationFooter

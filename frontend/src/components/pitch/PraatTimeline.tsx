@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { buildPitchPath, buildReferencePaths, fallbackWordSegments, PITCH_HEIGHT, PITCH_TOP, SVG_HEIGHT, SVG_WIDTH, WAVEFORM_HEIGHT, WAVEFORM_TOP, WORD_TIER_HEIGHT, WORD_TOP, type WordProsody } from "./praatTimelineModel";
+import type { ModelOverlay } from "@entities/speech/modelOverlay";
+import { buildPitchPath, fallbackWordSegments, PITCH_HEIGHT, PITCH_TOP, SVG_HEIGHT, SVG_WIDTH, WAVEFORM_HEIGHT, WAVEFORM_TOP, WORD_TIER_HEIGHT, WORD_TOP, type WordProsody } from "./praatTimelineModel";
 import { TimelineGrid, WaveformBars, WordSegment } from "./praatTimelineLayers";
 
 interface PraatTimelineProps {
@@ -7,12 +8,10 @@ interface PraatTimelineProps {
   pitchContour: Array<[number, number]>;
   wordProsody?: WordProsody[];
   transcription?: string;
-  /** Set to false when this pitch line IS the target shape (e.g. the model
-   * recording's own timeline) — drawing a second dashed reference line over
-   * a curve that already equals the target is always redundant there.
-   * Defaults to true for usages that compare a student's attempt against a
-   * target (StoryRecorder, word/phrase drills). */
-  showReferenceOverlay?: boolean;
+  /** The teacher's model-voice shape, already lined up with this attempt
+   * (see `buildModelOverlay`). A non-"ok" status draws no line and explains
+   * why instead of drawing a stand-in target. */
+  modelOverlay?: ModelOverlay;
   /** Keep empty/partial analyses honest: callers showing a diagnostic result
    * can disable proportional placeholder word spans when no measured timing
    * exists. */
@@ -28,7 +27,7 @@ export default function PraatTimeline({
   pitchContour,
   wordProsody = [],
   transcription = "",
-  showReferenceOverlay = true,
+  modelOverlay,
   useFallbackWordSegments = true,
 }: PraatTimelineProps) {
   const [waveform, setWaveform] = useState<WaveformState | null>(null);
@@ -108,34 +107,48 @@ export default function PraatTimeline({
     [timelineDuration, transcription, useFallbackWordSegments, wordProsody],
   );
 
-  const pitchPath = useMemo(
-    () => buildPitchPath(pitchContour, timelineDuration),
-    [pitchContour, timelineDuration],
+  const modelSegments = useMemo(
+    () => (modelOverlay?.status === "ok" ? modelOverlay.segments : []),
+    [modelOverlay],
   );
 
+  // One shared y-scale for the student's line and the model line, so the
+  // model's rises and falls are drawn at their true size relative to the
+  // student's — never auto-fitted per word.
   const pitchRange = useMemo(() => {
-    if (pitchContour.length === 0) {
+    const frequencies = [
+      ...pitchContour.map((point) => point[1]),
+      ...modelSegments.flatMap((segment) => segment.points.map((point) => point[1])),
+    ];
+    if (frequencies.length === 0) {
       return { min: 0, max: 0 };
     }
-
-    const frequencies = pitchContour.map((point) => point[1]);
     return {
       min: Math.round(Math.min(...frequencies)),
       max: Math.round(Math.max(...frequencies)),
     };
-  }, [pitchContour]);
+  }, [pitchContour, modelSegments]);
 
-  // Dashed target-shape overlay per word, on the same y-scale as the actual
-  // pitch line above so a visual gap between the two directly shows where a
-  // tone's shape diverges from the ideal — the same comparison as the
-  // per-character mini charts, but across the whole sentence.
-  const referencePaths = useMemo(
-    () =>
-      showReferenceOverlay
-        ? buildReferencePaths(words, timelineDuration, pitchRange.min, pitchRange.max)
-        : [],
-    [showReferenceOverlay, words, timelineDuration, pitchRange],
+  const pitchPath = useMemo(
+    () => buildPitchPath(pitchContour, timelineDuration, pitchRange.min, pitchRange.max),
+    [pitchContour, timelineDuration, pitchRange],
   );
+
+  const modelPaths = useMemo(
+    () =>
+      modelSegments.map((segment) => ({
+        key: `model-${segment.wordIndex}`,
+        d: buildPitchPath(segment.points, timelineDuration, pitchRange.min, pitchRange.max),
+      })),
+    [modelSegments, timelineDuration, pitchRange],
+  );
+
+  const modelNotice =
+    modelOverlay?.status === "missing"
+      ? "No model voice for this sentence yet"
+      : modelOverlay?.status === "mismatch"
+        ? "You said a different sentence, so the model voice is hidden"
+        : "";
 
   return (
     <div className="praat-timeline-card">
@@ -195,33 +208,30 @@ export default function PraatTimeline({
           <text x="942" y={PITCH_TOP + PITCH_HEIGHT - 10} className="praat-axis-label">
             {pitchRange.min || "--"} Hz
           </text>
-          {referencePaths.map(({ key, d }) => (
+          {modelPaths.map(({ key, d }) => (
             <path
               key={key}
               d={d}
               fill="none"
               stroke="#9aa7b5"
-              strokeWidth="2.5"
-              strokeDasharray="5 5"
-              opacity="0.8"
+              strokeWidth="3"
+              strokeLinecap="round"
+              opacity="0.85"
             />
           ))}
           {pitchPath && <path d={pitchPath} fill="none" stroke="#167f92" strokeWidth="4" />}
-          {referencePaths.length > 0 && (
+          {modelPaths.length > 0 && (
             <g className="praat-pitch-legend">
               <line x1="800" y1={PITCH_TOP + 14} x2="818" y2={PITCH_TOP + 14} stroke="#167f92" strokeWidth="4" />
               <text x="822" y={PITCH_TOP + 18} className="praat-axis-label">your pitch</text>
-              <line
-                x1="800"
-                y1={PITCH_TOP + 30}
-                x2="818"
-                y2={PITCH_TOP + 30}
-                stroke="#9aa7b5"
-                strokeWidth="2.5"
-                strokeDasharray="5 5"
-              />
-              <text x="822" y={PITCH_TOP + 34} className="praat-axis-label">target shape</text>
+              <line x1="800" y1={PITCH_TOP + 30} x2="818" y2={PITCH_TOP + 30} stroke="#9aa7b5" strokeWidth="3" />
+              <text x="822" y={PITCH_TOP + 34} className="praat-axis-label">model voice</text>
             </g>
+          )}
+          {modelNotice && (
+            <text x="104" y={PITCH_TOP + 20} className="praat-axis-label praat-model-notice">
+              {modelNotice}
+            </text>
           )}
 
           <text x="18" y={WORD_TOP + 18} className="praat-row-label">

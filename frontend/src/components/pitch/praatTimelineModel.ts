@@ -36,48 +36,29 @@ function pitchToY(frequency: number, minPitch: number, maxPitch: number): number
   );
 }
 
+/** Draws a Hz-over-time line. `minPitch`/`maxPitch` default to the line's
+ * own range; pass a shared range when several lines must be comparable. */
 export function buildPitchPath(
   pitchContour: Array<[number, number]>,
   duration: number,
+  minPitch?: number,
+  maxPitch?: number,
 ): string {
   if (pitchContour.length < 2) {
     return "";
   }
 
   const frequencies = pitchContour.map((point) => point[1]);
-  const minPitch = Math.min(...frequencies);
-  const maxPitch = Math.max(...frequencies);
+  const low = minPitch ?? Math.min(...frequencies);
+  const high = maxPitch ?? Math.max(...frequencies);
 
   return pitchContour
     .map(([time, frequency], index) => {
       const x = timeToX(time, duration);
-      const y = pitchToY(frequency, minPitch, maxPitch);
+      const y = pitchToY(frequency, low, high);
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
-}
-
-/** Per-word dashed target-shape overlay, mapped onto the same y-scale as the
- * whole-sentence actual pitch line (pitchRange.min/max) so the two are
- * directly comparable rather than each auto-scaling to its own range. */
-export function buildReferencePaths(
-  wordProsody: WordProsody[],
-  duration: number,
-  minPitch: number,
-  maxPitch: number,
-): Array<{ key: string; d: string }> {
-  return wordProsody
-    .filter((word) => (word.reference_contour?.length ?? 0) > 1)
-    .map((word) => ({
-      key: `ref-${word.token}-${word.index}`,
-      d: (word.reference_contour as Array<[number, number]>)
-        .map(([time, frequency], index) => {
-          const x = timeToX(time, duration);
-          const y = pitchToY(frequency, minPitch, maxPitch);
-          return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-        })
-        .join(" "),
-    }));
 }
 
 export function fallbackWordSegments(

@@ -75,6 +75,7 @@ class CustomStoryFrameRequest(BaseModel):
     vocabularyAudioUrls: Optional[str] = None
     vocabularyReferenceCurves: Optional[str] = None
     sentenceReferenceCurves: Optional[str] = None
+    sentenceModelContour: Optional[str] = None
 
     vocabularyAudioUrlsMedium: Optional[str] = None
     vocabularyAudioUrlsHard: Optional[str] = None
@@ -82,6 +83,8 @@ class CustomStoryFrameRequest(BaseModel):
     vocabularyReferenceCurvesHard: Optional[str] = None
     sentenceReferenceCurvesMedium: Optional[str] = None
     sentenceReferenceCurvesHard: Optional[str] = None
+    sentenceModelContourMedium: Optional[str] = None
+    sentenceModelContourHard: Optional[str] = None
 
 
 class CustomStoryRequest(BaseModel):

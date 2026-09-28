@@ -65,3 +65,40 @@ def test_extract_from_existing_audio_blank_sentence_raises(tmp_path):
             sentence_audio_path=str(sentence_path),
             audio_dir=str(tmp_path),
         )
+
+
+def test_sentence_model_contour_is_per_token_semitone_shape(tmp_path):
+    """The whole-sentence model contour keeps one entry per scored token, with
+    time relative to that token's own span and pitch in semitones relative to
+    the model speaker's own median — a shape, not an absolute-pitch target."""
+    from services.speech.reference_voice import extract_sentence_model_contour
+
+    pcm, sample_rate = _synthetic_rising_tone_pcm()
+    sentence_path = tmp_path / "teacher-recording.wav"
+    write_wav(str(sentence_path), pcm, sample_rate)
+
+    contour = extract_sentence_model_contour(str(sentence_path), "我想喝水。")
+
+    assert contour["text"] == "我想喝水。"
+    tokens = contour["tokens"]
+    assert "".join(entry["token"] for entry in tokens) == "我想喝水"
+    all_points = [point for entry in tokens for point in entry["points"]]
+    assert all_points, "a voiced recording must yield model points"
+    for rel_time, semitones in all_points:
+        assert 0.0 <= rel_time <= 1.0
+        assert -24.0 < semitones < 24.0
+    # A rising glide: the last token sits higher than the first.
+    first = np.mean([st for _, st in tokens[0]["points"]])
+    last = np.mean([st for _, st in tokens[-1]["points"]])
+    assert last > first
+
+
+def test_sentence_model_contour_blank_text_raises(tmp_path):
+    from services.speech.reference_voice import extract_sentence_model_contour
+
+    pcm, sample_rate = _synthetic_rising_tone_pcm()
+    sentence_path = tmp_path / "teacher-recording.wav"
+    write_wav(str(sentence_path), pcm, sample_rate)
+
+    with pytest.raises(ValueError):
+        extract_sentence_model_contour(str(sentence_path), "  ")

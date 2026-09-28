@@ -7,6 +7,7 @@ import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
+import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
 import "./SpeechResultReview.css";
 
 interface SpeechResultReviewProps {
@@ -16,6 +17,8 @@ interface SpeechResultReviewProps {
   audioBlob?: Blob | null;
   audioUrl?: string;
   meaningPassed: boolean;
+  /** The scene's teacher model-voice shape, when one was recorded. */
+  modelContour?: SentenceModelContour | null;
 }
 
 interface ScriptUnit {
@@ -30,8 +33,19 @@ export default function SpeechResultReview({
   audioBlob,
   audioUrl,
   meaningPassed,
+  modelContour,
 }: SpeechResultReviewProps) {
   const words = metrics.word_prosody ?? [];
+  const modelOverlay = useMemo(
+    () => buildModelOverlay({
+      contour: modelContour,
+      targetScript,
+      transcript,
+      words,
+      pitchContour: metrics.pitch_contour ?? [],
+    }),
+    [modelContour, targetScript, transcript, words, metrics.pitch_contour],
+  );
   const units = useMemo(() => buildScriptUnits(targetScript, words), [targetScript, words]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [selectedPhrase, setSelectedPhrase] = useState<string | null>(null);
@@ -123,13 +137,13 @@ export default function SpeechResultReview({
           pitchContour={metrics.pitch_contour ?? []}
           wordProsody={words}
           transcription={targetScript}
-          showReferenceOverlay={words.some((word) => (word.reference_contour?.length ?? 0) > 1)}
+          modelOverlay={modelOverlay}
           useFallbackWordSegments={false}
         />
         {selectedWord ? (
-          <WordDetail word={selectedWord} audioBlob={audioBlob} />
+          <WordDetail word={selectedWord} audioBlob={audioBlob} modelOverlay={modelOverlay} />
         ) : selectedPhrase ? (
-          <PhraseDetail phrase={selectedPhrase} metrics={metrics} audioBlob={audioBlob} />
+          <PhraseDetail phrase={selectedPhrase} metrics={metrics} audioBlob={audioBlob} modelOverlay={modelOverlay} />
         ) : (
           <p className="sa-result-review__prompt">Tap a word above to inspect it closely.</p>
         )}
@@ -148,10 +162,11 @@ export default function SpeechResultReview({
   );
 }
 
-function WordDetail({ word, audioBlob }: { word: WordProsody; audioBlob?: Blob | null }) {
+function WordDetail({ word, audioBlob, modelOverlay }: { word: WordProsody; audioBlob?: Blob | null; modelOverlay: ModelOverlay }) {
   const [open, setOpen] = useState(false);
-  const hasPitch = (word.user_curve?.length ?? 0) > 1 || (word.pitch_contour?.length ?? 0) > 1;
-  const referenceLabel = word.reference_source === "real_voice" ? "teacher recording" : "standard tone shape";
+  const hasPitch = (word.pitch_contour?.length ?? 0) > 1;
+  const wordOverlay = overlayForWords(modelOverlay, [word]);
+  const modelPoints = wordOverlay.status === "ok" ? wordOverlay.segments[0]?.points : undefined;
 
   return (
     <div className="sa-result-review__detail">
@@ -164,13 +179,8 @@ function WordDetail({ word, audioBlob }: { word: WordProsody; audioBlob?: Blob |
       </div>
       {hasPitch ? (
         <div className="sa-result-review__mini-chart">
-          <MiniContourChart
-            actual={word.pitch_contour ?? []}
-            reference={word.reference_contour}
-            userCurve={word.user_curve}
-            targetCurve={word.target_curve}
-          />
-          <p>Your pitch compared with the {referenceLabel}.</p>
+          <MiniContourChart actual={word.pitch_contour ?? []} reference={modelPoints} />
+          <p>{modelPoints ? "Your pitch compared with the model voice." : modelNoticeText(modelOverlay)}</p>
         </div>
       ) : (
         <p className="sa-result-review__empty">There is not enough pitch evidence for this word.</p>
@@ -186,7 +196,7 @@ function WordDetail({ word, audioBlob }: { word: WordProsody; audioBlob?: Blob |
             pitchContour={word.pitch_contour ?? []}
             wordProsody={[word]}
             transcription={word.token}
-            showReferenceOverlay={(word.reference_contour?.length ?? 0) > 1}
+            modelOverlay={wordOverlay}
             useFallbackWordSegments={false}
           />
         </div>
@@ -195,7 +205,7 @@ function WordDetail({ word, audioBlob }: { word: WordProsody; audioBlob?: Blob |
   );
 }
 
-function PhraseDetail({ phrase, metrics, audioBlob }: { phrase: string; metrics: PraatMetrics; audioBlob?: Blob | null }) {
+function PhraseDetail({ phrase, metrics, audioBlob, modelOverlay }: { phrase: string; metrics: PraatMetrics; audioBlob?: Blob | null; modelOverlay: ModelOverlay }) {
   const phraseWords = wordsForPhrase(phrase, metrics.word_prosody ?? []);
   return (
     <div className="sa-result-review__detail">
@@ -216,11 +226,26 @@ function PhraseDetail({ phrase, metrics, audioBlob }: { phrase: string; metrics:
         pitchContour={metrics.pitch_contour ?? []}
         wordProsody={phraseWords}
         transcription={phrase}
-        showReferenceOverlay={phraseWords.some((word) => (word.reference_contour?.length ?? 0) > 1)}
+        modelOverlay={overlayForWords(modelOverlay, phraseWords)}
         useFallbackWordSegments={false}
       />
     </div>
   );
+}
+
+/** Narrows a sentence overlay to the words a detail view shows. A word with
+ * no model segment of its own reads as "missing" there. */
+function overlayForWords(overlay: ModelOverlay, shown: WordProsody[]): ModelOverlay {
+  if (overlay.status !== "ok") return overlay;
+  const indexes = new Set(shown.map((word) => word.index));
+  const segments = overlay.segments.filter((segment) => indexes.has(segment.wordIndex));
+  return segments.length ? { status: "ok", segments } : { status: "missing" };
+}
+
+function modelNoticeText(overlay: ModelOverlay): string {
+  return overlay.status === "mismatch"
+    ? "You said a different sentence, so the model voice is hidden."
+    : "No model voice for this word yet.";
 }
 
 function wordsForPhrase(phrase: string, words: WordProsody[]): WordProsody[] {

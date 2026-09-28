@@ -40,6 +40,7 @@ export interface CustomStoryFrame {
   vocabularyAudioUrls?: string;
   vocabularyReferenceCurves?: string;
   sentenceReferenceCurves?: string;
+  sentenceModelContour?: string;
 }
 
 export interface CustomTeacherStory {

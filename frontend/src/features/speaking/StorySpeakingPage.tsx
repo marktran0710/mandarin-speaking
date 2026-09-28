@@ -387,6 +387,7 @@ export default function StorySpeakingPage({
                 audioBlob={lastResult.audioBlob}
                 audioUrl={lastResult.audioUrl}
                 meaningPassed={lastAnalysis.accepted}
+                modelContour={topic.sentenceModelContours?.[selectedImageIndex]}
               />
             )}
 

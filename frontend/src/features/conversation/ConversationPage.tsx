@@ -157,6 +157,7 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
                 <ConversationRoleHeader role="student" />
                 <TurnFeedback
                   session={session}
+                  topic={topic}
                   continueLabel={state.turnIndex + 1 < turns.length ? "next" : "finish"}
                 />
               </div>
