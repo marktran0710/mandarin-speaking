@@ -9,7 +9,6 @@ import { useVocabQuizFlow } from "./hooks/useVocabQuizFlow";
 import { ROUND_LABEL, TIER_SEQUENCE } from "./model/tierRounds";
 import QuizQuestionSurface from "./quiz/QuestionSurface";
 import QuizRail from "./quiz/Rail";
-import { resultForQuestion } from "./quiz/questionModel";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentPage from "@shared/ui/student/StudentPage";
@@ -271,7 +270,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   useEffect(() => {
     setDraftAnswer(null);
     setPinyinDraft("");
-  }, [flow.index, flow.tierPos, flow.view, flow.question?.word, flow.awaitingRetry]);
+  }, [flow.index, flow.tierPos, flow.view, flow.question?.word]);
 
   const header = (
     <StudentPageHeader
@@ -306,17 +305,13 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   const question = flow.question;
   const entry = question ? flow.entries.find((candidate) => candidate.word === question.word) : undefined;
   const assessment = question?.kind === "assessment" ? question.assessment : undefined;
-  const lastResult = question ? resultForQuestion(flow.results, flow.index, question.word) : undefined;
-  const showingFeedback = Boolean(flow.selected !== null && lastResult && !flow.awaitingRetry);
   const submitAnswer = () => {
-    if (!question) return;
-    if (flow.selected !== null && !flow.awaitingRetry) return;
+    if (!question || flow.selected !== null || flow.isFinishing) return;
     const answer = assessment?.answerFormat === "free_text" || question.kind === "pinyin"
       ? pinyinDraft.trim()
       : draftAnswer;
     if (!answer) return;
-    if (flow.awaitingRetry) flow.chooseRetry(answer);
-    else flow.choose(answer);
+    flow.choose(answer);
   };
 
   return (
@@ -333,13 +328,8 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
             onDraftAnswerChange={setDraftAnswer}
             pinyinDraft={pinyinDraft}
             onPinyinChange={setPinyinDraft}
-            showingFeedback={showingFeedback}
-            lastResult={lastResult}
-            awaitingRetry={flow.awaitingRetry}
-            retryOutcome={flow.retryOutcome}
             isFinishing={flow.isFinishing}
             onSubmit={submitAnswer}
-            onNext={flow.next}
           />
           <QuizRail flow={flow} question={question} />
         </div>

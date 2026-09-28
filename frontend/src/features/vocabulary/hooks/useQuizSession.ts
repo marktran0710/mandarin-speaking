@@ -68,15 +68,10 @@ export function useQuizSession({
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
-  // Diagnostic rounds give one hinted retry after a wrong first answer. The
-  // first answer alone is the score and the BKT evidence; the retry only
-  // annotates that same result (hintUsed / retryCorrect).
-  const [awaitingRetry, setAwaitingRetry] = useState(false);
-  const [retryOutcome, setRetryOutcome] = useState<{ answer: string; correct: boolean } | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
   const [vocabularyChanged, setVocabularyChanged] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
-  // Lock answer/next handlers synchronously, including calls made before React renders.
+  // Lock answer handlers synchronously, including calls made before React renders.
   const questionStateRef = useRef({ index: 0, answered: false });
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
@@ -222,7 +217,8 @@ export function useQuizSession({
   };
 
   const choose = (option: string) => {
-    if (selected || finishedRef.current || questionStateRef.current.index !== index || questionStateRef.current.answered) return;
+    if (screen !== "quiz" || !question || selected !== null || finishedRef.current || vocabularyChanged
+      || questionStateRef.current.index !== index || questionStateRef.current.answered) return;
     questionStateRef.current.answered = true;
     const entry = roundEntries.find((candidate) => candidate.word === question.word);
     const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
@@ -266,12 +262,12 @@ export function useQuizSession({
     const quizId = quizIdRef.current ?? `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}`;
     quizIdRef.current = quizId;
     setSelected(option);
-    const firstTryCorrect = question.kind === "assessment"
+    const isCorrect = question.kind === "assessment"
       ? assessmentAnswerIsCorrect(question, option)
       : option === answer;
     const nextResults = [...results, {
       word: question.word,
-      correct: firstTryCorrect,
+      correct: isCorrect,
       timeMs: Date.now() - questionStartRef.current,
       itemId,
       conceptId, questionKind: resultQuestionKind, tier: diagnosticConfig?.mode,
@@ -299,8 +295,6 @@ export function useQuizSession({
       quizId,
     }];
     setResults(nextResults);
-    setRetryOutcome(null);
-    setAwaitingRetry(diagnosticMode && !firstTryCorrect);
 
     // BKT evidence is recorded immediately after each eligible diagnostic
     // answer. The list remains locked for speaking until all three tiers are
@@ -330,34 +324,11 @@ export function useQuizSession({
           .catch(() => { /* retain the last known menu state */ });
       }
     }
-  };
 
-  /** The single hinted retry after a wrong diagnostic answer. It never
-   * creates a new BKT response and never changes `correct`; it only records
-   * that a hint was used and whether the retry was right, on the original
-   * result (sent with the completed attempt). */
-  const chooseRetry = (option: string) => {
-    if (!awaitingRetry || !question) return;
-    const retryCorrect = question.kind === "assessment"
-      ? assessmentAnswerIsCorrect(question, option)
-      : option === correctAnswer(question);
-    setResults((current) => current.map((result) => (
-      result.questionIndex === index ? { ...result, hintUsed: true, retryCorrect } : result
-    )));
-    setAwaitingRetry(false);
-    setRetryOutcome({ answer: option, correct: retryCorrect });
-  };
-
-  const next = () => {
-    if (screen !== "quiz" || finishedRef.current || selected === null
-      || questionStateRef.current.index !== index || !questionStateRef.current.answered) return;
-    // Keep the final answer and feedback visible while the completed attempt
-    // is being persisted. The summary replaces the quiz only after `finish`
-    // resolves, so clearing it here makes the save state look unanswered.
-    if (isLast) return void finish(results);
+    // Submit once, then advance without revealing correctness or offering a retry.
+    // Keep the final answer locked until the completed attempt has been saved.
+    if (isLast) return void finish(nextResults);
     setSelected(null);
-    setAwaitingRetry(false);
-    setRetryOutcome(null);
     questionStateRef.current = { index: index + 1, answered: false };
     questionStartRef.current = Date.now();
     setIndex(index + 1);
@@ -376,7 +347,7 @@ export function useQuizSession({
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
-    setSelected(null); setResults([]); setAwaitingRetry(false); setRetryOutcome(null); setIsFinishing(false); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
+    setSelected(null); setResults([]); setIsFinishing(false); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
     questionStateRef.current = { index: 0, answered: false };
     finishedRef.current = false;
     const startedEvent = picked === "tier1"
@@ -511,7 +482,7 @@ export function useQuizSession({
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, isFinishing, vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
-    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, chooseRetry, awaitingRetry, retryOutcome, next, finish,
+    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
     startResearchPractice, researchDueEntries, startResearchReview, startWeakWords, startDueReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,

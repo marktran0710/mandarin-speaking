@@ -47,15 +47,23 @@ function makeEntries(count: number): VocabQuizEntry[] {
       prompt: `Choose the meaning of ${word}.`, options: [translation, "wrong"],
       correctAnswer: translation, acceptedAnswers: [translation], explanation: "",
     };
-    return { word, wordId: word, translation, bktValidationStatus: "APPROVED", assessmentQuestions: [assessment] };
+    return {
+      word, wordId: word, translation, bktValidationStatus: "APPROVED",
+      assessmentQuestions: [assessment, {
+        ...assessment,
+        questionId: `${word}-round2`, round: 2, tier: "tier2",
+        questionType: "character_to_pinyin_typing", answerFormat: "free_text",
+        prompt: `Type the pinyin of ${word}.`, options: [], correctAnswer: "cí", acceptedAnswers: ["cí"],
+      }],
+    };
   });
 }
 
-function loadSession(count: number) {
+function loadSession(count: number, mode: "tier1" | "tier2" = "tier1") {
   const entries = makeEntries(count);
   const onComplete = vi.fn();
   const session = renderHook(() => useQuizSession({ entries, storyId: "lesson-1", level: "easy", studentId: "student-1", onComplete }));
-  act(() => session.result.current.startTier("tier1"));
+  act(() => session.result.current.startTier(mode));
   return { ...session, onComplete };
 }
 
@@ -73,19 +81,41 @@ beforeEach(() => {
 });
 
 describe("quiz answer and completion boundaries", () => {
+  it.each([true, false])("advances directly after an answer (correct: %s)", (correct) => {
+    const { result } = loadSession(2);
+    const answer = correct ? correctAnswer(result.current.question) : "wrong";
+    act(() => result.current.choose(answer));
+
+    expect(result.current.index).toBe(1);
+    expect(result.current.selected).toBeNull();
+    expect(result.current.results).toHaveLength(1);
+    expect(result.current.results[0]).toMatchObject({ selectedAnswer: answer, correct });
+    expect(result.current.results[0].hintUsed).toBeUndefined();
+    expect(result.current.results[0].retryCorrect).toBeUndefined();
+    expect(recordVocabQuizResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("advances after a typed pinyin answer and records its original score", () => {
+    const { result } = loadSession(2, "tier2");
+    act(() => result.current.choose("ci2"));
+    expect(result.current.index).toBe(1);
+    expect(result.current.selected).toBeNull();
+    expect(result.current.results).toHaveLength(1);
+    expect(result.current.results[0]).toMatchObject({ selectedAnswer: "ci2", correct: true, questionKind: "character_to_pinyin_typing" });
+    expect(recordVocabQuizResponse).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the final answer locked while the completed attempt is saving", async () => {
     const save = deferredSave();
     const { result, onComplete } = loadSession(16);
     for (let index = 0; index < 16; index += 1) {
       act(() => result.current.choose(correctAnswer(result.current.question)));
-      act(() => result.current.next());
     }
 
     expect(result.current.screen).toBe("quiz");
     expect(result.current.results).toHaveLength(16);
     for (let retry = 0; retry < 3; retry += 1) {
       act(() => result.current.choose("wrong"));
-      act(() => result.current.next());
     }
     expect(result.current.results).toHaveLength(16);
     expect(result.current.selected).not.toBeNull();
@@ -104,17 +134,17 @@ describe("quiz answer and completion boundaries", () => {
     const answer = correctAnswer(result.current.question);
     act(() => { choose(answer); choose("wrong"); });
     expect(result.current.results).toHaveLength(1);
-    expect(result.current.selected).toBe(answer);
+    expect(result.current.selected).toBeNull();
+    expect(result.current.index).toBe(1);
     expect(recordVocabQuizResponse).toHaveBeenCalledTimes(1);
   });
 
-  it("does not advance before an answer or reuse handlers from the previous question", () => {
+  it("does not reuse answer handlers from the previous question", () => {
     const { result } = loadSession(3);
-    act(() => result.current.next());
     expect(result.current.index).toBe(0);
+    const choose = result.current.choose;
     act(() => result.current.choose(correctAnswer(result.current.question)));
-    const { choose, next } = result.current;
-    act(() => { next(); next(); choose("wrong"); });
+    act(() => { choose("wrong"); choose("wrong"); });
     expect(result.current.index).toBe(1);
     expect(result.current.selected).toBeNull();
     expect(result.current.results).toHaveLength(1);
@@ -127,7 +157,6 @@ describe("quiz answer and completion boundaries", () => {
     const save = deferredSave();
     const { result } = loadSession(1);
     act(() => result.current.choose(correctAnswer(result.current.question)));
-    act(() => result.current.next());
     await act(async () => { save.reject(new Error("Unavailable")); await save.promise.catch(() => undefined); });
     expect(result.current.screen).toBe("summary");
     act(() => result.current.startTier("tier1"));
@@ -139,7 +168,7 @@ describe("quiz answer and completion boundaries", () => {
   });
 });
 
-it("shows 16/16 and saving feedback on the quiz page until persistence finishes", async () => {
+it("shows 16/16 and a neutral saving state until persistence finishes", async () => {
   const save = deferredSave();
   const topic: Topic = {
     id: "lesson-1", name: "Lesson", description: "", skillFocus: "conversation", images: [], vocabulary: {},
@@ -152,14 +181,46 @@ it("shows 16/16 and saving feedback on the quiz page until persistence finishes"
     const answer = topic.vocabAssessment?.find((question) => question.targetWord === word)?.correctAnswer;
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`${answer}$`) }));
     fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
-    fireEvent.click(screen.getByRole("button", { name: "下一題" }));
   }
 
   expect(screen.queryByRole("button", { name: "提交答案" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "儲存中" })).toBeDisabled();
-  expect(container.querySelector(".sa-quiz__feedback")).toBeInTheDocument();
+  expect(container.querySelector(".sa-quiz__feedback")).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "答案選項" })).not.toBeInTheDocument();
   expect(container.querySelector(".sa-quiz__stats")).toHaveTextContent("16 / 16");
   expect(createVocabQuizAttempt).toHaveBeenCalledTimes(1);
   await act(async () => { save.resolve(); await save.promise; });
   await waitFor(() => expect(container.querySelector(".sa-quiz__result-copy")).toHaveTextContent("16 / 16"));
+});
+
+it("advances after each answer without exposing correctness or disabling choices", () => {
+  const topic: Topic = {
+    id: "lesson-1", name: "Lesson", description: "", skillFocus: "conversation", images: [], vocabulary: {},
+    vocabAssessment: makeEntries(3).flatMap((entry) => entry.assessmentQuestions ?? []),
+  };
+  const { container } = render(<VocabularyQuizPage topic={topic} lessonLabel="Lesson" onFinished={vi.fn()} />);
+  fireEvent.click(screen.getAllByRole("button", { name: "開始" })[0]);
+
+  const firstWord = container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word");
+  const firstAnswer = topic.vocabAssessment?.find((question) => question.targetWord === firstWord)?.correctAnswer;
+  const incorrectOption = screen.getAllByRole("button", { name: /^選項 / })
+    .find((button) => !button.getAttribute("aria-label")?.endsWith(`：${firstAnswer}`))!;
+  fireEvent.click(incorrectOption);
+  fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+  expect(screen.getByRole("progressbar", { name: "測驗進度" })).toHaveAttribute("aria-valuenow", "1");
+  screen.getAllByRole("button", { name: /^選項 / }).forEach((button) => expect(button).not.toBeDisabled());
+  expect(container.querySelector(".sa-quiz__feedback, .sa-quiz__hint, .is-rejected")).not.toBeInTheDocument();
+  expect(screen.queryByText("正確率")).not.toBeInTheDocument();
+  expect(container.querySelector(".sa-quiz__question-map .is-correct, .sa-quiz__question-map .is-incorrect")).not.toBeInTheDocument();
+  expect(screen.getByRole("listitem", { name: "第 1 題，已完成" })).toHaveTextContent("1");
+  expect(screen.getByRole("listitem", { name: "第 2 題，目前題目" })).toHaveAttribute("aria-current", "step");
+
+  const word = container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word");
+  const answer = topic.vocabAssessment?.find((question) => question.targetWord === word)?.correctAnswer;
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`${answer}$`) }));
+  fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+  expect(screen.getByRole("progressbar", { name: "測驗進度" })).toHaveAttribute("aria-valuenow", "2");
+  expect(container.querySelector(".sa-quiz__feedback")).not.toBeInTheDocument();
+  expect(screen.getByRole("listitem", { name: "第 2 題，已完成" })).toHaveClass("is-done");
+  expect(screen.getByRole("listitem", { name: "第 3 題，目前題目" })).toHaveAttribute("aria-current", "step");
 });

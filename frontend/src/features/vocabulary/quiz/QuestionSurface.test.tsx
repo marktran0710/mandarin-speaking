@@ -53,9 +53,7 @@ function SurfaceHarness({ question, onSubmit }: { question: VocabQuizQuestion; o
       onDraftAnswerChange={setDraftAnswer}
       pinyinDraft={pinyinDraft}
       onPinyinChange={setPinyinDraft}
-      showingFeedback={false}
       onSubmit={onSubmit}
-      onNext={vi.fn()}
     />
   );
 }

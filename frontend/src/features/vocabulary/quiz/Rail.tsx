@@ -38,8 +38,6 @@ function supportCopy(question: VocabQuizQuestion) {
 
 export default function QuizRail({ flow, question }: QuizRailProps) {
   const total = flow.questionLimit ?? flow.entries.length;
-  const correct = flow.results.filter((result) => result.correct).length;
-  const accuracy = flow.results.length > 0 ? `${Math.round((correct / flow.results.length) * 100)}%` : "—";
   const support = supportCopy(question);
 
   return (
@@ -47,7 +45,6 @@ export default function QuizRail({ flow, question }: QuizRailProps) {
       <StudentSection variant="panel" className="sa-quiz__rail-card">
         <div className="sa-quiz__rail-heading"><StudentSystemText k="assessment" /><StudentStatusPill tone="success"><StudentSystemText k="inProgress" withinControl /></StudentStatusPill></div>
         <div className="sa-quiz__stats">
-          <div><span><StudentSystemText k="accuracy" /></span><strong>{accuracy}</strong></div>
           <div><span><StudentSystemText k="done" /></span><strong>{flow.results.length}<small> / {total}</small></strong></div>
           <div><span><StudentSystemText k="left" /></span><strong>{Math.max(0, total - flow.results.length)}</strong></div>
         </div>
@@ -68,10 +65,15 @@ export default function QuizRail({ flow, question }: QuizRailProps) {
         <ol>
           {Array.from({ length: total }, (_, index) => {
             const result = resultAt(flow.results, index);
-            const current = index === flow.index;
+            const current = index === flow.index && !result;
             return (
-              <li key={index} className={`${current ? "is-current" : ""} ${result ? (result.correct ? "is-correct" : "is-incorrect") : "is-pending"}`}>
-                {result ? <StudentIcon name={result.correct ? "check" : "close"} size={16} role="decorative" /> : index + 1}
+              <li
+                key={index}
+                className={`${current ? "is-current" : ""} ${result ? "is-done" : "is-pending"}`}
+                aria-current={current ? "step" : undefined}
+                aria-label={`第 ${index + 1} 題${result ? "，已完成" : current ? "，目前題目" : ""}`}
+              >
+                {index + 1}
               </li>
             );
           })}
