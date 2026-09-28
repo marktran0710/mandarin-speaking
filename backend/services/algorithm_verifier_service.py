@@ -9,13 +9,15 @@ assessment items, but are only available in development.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 import hashlib
 import json
 from typing import Any
 
 from psycopg.types.json import Jsonb
 
-from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, bkt_parameter_fingerprint, update_bkt_trace
+from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, TYPED_QUESTION_TYPES, bkt_parameter_fingerprint, update_bkt_trace
+from analytics.learner_model.bkt.deployment import active_bkt_config, list_calibration_candidates, preview_bkt_config
 from analytics.learner_model.bkt.mastery import get_vocabulary_mastery
 from analytics.learner_model.review_queue import build_review_queue
 from analytics.learner_model.srs import DAY_SECONDS, SrsState, enrollment_state, review
@@ -326,7 +328,7 @@ def get_bootstrap(db: Any) -> dict[str, Any]:
         fixture = _fixture(db)
     except AlgorithmVerifierError as exc:
         fixture_error = str(exc)
-    metadata = get_learning_engine_metadata()
+    metadata = get_learning_engine_metadata(db)
     sm2_suite = build_sm2_baseline_report()
     bkt_suite = build_golden_report()
     integration_ready = (
@@ -337,8 +339,9 @@ def get_bootstrap(db: Any) -> dict[str, Any]:
     )
     return {
         "model": metadata.get("bkt") or {},
+        "candidates": list_calibration_candidates(db),
         "golden": bkt_suite,
-        "contractStatus": golden_contract_status(),
+        "contractStatus": golden_contract_status(active_bkt_config(db)),
         "sm2": metadata.get("sm2") or metadata.get("retention") or {},
         "baselineSuites": {
             "bkt": "PASS" if bkt_suite["summary"]["passed"] == bkt_suite["summary"]["total"] else "FAIL",
@@ -368,37 +371,64 @@ def build_sm2_baseline_report() -> dict[str, Any]:
     return {"result": "PASS" if all(check["passed"] for check in checks) else "FAIL", "checks": checks, "tolerance": 1e-9}
 
 
-def calculate_bkt(payload: dict[str, Any]) -> dict[str, Any]:
-    prior = float(payload.get("prior", BKT_CONFIG.initial_mastery))
+def calculate_bkt(payload: dict[str, Any], db: Any = None, *, config: BktConfig | None = None) -> dict[str, Any]:
+    selected = config if config is not None else (active_bkt_config(db) if db is not None else BKT_CONFIG)
+    serving_config = selected
+    model_version = payload.get("modelVersion")
+    if model_version:
+        if db is None or not isinstance(model_version, str):
+            raise ValueError("A candidate modelVersion requires a database lookup.")
+        selected = preview_bkt_config(db, model_version)
+    prior = float(payload.get("prior", selected.initial_mastery))
     correct = bool(payload.get("correct"))
     question_format = str(payload.get("questionFormat", "mcq")).lower()
-    default_guess = BKT_CONFIG.guess_rate_typed if question_format == "typed" else BKT_CONFIG.guess_rate
-    default_slip = BKT_CONFIG.slip_rate_typed if question_format == "typed" else BKT_CONFIG.slip_rate
-    learn_rate = float(payload.get("learnRate", BKT_CONFIG.learn_rate))
-    guess = float(payload.get("guess", default_guess))
-    slip = float(payload.get("slip", default_slip))
+    typed = question_format == "typed" or question_format in TYPED_QUESTION_TYPES
+    effective = replace(
+        selected,
+        learn_rate=float(payload.get("learnRate", selected.learn_rate)),
+        guess_rate=float(payload.get("mcqGuess", selected.guess_rate)),
+        slip_rate=float(payload.get("mcqSlip", selected.slip_rate)),
+        guess_rate_typed=float(payload.get("typedGuess", selected.guess_rate_typed)),
+        slip_rate_typed=float(payload.get("typedSlip", selected.slip_rate_typed)),
+    )
+    effective = replace(effective, **(
+        {"guess_rate_typed": float(payload.get("guess", effective.guess_rate_typed)),
+         "slip_rate_typed": float(payload.get("slip", effective.slip_rate_typed))}
+        if typed else
+        {"guess_rate": float(payload.get("guess", effective.guess_rate)),
+         "slip_rate": float(payload.get("slip", effective.slip_rate))}
+    ))
+    learn_rate = effective.learn_rate
+    guess, slip = (effective.guess_rate_typed, effective.slip_rate_typed) if typed else (effective.guess_rate, effective.slip_rate)
+    model = {"version": BKT_MODEL_VERSION, "selectedModelVersion": model_version,
+             "previewOnly": bool(model_version), "parameterFingerprint": bkt_parameter_fingerprint(effective),
+             "selectedParameterFingerprint": bkt_parameter_fingerprint(selected),
+             "servingParameterFingerprint": bkt_parameter_fingerprint(serving_config),
+             "parameters": {"learnRate": learn_rate, "mcqGuess": effective.guess_rate, "mcqSlip": effective.slip_rate,
+                            "typedGuess": effective.guess_rate_typed, "typedSlip": effective.slip_rate_typed}}
     observations = payload.get("observations")
     if isinstance(observations, list) and observations:
         production_trace: list[dict[str, Any]] = []
         current = prior
         for observation in observations:
             item = observation if isinstance(observation, dict) else {}
-            item_format = str(item.get("questionFormat") or item.get("questionType") or "mcq").lower()
-            item_guess = float(item.get("guess", guess if item_format not in {"typed", "character_to_pinyin_typing"} else BKT_CONFIG.guess_rate_typed))
-            item_slip = float(item.get("slip", slip if item_format not in {"typed", "character_to_pinyin_typing"} else BKT_CONFIG.slip_rate_typed))
-            step = update_bkt_trace(current, bool(item.get("correct")), learn_rate=learn_rate, guess=item_guess, slip=item_slip)
+            item_format = str(item.get("questionType") or item.get("questionFormat") or "mcq").strip().lower()
+            item_typed = item_format == "typed" or item_format in TYPED_QUESTION_TYPES
+            item_guess = float(item.get("guess", effective.guess_rate_typed if item_typed else effective.guess_rate))
+            item_slip = float(item.get("slip", effective.slip_rate_typed if item_typed else effective.slip_rate))
+            step = update_bkt_trace(current, bool(item.get("correct")), effective, guess=item_guess, slip=item_slip)
             production_trace.append({"questionFormat": item_format, "correct": bool(item.get("correct")), **step})
             current = step["resultingMastery"]
         reference_trace = bkt_sequence(
             observations,
             initial_mastery=prior,
             learn_rate=learn_rate,
-            mcq_guess=guess if question_format != "typed" else BKT_CONFIG.guess_rate,
-            mcq_slip=slip if question_format != "typed" else BKT_CONFIG.slip_rate,
-            typed_guess=BKT_CONFIG.guess_rate_typed,
-            typed_slip=BKT_CONFIG.slip_rate_typed,
+            mcq_guess=effective.guess_rate,
+            mcq_slip=effective.slip_rate,
+            typed_guess=effective.guess_rate_typed,
+            typed_slip=effective.slip_rate_typed,
         )
-        difference = abs(production_trace[-1]["resultingMastery"] - reference_trace[-1]["resultingMastery"])
+        difference = max(abs(a["resultingMastery"] - b["resultingMastery"]) for a, b in zip(production_trace, reference_trace))
         tolerance = float(payload.get("tolerance", 0.001))
         return {
             "inputs": {"prior": prior, "observations": observations, "learnRate": learn_rate, "tolerance": tolerance},
@@ -408,9 +438,9 @@ def calculate_bkt(payload: dict[str, Any]) -> dict[str, Any]:
             "tolerance": tolerance,
             "result": "PASS" if difference <= tolerance else "FAIL",
             "formula": {"observation": "posterior = numerator / denominator for each response", "transition": f"P(L)' = posterior + (1 - posterior) * {learn_rate:.6f}"},
-            "model": {"version": BKT_MODEL_VERSION, "parameterFingerprint": bkt_parameter_fingerprint(BKT_CONFIG)},
+            "model": model,
         }
-    production = update_bkt_trace(prior, correct, learn_rate=learn_rate, guess=guess, slip=slip)
+    production = update_bkt_trace(prior, correct, effective, guess=guess, slip=slip)
     reference = bkt_step(prior, correct, learn_rate=learn_rate, guess=guess, slip=slip)
     difference = abs(production["resultingMastery"] - reference["resultingMastery"])
     tolerance = float(payload.get("tolerance", 0.001))
@@ -425,7 +455,7 @@ def calculate_bkt(payload: dict[str, Any]) -> dict[str, Any]:
             "observation": f"{prior:.6f} * {'1 - slip' if correct else 'slip'} / posterior denominator",
             "transition": f"posterior + (1 - posterior) * {learn_rate:.6f}",
         },
-        "model": {"version": BKT_MODEL_VERSION, "parameterFingerprint": bkt_parameter_fingerprint(BKT_CONFIG)},
+        "model": model,
     }
 
 

@@ -93,13 +93,25 @@ function useVerifierCalculation(calculate: (input: Record<string, unknown>) => P
 
 function BktWorkbench({ bootstrap, refreshKey, onStatus }: { bootstrap: AlgorithmVerifierBootstrap; refreshKey?: number; onStatus: (status: string) => void }) {
   const model = bootstrap.model as { parameters?: Record<string, { value?: number }> };
-  const parameters = model.parameters ?? {};
-  const value = (key: string, fallback: number) => parameters[key]?.value ?? fallback;
+  const [modelVersion, setModelVersion] = useState("");
+  const candidate = bootstrap.candidates?.find((item) => item.modelVersion === modelVersion);
+  const serving = model.parameters ?? {};
+  const fields = [
+    ["prior", "P_L0_initial_mastery", "P(L0)", 0.2], ["learn", "P_T_learn_rate", "P(T)", 0.15],
+    ["guess", "P_G_guess_mcq", "MCQ Guess", 0.2], ["slip", "P_S_slip_mcq", "MCQ Slip", 0.1],
+    ["guess_typed", "P_G_guess_typed", "Typed Guess", 0.05], ["slip_typed", "P_S_slip_typed", "Typed Slip", 0.15],
+  ] as const;
+  const valueFor = (key: string, fallback: number, version = modelVersion) => {
+    const selected = bootstrap.candidates?.find((item) => item.modelVersion === version);
+    const field = fields.find((item) => item[1] === key);
+    return selected && field ? selected.parameters[field[0]] : serving[key]?.value ?? fallback;
+  };
+  const value = (key: string, fallback: number) => valueFor(key, fallback);
   const formatParameters = (format: string) => ({
     guess: format === "typed" ? value("P_G_guess_typed", 0.05) : value("P_G_guess_mcq", 0.2),
     slip: format === "typed" ? value("P_S_slip_typed", 0.15) : value("P_S_slip_mcq", 0.1),
   });
-  const defaults = { prior: value("P_L0_initial_mastery", 0.2), correct: true, questionFormat: "mcq", learnRate: value("P_T_learn_rate", 0.15), ...formatParameters("mcq") };
+  const defaults = { prior: value("P_L0_initial_mastery", 0.2), correct: true, questionFormat: "mcq", learnRate: value("P_T_learn_rate", 0.15), ...formatParameters("mcq"), ...(modelVersion ? { modelVersion } : {}) };
   const [input, setInput] = useState<Record<string, unknown>>(defaults);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const { result, error, run, invalidate } = useVerifierCalculation(runBktVerification, onStatus, "Could not run BKT.");
@@ -115,11 +127,35 @@ function BktWorkbench({ bootstrap, refreshKey, onStatus }: { bootstrap: Algorith
     setSelectedPreset(label);
     invalidate();
   };
+  const selectModel = (version: string) => {
+    setModelVersion(version);
+    setInput({ prior: valueFor("P_L0_initial_mastery", 0.2, version), learnRate: valueFor("P_T_learn_rate", 0.15, version),
+      correct: true, questionFormat: "mcq", guess: valueFor("P_G_guess_mcq", 0.2, version), slip: valueFor("P_S_slip_mcq", 0.1, version),
+      ...(version ? { modelVersion: version } : {}) });
+    setSelectedPreset(null);
+    invalidate();
+  };
   const observations = input.observations as BktObservation[] | undefined;
   const production = result?.production as Record<string, unknown> | undefined;
   const reference = result?.reference as Record<string, unknown> | undefined;
   const productionTrace = production?.trace as Array<Record<string, unknown>> | undefined;
   return <div className="algorithm-verifier-stack">
+    <section className="algorithm-verifier-panel" aria-label="BKT parameter selection">
+      <h2>Parameters to test</h2>
+      <label className="algorithm-verifier-model-select">BKT model<select value={modelVersion} onChange={(event) => selectModel(event.target.value)}>
+        <option value="">Currently serving students</option>
+        {(bootstrap.candidates ?? []).map((item) => <option key={item.modelVersion} value={item.modelVersion}>{item.evidenceOrigin.toUpperCase()} · {item.modelVersion}</option>)}
+      </select></label>
+      {candidate ? <p className="algorithm-verifier-note"><strong>Candidate preview · {candidate.evidenceOrigin.toUpperCase()}</strong> · {candidate.counts.records.toLocaleString()} responses · {candidate.counts.students} students · {candidate.counts.concepts} words. Selection only changes calculations and traces on this page.</p> : <p className="algorithm-verifier-note">These parameters are currently serving students.</p>}
+      <table className="algorithm-verifier-parameter-table"><thead><tr><th>Parameter</th><th>Serving</th><th>Selected</th></tr></thead><tbody>
+        {fields.map(([key, metadataKey, label, fallback]) => <tr key={key}><th scope="row">{label}</th><td>{displayNumber(serving[metadataKey]?.value ?? fallback)}</td><td>{displayNumber(value(metadataKey, fallback))}</td></tr>)}
+        <tr><th scope="row">Mastery threshold</th><td colSpan={2}>{displayNumber(serving.mastery_threshold?.value ?? 0.95)}</td></tr>
+        <tr><th scope="row">Minimum observations</th><td colSpan={2}>{serving.minimum_observations?.value ?? 3}</td></tr>
+      </tbody></table>
+      {candidate && <div className="algorithm-verifier-note"><p>5-fold log-loss: {displayNumber(candidate.metrics.production.log_loss)} → {displayNumber(candidate.metrics.candidate.log_loss)}. Gates: {Object.values(candidate.gates).filter(Boolean).length}/{Object.keys(candidate.gates).length}. {candidate.evidenceOrigin === "synthetic" ? "SIM simulation; human calibration is still required." : candidate.promotable ? "Eligible for a separate activation review." : "Not eligible for activation."}</p>
+        {candidate.impact && <p>BKT STRONG preview: {candidate.impact.strongBefore} → {candidate.impact.strongAfter}; mean absolute P(L) change {displayNumber(candidate.impact.meanAbsolutePLearnedChange)}.</p>}
+      </div>}
+    </section>
     <section className="algorithm-verifier-panel"><div className="algorithm-verifier-panel-heading"><div><span className="admin-eyebrow">Independent equation check</span><h2>Manual BKT step or sequence</h2><p>Defaults are loaded from production metadata. Edit the values to inspect a custom calculation.</p></div><ResultBadge result={result ? String(result.result) : "NOT RUN"} /></div>
       <div className="algorithm-verifier-form-grid">
         <label>Previous P(L)<input type="number" min="0" max="1" step="0.000001" value={String(input.prior)} onChange={(event) => changeInput({ prior: Number(event.target.value), observations: undefined })} /></label>
@@ -133,7 +169,7 @@ function BktWorkbench({ bootstrap, refreshKey, onStatus }: { bootstrap: Algorith
       <div className="algorithm-verifier-actions"><button type="button" className="admin-primary-button" onClick={() => run(input)}>Run BKT update</button><div className="algorithm-verifier-presets"><span>Presets</span>{bktPresets.map(([label, preset]) => <button type="button" key={label} aria-pressed={selectedPreset === label} onClick={() => applyPreset(label, preset)}>{label}</button>)}</div></div>{error && <p className="admin-error" role="alert">{error}</p>}
     </section>
     {result && <section className="algorithm-verifier-panel algorithm-verifier-results"><div className="algorithm-verifier-results-grid"><article><h3>Production</h3><dl><div><dt>Posterior</dt><dd>{displayNumber(production?.posterior)}</dd></div><div><dt>P(L) new</dt><dd>{displayNumber(production?.resultingMastery)}</dd></div></dl></article><article><h3>Independent reference</h3><dl><div><dt>Posterior</dt><dd>{displayNumber(reference?.posterior)}</dd></div><div><dt>P(L) new</dt><dd>{displayNumber(reference?.resultingMastery)}</dd></div></dl></article><article><h3>Difference / tolerance</h3><dl><div><dt>Absolute</dt><dd>{displayNumber(result.difference)}</dd></div><div><dt>Tolerance</dt><dd>{displayNumber(result.tolerance)}</dd></div></dl></article></div>{productionTrace && <div className="algorithm-verifier-history"><strong>Independent sequence progression</strong>{productionTrace.map((step, index) => <div key={index} className="algorithm-verifier-trace-row"><span>Step {index + 1}</span><span>{step.correct ? "correct" : "wrong"}</span><span>prior {displayNumber(step.prior)}</span><span>posterior {displayNumber(step.posterior)}</span><span>final {displayNumber(step.resultingMastery)}</span></div>)}</div>}<pre className="algorithm-verifier-formula">{JSON.stringify(result.formula, null, 2)}</pre><p className="algorithm-verifier-note">The effective prior is clamped to [0.000001, 0.999999] before the observation update and the final probability is clamped after the learning transition.</p></section>}
-    <LiveBktVerification refreshKey={refreshKey} />
+    <LiveBktVerification key={modelVersion || "serving"} refreshKey={refreshKey} modelVersion={modelVersion || undefined} />
   </div>;
 }
 

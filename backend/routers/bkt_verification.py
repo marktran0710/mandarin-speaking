@@ -17,19 +17,25 @@ router = APIRouter(
 
 
 @router.get("")
-def get_bkt_verification_bootstrap(_identity: auth.Identity = Depends(auth.require_admin)):
-    with connect_db() as db:
-        return service.get_bootstrap(db)
+def get_bkt_verification_bootstrap(model_version: str | None = Query(default=None), _identity: auth.Identity = Depends(auth.require_admin)):
+    try:
+        with connect_db() as db:
+            return service.get_bootstrap(db, model_version)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/trace")
 def get_bkt_verification_trace(
     student_id: str = Query(..., min_length=1),
     word_id: str | None = Query(default=None),
+    model_version: str | None = Query(default=None),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
     try:
         with connect_db() as db:
-            return service.get_trace(db, student_id, word_id)
+            return service.get_trace(db, student_id, word_id, model_version=model_version)
     except service.BktVerificationNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -19,6 +19,7 @@ from analytics.learner_model.bkt.core import (
     is_supported_bkt_question_shape,
     replay_bkt_typed,
 )
+from analytics.learner_model.bkt.deployment import serving_bkt_config
 from analytics.learner_model.bkt.question_validation import classify_bkt_response
 from analytics.learner_model.bkt.placement_prior import (
     get_published_word_chapters,
@@ -392,6 +393,7 @@ def mastery_trace_for_word(
     """The BKT mastery estimate after each of a student's responses to one
     word, in order — for admin debugging (see routers/bkt_debug.py), not the
     student-facing summary (see get_vocabulary_mastery for that)."""
+    params = serving_bkt_config(db, params)
     history = _group_response_history(_ordered_responses(db, student_id)).get(word_id, [])
     word_chapters = get_published_word_chapters(db, [word_id])
     initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
@@ -420,6 +422,7 @@ def _lock_student_bkt(db: Any, student_id: str) -> None:
 
 def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, *, acquire_lock: bool = True) -> None:
     """Rebuild one learner's cache entirely from the raw response ledger."""
+    params = serving_bkt_config(db, params)
     if acquire_lock:
         _lock_student_bkt(db, student_id)
     responses = _ordered_responses(db, student_id)
@@ -728,6 +731,7 @@ def get_vocabulary_mastery(
     diagnostic_complete: bool | None = None,
     published_known: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
+    params = serving_bkt_config(db, params)
     if published_known is None:
         published_known = _known_words(db, story_id=story_id)
     if diagnostic_complete is None:
@@ -855,6 +859,7 @@ def rank_review_candidates(candidates: Iterable[dict[str, Any]], review_count: i
 
 def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] | None = None, params: BktConfig = BKT_CONFIG) -> dict[str, Any]:
     options = options or {}
+    params = serving_bkt_config(db, params)
     review_count = max(1, min(int(options.get("reviewCount", params.review_count)), 50))
     story_id = options.get("storyId")
     # diagnostic_status and get_vocabulary_mastery both need the same round

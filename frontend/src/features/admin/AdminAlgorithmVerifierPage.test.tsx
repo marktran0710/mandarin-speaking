@@ -29,6 +29,30 @@ beforeEach(() => {
 });
 
 describe("BKT preset inputs", () => {
+  it("selects a stored candidate for parameters, Recovery and live traces without activation", async () => {
+    const modelVersion = "bkt-synthetic-candidate-demo";
+    vi.mocked(getAlgorithmVerifierBootstrap).mockResolvedValueOnce({ ...verifierBootstrap, candidates: [{
+      modelVersion, evidenceOrigin: "synthetic", promotable: false, fitStatus: "completed",
+      parameters: { prior: 0.261835, learn: 0.13131, guess: 0.25752, slip: 0.089203, guess_typed: 0.045928, slip_typed: 0.152189 },
+      counts: { records: 4480, students: 40, concepts: 28 }, metrics: { production: { log_loss: 0.614583 }, candidate: { log_loss: 0.604577 } },
+      gates: { evidence: true }, impact: null,
+    }] });
+    const user = userEvent.setup();
+    render(<AdminAlgorithmVerifierPage />);
+    await user.selectOptions(await screen.findByRole("combobox", { name: "BKT model" }), modelVersion);
+    expect(screen.getByRole("spinbutton", { name: "Previous P(L)" })).toHaveValue(0.261835);
+    expect(screen.getByRole("spinbutton", { name: "P(T)" })).toHaveValue(0.13131);
+    expect(screen.getByRole("region", { name: "BKT parameter selection" })).toHaveTextContent("0.045928");
+    expect(vi.mocked(AdminBktVerificationPage).mock.calls.at(-1)?.[0].modelVersion).toBe(modelVersion);
+    vi.mocked(runBktVerification).mockResolvedValue({ result: "PASS" });
+    await user.click(screen.getByRole("button", { name: "Recovery" }));
+    await user.click(screen.getByRole("button", { name: "Run BKT update" }));
+    expect(runBktVerification).toHaveBeenCalledWith(expect.objectContaining({ modelVersion, prior: 0.261835, guess: 0.25752, learnRate: 0.13131 }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "BKT model" }), "");
+    expect(screen.getByRole("spinbutton", { name: "Previous P(L)" })).toHaveValue(0.2);
+    expect(screen.queryByLabelText("Selected BKT sequence")).not.toBeInTheDocument();
+  });
+
   it("replaces typed wrong and custom inputs immediately with a complete MCQ sequence", async () => {
     const user = userEvent.setup();
     render(<AdminAlgorithmVerifierPage />);

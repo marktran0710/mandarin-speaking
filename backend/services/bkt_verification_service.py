@@ -9,14 +9,17 @@ or pass together.
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import replace
 from typing import Any, Iterable
 
 from analytics.learner_model.bkt.core import (
     BKT_CONFIG,
     BKT_MODEL_VERSION,
+    BktConfig,
     bkt_parameter_fingerprint,
     guess_slip_for,
 )
+from analytics.learner_model.bkt.deployment import config_for_version_row, load_active_deployment, preview_bkt_config
 from analytics.learner_model.bkt.mastery import (
     get_vocabulary_mastery,
     mastery_trace_for_word,
@@ -43,27 +46,37 @@ class BktVerificationNotFound(Exception):
     """Raised when an admin asks for a student or word that is not available."""
 
 
-def _model_metadata() -> dict[str, Any]:
+def _serving(db: Any) -> tuple[BktConfig, dict[str, Any] | None]:
+    """The parameters actually serving learners (read directly, not cached)."""
+    deployment = load_active_deployment(db)
+    return config_for_version_row(deployment), deployment
+
+
+def _model_metadata(config: BktConfig = BKT_CONFIG, deployment: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         "version": BKT_MODEL_VERSION,
-        "parameterFingerprint": bkt_parameter_fingerprint(BKT_CONFIG),
+        "parameterFingerprint": bkt_parameter_fingerprint(config),
+        "activeDeployment": deployment["model_version"] if deployment and config is not BKT_CONFIG else None,
         "parameters": {
-            "pL0": BKT_CONFIG.initial_mastery,
-            "pT": BKT_CONFIG.learn_rate,
-            "mcqGuess": BKT_CONFIG.guess_rate,
-            "mcqSlip": BKT_CONFIG.slip_rate,
-            "typedGuess": BKT_CONFIG.guess_rate_typed,
-            "typedSlip": BKT_CONFIG.slip_rate_typed,
-            "masteryThreshold": BKT_CONFIG.mastery_threshold,
-            "minimumObservations": BKT_CONFIG.minimum_observations,
+            "pL0": config.initial_mastery,
+            "pT": config.learn_rate,
+            "mcqGuess": config.guess_rate,
+            "mcqSlip": config.slip_rate,
+            "typedGuess": config.guess_rate_typed,
+            "typedSlip": config.slip_rate_typed,
+            "masteryThreshold": config.mastery_threshold,
+            "minimumObservations": config.minimum_observations,
         },
-        "contractStatus": golden_contract_status(),
+        "contractStatus": golden_contract_status(config),
         "goldenFixtureVersion": GOLDEN_FIXTURE_VERSION,
     }
 
-def get_bootstrap(db: Any) -> dict[str, Any]:
+def get_bootstrap(db: Any, model_version: str | None = None) -> dict[str, Any]:
+    config, deployment = _serving(db)
+    if model_version:
+        config, deployment = preview_bkt_config(db, model_version), None
     return {
-        "model": _model_metadata(),
+        "model": {**_model_metadata(config, deployment), "selectedModelVersion": model_version, "previewOnly": bool(model_version)},
         "golden": build_golden_report(),
         "students": [
             {
@@ -115,15 +128,16 @@ def _placement_prior_detail(
     student_id: str,
     word_id: str,
     rows: list[dict[str, Any]],
+    config: BktConfig = BKT_CONFIG,
 ) -> dict[str, Any]:
     word_chapters = get_published_word_chapters(db, [word_id])
     chapter = word_chapters.get(word_id)
-    chapter_priors = compute_chapter_placement_priors(rows, BKT_CONFIG)
-    applied = initial_priors_by_word(db, student_id, word_chapters, BKT_CONFIG).get(word_id)
+    chapter_priors = compute_chapter_placement_priors(rows, config)
+    applied = initial_priors_by_word(db, student_id, word_chapters, config).get(word_id)
     if applied is None or chapter is None or chapter not in chapter_priors:
         return {
             "source": "Global BKT prior",
-            "pL0": BKT_CONFIG.initial_mastery,
+            "pL0": config.initial_mastery,
         }
     chapter_rows = [row for row in rows if is_placement_response(row) and row.get("chapter") == chapter]
     correct_count = sum(1 for row in chapter_rows if row.get("correct"))
@@ -136,7 +150,7 @@ def _placement_prior_detail(
         "placementResult": f"{correct_count} / {count}",
         "rawScore": raw_score,
         "shrinkageWeight": weight,
-        "globalPrior": BKT_CONFIG.initial_mastery,
+        "globalPrior": config.initial_mastery,
         "pL0": applied,
     }
 
@@ -192,12 +206,19 @@ def _build_presets(words: list[dict[str, Any]], rows: list[dict[str, Any]]) -> l
     return presets
 
 
-def get_trace(db: Any, student_id: str, word_id: str | None = None) -> dict[str, Any]:
+def get_trace(db: Any, student_id: str, word_id: str | None = None, *, model_version: str | None = None) -> dict[str, Any]:
     student = repo.get_student(db, student_id)
     if not student:
         raise BktVerificationNotFound("Student was not found.")
     rows = repo.list_bkt_response_rows(db, student_id)
-    mastery = get_vocabulary_mastery(db, student_id, BKT_CONFIG)
+    config, deployment = _serving(db)
+    if model_version:
+        config, deployment = preview_bkt_config(db, model_version), None
+    model_metadata = {**_model_metadata(config, deployment), "selectedModelVersion": model_version, "previewOnly": bool(model_version)}
+    # Evaluate production with a copy so it uses exactly these values rather
+    # than re-resolving the (cached) deployment on its own.
+    serving = config if config is not BKT_CONFIG else replace(BKT_CONFIG)
+    mastery = get_vocabulary_mastery(db, student_id, serving)
     words = [
         {
             "wordId": row["wordId"],
@@ -218,7 +239,7 @@ def get_trace(db: Any, student_id: str, word_id: str | None = None) -> dict[str,
             "presets": [],
             "selectedWordId": None,
             "trace": None,
-            "model": _model_metadata(),
+            "model": model_metadata,
         }
     selected_id = word_id or words[0]["wordId"]
     selected_word = next((word for word in words if word["wordId"] == selected_id), None)
@@ -227,22 +248,25 @@ def get_trace(db: Any, student_id: str, word_id: str | None = None) -> dict[str,
     history = _dedupe_history(rows, selected_id)
     current = next(row for row in mastery if row["wordId"] == selected_id)
     word_chapters = get_published_word_chapters(db, [selected_id])
-    initial_priors = initial_priors_by_word(db, student_id, word_chapters, BKT_CONFIG)
+    initial_priors = initial_priors_by_word(db, student_id, word_chapters, config)
     initial_mastery = (
-        BKT_CONFIG.initial_mastery
+        config.initial_mastery
         if any(is_placement_response(row) for row in history)
-        else initial_priors.get(selected_id, BKT_CONFIG.initial_mastery)
+        else initial_priors.get(selected_id, config.initial_mastery)
     )
+    # Defaults: the independent golden constants. A fitted deployment: the
+    # same independent arithmetic with the deployed values.
+    reference_parameters = config if config is not BKT_CONFIG else None
     reference_observations = [
         {"correct": bool(row["correct"]), "questionType": row.get("question_type")}
         for row in history
     ]
-    expected_trace = _reference_trace(reference_observations, initial_mastery)
-    production_trace = mastery_trace_for_word(db, student_id, selected_id, BKT_CONFIG)
-    actual_trace = _production_trace_with_rows(history, production_trace, initial_mastery)
+    expected_trace = _reference_trace(reference_observations, initial_mastery, reference_parameters)
+    production_trace = mastery_trace_for_word(db, student_id, selected_id, serving)
+    actual_trace = _production_trace_with_rows(history, production_trace, initial_mastery, config)
     expected_final = expected_trace[-1]["resultingMastery"] if expected_trace else initial_mastery
     actual_final = float(current["pLearned"])
-    expected_status = _reference_status(len(history), expected_final)
+    expected_status = _reference_status(len(history), expected_final, reference_parameters)
     actual_status = current["vocabularyState"]["bkt"]["status"]
     comparison = {
         "observationCount": {"expected": len(history), "actual": int(current["observationCount"])},
@@ -265,14 +289,14 @@ def get_trace(db: Any, student_id: str, word_id: str | None = None) -> dict[str,
         "words": words,
         "presets": _build_presets(words, rows),
         "selectedWordId": selected_id,
-        "model": _model_metadata(),
+        "model": model_metadata,
         "trace": {
             "word": selected_word,
             "evidence": [_format_evidence(row, index) for index, row in enumerate(history, start=1)],
             "evidenceCount": len(history),
             "provenance": _provenance(history),
             "syntheticTestData": bool(student.get("is_test_account")) or _provenance(history) == "SYNTHETIC",
-            "coldStart": _placement_prior_detail(db, student_id, selected_id, rows),
+            "coldStart": _placement_prior_detail(db, student_id, selected_id, rows, config),
             "expectedTrace": expected_trace,
             "actualTrace": actual_trace,
             "comparison": comparison,
@@ -286,11 +310,12 @@ def _production_trace_with_rows(
     rows: list[dict[str, Any]],
     production_trace: list[dict[str, Any]],
     initial_mastery: float,
+    config: BktConfig = BKT_CONFIG,
 ) -> list[dict[str, Any]]:
     actual: list[dict[str, Any]] = []
     prior = initial_mastery
     for index, (row, production_step) in enumerate(zip(rows, production_trace), start=1):
-        guess, slip = guess_slip_for(row.get("question_type"), BKT_CONFIG)
+        guess, slip = guess_slip_for(row.get("question_type"), config)
         if row["correct"]:
             numerator = prior * (1.0 - slip)
             denominator = numerator + (1.0 - prior) * guess
@@ -307,7 +332,7 @@ def _production_trace_with_rows(
             "guess": guess,
             "slip": slip,
             "posterior": posterior,
-            "learningTransition": BKT_CONFIG.learn_rate,
+            "learningTransition": config.learn_rate,
             "resultingMastery": float(production_step["pLearned"]),
         })
         prior = float(production_step["pLearned"])

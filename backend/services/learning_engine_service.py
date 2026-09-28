@@ -13,8 +13,12 @@ Provenance tags used throughout (see docs/learning-engine.md):
   PUBLISHED_METHOD              - a published technique (not necessarily an academic "algorithm")
   PROJECT_HEURISTIC             - project-specific logic with no external validation
   ENGINEERING_DEFAULT           - a runtime constant chosen for launch, not calibrated
+  FITTED:<model version>        - fitted on learner evidence and activated (BKT model parameters)
 """
-from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION
+
+from typing import Any
+from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig
+from analytics.learner_model.bkt.deployment import config_for_version_row, load_active_deployment
 from analytics.learner_model.srs import (
     DAY_SECONDS,
     FIRST_INTERVAL_DAYS,
@@ -28,7 +32,9 @@ from domain.speech import tone_decision as td
 from services.pronunciation_scoring import SENTENCE_SYLLABLE_PASS_RATIO
 
 
-def _bkt_section() -> dict:
+def _bkt_section(config: BktConfig = BKT_CONFIG, deployment: dict | None = None) -> dict:
+    fitted = deployment is not None and config is not BKT_CONFIG
+    model_provenance = f"FITTED:{deployment['model_version']}" if fitted else "ENGINEERING_DEFAULT"
     return {
         "name": "Bayesian Knowledge Tracing",
         "version": BKT_MODEL_VERSION,
@@ -36,48 +42,62 @@ def _bkt_section() -> dict:
         "purpose": "Estimate per-word vocabulary mastery from binary correct/incorrect responses, and rank weak words for personalized practice.",
         "parameters": {
             "P_L0_initial_mastery": {
-                "value": BKT_CONFIG.initial_mastery,
-                "provenance": "ENGINEERING_DEFAULT",
+                "value": config.initial_mastery,
+                "provenance": model_provenance,
             },
             "P_T_learn_rate": {
-                "value": BKT_CONFIG.learn_rate,
-                "provenance": "ENGINEERING_DEFAULT",
+                "value": config.learn_rate,
+                "provenance": model_provenance,
             },
             "P_G_guess_mcq": {
-                "value": BKT_CONFIG.guess_rate,
-                "provenance": "ENGINEERING_DEFAULT",
+                "value": config.guess_rate,
+                "provenance": model_provenance,
             },
             "P_S_slip_mcq": {
-                "value": BKT_CONFIG.slip_rate,
-                "provenance": "ENGINEERING_DEFAULT",
+                "value": config.slip_rate,
+                "provenance": model_provenance,
             },
             "P_G_guess_typed": {
-                "value": BKT_CONFIG.guess_rate_typed,
-                "provenance": "ENGINEERING_DEFAULT",
+                "value": config.guess_rate_typed,
+                "provenance": model_provenance,
             },
             "P_S_slip_typed": {
-                "value": BKT_CONFIG.slip_rate_typed,
-                "provenance": "ENGINEERING_DEFAULT",
+                "value": config.slip_rate_typed,
+                "provenance": model_provenance,
             },
             "mastery_threshold": {
-                "value": BKT_CONFIG.mastery_threshold,
+                "value": config.mastery_threshold,
                 "provenance": "ENGINEERING_DEFAULT",
             },
             "minimum_observations": {
-                "value": BKT_CONFIG.minimum_observations,
+                "value": config.minimum_observations,
                 "provenance": "ENGINEERING_DEFAULT",
             },
             "required_diagnostic_rounds": {
-                "value": BKT_CONFIG.required_diagnostic_quizzes,
+                "value": config.required_diagnostic_quizzes,
                 "provenance": "ENGINEERING_DEFAULT",
             },
             "review_count": {
-                "value": BKT_CONFIG.review_count,
+                "value": config.review_count,
                 "provenance": "ENGINEERING_DEFAULT",
             },
         },
-        "parameterStatus": "provisional",
-        "calibrationStatus": "Needs pilot/human-rater calibration - source code labels these ENGINEERING DEFAULTS, not calibrated cutoffs (analytics/bkt.py).",
+        "parameterStatus": "fitted" if fitted else "provisional",
+        "activeDeployment": (
+            {
+                "modelVersion": deployment["model_version"],
+                "evidenceOrigin": deployment["evidence_origin"],
+                "deployedAt": str(deployment["updated_at"]),
+            }
+            if fitted
+            else None
+        ),
+        "calibrationStatus": (
+            "P(L0), P(T) and guess/slip were fitted on learner evidence (scripts/refit_bkt_parameters.py) and "
+            "activated with scripts/promote_bkt_model.py. Mastery threshold and minimum observations remain policy defaults."
+            if fitted
+            else "Needs pilot/human-rater calibration - source code labels these ENGINEERING DEFAULTS, not calibrated cutoffs (analytics/bkt.py)."
+        ),
         "pipeline": [
             "Client response",
             "Server resolves the authoritative assessment answer (never trusts a client-sent correct/incorrect boolean alone)",
@@ -298,9 +318,11 @@ def _voice_section() -> dict:
     }
 
 
-def get_learning_engine_metadata() -> dict:
+def get_learning_engine_metadata(db: Any = None) -> dict:
+    """``db`` given: report the BKT parameters actually serving learners."""
+    deployment = load_active_deployment(db) if db is not None else None
     return {
-        "bkt": _bkt_section(),
+        "bkt": _bkt_section(config_for_version_row(deployment), deployment),
         "retention": _retention_section(),
         "voice": _voice_section(),
     }

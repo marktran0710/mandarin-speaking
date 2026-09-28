@@ -142,15 +142,17 @@ async function parseError(response: Response, fallback: string): Promise<Error> 
   return new Error(typeof body?.detail === "string" ? body.detail : `${fallback} (${response.status}).`);
 }
 
-export async function getBktVerificationBootstrap(): Promise<BktVerificationBootstrap> {
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/bkt-verification`);
+export async function getBktVerificationBootstrap(modelVersion?: string): Promise<BktVerificationBootstrap> {
+  const query = modelVersion ? `?${new URLSearchParams({ model_version: modelVersion })}` : "";
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/bkt-verification${query}`);
   if (!response.ok) throw await parseError(response, "Could not load BKT verification metadata");
   return response.json() as Promise<BktVerificationBootstrap>;
 }
 
-export async function getBktVerificationTrace(studentId: string, wordId?: string): Promise<BktVerificationTraceResponse> {
+export async function getBktVerificationTrace(studentId: string, wordId?: string, modelVersion?: string): Promise<BktVerificationTraceResponse> {
   const params = new URLSearchParams({ student_id: studentId });
   if (wordId) params.set("word_id", wordId);
+  if (modelVersion) params.set("model_version", modelVersion);
   const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/bkt-verification/trace?${params.toString()}`);
   if (!response.ok) throw await parseError(response, "Could not load the BKT trace");
   return response.json() as Promise<BktVerificationTraceResponse>;

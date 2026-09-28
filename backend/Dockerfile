@@ -28,6 +28,11 @@ COPY requirements.txt .
 RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
+# Development checks are available inside the backend container. Production
+# uses Dockerfile.production and does not install these dependencies.
+COPY requirements-dev.txt .
+RUN pip install -r requirements-dev.txt
+
 # Local ASR extras (torch/transformers/librosa) for this dev image only — see
 # requirements-local-asr.txt. Kept as its own COPY+RUN layer so a change to
 # the base requirements above doesn't force re-downloading ~2-3GB of torch.

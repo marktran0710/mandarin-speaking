@@ -105,6 +105,15 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
     )
 
 
+def _server_evidence_origin(db, student_id: str, requested: str) -> str:
+    if requested not in {"real", "synthetic"}:
+        raise ValueError("Evidence origin must be real or synthetic.")
+    student = db.execute("SELECT is_test_account FROM students WHERE id = %s FOR SHARE", (student_id,)).fetchone()
+    if student is None:
+        raise ValueError(f"Unknown student: {student_id}")
+    return "synthetic" if student["is_test_account"] else requested
+
+
 def record_attempt(
     db,
     attempt: VocabQuizAttemptRequest,
@@ -125,6 +134,7 @@ def record_attempt(
     maps both to HTTPException(409).
     """
     attempt.studentId = identity_id
+    evidence_origin = _server_evidence_origin(db, identity_id, evidence_origin)
     raw_question_results = [
         result.model_dump(exclude_none=True, exclude_defaults=True) for result in attempt.questionResults
     ]
@@ -221,6 +231,7 @@ def record_response(
     safely replay the same answers.
     """
     attempt.studentId = identity_id
+    evidence_origin = _server_evidence_origin(db, identity_id, evidence_origin)
     research_context = get_research_context(db, identity_id)
     question_results = _validated_question_results(db, attempt)
     normalized_attempt = attempt.model_dump(exclude_none=True)

@@ -4,6 +4,7 @@ export type AlgorithmResult = "PASS" | "FAIL" | "NOT RUN" | "BLOCKED" | "MODEL C
 
 export interface AlgorithmVerifierBootstrap {
   model: Record<string, unknown>;
+  candidates?: BktCalibrationCandidate[];
   golden: { summary: { passed: number; total: number } };
   contractStatus: string;
   sm2: Record<string, unknown>;
@@ -15,6 +16,18 @@ export interface AlgorithmVerifierBootstrap {
     fixture: IntegrationFixture | null;
     fixtureError: string | null;
   };
+}
+
+export interface BktCalibrationCandidate {
+  modelVersion: string;
+  evidenceOrigin: "real" | "synthetic";
+  promotable: boolean;
+  fitStatus: string;
+  parameters: Record<"prior" | "learn" | "guess" | "slip" | "guess_typed" | "slip_typed", number>;
+  counts: { records: number; students: number; concepts: number };
+  metrics: { candidate: Record<string, number | null>; production: Record<string, number | null> };
+  gates: Record<string, boolean>;
+  impact: { observedWords: number; strongBefore: number; strongAfter: number; meanAbsolutePLearnedChange: number } | null;
 }
 
 export interface IntegrationFixtureWord {

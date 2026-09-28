@@ -53,3 +53,7 @@
 .algorithm-verifier-state { min-height: 220px; padding: var(--space-xl); }
 @media (max-width: 900px) { .algorithm-verifier-hero { grid-template-columns: 1fr; } .algorithm-verifier-form-grid, .algorithm-verifier-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .algorithm-verifier-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .algorithm-verifier-hero, .algorithm-verifier-panel { padding: var(--space-md); } .algorithm-verifier-summary, .algorithm-verifier-form-grid, .algorithm-verifier-results-grid, .algorithm-verifier-fixture, .algorithm-verifier-mini-grid { grid-template-columns: 1fr; } .algorithm-verifier-panel-heading, .algorithm-verifier-history article > div:first-child { display: grid; } .algorithm-verifier-tabs { overflow-x: auto; } }
+.algorithm-verifier-model-select { display: grid; gap: 0.5rem; }
+.algorithm-verifier-model-select select { width: 100%; min-width: 0; padding: 0.65rem; }
+.algorithm-verifier-parameter-table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.algorithm-verifier-parameter-table th, .algorithm-verifier-parameter-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color, #e2e8f0); }

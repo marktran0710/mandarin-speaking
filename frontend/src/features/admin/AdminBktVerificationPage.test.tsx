@@ -95,4 +95,11 @@ describe("AdminBktVerificationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Unseen word" }));
     await waitFor(() => expect(getBktVerificationTrace).toHaveBeenCalledWith("SIM001", "word-1"));
   });
+
+  it("requests candidate metadata and the matching candidate trace", async () => {
+    render(<AdminBktVerificationPage modelVersion="synthetic-candidate" />);
+    await screen.findByRole("heading", { name: "Live Student Trace" });
+    expect(getBktVerificationBootstrap).toHaveBeenCalledWith("synthetic-candidate");
+    await waitFor(() => expect(getBktVerificationTrace).toHaveBeenCalledWith("SIM001", expect.anything(), "synthetic-candidate"));
+  });
 });

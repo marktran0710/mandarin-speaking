@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from psycopg.types.json import Jsonb
 
 import db
 from analytics.learner_model.bkt.calibration_store import (
@@ -23,6 +24,10 @@ def _insert_response(
     activity_type: str = "diagnostic",
 ) -> None:
     occurred_at = occurred_at or datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(minutes=index)
+    db.execute(
+        "INSERT INTO students (id, name, password, is_test_account) VALUES (%s, %s, 'unused-test-password', %s) "
+        "ON CONFLICT (id) DO NOTHING", (student_id, student_id, origin == "synthetic"),
+    )
     db.execute(
         """
         INSERT INTO vocab_quiz_responses
@@ -80,6 +85,7 @@ def _successful_synthetic_report(records):
         "parameter_constraints": {"all": True},
         "metrics": {"candidate": {"log_loss": .5}, "production": {"log_loss": .6}},
         "fold_assignments": {student: index % 5 for index, student in enumerate(students)},
+        "folds": [],
     }
 
 
@@ -152,10 +158,10 @@ def test_scheduled_refit_waits_for_interval_and_enough_new_evidence():
             """
             INSERT INTO bkt_model_fit_runs
                 (id, evidence_origin, source_digest, high_water_response_id,
-                 response_count, student_count, concept_count, completed_at)
-            VALUES ('real-fit-1', 'real', %s, %s, 1, 1, 1, %s)
+                 response_count, student_count, concept_count, completed_at, split_spec)
+            VALUES ('real-fit-1', 'real', %s, %s, 1, 1, 1, %s, %s)
             """,
-            (first.source_digest, first.high_water_response_id, started),
+            (first.source_digest, first.high_water_response_id, started, Jsonb({"dataset_scope": first.scope})),
         )
         for offset in range(2, 252):
             _insert_response(

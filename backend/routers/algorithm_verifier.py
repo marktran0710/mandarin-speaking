@@ -30,7 +30,8 @@ def bootstrap(_identity: auth.Identity = Depends(auth.require_admin)):
 @router.post("/bkt")
 def bkt(payload: dict[str, Any], _identity: auth.Identity = Depends(auth.require_admin)):
     try:
-        return service.calculate_bkt(payload)
+        with connect_db() as db:
+            return service.calculate_bkt(payload, db)
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

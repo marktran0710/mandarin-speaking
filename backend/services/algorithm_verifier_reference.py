@@ -65,20 +65,22 @@ def bkt_sequence(
     for index, observation in enumerate(observations, start=1):
         question_type = str(observation.get("questionType") or observation.get("questionFormat") or "").strip().lower()
         typed = question_type in typed_question_types or question_type == "typed"
+        guess = float(observation.get("guess", typed_guess if typed else mcq_guess))
+        slip = float(observation.get("slip", typed_slip if typed else mcq_slip))
         step = bkt_step(
             prior,
             bool(observation.get("correct")),
             learn_rate=learn_rate,
-            guess=typed_guess if typed else mcq_guess,
-            slip=typed_slip if typed else mcq_slip,
+            guess=guess,
+            slip=slip,
         )
         trace.append({
             "step": index,
             "observation": "Correct" if observation.get("correct") else "Incorrect",
             "correct": bool(observation.get("correct")),
             "questionType": observation.get("questionType"),
-            "guess": typed_guess if typed else mcq_guess,
-            "slip": typed_slip if typed else mcq_slip,
+            "guess": guess,
+            "slip": slip,
             "learningTransition": learn_rate,
             **step,
         })
