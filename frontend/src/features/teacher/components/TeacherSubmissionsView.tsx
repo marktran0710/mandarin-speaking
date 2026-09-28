@@ -9,6 +9,24 @@ import Icon from "@shared/ui/Icon";
 import SelfEvalIcon from "@shared/ui/SelfEvalIcon";
 import StudentIcon from "../../../components/navigation/StudentIcon";
 
+const PRACTICE_PATH_LABEL = { speaking: "Story speaking", conversation: "Conversation", both: "Speaking + conversation" } as const;
+
+/** "Conversation · Quiz 70 / 45 / — · Submission #2" — the lesson context
+ * stored with the (single, overwritten-on-resubmit) submission. */
+function submissionMeta(sub: StorySubmission): string {
+  const parts: string[] = [];
+  if (sub.practicePath) parts.push(PRACTICE_PATH_LABEL[sub.practicePath]);
+  if (sub.quizScores) {
+    const rounds = (["tier1", "tier2", "tier3"] as const).map((tier) => {
+      const score = sub.quizScores?.[tier]?.score;
+      return typeof score === "number" ? String(score) : "—";
+    });
+    parts.push(`Quiz ${rounds.join(" / ")}`);
+  }
+  if ((sub.submissionCount ?? 1) > 1) parts.push(`Submission #${sub.submissionCount}`);
+  return parts.join(" · ");
+}
+
 function submittedTime(submission: StorySubmission) {
   const time = Date.parse(submission.submittedAt);
   return Number.isNaN(time) ? 0 : time;
@@ -157,6 +175,7 @@ export default function TeacherSubmissionsView({
                   <div className="story-submission-row-primary">
                     <strong>{sub.studentName}</strong>
                     <span className="story-submission-row-story">{sub.storyTitle}</span>
+                    {submissionMeta(sub) && <span className="story-submission-row-story">{submissionMeta(sub)}</span>}
                   </div>
                   <span
                     className="story-submission-row-score"

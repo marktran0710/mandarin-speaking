@@ -148,6 +148,9 @@ def row_to_story_submission(row: dict) -> dict:
         "storyFeedback": row.get("story_feedback"),
         "reviewStatus": row.get("review_status") or "pending",
         "teacherNote": row.get("teacher_note"),
+        "practicePath": row.get("practice_path"),
+        "quizScores": row.get("quiz_scores"),
+        "submissionCount": row.get("submission_count") or 1,
     }
 
 
