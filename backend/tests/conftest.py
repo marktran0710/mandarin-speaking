@@ -162,6 +162,11 @@ def clean_database(use_test_database):
                     'bootstrap-engineering-defaults-l0-0.2-t-0.15-g-0.2-s-0.1')
             """
         )
+    # The serving-parameter lookup is cached per process; the deployment
+    # table was just truncated, so no test may see a previous test's model.
+    from analytics.learner_model.bkt.deployment import clear_active_config_cache
+
+    clear_active_config_cache()
     yield
 
 

@@ -137,6 +137,7 @@ describe("ConversationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("groups consecutive history turns by speaker so only each group end needs a marker", () => {
@@ -197,7 +198,7 @@ describe("ConversationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").conversation).toBe(true);
+    expect(JSON.parse(localStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").conversation).toBe(true);
   });
 
   it("shows a Stop button while recording and calls stopRecording", () => {

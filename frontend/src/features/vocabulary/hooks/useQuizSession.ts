@@ -11,7 +11,6 @@ import {
   canUseDatabase,
   createVocabQuizAttempt,
   recordVocabQuizResponse,
-  type VocabPriorityReviewWord,
 } from "../../../services/database";
 import {
   TIMER_TICK_MS,
@@ -35,6 +34,7 @@ import { getCachedResearchContext } from "../../../utils/researchContext";
 import { saveLessonAttempt } from "../model/lesson-vocab-progress";
 import { VocabularyChangedError, type VocabQuizAttempt } from "../../../services/api/quiz-analytics";
 import { resetLocalVocabularyProgress } from "../../../utils/serverVocabularyProgress";
+import { correctAnswer, entriesInServerPriorityOrder } from "./answerKey";
 import { useQuizSessionData } from "./useQuizSessionData";
 
 export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
@@ -53,35 +53,7 @@ type UseQuizSessionProps = {
   onComplete?: (summary: VocabQuizSummary) => void;
 };
 
-export function correctAnswer(question: VocabQuizQuestion) {
-  switch (question.kind) {
-    case "translation": return question.correctTranslation;
-    case "cloze": return question.correctWord;
-    case "pinyin": return question.correctPinyin;
-    case "pos": return question.correctPos;
-    case "synonym": return question.correctSynonym;
-    case "reverse":
-    case "listening": return question.correctWord;
-    case "assessment": return question.correctAnswer;
-  }
-}
-
-export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priorityReviewWords: VocabPriorityReviewWord[]): VocabQuizEntry[] {
-  return priorityReviewWords.flatMap((priorityWord) => {
-    const entry = entries.find((candidate) => candidate.wordId === priorityWord.wordId)
-      ?? entries.find((candidate) => candidate.word === priorityWord.word);
-    if (!entry) return [];
-    return priorityWord.seenQuestionTypes?.length || priorityWord.failedQuestionTypes?.length
-      ? [{
-        ...entry,
-        bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
-        bktFailedQuestionKinds: priorityWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
-        bktObservationCount: priorityWord.observationCount,
-        bktLastResponseAt: priorityWord.lastResponseAt,
-      }]
-      : [entry];
-  });
-}
+export { correctAnswer, entriesInServerPriorityOrder } from "./answerKey";
 
 export function useQuizSession({
   entries, storyId, baseStoryId, vocabularyVersion, level, studentId, studentName, onComplete,
@@ -96,10 +68,15 @@ export function useQuizSession({
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
+  // Diagnostic rounds give one hinted retry after a wrong first answer. The
+  // first answer alone is the score and the BKT evidence; the retry only
+  // annotates that same result (hintUsed / retryCorrect).
+  const [awaitingRetry, setAwaitingRetry] = useState(false);
+  const [retryOutcome, setRetryOutcome] = useState<{ answer: string; correct: boolean } | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
   const [vocabularyChanged, setVocabularyChanged] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
-  // Lock handlers synchronously, including calls made before React renders.
+  // Lock answer/next handlers synchronously, including calls made before React renders.
   const questionStateRef = useRef({ index: 0, answered: false });
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
@@ -114,6 +91,7 @@ export function useQuizSession({
   const pendingResponsesRef = useRef(new Set<Promise<unknown>>());
   const {
     stars,
+    attempts,
     setAttempts,
     setStars,
     recordLessonEvent,
@@ -186,6 +164,11 @@ export function useQuizSession({
     setIsFinishing(true);
     const correctCount = finalResults.filter((result) => result.correct).length;
     if (!isRetryRound) {
+      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
+      if (earned !== null) {
+        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
+        setStars((current) => earned > current ? earned : current);
+      }
       const summary: VocabQuizSummary = {
         mode: mode!, totalQuestions: finalResults.length, correctCount,
         totalTimeMs: Date.now() - quizStartRef.current, questionResults: finalResults,
@@ -215,14 +198,9 @@ export function useQuizSession({
             setIsFinishing(false);
             return;
           }
-          // The local result may be displayed, but only server evidence
-          // opens the lesson's practice gate.
+          // The local snapshot remains a recoverable migration queue. It will
+          // be POST-validated the next time progression is read.
         }
-      }
-      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
-      if (earned !== null) {
-        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
-        setStars((current) => earned > current ? earned : current);
       }
       setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
       saveLessonAttempt(studentScope, attempt.storyId, attempt);
@@ -241,12 +219,10 @@ export function useQuizSession({
       onComplete?.(summary);
     }
     setScreen("summary");
-    setIsFinishing(false);
   };
 
   const choose = (option: string) => {
-    if (screen !== "quiz" || !question || finishedRef.current
-      || questionStateRef.current.index !== index || questionStateRef.current.answered) return;
+    if (selected || finishedRef.current || questionStateRef.current.index !== index || questionStateRef.current.answered) return;
     questionStateRef.current.answered = true;
     const entry = roundEntries.find((candidate) => candidate.word === question.word);
     const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
@@ -290,11 +266,12 @@ export function useQuizSession({
     const quizId = quizIdRef.current ?? `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}`;
     quizIdRef.current = quizId;
     setSelected(option);
+    const firstTryCorrect = question.kind === "assessment"
+      ? assessmentAnswerIsCorrect(question, option)
+      : option === answer;
     const nextResults = [...results, {
       word: question.word,
-      correct: question.kind === "assessment"
-        ? assessmentAnswerIsCorrect(question, option)
-        : option === answer,
+      correct: firstTryCorrect,
       timeMs: Date.now() - questionStartRef.current,
       itemId,
       conceptId, questionKind: resultQuestionKind, tier: diagnosticConfig?.mode,
@@ -322,6 +299,8 @@ export function useQuizSession({
       quizId,
     }];
     setResults(nextResults);
+    setRetryOutcome(null);
+    setAwaitingRetry(diagnosticMode && !firstTryCorrect);
 
     // BKT evidence is recorded immediately after each eligible diagnostic
     // answer. The list remains locked for speaking until all three tiers are
@@ -333,7 +312,6 @@ export function useQuizSession({
         storyId,
         studentName: studentName ?? "Student",
         studentId,
-        vocabularyVersion,
         mode: mode!,
         baseStoryId: baseStoryId ?? storyId,
         level,
@@ -343,10 +321,7 @@ export function useQuizSession({
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: nextResults,
       })
-        .catch((error) => {
-          if (error instanceof VocabularyChangedError) revokeStaleSession();
-          /* final attempt persistence remains the fallback for other errors */
-        })
+        .catch(() => { /* final attempt persistence remains the fallback */ })
         .finally(() => { pendingResponsesRef.current.delete(saved); });
       pendingResponsesRef.current.add(saved);
       if (isLast) {
@@ -357,13 +332,33 @@ export function useQuizSession({
     }
   };
 
+  /** The single hinted retry after a wrong diagnostic answer. It never
+   * creates a new BKT response and never changes `correct`; it only records
+   * that a hint was used and whether the retry was right, on the original
+   * result (sent with the completed attempt). */
+  const chooseRetry = (option: string) => {
+    if (!awaitingRetry || !question) return;
+    const retryCorrect = question.kind === "assessment"
+      ? assessmentAnswerIsCorrect(question, option)
+      : option === correctAnswer(question);
+    setResults((current) => current.map((result) => (
+      result.questionIndex === index ? { ...result, hintUsed: true, retryCorrect } : result
+    )));
+    setAwaitingRetry(false);
+    setRetryOutcome({ answer: option, correct: retryCorrect });
+  };
+
   const next = () => {
     if (screen !== "quiz" || finishedRef.current || selected === null
       || questionStateRef.current.index !== index || !questionStateRef.current.answered) return;
-    // Keep final feedback visible until persistence completes.
+    // Keep the final answer and feedback visible while the completed attempt
+    // is being persisted. The summary replaces the quiz only after `finish`
+    // resolves, so clearing it here makes the save state look unanswered.
     if (isLast) return void finish(results);
-    questionStateRef.current = { index: index + 1, answered: false };
     setSelected(null);
+    setAwaitingRetry(false);
+    setRetryOutcome(null);
+    questionStateRef.current = { index: index + 1, answered: false };
     questionStartRef.current = Date.now();
     setIndex(index + 1);
   };
@@ -381,11 +376,9 @@ export function useQuizSession({
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
-    setSelected(null); setResults([]); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
-    setIsFinishing(false); questionStateRef.current = { index: 0, answered: false };
-    quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    attemptStartedAtRef.current = new Date().toISOString();
-    quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
+    setSelected(null); setResults([]); setAwaitingRetry(false); setRetryOutcome(null); setIsFinishing(false); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
+    questionStateRef.current = { index: 0, answered: false };
+    finishedRef.current = false;
     const startedEvent = picked === "tier1"
       ? "round1_started"
       : picked === "tier2"
@@ -407,6 +400,9 @@ export function useQuizSession({
       setQuestions(questions);
       setQuestionLimit(questions.length);
       setRequestedQuestionCount(questions.length);
+      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      attemptStartedAtRef.current = new Date().toISOString();
+      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
       return;
     }
     const importedQuestions = hasAssessmentBank && (picked === "tier1" || picked === "tier2" || picked === "tier3")
@@ -430,6 +426,9 @@ export function useQuizSession({
       setQuestions(questions);
       setQuestionLimit(questions.length);
       setRequestedQuestionCount(questions.length);
+      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      attemptStartedAtRef.current = new Date().toISOString();
+      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
       return;
     }
     const requestedCount = limit ?? entriesForRound.length;
@@ -437,6 +436,9 @@ export function useQuizSession({
       (entry, planMode, context) => buildQuizQuestion(entry, distractorPool, planMode, context));
     plannedQuestionCountRef.current = plan.questions.length;
     setQuestions(plan.questions); setQuestionLimit(plan.questions.length); setRequestedQuestionCount(requestedCount);
+    quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    attemptStartedAtRef.current = new Date().toISOString();
+    quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
   };
 
   const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, entries.length); };
@@ -507,9 +509,9 @@ export function useQuizSession({
   };
 
   return {
-    screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount, vocabularyChanged,
-    question, index, selected, results, isFinishing, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
-    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
+    screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
+    question, index, selected, results, isFinishing, vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
+    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, chooseRetry, awaitingRetry, retryOutcome, next, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
     startResearchPractice, researchDueEntries, startResearchReview, startWeakWords, startDueReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,

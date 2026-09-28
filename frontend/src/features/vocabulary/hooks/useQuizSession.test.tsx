@@ -146,7 +146,7 @@ it("shows 16/16 and saving feedback on the quiz page until persistence finishes"
     vocabAssessment: makeEntries(16).flatMap((entry) => entry.assessmentQuestions ?? []),
   };
   const { container } = render(<VocabularyQuizPage topic={topic} lessonLabel="Lesson" onFinished={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: "開始 認識" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "開始" })[0]);
   for (let index = 0; index < 16; index += 1) {
     const word = container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word");
     const answer = topic.vocabAssessment?.find((question) => question.targetWord === word)?.correctAnswer;
@@ -161,5 +161,5 @@ it("shows 16/16 and saving feedback on the quiz page until persistence finishes"
   expect(container.querySelector(".sa-quiz__stats")).toHaveTextContent("16 / 16");
   expect(createVocabQuizAttempt).toHaveBeenCalledTimes(1);
   await act(async () => { save.resolve(); await save.promise; });
-  await waitFor(() => expect(container.querySelector(".sa-quiz__result-score")).toHaveTextContent("16 / 16"));
+  await waitFor(() => expect(container.querySelector(".sa-quiz__result-copy")).toHaveTextContent("16 / 16"));
 });

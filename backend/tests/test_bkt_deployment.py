@@ -3,7 +3,6 @@
 import random
 from datetime import datetime, timedelta, timezone
 
-import psycopg
 import pytest
 
 import db
@@ -143,7 +142,7 @@ def test_real_candidate_activates_serves_and_deactivates():
         assert cache_fingerprints == {bkt_parameter_fingerprint(BKT_CONFIG)}
 
 
-def test_synthetic_candidate_reports_but_cannot_be_activated():
+def test_synthetic_candidate_requires_explicit_test_activation():
     with db.connect_db() as conn:
         _seed_ledger(conn, "synthetic")
         result = run_calibration_candidate(conn, "synthetic", force=True, model="format-aware")
@@ -152,10 +151,19 @@ def test_synthetic_candidate_reports_but_cannot_be_activated():
     assert result["promotable"] is False
     assert result["impact"]["changedWords"] >= 0
 
-    with pytest.raises(psycopg.errors.RaiseException, match="Only real-evidence"):
+    with pytest.raises(ValueError, match="allow_synthetic"):
         with db.connect_db() as conn:
             promote_model_version(conn, result["modelVersion"], "should be refused")
     with db.connect_db() as conn:
+        activated = promote_model_version(
+            conn,
+            result["modelVersion"],
+            "explicit local synthetic runtime test",
+            allow_synthetic=True,
+        )
+        assert activated["syntheticTestDeployment"] is True
+        assert load_active_deployment(conn)["evidence_origin"] == "synthetic"
+        deactivate_deployment(conn)
         assert load_active_deployment(conn) is None
 
 

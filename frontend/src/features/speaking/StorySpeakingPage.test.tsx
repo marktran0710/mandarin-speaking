@@ -134,6 +134,7 @@ describe("StorySpeakingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("shows a Stop button while recording and calls stopRecording", () => {
@@ -260,7 +261,7 @@ describe("StorySpeakingPage", () => {
     expect(onImageIndexChange).toHaveBeenCalledWith(1);
     expect(onDone).not.toHaveBeenCalled();
     expect(saveSpeakingProgress).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").speaking).not.toBe(true);
+    expect(JSON.parse(localStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").speaking).not.toBe(true);
 
     // Scene 1 (last scene): needs Fix before Finish is reachable.
     fireEvent.click(screen.getByRole("button", { name: "Record" }));
@@ -275,6 +276,6 @@ describe("StorySpeakingPage", () => {
     expect(onAddRecord).toHaveBeenCalledTimes(2);
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(saveSpeakingProgress).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(sessionStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").speaking).toBe(true);
+    expect(JSON.parse(localStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").speaking).toBe(true);
   });
 });

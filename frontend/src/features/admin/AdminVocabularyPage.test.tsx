@@ -184,7 +184,7 @@ describe("Admin vocabulary page", () => {
     render(<AdminVocabularyPage />);
     await user.click(await screen.findByRole("button", { name: "View quiz questions for 桌子" }));
     const dialog = screen.getByRole("dialog", { name: "Quiz questions: 桌子" });
-    expect(within(dialog).getByRole("button", { name: "Audio not available" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "沒有音訊" })).toBeDisabled();
     expect(within(dialog).getByText("Audio not available — import a clip to enable playback.")).toBeInTheDocument();
     expect(within(dialog).getByText(/No generated questions yet/)).toBeInTheDocument();
   });

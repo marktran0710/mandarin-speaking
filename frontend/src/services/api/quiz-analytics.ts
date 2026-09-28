@@ -14,7 +14,7 @@ function withDevSrsToday(path: string): string {
   return `${path}${path.includes("?") ? "&" : "?"}today=${encodeURIComponent(today)}`;
 }
 export interface VocabQuizAttempt { id: string; storyId: string; studentName: string; studentId?: string; vocabularyVersion?: number; mode?: "tier1" | "tier2" | "tier3" | "speed" | "strikes" | "free" | "weak_words" | "maintenance_review" | "challenge"; baseStoryId?: string; level?: string; completedAt: string; totalQuestions: number; correctCount: number; totalTimeMs: number; questionResults: Array<{ word: string; correct: boolean; timeMs: number; itemId?: string; conceptId?: string; questionKind?: string; round?: 1 | 2 | 3; tier?: "tier1" | "tier2" | "tier3"; knowledgeDimension?: "meaning" | "pinyin_production" | "contextual_recall"; activityType?: "diagnostic" | "personalized_practice" | "scheduled_maintenance" | "challenge" | "practice"; level?: string; baseStoryId?: string; itemVersion?: string; selectedAnswer?: string; correctAnswer?: string; presentedOptions?: string[]; questionPrompt?: string; answeredAt?: string; questionIndex?: number; lessonId?: string; quizId?: string; isBktEligible?: boolean; bktEligibilityErrors?: string[]; diagnosticExposureId?: string; assistedResponse?: boolean; bktValidationStatus?: "APPROVED" | "DRAFT" }>; }
-export interface VocabularyProgressionTier { earned: boolean; correctCount: number; totalQuestions: number; requiredCorrect: number; }
+export interface VocabularyProgressionTier { earned: boolean; correctCount: number; totalQuestions: number; /** 0–100, the latest finished attempt of this round. */ score: number; completedAt: string | null; }
 export interface VocabularyProgression { storyId: string; quizStars: 0 | 1 | 2 | 3; requiredStars: number; tiers: Record<"tier1" | "tier2" | "tier3", VocabularyProgressionTier>; speakingUnlocked: boolean; conversationAvailable: boolean; conversationUnlocked: boolean; }
 export class VocabularyChangedError extends Error {}
 
@@ -27,11 +27,13 @@ async function quizWriteError(response: Response): Promise<Error> {
   }
   return new Error("Could not save the vocabulary quiz.");
 }
-
+// The completed attempt is idempotent server-side (same id + same payload is
+// accepted again), so it is safe to retry on a dropped connection or a
+// gateway error — it is also the safety net for per-answer saves that failed.
 export async function createVocabQuizAttempt(attempt: VocabQuizAttempt): Promise<VocabQuizAttempt> {
   const response = await fetchWithRetry(withDevSrsToday(`${BACKEND_URL}/api/vocab-quiz-attempts`), {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(attempt),
-  });
+  }, 3, undefined, [502, 503, 504]);
   if (!response.ok) throw await quizWriteError(response);
   return response.json() as Promise<VocabQuizAttempt>;
 }

@@ -285,3 +285,28 @@
   .sa-quiz__result-card { border-radius: 16px; }
   .sa-quiz__option { min-height: 60px; }
 }
+
+/* Three round cards: finish in order once, then redo any of them. */
+.sa-quiz__round-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2); margin: var(--space-3) 0 0; padding: 0; list-style: none; }
+.sa-quiz__round-card { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-control-md); background: var(--color-surface); }
+.sa-quiz__round-card.is-next { border-color: var(--color-primary); }
+.sa-quiz__round-card.is-locked { color: var(--color-muted); background: var(--color-surface-soft); }
+.sa-quiz__round-card-head { display: flex; align-items: center; gap: var(--space-2); }
+.sa-quiz__round-card-head .sa-icon { margin-left: auto; }
+.sa-quiz__round-card.is-done .sa-quiz__round-card-head .sa-icon { color: var(--color-success); }
+.sa-quiz__round-card-index { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-control-full); background: var(--color-sky); color: var(--color-ink); font: 700 var(--font-size-caption)/1 var(--font-ui); }
+.sa-quiz__round-card-score { margin: 0; color: var(--color-ink-variant); font-family: var(--font-ui); font-size: var(--font-size-small); }
+.sa-quiz__round-card-score strong { color: var(--color-ink); font-size: var(--font-size-body); }
+
+/* Hinted retry. */
+.sa-quiz__hint-list { display: grid; gap: var(--space-1); margin: 0; }
+.sa-quiz__hint-list > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.sa-quiz__hint-list dt { color: var(--color-ink-variant); font-family: var(--font-ui); font-size: var(--font-size-small); }
+.sa-quiz__hint-list dd { margin: 0; color: var(--color-ink); font-family: var(--font-hanzi); }
+.sa-quiz__option.is-rejected { opacity: .45; cursor: not-allowed; text-decoration: line-through; }
+
+/* Round review list (hanzi only). */
+.sa-quiz__review-list { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.sa-quiz__review-heading { margin: 0; color: var(--color-ink-variant); font-family: var(--font-ui); font-size: var(--font-size-small); }
+.sa-quiz__review-list ul { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.sa-quiz__review-list li { padding: var(--space-1) var(--space-3); border-radius: var(--radius-control-full); background: var(--color-sky); color: var(--color-ink); font: 600 var(--font-size-body)/1.4 var(--font-hanzi); }

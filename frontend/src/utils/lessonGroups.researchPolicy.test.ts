@@ -62,22 +62,19 @@ describe("research-coverage completion cascades through the real star/completion
     expect(total).toBe(1);
   });
 
-  it("the same low-accuracy ladder would NOT finish the story under production_accuracy - confirms this is genuinely policy-gated, not just always-true now", () => {
+  it("the same low-accuracy ladder also finishes the story under production_accuracy - finishing the rounds is the rule for everyone", () => {
     getCachedResearchContext.mockReturnValue({
       active: false, coreCompletionPolicy: "production_accuracy",
       practiceAvailable: false, reviewAvailable: false, probeAvailable: false,
     });
 
     const t = topic("story-production", 5);
-    // tier1 fails production's 70% threshold at 1/20 (5%), so nothing gets
-    // recorded - mirrors exactly what useQuizSession.ts does: it only
-    // calls recordLocalStars when attemptEarnsStar returns non-null.
-    const earned = attemptEarnsStar("tier1", 1, 20);
-    expect(earned).toBeNull();
-    if (earned) recordLocalStars("story-production", earned);
+    recordLocalStars("story-production", attemptEarnsStar("tier1", 1, 20)!);
+    recordLocalStars("story-production", attemptEarnsStar("tier2", 1, 22)!);
+    recordLocalStars("story-production", attemptEarnsStar("tier3", 1, 25)!);
 
     const submitted = new Set(["story-production"]);
-    expect(isStoryFinished(t, submitted)).toBe(false);
+    expect(isStoryFinished(t, submitted)).toBe(true);
   });
 
   it("a research participant's next lesson unlocks once the previous lesson's stories all finish this way", () => {

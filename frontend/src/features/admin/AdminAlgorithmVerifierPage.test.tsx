@@ -43,7 +43,8 @@ describe("BKT preset inputs", () => {
     expect(screen.getByRole("spinbutton", { name: "Previous P(L)" })).toHaveValue(0.261835);
     expect(screen.getByRole("spinbutton", { name: "P(T)" })).toHaveValue(0.13131);
     expect(screen.getByRole("region", { name: "BKT parameter selection" })).toHaveTextContent("0.045928");
-    expect(vi.mocked(AdminBktVerificationPage).mock.calls.at(-1)?.[0].modelVersion).toBe(modelVersion);
+    const latestVerificationCall = vi.mocked(AdminBktVerificationPage).mock.calls[vi.mocked(AdminBktVerificationPage).mock.calls.length - 1];
+    expect(latestVerificationCall?.[0].modelVersion).toBe(modelVersion);
     vi.mocked(runBktVerification).mockResolvedValue({ result: "PASS" });
     await user.click(screen.getByRole("button", { name: "Recovery" }));
     await user.click(screen.getByRole("button", { name: "Run BKT update" }));

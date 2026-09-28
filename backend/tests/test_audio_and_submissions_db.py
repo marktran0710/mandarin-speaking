@@ -196,3 +196,72 @@ def test_story_submission_round_trips_self_eval(logged_in_student):
     assert scenes[0]["selfEvalPronunciation"] == "ok"
     assert scenes[1]["selfEvalContent"] is None
     assert scenes[1]["selfEvalPronunciation"] is None
+
+
+def _lesson_submission(submission_id: str, scenes: list, submitted_at: str = "2026-09-20T08:00:00Z") -> dict:
+    return {
+        "id": submission_id,
+        "storyId": "lesson-story-1",
+        "storyTitle": "我的房間",
+        "studentName": "Mai",
+        "submittedAt": submitted_at,
+        "scenes": scenes,
+    }
+
+
+SPEAKING_SCENE = {"sceneIndex": 0, "transcription": "這是我的房間。", "audioUrl": "", "toneAccuracy": 80.0}
+CONVERSATION_TURN = {
+    "sceneIndex": 0, "transcription": "我很好。", "audioUrl": "", "toneAccuracy": 70.0,
+    "conversationId": "conv-1", "turnId": "t1", "turnIndex": 1, "promptId": "story-1:conversation:t1",
+}
+
+
+def test_resubmitting_a_lesson_overwrites_the_one_submission_and_reopens_review(logged_in_student, logged_in_teacher):
+    client, _ = logged_in_student
+    teacher_client, _ = logged_in_teacher
+
+    first = client.post("/api/story-submissions", json=_lesson_submission("submission-1", [SPEAKING_SCENE])).json()
+    assert first["submissionCount"] == 1
+    assert first["practicePath"] == "speaking"
+    reviewed = teacher_client.patch(
+        f"/api/story-submissions/{first['id']}/review", json={"status": "reviewed", "note": "Nice tones"},
+    )
+    assert reviewed.json()["reviewStatus"] == "reviewed"
+
+    # A new client id for the same lesson still lands on the same submission.
+    second = client.post(
+        "/api/story-submissions",
+        json=_lesson_submission("submission-2", [CONVERSATION_TURN], "2026-09-21T08:00:00Z"),
+    ).json()
+    assert second["id"] == first["id"]
+    assert second["submissionCount"] == 2
+    assert second["reviewStatus"] == "pending"
+    assert second["teacherNote"] == "Nice tones"
+    assert second["practicePath"] == "conversation"
+
+    listed = client.get("/api/story-submissions", params={"story_id": "lesson-story-1"}).json()
+    assert len(listed) == 1
+    assert listed[0]["scenes"][0]["transcription"] == "我很好。"
+
+
+def test_submission_keeps_conversation_turn_identity_and_records_both_paths(logged_in_student):
+    client, _ = logged_in_student
+    response = client.post(
+        "/api/story-submissions", json=_lesson_submission("submission-both", [SPEAKING_SCENE, CONVERSATION_TURN]),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["practicePath"] == "both"
+    turn = next(scene for scene in body["scenes"] if scene.get("turnId"))
+    assert turn["conversationId"] == "conv-1"
+    assert turn["turnIndex"] == 1
+    assert turn["promptId"] == "story-1:conversation:t1"
+
+
+def test_submission_records_each_quiz_rounds_latest_score(logged_in_student):
+    client, _ = logged_in_student
+    body = client.post("/api/story-submissions", json=_lesson_submission("submission-quiz", [SPEAKING_SCENE])).json()
+    # No finished rounds yet: every round is present and unfinished.
+    assert set(body["quizScores"]) == {"tier1", "tier2", "tier3"}
+    assert body["quizScores"]["tier1"]["finished"] is False
+    assert body["quizScores"]["tier1"]["score"] is None

@@ -42,7 +42,8 @@ def find_submissions(
     # Also replaces the endpoint's `SELECT *`.
     columns = (
         "id, story_id, story_title, student_name, student_id, submitted_at, "
-        "concatenated_audio_url, story_feedback, review_status, teacher_note"
+        "concatenated_audio_url, story_feedback, review_status, teacher_note, "
+        "practice_path, quiz_scores, submission_count"
     )
     if include_scenes:
         columns += ", scenes"
@@ -65,6 +66,21 @@ def update_review(db, submission_id: str, status: str, note) -> Optional[dict]:
     ).fetchone()
 
 
+def find_latest_for_student_story(db, student_id: str, story_id: str) -> Optional[dict]:
+    """The student's existing submission for this lesson (newest first, so
+    historical duplicates from before one-per-lesson resolve to the latest)."""
+    return db.execute(
+        """
+        SELECT id, submission_count
+        FROM story_submissions
+        WHERE student_id = %s AND story_id = %s
+        ORDER BY submitted_at DESC
+        LIMIT 1
+        """,
+        (student_id, story_id),
+    ).fetchone()
+
+
 def find_owner(db, submission_id: str) -> Optional[dict]:
     return db.execute(
         "SELECT student_id FROM story_submissions WHERE id = %s",
@@ -82,21 +98,35 @@ def upsert_scenes(
     student_id: str,
     submitted_at,
     scenes: list,
+    practice_path: Optional[str] = None,
+    quiz_scores: Optional[dict] = None,
+    submission_count: int = 1,
 ) -> None:
+    # A resubmission replaces the work, so it goes back to the teacher's
+    # queue: review_status resets to pending (the previous teacher_note is
+    # kept for the teacher's reference).
     db.execute(
         """
         INSERT INTO story_submissions
-            (id, story_id, story_title, student_name, student_id, submitted_at, scenes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (id, story_id, story_title, student_name, student_id, submitted_at, scenes,
+             practice_path, quiz_scores, submission_count)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO UPDATE SET
             story_id = EXCLUDED.story_id,
             story_title = EXCLUDED.story_title,
             student_name = EXCLUDED.student_name,
             student_id = EXCLUDED.student_id,
             submitted_at = EXCLUDED.submitted_at,
-            scenes = EXCLUDED.scenes
+            scenes = EXCLUDED.scenes,
+            practice_path = EXCLUDED.practice_path,
+            quiz_scores = EXCLUDED.quiz_scores,
+            submission_count = EXCLUDED.submission_count,
+            review_status = 'pending'
         """,
-        (id, story_id, story_title, student_name, student_id, submitted_at, Jsonb(scenes)),
+        (
+            id, story_id, story_title, student_name, student_id, submitted_at, Jsonb(scenes),
+            practice_path, Jsonb(quiz_scores) if quiz_scores is not None else None, submission_count,
+        ),
     )
 
 

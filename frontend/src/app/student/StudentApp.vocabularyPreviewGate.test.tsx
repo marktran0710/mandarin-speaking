@@ -46,7 +46,7 @@ function phaseButton(label: string) {
 }
 
 function serverProgress(quizStars: VocabularyProgression["quizStars"]): VocabularyProgression {
-  const tier = { earned: false, correctCount: 0, totalQuestions: 0, requiredCorrect: 0 };
+  const tier = { earned: false, correctCount: 0, totalQuestions: 0, score: 0, completedAt: null };
   return {
     storyId: "preview-gate", quizStars, requiredStars: 3,
     tiers: { tier1: tier, tier2: tier, tier3: tier }, speakingUnlocked: quizStars === 3,
@@ -69,15 +69,15 @@ describe("Vocabulary Preview prerequisite", () => {
     render(<StudentApp studentName="Student One" topics={[topic()]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
     openLesson();
 
-    expect(phaseButton("詞彙練習")).toBeDisabled();
+    expect(phaseButton("詞彙練習")).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(phaseButton("詞彙練習"));
     expect(screen.queryByTestId("vocabulary-practice")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled", "true");
     expect(screen.getByTestId("vocabulary-practice")).toBeInTheDocument();
 
     fireEvent.click(phaseButton("生詞預習"));
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled", "true");
     fireEvent.click(phaseButton("詞彙練習"));
     expect(screen.getByTestId("vocabulary-practice")).toBeInTheDocument();
   });
@@ -89,13 +89,13 @@ describe("Vocabulary Preview prerequisite", () => {
     openLesson();
     await act(async () => {});
 
-    expect(phaseButton("詞彙練習")).toBeDisabled();
+    expect(phaseButton("詞彙練習")).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByTestId("vocabulary-practice")).not.toBeInTheDocument();
     expect(phaseButton("生詞預習")).toHaveAttribute("aria-current", "page");
-    expect(phaseButton("口語練習").disabled).toBe(stars < 3);
-    expect(phaseButton("對話練習").disabled).toBe(stars < 3);
+    expect(phaseButton("口語練習")).toHaveAttribute("aria-disabled", "true");
+    expect(phaseButton("對話練習")).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled", "true");
     expect(screen.getByTestId("vocabulary-practice")).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe("Vocabulary Preview prerequisite", () => {
     sessionStorage.setItem("studentPhaseFlags:student-1:preview-gate", JSON.stringify({ vocab: true }));
     render(<StudentApp studentName="Student One" topics={[topic()]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
     openLesson();
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled", "true");
     fireEvent.click(phaseButton("詞彙練習"));
     expect(screen.getByTestId("vocabulary-practice")).toBeInTheDocument();
   });
@@ -112,7 +112,7 @@ describe("Vocabulary Preview prerequisite", () => {
     sessionStorage.setItem("studentPhaseFlags:student-1:preview-gate", JSON.stringify({ quiz: true }));
     render(<StudentApp studentName="Student One" topics={[topic()]} onAddRecord={vi.fn()} onLogout={vi.fn()} />);
     openLesson();
-    expect(phaseButton("詞彙練習")).toBeDisabled();
+    expect(phaseButton("詞彙練習")).toHaveAttribute("aria-disabled", "true");
   });
 
   it("remembers Preview for the same lesson and keeps other lessons and students locked", () => {
@@ -121,15 +121,15 @@ describe("Vocabulary Preview prerequisite", () => {
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
     fireEvent.click(screen.getByRole("button", { name: "課程" }));
     openLesson("other-lesson");
-    expect(phaseButton("詞彙練習")).toBeDisabled();
+    expect(phaseButton("詞彙練習")).toHaveAttribute("aria-disabled", "true");
 
     fireEvent.click(screen.getByRole("button", { name: "課程" }));
     openLesson();
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled", "true");
     fireEvent.click(screen.getByRole("button", { name: "課程" }));
     vi.mocked(getStudentScopeKey).mockReturnValue("student-2");
     openLesson();
-    expect(phaseButton("詞彙練習")).toBeDisabled();
+    expect(phaseButton("詞彙練習")).toHaveAttribute("aria-disabled", "true");
   });
 
   it("opens Vocabulary Practice after completing Preview when browser storage is unavailable", () => {
@@ -137,7 +137,7 @@ describe("Vocabulary Preview prerequisite", () => {
     openLesson();
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Unavailable"); });
     fireEvent.click(screen.getByRole("button", { name: "開始測驗" }));
-    expect(phaseButton("詞彙練習")).not.toBeDisabled();
+    expect(phaseButton("詞彙練習")).not.toHaveAttribute("aria-disabled", "true");
     expect(screen.getByTestId("vocabulary-practice")).toBeInTheDocument();
   });
 });

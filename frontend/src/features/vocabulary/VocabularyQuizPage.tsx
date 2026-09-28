@@ -25,6 +25,11 @@ interface VocabularyQuizPageProps {
   lessonLabel: string;
   onFinished: () => void;
   onStartPractice?: (practice: "story-speaking" | "conversation") => void;
+  /** A diagnostic round was just finished and saved. */
+  onRoundCompleted?: () => void;
+  /** Link from a round's review list back to the vocabulary preview. */
+  onOpenPreview?: () => void;
+  hasConversation?: boolean;
 }
 
 const ROUND_DESCRIPTION_KEYS: Record<TierMode, "roundOneDescription" | "roundTwoDescription" | "roundThreeDescription"> = {
@@ -91,7 +96,7 @@ function QuizStatusBar({
 
 function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
   const tier = TIER_SEQUENCE[flow.tierPos];
-  const tierCopyKey = roundCopyKey(flow.mode, flow.tierPos);
+  const tierCopyKey = roundCopyKey(null, flow.tierPos);
   const weakCount = flow.weakEntries.length || flow.interimReviewEntries.length;
   const dueCount = flow.dueWords.length;
 
@@ -104,9 +109,9 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
             <h2 id="quiz-mode-title"><StudentSystemText k="choosePracticePath" /></h2>
             <p><StudentSystemText k="buildWordFoundation" /></p>
           </div>
-          <div className="sa-quiz__star-summary" aria-label={`${flow.stars} of 3 stars earned`}>
+          <div className="sa-quiz__star-summary" aria-label={`${flow.roundsDone} of 3 rounds finished`}>
             <StudentIcon name="hotel_class" size={20} role="decorative" filled />
-            <strong>{flow.stars}</strong><span>/ 3 顆星</span>
+            <strong>{flow.roundsDone}</strong><span>/ 3 輪</span>
           </div>
         </div>
 
@@ -115,13 +120,42 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
             <div className="sa-quiz__mode-index">01</div>
             <div className="sa-quiz__mode-copy">
               <p className="sa-quiz__mode-kicker"><StudentSystemText k="diagnosticPath" /></p>
-              <h3><StudentSystemText k={tierCopyKey} /></h3>
-              <p><StudentSystemText k={ROUND_DESCRIPTION_KEYS[tier]} /></p>
-              <div className="sa-quiz__mode-detail"><StudentIcon name="lock_open" size={15} role="decorative" /><span><StudentSystemText k="roundsUnlockInOrder" /></span></div>
+              <h3><StudentSystemText k={flow.allRoundsDone ? "redoRound" : tierCopyKey} /></h3>
+              <p><StudentSystemText k={flow.allRoundsDone ? "roundsDoneChooseAny" : ROUND_DESCRIPTION_KEYS[tier]} /></p>
+              <ol className="sa-quiz__round-cards" aria-label="三輪練習">
+                {TIER_SEQUENCE.map((round, index) => {
+                  const unlocked = index <= flow.roundsDone;
+                  const done = index < flow.roundsDone;
+                  const score = flow.latestScores[round];
+                  const isNext = !flow.allRoundsDone && index === flow.roundsDone;
+                  return (
+                    <li key={round} className={`sa-quiz__round-card ${done ? "is-done" : ""} ${isNext ? "is-next" : ""} ${unlocked ? "" : "is-locked"}`}>
+                      <div className="sa-quiz__round-card-head">
+                        <span className="sa-quiz__round-card-index">{index + 1}</span>
+                        <strong><StudentSystemText k={roundCopyKey(round, index)} /></strong>
+                        {done && <StudentIcon name="check_circle" size={16} role="decorative" filled />}
+                        {!unlocked && <StudentIcon name="lock" size={16} role="decorative" />}
+                      </div>
+                      <p className="sa-quiz__round-card-score">
+                        {typeof score === "number"
+                          ? <><StudentSystemText k="latestScore" /> <strong>{score}</strong><span>/100</span></>
+                          : <StudentSystemText k={unlocked ? "roundNotStarted" : "roundLocked"} />}
+                      </p>
+                      <StudentButton
+                        variant={isNext ? "primary" : "secondary"}
+                        size="sm"
+                        icon={done ? "replay" : undefined}
+                        iconTrailing={done ? undefined : "arrow_forward"}
+                        disabled={!unlocked}
+                        onClick={() => flow.startRound(round)}
+                      >
+                        <StudentSystemText k={done ? "redoRound" : "start"} withinControl />
+                      </StudentButton>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-            <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.startTier}>
-              <><StudentSystemText k="start" withinControl /> <StudentSystemText k={tierCopyKey} withinControl /></>
-            </StudentButton>
           </StudentSection>
 
           <StudentSection variant="panel" className="sa-quiz__mode-card">
@@ -157,7 +191,7 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
           <div className="sa-quiz__rail-heading"><StudentSystemText k="practiceOverview" /><StudentStatusPill tone="success"><StudentSystemText k="activeSession" withinControl /></StudentStatusPill></div>
           <dl className="sa-quiz__overview-list">
              <div><dt><StudentSystemText k="lessonWords" /></dt><dd>{flow.entries.length}</dd></div>
-             <div><dt><StudentSystemText k="starsEarned" /></dt><dd>{flow.stars} / 3</dd></div>
+             <div><dt><StudentSystemText k="roundFinished" /></dt><dd>{flow.roundsDone} / 3</dd></div>
              <div><dt><StudentSystemText k="speakingGate" /></dt><dd><StudentSystemText k={flow.stars >= 3 ? "open" : "locked"} /></dd></div>
           </dl>
         </StudentSection>
@@ -165,7 +199,7 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
           <div className="sa-quiz__rail-heading"><StudentSystemText k="diagnosticSequence" /><StudentIcon name="stairs" size={18} role="decorative" /></div>
           <ol>
             {TIER_SEQUENCE.map((round, index) => (
-              <li key={round} className={index < flow.tierPos ? "is-complete" : index === flow.tierPos ? "is-current" : ""}>
+              <li key={round} className={index < flow.roundsDone ? "is-complete" : index === flow.roundsDone ? "is-current" : ""}>
                 <span>{index + 1}</span><div><strong><StudentSystemText k={round === "tier1" ? "knowIt" : round === "tier2" ? "sayIt" : "useIt"} /></strong><small><StudentSystemText k={ROUND_DESCRIPTION_KEYS[round]} /></small></div>
               </li>
             ))}
@@ -176,21 +210,39 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
   );
 }
 
-function ResultView({ flow, isLastTier }: { flow: ReturnType<typeof useVocabQuizFlow>; isLastTier: boolean }) {
+function ResultView({ flow, hasConversation, onOpenPreview }: { flow: ReturnType<typeof useVocabQuizFlow>; hasConversation: boolean; onOpenPreview?: () => void }) {
   if (flow.view === "round-result" && flow.roundResult) {
+    const result = flow.roundResult;
     return (
       <div className="sa-quiz__result-layout">
         <StudentSection variant="panel" className="sa-quiz__result-card">
-          <StudentStatusPill tone={flow.roundResult.passed ? "success" : "attention"}><StudentSystemText k={flow.roundResult.passed ? "completed" : "notQuite"} withinControl /></StudentStatusPill>
-          <p className="sa-quiz__result-eyebrow"><StudentSystemText k={flow.roundResult.tier === "tier1" ? "knowIt" : flow.roundResult.tier === "tier2" ? "sayIt" : "useIt"} /> 完成</p>
-          <p className="sa-quiz__result-score">{flow.roundResult.correctCount} <span>/ {flow.roundResult.totalQuestions}</span></p>
-           <p className="sa-quiz__result-copy">{flow.roundResult.passed ? isLastTier ? <StudentSystemText k="vocabularyGateOpen" /> : <StudentSystemText k="nextRoundUnlocked" /> : `${flow.roundResult.starGap ?? 1} 題答對後即可通過這一輪。`}</p>
-          {flow.roundResult.passed ? isLastTier ? (
+          <StudentStatusPill tone="success"><StudentSystemText k="roundFinished" withinControl /></StudentStatusPill>
+          <p className="sa-quiz__result-eyebrow"><StudentSystemText k={result.tier === "tier1" ? "knowIt" : result.tier === "tier2" ? "sayIt" : "useIt"} /></p>
+          <p className="sa-quiz__result-score" aria-label={`${result.score} / 100`}>{result.score} <span>/ 100</span></p>
+          <p className="sa-quiz__result-copy">{result.correctCount} / {result.totalQuestions} <StudentSystemText k="correct" /></p>
+          <div className="sa-quiz__review-list">
+            <p className="sa-quiz__review-heading"><StudentSystemText k={result.reviewWords.length > 0 ? "wordsToReview" : "noWordsToReview"} /></p>
+            {result.reviewWords.length > 0 && (
+              <ul aria-label="要再複習的詞語">
+                {result.reviewWords.map((word) => <li key={word} lang="zh-Hant">{word}</li>)}
+              </ul>
+            )}
+            {result.reviewWords.length > 0 && onOpenPreview && (
+              <StudentButton variant="subtle" size="sm" icon="menu_book" onClick={onOpenPreview}><StudentSystemText k="backToPreview" withinControl /></StudentButton>
+            )}
+          </div>
+          {flow.allRoundsDone ? (
             <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path">
-               <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}><StudentSystemText k="storySpeaking" withinControl /></StudentButton>
-               <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}><StudentSystemText k="conversation" withinControl /></StudentButton>
-             </div>
-           ) : <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}><StudentSystemText k="continue" withinControl /></StudentButton> : <StudentButton variant="primary" icon="replay" onClick={flow.retry}><StudentSystemText k="retry" withinControl /></StudentButton>}
+              <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}><StudentSystemText k="storySpeaking" withinControl /></StudentButton>
+              {hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}><StudentSystemText k="conversation" withinControl /></StudentButton>}
+              <StudentButton variant="subtle" icon="replay" onClick={flow.returnToModes}><StudentSystemText k="backToRounds" withinControl /></StudentButton>
+            </div>
+          ) : (
+            <div className="sa-quiz__practice-choice">
+              <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={flow.continueToNext}><StudentSystemText k="continue" withinControl /></StudentButton>
+              <StudentButton variant="subtle" icon="replay" onClick={flow.retry}><StudentSystemText k="redoRound" withinControl /></StudentButton>
+            </div>
+          )}
         </StudentSection>
       </div>
     );
@@ -211,15 +263,15 @@ function ResultView({ flow, isLastTier }: { flow: ReturnType<typeof useVocabQuiz
   return null;
 }
 
-export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onStartPractice }: VocabularyQuizPageProps) {
-  const flow = useVocabQuizFlow({ topic, onFinished, onStartPractice });
+export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onStartPractice, onRoundCompleted, onOpenPreview, hasConversation = false }: VocabularyQuizPageProps) {
+  const flow = useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCompleted });
   const [draftAnswer, setDraftAnswer] = useState<string | null>(null);
   const [pinyinDraft, setPinyinDraft] = useState("");
 
   useEffect(() => {
     setDraftAnswer(null);
     setPinyinDraft("");
-  }, [flow.index, flow.tierPos, flow.view, flow.question?.word]);
+  }, [flow.index, flow.tierPos, flow.view, flow.question?.word, flow.awaitingRetry]);
 
   const header = (
     <StudentPageHeader
@@ -255,20 +307,22 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   const entry = question ? flow.entries.find((candidate) => candidate.word === question.word) : undefined;
   const assessment = question?.kind === "assessment" ? question.assessment : undefined;
   const lastResult = question ? resultForQuestion(flow.results, flow.index, question.word) : undefined;
-  const showingFeedback = Boolean(flow.selected !== null && lastResult);
+  const showingFeedback = Boolean(flow.selected !== null && lastResult && !flow.awaitingRetry);
   const submitAnswer = () => {
-    if (!question || flow.selected !== null) return;
+    if (!question) return;
+    if (flow.selected !== null && !flow.awaitingRetry) return;
     const answer = assessment?.answerFormat === "free_text" || question.kind === "pinyin"
       ? pinyinDraft.trim()
       : draftAnswer;
-    if (answer) flow.choose(answer);
+    if (!answer) return;
+    if (flow.awaitingRetry) flow.chooseRetry(answer);
+    else flow.choose(answer);
   };
-  const isLastTier = flow.tierPos === TIER_SEQUENCE.length - 1;
 
   return (
     <StudentPage layout="task" wide header={header}>
       <QuizStatusBar flow={flow} question={question} />
-      {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} isLastTier={isLastTier} /> : question ? (
+      {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} hasConversation={hasConversation} onOpenPreview={onOpenPreview} /> : question ? (
         <div className="sa-quiz__workspace">
           <QuizQuestionSurface
             question={question}
@@ -281,6 +335,8 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
             onPinyinChange={setPinyinDraft}
             showingFeedback={showingFeedback}
             lastResult={lastResult}
+            awaitingRetry={flow.awaitingRetry}
+            retryOutcome={flow.retryOutcome}
             isFinishing={flow.isFinishing}
             onSubmit={submitAnswer}
             onNext={flow.next}
