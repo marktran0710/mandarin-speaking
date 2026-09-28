@@ -260,6 +260,39 @@ def _word_stress_note(word_prosody: List[Dict] | None) -> str:
     return "; ".join(parts) if parts else ""
 
 
+# Student-facing coaching no longer grades tones: per-syllable/word verdicts
+# are unvalidated, so learners only see their pitch contour against the
+# reference. Word prosody handed to an LLM is reduced to raw pitch/timing
+# facts so it cannot echo a CORRECT/INCORRECT verdict or a tone score back
+# to the student. Verdicts are still computed and kept for teachers.
+_COACHING_WORD_FIELDS = (
+    "token", "start_time", "end_time", "start_pitch", "end_pitch",
+    "mean_pitch", "pitch_range", "contour_shape", "is_content_word",
+    "prominence_score",
+)
+_COACHING_SYLLABLE_FIELDS = ("char", "tone", "final")
+
+
+def _prosody_for_coaching(word_prosody: List[Dict] | None) -> List[Dict]:
+    coaching: List[Dict] = []
+    for word in word_prosody or []:
+        entry = {key: word[key] for key in _COACHING_WORD_FIELDS if key in word}
+        syllables = [
+            {key: syllable[key] for key in _COACHING_SYLLABLE_FIELDS if key in syllable}
+            for syllable in word.get("syllables") or []
+        ]
+        if syllables:
+            entry["syllables"] = syllables
+        coaching.append(entry)
+    return coaching
+
+
+_CONTOUR_GUIDANCE = (
+    "Compare your pitch line with the reference line in the chart above, "
+    "one syllable at a time, and copy its rises and falls."
+)
+
+
 def fallback_language_feedback(
     transcription: str,
     scene_prompt: str = "",
@@ -371,27 +404,18 @@ def fallback_language_feedback(
     # joined "feedback" string is kept for callers that still want flat text.
     tone_pct = round(praat_tone_accuracy)
     fluency_pct = round(praat_fluency_score)
+    # pron_score stays an internal (teacher/research) number; the text the
+    # student reads never grades tones — see _prosody_for_coaching.
     pron_details: List[Dict] = []
     if tone_pct >= 80 and fluency_pct >= 75:
         pron_score = 88
-        tone_text = "Tones sounded clear and confident — nice work."
     elif tone_pct >= 60:
         pron_score = 65
-        tone_text = (
-            "A few tones need more contrast — check the pitch chart above and "
-            "try exaggerating the rise or fall on the syllables that look flat."
-        )
     elif tone_pct > 0:
         pron_score = 45
-        tone_text = (
-            "Several tones were hard to make out — slow down and hold each "
-            "syllable's pitch shape a little longer; compare your line with "
-            "the reference above."
-        )
     else:
         pron_score = 50
-        tone_text = "Speak clearly and hold each syllable long enough for tone recognition."
-    pron_details.append({"key": "tone", "text": tone_text})
+    pron_details.append({"key": "tone", "text": _CONTOUR_GUIDANCE})
 
     if praat_pause_analysis is not None:
         fluency = caf_metrics.fluency_metrics(
@@ -441,8 +465,6 @@ def fallback_language_feedback(
     local_errors: list = []
     if missing_words:
         local_errors.append(f"Missing vocabulary: {', '.join(missing_words[:3])}")
-    if tone_pct and tone_pct < 70:
-        local_errors.append("Some tones don't match the expected pitch shape")
     if not complexity["connectives"] and complexity["length"] >= 4:
         local_errors.append("Sentence could use a connective to link ideas")
 
@@ -541,17 +563,15 @@ async def generate_language_feedback(
         return result
 
     acoustic_context = (
-        "\nFinalized Praat evidence (use this evidence for coaching; do not "
-        "replace the deterministic score or verdict):\n"
-        f"- Tone accuracy: {praat_tone_accuracy:.1f}"
-        f"{' (not measured)' if praat_tone_accuracy <= 0 else ''}\n"
+        "\nFinalized Praat evidence (use this evidence for coaching; never "
+        "tell the student a tone was right or wrong):\n"
         f"- Fluency score: {praat_fluency_score:.1f}"
         f"{' (not measured)' if praat_fluency_score <= 0 else ''}\n"
         f"- Speech rate: {praat_speech_rate:.2f}"
         f"{' (not measured)' if praat_speech_rate <= 0 else ''}\n"
         f"- Vowel quality: {praat_vowel_quality or 'not measured'}\n"
         f"- Pause analysis: {json.dumps(praat_pause_analysis or 'not measured', ensure_ascii=False)}\n"
-        f"- Word prosody: {json.dumps(word_prosody or 'not measured', ensure_ascii=False)}"
+        f"- Word prosody: {json.dumps(_prosody_for_coaching(word_prosody) or 'not measured', ensure_ascii=False)}"
     )
     cloud_args = (
         text,
@@ -755,7 +775,7 @@ _FEEDBACK_STYLE_RULES = """
 Feedback style rules (apply to EVERY feedback / hint / practice_prompt string):
 - Bilingual: one short Traditional Chinese sentence first (Taiwan usage — 臺灣華語 wording, e.g. 捷運 not 地鐵, 腳踏車 not 自行車), then " / " and a simple English version an A1-A2 learner can read.
 - Anchor every point to a specific word the student actually said — quote it in 「」.
-- pronunciation_note.feedback: name the exact syllable to fix and give ONE concrete vocal action (e.g. 「賣」: start high and fall firmly). When a tone was wrong, add one minimal pair to contrast, e.g. 買 mǎi (tone 3) vs 賣 mài (tone 4).
+- Never say a tone or syllable was right, wrong, correct or incorrect — the app shows the student's pitch contour next to the reference instead of grading tones. pronunciation_note.feedback may only point the student at comparing their pitch line with the reference line.
 - Never give generic advice ("practice more", "watch your tones", "good job") — every sentence must contain a specific word, sound, or pattern the student can act on right now.
 - Don't cite raw measurements (percentages, syllables/sec, word counts) — describe the concrete action instead.
 """
@@ -804,7 +824,7 @@ Scene / task: {scene_prompt or "(open topic)"}
 
 IMPORTANT — evaluation order:
 1. First judge MEANING: does the student's sentence make sense for this picture/scene, using the target vocabulary, grammar pattern, and model answer above as your standard? This is what content_accuracy and coherence capture.
-2. Only treat pronunciation as worth detailed feedback if the meaning is acceptable (content_accuracy.accepted is true, or there's no image to judge against). Still score pronunciation_note from the Praat data either way — the app will decide whether to show it to the student.
+2. Only treat pronunciation as worth detailed feedback if the meaning is acceptable (content_accuracy.accepted is true, or there's no image to judge against). Never judge a tone as right or wrong.
 {corrective_instructions}
 Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used
@@ -1239,12 +1259,11 @@ Note: a word counts as "used" if the student pronounced it correctly even if the
     praat_context = f"""
 Praat acoustic data (use these finalized measurements to inform pronunciation feedback;
 never invent a value when a field says not measured):
-- Tone accuracy: {round(praat_tone_accuracy)}%{' (not measured)' if praat_tone_accuracy <= 0 else ''}
 - Fluency score: {round(praat_fluency_score)}%{' (not measured)' if praat_fluency_score <= 0 else ''}
 - Speech rate: {praat_speech_rate:.2f}{' (not measured)' if praat_speech_rate <= 0 else ''}
 - Vowel quality: {praat_vowel_quality or 'not measured'}
 - Pause analysis: {json.dumps(praat_pause_analysis or 'not measured', ensure_ascii=False)}
-- Word/syllable prosody: {json.dumps(word_prosody or 'not measured', ensure_ascii=False)}
+- Word/syllable prosody: {json.dumps(_prosody_for_coaching(word_prosody) or 'not measured', ensure_ascii=False)}
 """
 
     image_context = (
@@ -1280,12 +1299,12 @@ Student said: {transcription}
 {vocab_context}{reference_context}{praat_context}{image_context}
 IMPORTANT — evaluation order:
 1. First judge MEANING: does the student's sentence make sense for this picture/scene, using the target vocabulary, grammar pattern, and model answer above as your standard? This is what content_accuracy and coherence capture.
-2. Only treat pronunciation as worth detailed feedback if the meaning is acceptable (content_accuracy.accepted is true, or there's no image to judge against). Still score pronunciation_note from the Praat data either way — the app will decide whether to show it to the student.
+2. Only treat pronunciation as worth detailed feedback if the meaning is acceptable (content_accuracy.accepted is true, or there's no image to judge against). Never judge a tone as right or wrong.
 {corrective_instructions}
 Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used correctly
 - coherence.score: 0 = incomprehensible, 60 = grammatically acceptable, 90+ = natural native-level
-- pronunciation_note.score: base it on Praat tone accuracy % above if provided; 0 = no speech, 50 = many tone errors, 80+ = clear tones
+- pronunciation_note.score: return 0 — the app computes its own pronunciation note and does not grade tones
 {_FEEDBACK_STYLE_RULES}
 Return ONLY this JSON (no markdown, no extra keys):
 {{
@@ -1303,7 +1322,7 @@ Return ONLY this JSON (no markdown, no extra keys):
   }},
   "pronunciation_note": {{
     "score": <int 0-100>,
-    "feedback": "<one sentence — cite specific tones or sounds to improve, based on Praat data>"
+    "feedback": "<one sentence pointing the student at comparing their pitch line with the reference — no right/wrong judgement>"
   }}{content_accuracy_block},
   "corrective_feedback": {{
     "errors": [<short phrases marking the specific gap vs the teacher's model — e.g. "missing action verb", "wrong word order in the middle clause" — never state the fix itself>],
@@ -1312,7 +1331,7 @@ Return ONLY this JSON (no markdown, no extra keys):
     "correct_version": "{'<teacher model answer or fluent equivalent>' if reveal_now else ''}"
   }},
   "improved_version": "<a fluent Traditional Chinese sentence that fits the scene and includes the target vocabulary>",
-  "practice_prompt": "<one concrete next step the student should try — a hint about which vocabulary/grammar to use or which tone to fix, not the finished sentence>"
+  "practice_prompt": "<one concrete next step the student should try — a hint about which vocabulary/grammar to use, not the finished sentence>"
 }}"""
 
 
