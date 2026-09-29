@@ -49,7 +49,6 @@ DEPENDENT_TABLES = (
     "speaking_progress",
     "learning_measurement_events",
     "bkt_model_student_folds",
-    "bkt_model_refit_requests",
     "teacher_pronunciation_ratings",
 )
 

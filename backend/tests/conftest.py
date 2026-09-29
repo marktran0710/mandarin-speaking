@@ -84,7 +84,6 @@ TEST_DATABASE_URL = os.getenv(
 TRUNCATED_TABLES = (
     "bkt_model_active_deployment",
     "bkt_model_deployment_events",
-    "bkt_model_refit_requests",
     "bkt_model_student_folds",
     "bkt_model_versions",
     "bkt_model_fit_runs",
@@ -98,7 +97,6 @@ TRUNCATED_TABLES = (
     "students",
     "teachers",
     "vocab_quiz_attempts",
-    "vocab_quiz_irt_cache",
     "vocab_quiz_responses",
     "algorithm_verifier_runs",
     "placement_test_attempts",

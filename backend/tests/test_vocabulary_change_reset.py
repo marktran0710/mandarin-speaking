@@ -99,14 +99,6 @@ def _insert_learning_rows(story_id: str) -> None:
                 (f"event-{index}", student_id, attempt_id, story_id, Jsonb({"source": "test"})),
             )
 
-        conn.execute(
-            """
-            INSERT INTO vocab_quiz_irt_cache
-                (id, student_ability, item_difficulty, student_speed,
-                 item_time_intensity, n_responses, fitted_at)
-            VALUES (1, '{}', '{}', '{}', '{}', 2, '2026-01-01T00:00:00Z')
-            """
-        )
 
 
 def test_vocabulary_change_resets_every_student_and_archives_learning_rows():
@@ -143,7 +135,6 @@ def test_vocabulary_change_resets_every_student_and_archives_learning_rows():
                 "speaking_progress",
                 "story_submissions",
                 "learning_measurement_events",
-                "vocab_quiz_irt_cache",
             )
         }
         archive = conn.execute(
