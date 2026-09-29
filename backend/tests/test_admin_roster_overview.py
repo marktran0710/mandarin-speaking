@@ -3,6 +3,8 @@ console used to fetch as three separate calls (students, teachers, quiz
 attempts), in one request, and stays admin-only."""
 import contextlib
 
+import db
+
 from conftest import login_new_client
 
 
@@ -49,6 +51,38 @@ def test_roster_overview_includes_full_quiz_attempt_question_results(admin_clien
 
     saved = next(a for a in attempts if a["id"] == "attempt-overview-1")
     assert saved["questionResults"], "questionResults must be preserved for admin analytics"
+
+
+def test_roster_overview_lists_test_accounts_without_their_quiz_attempts(admin_client):
+    with contextlib.ExitStack() as stack:
+        student_client, student = login_new_client(stack, "Imported Placement Student", "student")
+        with db.connect_db() as connection:
+            connection.execute(
+                "UPDATE students SET is_test_account = TRUE WHERE id = %s",
+                (student["id"],),
+            )
+        student_client.post(
+            "/api/vocab-quiz-attempts",
+            json={
+                "id": "synthetic-attempt-overview-1",
+                "storyId": "story-1",
+                "studentName": student["name"],
+                "mode": "standard",
+                "completedAt": "2026-09-06T00:00:00Z",
+                "totalQuestions": 1,
+                "correctCount": 1,
+                "totalTimeMs": 1000,
+                "questionResults": [
+                    {"word": "週末", "correct": True, "timeMs": 1000, "questionKind": "translation"}
+                ],
+            },
+        )
+
+        body = admin_client.get("/api/admin/roster-overview").json()
+
+    listed = next(row for row in body["students"] if row["id"] == student["id"])
+    assert listed["isTestAccount"] is True
+    assert all(row["id"] != "synthetic-attempt-overview-1" for row in body["quizAttempts"])
 
 
 def test_roster_overview_requires_admin():

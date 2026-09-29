@@ -1,7 +1,7 @@
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 import type { VocabQuizAttempt } from "./quiz-analytics";
 export interface HelpRequest { id: string; studentName: string; message: string; status: "open" | "resolved"; createdAt: string; resolvedAt?: string | null; }
-export interface Student { id: string; name: string; createdAt: string; status: "active" | "inactive"; }
+export interface Student { id: string; name: string; createdAt: string; status: "active" | "inactive"; isTestAccount?: boolean; }
 export interface Teacher { id: string; name: string; createdAt: string; status: "active" | "inactive"; }
 export async function listHelpRequests(): Promise<HelpRequest[]> { const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests`); if (!response.ok) throw new Error("Could not load help requests from the database."); const requests = await response.json(); return Array.isArray(requests) ? requests : []; }
 export async function createHelpRequest(request: HelpRequest): Promise<HelpRequest> { const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) }); if (!response.ok) throw new Error("Could not send the help request."); return response.json() as Promise<HelpRequest>; }

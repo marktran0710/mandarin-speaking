@@ -10,7 +10,10 @@ def fetch_roster_overview(db):
     round-trip. Returns (student_rows, teacher_rows, attempt_rows).
     """
     with db.pipeline():
-        students_cur = db.execute("SELECT * FROM students WHERE NOT is_test_account ORDER BY lower(name)")
+        # Admins manage every login account, including the imported SIM
+        # cohort. Test attempts stay excluded below so synthetic evidence
+        # cannot leak into the real-student dashboard totals.
+        students_cur = db.execute("SELECT * FROM students ORDER BY lower(name)")
         teachers_cur = db.execute("SELECT * FROM teachers ORDER BY lower(name)")
         attempts_cur = db.execute(
             "SELECT a.* FROM vocab_quiz_attempts a "

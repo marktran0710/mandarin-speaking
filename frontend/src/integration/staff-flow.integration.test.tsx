@@ -132,6 +132,27 @@ describe("teacher and admin integration flows", () => {
     expect(staffDb.teachers).toHaveLength(0);
   });
 
+  it("shows imported placement accounts and lets admins find them by SIM id", async () => {
+    const user = userEvent.setup();
+    staffDb.students.push({
+      id: "SIM001",
+      name: "Synthetic Student 001",
+      createdAt: "2026-09-25T07:46:01.000Z",
+      status: "active",
+      isTestAccount: true,
+    });
+
+    render(<AdminApp />);
+    await user.click(screen.getByRole("button", { name: "Students" }));
+
+    expect(await screen.findByText("Synthetic Student 001")).toBeInTheDocument();
+    expect(screen.getByText("Placement test")).toBeInTheDocument();
+
+    await user.type(screen.getByRole("textbox", { name: "Search students" }), "SIM001");
+    expect(screen.getByText("Synthetic Student 001")).toBeInTheDocument();
+    expect(screen.queryByText("Existing Student")).not.toBeInTheDocument();
+  });
+
   it("lets a teacher sign in and land on the help queue", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
