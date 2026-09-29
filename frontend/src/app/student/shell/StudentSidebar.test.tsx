@@ -20,6 +20,19 @@ function phaseButton(phase: string) {
 }
 
 describe("StudentSidebar", () => {
+  it("uses the transparent Lab logo for the sidebar brand mark", () => {
+    render(
+      <StudentSidebar
+        studentName="Student One"
+        activeSection="study"
+        onNavigateSection={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector(".sa-sidebar__brand-logo")).toHaveAttribute("src", "/logo.png");
+  });
+
   it("shows every lesson step, with Story Speaking and Conversation grouped as a choice", () => {
     render(
       <StudentSidebar

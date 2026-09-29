@@ -124,9 +124,7 @@ export default function StudentSidebar({
     <aside className="sa-sidebar">
       <div className="sa-sidebar__top">
         <div className="sa-sidebar__brand">
-          <span className="sa-sidebar__brand-mark" lang="zh-Hant">
-            慢
-          </span>
+          <img className="sa-sidebar__brand-logo" src="/logo.png" alt="" aria-hidden="true" />
           <span className="sa-sidebar__brand-name" lang="zh-Hant">
             慢慢中文
           </span>

@@ -21,18 +21,11 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.sa-sidebar__brand-mark {
-  display: grid;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: var(--radius-card);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-family: var(--font-hanzi);
-  font-size: 22px;
-  font-weight: 700;
+.sa-sidebar__brand-logo {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
 }
 
 .sa-sidebar__brand-name {

@@ -107,7 +107,11 @@
     /* StudentSidebar.css handles the transform; this wrapper just forwards
        the class so StudentSidebar doesn't need to know about the shell. */
   }
-  .sa-shell__sidebar-wrap.is-open .sa-sidebar { transform: translateX(0); box-shadow: var(--shadow-soft); }
+  .sa-shell__sidebar-wrap.is-open .sa-sidebar {
+    z-index: 70;
+    transform: translateX(0);
+    box-shadow: var(--shadow-soft);
+  }
 
   .sa-shell__backdrop {
     display: block;
