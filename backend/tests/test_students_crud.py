@@ -92,6 +92,40 @@ def test_delete_student_removes_related_data(admin_client):
         ).fetchone() is None
 
 
+def test_delete_student_preserves_immutable_bkt_fit_provenance(admin_client):
+    from db import connect_db
+
+    created = admin_client.post(
+        "/api/students", json={"name": "Calibration Student", "password": "calibration-password"}
+    ).json()
+    student_id = created["id"]
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT INTO bkt_model_fit_runs
+                (id, evidence_origin, source_digest, response_count,
+                 student_count, concept_count, parameters, metrics)
+            VALUES ('student-delete-fit', 'synthetic', 'student-delete-digest',
+                    1, 1, 1, '{}'::jsonb, '{}'::jsonb)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO bkt_model_student_folds (fit_run_id, student_id, fold_index)
+            VALUES ('student-delete-fit', %s, 0)
+            """,
+            (student_id,),
+        )
+
+    assert admin_client.delete(f"/api/students/{student_id}").json()["deleted"] is True
+
+    with connect_db() as db:
+        assert db.execute("SELECT id FROM students WHERE id = %s", (student_id,)).fetchone() is None
+        assert db.execute(
+            "SELECT student_id FROM bkt_model_student_folds WHERE student_id = %s", (student_id,)
+        ).fetchone() == {"student_id": student_id}
+
+
 def test_delete_unknown_student_is_404(admin_client):
     assert admin_client.delete("/api/students/does-not-exist").status_code == 404
 

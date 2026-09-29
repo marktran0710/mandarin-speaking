@@ -259,12 +259,11 @@ def row_to_student_settings(row: dict) -> dict:
     }
 
 
-# Every table keyed by student_id, i.e. everything a deleted student's account
-# must not leave behind. There is no DB-level FK/cascade for these (students
-# rows predate most of them), so a student delete has to walk this list itself.
+# Every mutable table keyed by student_id. Immutable calibration provenance,
+# such as bkt_model_student_folds, intentionally outlives account deletion so
+# historical fit runs remain reproducible.
 STUDENT_OWNED_TABLES = (
     "audio_records",
-    "bkt_model_student_folds",
     "learning_measurement_events",
     "speaking_progress",
     "story_submissions",
@@ -278,10 +277,11 @@ STUDENT_OWNED_TABLES = (
 
 
 def delete_student_cascade(db, student_id: str) -> bool:
-    """Delete a student and every row owned by them, in one transaction.
+    """Delete a student and every mutable row owned by them, in one transaction.
 
     Returns False (nothing deleted, nothing else touched) if the student
     doesn't exist, so callers can 404 instead of reporting a false success.
+    Immutable BKT fit provenance retains the historical pseudonymous id.
     """
     for table in STUDENT_OWNED_TABLES:
         db.execute(f"DELETE FROM {table} WHERE student_id = %s", (student_id,))  # noqa: S608 (table from a fixed internal tuple, not user input)
