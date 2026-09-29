@@ -67,7 +67,7 @@ class TestTranscribeWithCTWhisper:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# CT Whisper background warm-up (mirrors the VibeVoice loader pattern)
+# CT Whisper background warm-up
 # ──────────────────────────────────────────────────────────────────────────────
 
 class TestEnsureCtWhisperLoadStarted:

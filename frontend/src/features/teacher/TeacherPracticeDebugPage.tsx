@@ -402,7 +402,6 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
                 {groqAvailable ? "Groq Whisper — recommended free API" : "Groq Whisper — unavailable"}
               </option>
               <option value="ctwhisper">Chinese/Taiwanese Whisper — local fallback</option>
-              <option value="vibevoice">VibeVoice</option>
             </select>
           </label>
         </div>

@@ -42,13 +42,6 @@ async def shutdown_database() -> None:
     close_db()
 
 
-async def warm_vibevoice_asr() -> None:
-    import services.asr as asr_service
-
-    if asr_service.VIBEVOICE_WARM_ON_START:
-        asr_service.ensure_vibevoice_load_started()
-
-
 async def warm_ct_whisper() -> None:
     # Off by default: loading torch/transformers/librosa is only possible on
     # an image that installed requirements-local-asr.txt (the dev Docker
@@ -66,6 +59,5 @@ async def warm_ct_whisper() -> None:
 
 def register_lifespan_handlers(app: FastAPI) -> None:
     app.add_event_handler("startup", startup_event)
-    app.add_event_handler("startup", warm_vibevoice_asr)
     app.add_event_handler("startup", warm_ct_whisper)
     app.add_event_handler("shutdown", shutdown_database)

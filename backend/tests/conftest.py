@@ -31,14 +31,10 @@ def clear_asr_globals():
     """Reset lazy-loaded model globals between tests."""
     import services.asr as asr_service
     original_ctwhisp  = asr_service._ct_whisper_model
-    original_vibevoice = asr_service._vibevoice_asr_model
-    original_vv_error  = asr_service._vibevoice_load_error
 
     yield
 
     asr_service._ct_whisper_model   = original_ctwhisp
-    asr_service._vibevoice_asr_model = original_vibevoice
-    asr_service._vibevoice_load_error = original_vv_error
 
 
 # ASR provider keys are read once from config.settings. The coaching pipeline

@@ -302,7 +302,7 @@ treated as bad pronunciation.
 ### 3.7 Speech recognition
 
 Adapters actually wired in `services/speech/asr/transcription.py`:
-`openai`, `groq`, `gemini` (cloud), `ctwhisper`, `vibevoice` (local).
+`openai`, `groq`, `gemini` (cloud), `ctwhisper` (local).
 Fallback order defaults to `groq,ctwhisper`
 (`ASR_FALLBACK_ORDER` env var). The admin Learning Engine page reports
 which are configured (a key is present) - never the key value itself.

@@ -257,7 +257,7 @@ def _asr_providers() -> list[dict]:
         if name in configured:
             providers.append({"provider": name, "role": "cloud ASR", "configured": configured[name]})
         else:
-            # ctwhisper / vibevoice: local models, "configured" means selected
+            # ctwhisper: local model, "configured" means selected
             # in the fallback order, not gated on an API key.
             providers.append({"provider": name, "role": "local ASR", "configured": True})
     return providers

@@ -41,13 +41,6 @@ class Settings:
     ct_whisper_task: str
     ct_whisper_cache_dir: str
     ct_whisper_warm_on_start: bool
-    vibevoice_asr_model: str
-    vibevoice_device: str
-    vibevoice_torch_dtype: str
-    vibevoice_warm_on_start: bool
-    vibevoice_max_new_tokens: int
-    vibevoice_max_time_seconds: float
-    vibevoice_cache_dir: str
     max_audio_bytes: int
     analyze_timeout_seconds: int
     analyze_concurrency_limit: int
@@ -102,13 +95,6 @@ class Settings:
             ct_whisper_task=os.getenv("CT_WHISPER_TASK", "transcribe"),
             ct_whisper_cache_dir=model_cache,
             ct_whisper_warm_on_start=os.getenv("CT_WHISPER_WARM_ON_START", "false").lower() == "true",
-            vibevoice_asr_model=os.getenv("VIBEVOICE_ASR_MODEL", "microsoft/VibeVoice-ASR"),
-            vibevoice_device=os.getenv("VIBEVOICE_DEVICE", "cpu"),
-            vibevoice_torch_dtype=os.getenv("VIBEVOICE_TORCH_DTYPE", "bfloat16"),
-            vibevoice_warm_on_start=os.getenv("VIBEVOICE_WARM_ON_START", "false").lower() == "true",
-            vibevoice_max_new_tokens=int(os.getenv("VIBEVOICE_MAX_NEW_TOKENS", "64")),
-            vibevoice_max_time_seconds=float(os.getenv("VIBEVOICE_MAX_TIME_SECONDS", "45")),
-            vibevoice_cache_dir=os.getenv("VIBEVOICE_CACHE_DIR", model_cache),
             max_audio_bytes=int(os.getenv("MAX_AUDIO_BYTES", "10485760")),
             analyze_timeout_seconds=int(os.getenv("ANALYZE_TIMEOUT_SECONDS", "120")),
             analyze_concurrency_limit=int(os.getenv("ANALYZE_CONCURRENCY_LIMIT", "4")),

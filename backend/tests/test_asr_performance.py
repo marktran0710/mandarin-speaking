@@ -219,13 +219,14 @@ class TestFallbackChainPerformance:
     @pytest.mark.asyncio
     async def test_single_failure_fast(self, monkeypatch):
         import services.asr as asr_service
-        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
+        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "groq"])
+        monkeypatch.setattr(asr_service, "GROQ_API_KEY", "test-key")
 
         async def run():
             with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-                 patch("services.asr.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoice:
+                 patch("services.asr.transcribe_with_groq", new_callable=AsyncMock) as groq:
                 ctw.side_effect = RuntimeError("not loaded")
-                vibevoice.return_value = MagicMock(text="你好", model="vibevoice")
+                groq.return_value = MagicMock(text="你好", model="groq")
                 await asr_service.transcribe_with_auto_fallback(SPEECH_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
@@ -235,7 +236,8 @@ class TestFallbackChainPerformance:
     @pytest.mark.asyncio
     async def test_two_failures_still_fast(self, monkeypatch):
         import services.asr as asr_service
-        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice", "gemini"])
+        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "groq", "gemini"])
+        monkeypatch.setattr(asr_service, "GROQ_API_KEY", "test-key")
         monkeypatch.setattr(asr_service, "GEMINI_API_KEY", "test-key")
 
         mock_gemini_resp = MagicMock(status_code=200)
@@ -245,10 +247,10 @@ class TestFallbackChainPerformance:
 
         async def run():
             with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-                 patch("services.asr.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoice, \
+                 patch("services.asr.transcribe_with_groq", new_callable=AsyncMock) as groq, \
                  patch("httpx.AsyncClient") as cls:
                 ctw.side_effect = RuntimeError("not loaded")
-                vibevoice.side_effect = RuntimeError("not loaded")
+                groq.side_effect = RuntimeError("not loaded")
                 cli = AsyncMock()
                 cli.__aenter__ = AsyncMock(return_value=cli)
                 cli.__aexit__ = AsyncMock(return_value=False)

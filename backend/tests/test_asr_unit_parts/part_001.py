@@ -125,14 +125,6 @@ class TestTranscribeAudioContentRouting:
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_vibevoice_routes_correctly(self):
-        from services.asr import transcribe_audio_content
-        with patch("services.asr.transcribe_with_vibevoice", new_callable=AsyncMock) as mock:
-            mock.return_value = MagicMock(text="再見", model="vibevoice")
-            await transcribe_audio_content(SPEECH_WAV, "vibevoice")
-            mock.assert_awaited_once()
-
-    @pytest.mark.asyncio
     async def test_unknown_model_raises_400(self):
         from services.asr import transcribe_audio_content
         with pytest.raises(HTTPException) as exc_info:
@@ -149,7 +141,8 @@ class TestTranscribeWithAutoFallback:
     @pytest.mark.asyncio
     async def test_returns_first_successful_provider(self, monkeypatch):
         import services.asr as asr_service
-        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
+        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "groq"])
+        monkeypatch.setattr(asr_service, "GROQ_API_KEY", "test-key")
         with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock_ctw:
             mock_ctw.return_value = MagicMock(text="你好", model="ctwhisper")
             result = await asr_service.transcribe_with_auto_fallback(SPEECH_WAV)
@@ -159,23 +152,25 @@ class TestTranscribeWithAutoFallback:
     @pytest.mark.asyncio
     async def test_skips_to_next_on_failure(self, monkeypatch):
         import services.asr as asr_service
-        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
+        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "groq"])
+        monkeypatch.setattr(asr_service, "GROQ_API_KEY", "test-key")
         with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-             patch("services.asr.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoicem:
+             patch("services.asr.transcribe_with_groq", new_callable=AsyncMock) as groqm:
             ctw.side_effect = RuntimeError("model not loaded")
-            vibevoicem.return_value = MagicMock(text="早上好", model="vibevoice")
+            groqm.return_value = MagicMock(text="早上好", model="groq")
             result = await asr_service.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "早上好"
-        assert "vibevoice" in result.model
+        assert "groq" in result.model
 
     @pytest.mark.asyncio
     async def test_skips_empty_transcription(self, monkeypatch):
         import services.asr as asr_service
-        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
+        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "groq"])
+        monkeypatch.setattr(asr_service, "GROQ_API_KEY", "test-key")
         with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-             patch("services.asr.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoicem:
+             patch("services.asr.transcribe_with_groq", new_callable=AsyncMock) as groqm:
             ctw.return_value = MagicMock(text="   ", model="ctwhisper")  # empty
-            vibevoicem.return_value = MagicMock(text="謝謝", model="vibevoice")
+            groqm.return_value = MagicMock(text="謝謝", model="groq")
             result = await asr_service.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "謝謝"
 

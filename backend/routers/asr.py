@@ -9,7 +9,7 @@ import security.auth as auth
 import main
 import services.asr as asr_service
 from api.schemas.models import AnalysisResponse
-from services.asr import AsrStatusResponse, TranscriptionResponse
+from services.asr import TranscriptionResponse
 from services.text_normalization import correct_homophones
 from db import connect_db
 from services import student_service
@@ -19,35 +19,6 @@ router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 def _sse_line(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
-
-
-@router.get("/api/asr-status", response_model=AsrStatusResponse)
-def get_asr_status():
-    with asr_service._vibevoice_load_lock:
-        if asr_service._vibevoice_asr_model is not None:
-            return AsrStatusResponse(
-                provider="vibevoice",
-                status="ready",
-                message="VibeVoice-ASR is ready.",
-            )
-        if asr_service._vibevoice_load_error:
-            return AsrStatusResponse(
-                provider="vibevoice",
-                status="error",
-                message=f"VibeVoice-ASR failed to load: {asr_service._vibevoice_load_error}",
-            )
-        if asr_service._vibevoice_load_thread is not None and asr_service._vibevoice_load_thread.is_alive():
-            return AsrStatusResponse(
-                provider="vibevoice",
-                status="loading",
-                message="VibeVoice-ASR is loading the local model weights.",
-            )
-
-    return AsrStatusResponse(
-        provider="vibevoice",
-        status="idle",
-        message="VibeVoice-ASR is not loaded. It starts only when a VibeVoice transcription request is submitted.",
-    )
 
 
 @router.get("/api/ai-providers")

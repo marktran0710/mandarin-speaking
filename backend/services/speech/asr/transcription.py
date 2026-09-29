@@ -1,20 +1,18 @@
 """ASR (speech-to-text): provider routing, fallback, and per-engine transcription.
 
-Five engines behind one entry point, `transcribe_audio_content()`:
+Four engines behind one entry point, `transcribe_audio_content()`:
   - openai, gemini, groq: cloud Whisper-family APIs.
   - ctwhisper: a local Chinese/Taiwanese-tuned Whisper model (CPU-friendly,
     free, slower).
-  - vibevoice: a local, experimental ASR model.
 
 `transcribe_with_auto_fallback()` walks ASR_FALLBACK_ORDER (default:
 groq, ctwhisper) so a missing API key or a transient provider failure
 degrades to the next engine instead of failing the whole request.
 
-Two heavy local models (ctwhisper, vibevoice) load lazily on first use unless
-warmed up at server startup (see CT_WHISPER_WARM_ON_START /
-VIBEVOICE_WARM_ON_START) - main.py's startup hooks call
-ensure_ct_whisper_load_started() / ensure_vibevoice_load_started() directly
-since only the composition root owns the FastAPI `app` object.
+The local ctwhisper model loads lazily on first use unless warmed up at
+server startup (see CT_WHISPER_WARM_ON_START) - main.py's startup hook calls
+ensure_ct_whisper_load_started() directly since only the composition root
+owns the FastAPI `app` object.
 """
 
 from __future__ import annotations
@@ -46,12 +44,6 @@ class TranscriptionResponse(BaseModel):
     model: str
 
 
-class AsrStatusResponse(BaseModel):
-    provider: str
-    status: str
-    message: str
-
-
 # ── Config ───────────────────────────────────────────────────────────────────
 # OPENAI_API_KEY/GEMINI_API_KEY/GROQ_API_KEY are also read independently by
 # services/speech_analysis.py and services/story_images.py - all three read
@@ -73,22 +65,11 @@ CT_WHISPER_LANGUAGE = settings.ct_whisper_language
 CT_WHISPER_TASK = settings.ct_whisper_task
 CT_WHISPER_CACHE_DIR = settings.ct_whisper_cache_dir
 CT_WHISPER_WARM_ON_START = settings.ct_whisper_warm_on_start
-VIBEVOICE_ASR_MODEL = settings.vibevoice_asr_model
-VIBEVOICE_DEVICE = settings.vibevoice_device
-VIBEVOICE_TORCH_DTYPE = settings.vibevoice_torch_dtype
-VIBEVOICE_WARM_ON_START = settings.vibevoice_warm_on_start
-VIBEVOICE_MAX_NEW_TOKENS = settings.vibevoice_max_new_tokens
-VIBEVOICE_MAX_TIME_SECONDS = settings.vibevoice_max_time_seconds
-VIBEVOICE_CACHE_DIR = settings.vibevoice_cache_dir
 
 _ct_whisper_model = None
 _ct_whisper_load_lock = threading.Lock()
 _ct_whisper_load_thread = None
 _ct_whisper_load_error = None
-_vibevoice_asr_model = None
-_vibevoice_load_lock = threading.Lock()
-_vibevoice_load_thread = None
-_vibevoice_load_error = None
 
 
 # ── Silence gate ─────────────────────────────────────────────────────────────
@@ -400,201 +381,6 @@ async def transcribe_with_ct_whisper(audio_content: bytes, vocab_hint: str = "")
     return TranscriptionResponse(text=text, model="ctwhisper")
 
 
-# ── Local engine: VibeVoice-ASR (experimental) ──────────────────────────────
-
-def patch_transformers_duplicate_registration(auto_class):
-    original_register = auto_class.register
-    if getattr(original_register, "_vibevoice_duplicate_safe", False):
-        return
-
-    def safe_register(config_class, model_class, exist_ok=False):
-        try:
-            return original_register(config_class, model_class, exist_ok=exist_ok)
-        except ValueError as exc:
-            if "is already used by a Transformers model" in str(exc):
-                return None
-            raise
-
-    safe_register._vibevoice_duplicate_safe = True
-    auto_class.register = safe_register
-
-
-def _load_vibevoice_asr_model():
-    try:
-        import torch
-        from transformers import AutoModel, AutoModelForCausalLM
-
-        patch_transformers_duplicate_registration(AutoModel)
-        patch_transformers_duplicate_registration(AutoModelForCausalLM)
-
-        from vibevoice.modular.modeling_vibevoice_asr import (
-            VibeVoiceASRForConditionalGeneration,
-        )
-        from vibevoice.processor.vibevoice_asr_processor import (
-            VibeVoiceASRProcessor,
-        )
-    except ImportError as exc:
-        raise RuntimeError(
-            "VibeVoice-ASR library is not installed on the backend. "
-            "Install the VibeVoice package and its torch/transformers dependencies."
-        ) from exc
-
-    device = VIBEVOICE_DEVICE
-    dtype_by_name = {
-        "float32": torch.float32,
-        "float16": torch.float16,
-        "bfloat16": torch.bfloat16,
-    }
-    dtype = dtype_by_name.get(VIBEVOICE_TORCH_DTYPE.lower(), torch.bfloat16)
-    os.makedirs(VIBEVOICE_CACHE_DIR, exist_ok=True)
-    processor = VibeVoiceASRProcessor.from_pretrained(
-        VIBEVOICE_ASR_MODEL,
-        cache_dir=VIBEVOICE_CACHE_DIR,
-        local_files_only=True,
-    )
-    model = VibeVoiceASRForConditionalGeneration.from_pretrained(
-        VIBEVOICE_ASR_MODEL,
-        cache_dir=VIBEVOICE_CACHE_DIR,
-        local_files_only=True,
-        torch_dtype=dtype,
-        low_cpu_mem_usage=True,
-        device_map="auto" if device == "auto" else None,
-        attn_implementation="sdpa",
-        trust_remote_code=True,
-    )
-    if device != "auto":
-        model = model.to(device)
-    model.eval()
-    return processor, model, device
-
-
-def _load_vibevoice_asr_model_background():
-    global _vibevoice_asr_model, _vibevoice_load_error
-
-    try:
-        model_bundle = _load_vibevoice_asr_model()
-        with _vibevoice_load_lock:
-            _vibevoice_asr_model = model_bundle
-            _vibevoice_load_error = None
-    except Exception as exc:
-        with _vibevoice_load_lock:
-            _vibevoice_load_error = str(exc)
-
-
-def ensure_vibevoice_load_started() -> None:
-    global _vibevoice_load_thread
-
-    with _vibevoice_load_lock:
-        if _vibevoice_asr_model is not None or _vibevoice_load_error:
-            return
-        if _vibevoice_load_thread is not None and _vibevoice_load_thread.is_alive():
-            return
-
-        _vibevoice_load_thread = threading.Thread(
-            target=_load_vibevoice_asr_model_background,
-            name="vibevoice-asr-loader",
-            daemon=True,
-        )
-        _vibevoice_load_thread.start()
-
-
-def _get_vibevoice_asr_model():
-    with _vibevoice_load_lock:
-        if _vibevoice_asr_model is not None:
-            return _vibevoice_asr_model
-        if _vibevoice_load_error:
-            raise HTTPException(
-                status_code=503,
-                detail=f"VibeVoice-ASR failed to load: {_vibevoice_load_error}",
-            )
-
-    ensure_vibevoice_load_started()
-    raise HTTPException(
-        status_code=503,
-        detail=(
-            "VibeVoice-ASR is loading the local model weights. "
-            "Please try again in a few minutes."
-        ),
-    )
-
-
-def _extract_vibevoice_text(result: dict) -> str:
-    segments = result.get("segments") if isinstance(result, dict) else None
-    if isinstance(segments, list) and segments:
-        return " ".join(
-            str(segment.get("text", "")).strip()
-            for segment in segments
-            if isinstance(segment, dict) and segment.get("text")
-        ).strip()
-
-    return str(result.get("raw_text", "") if isinstance(result, dict) else "").strip()
-
-
-def _transcribe_with_vibevoice_sync(audio_content: bytes) -> str:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        tmp_file.write(audio_content)
-        tmp_path = tmp_file.name
-
-    try:
-        import torch
-
-        processor, model, device = _get_vibevoice_asr_model()
-        inputs = processor(
-            audio=tmp_path,
-            sampling_rate=None,
-            return_tensors="pt",
-            add_generation_prompt=True,
-        )
-        inputs = {
-            key: value.to(device) if isinstance(value, torch.Tensor) else value
-            for key, value in inputs.items()
-        }
-
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=VIBEVOICE_MAX_NEW_TOKENS,
-                max_time=VIBEVOICE_MAX_TIME_SECONDS,
-                do_sample=False,
-                num_beams=1,
-                pad_token_id=processor.pad_id,
-                eos_token_id=processor.tokenizer.eos_token_id,
-            )
-
-        generated_ids = output_ids[0, inputs["input_ids"].shape[1]:]
-        generated_text = processor.decode(generated_ids, skip_special_tokens=True)
-        try:
-            segments = processor.post_process_transcription(generated_text)
-        except Exception:
-            segments = []
-        result = {"raw_text": generated_text, "segments": segments}
-        text = _extract_vibevoice_text(result)
-        if not text:
-            raise RuntimeError("VibeVoice-ASR did not return transcription text.")
-        return text
-    finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-
-
-async def transcribe_with_vibevoice(audio_content: bytes) -> TranscriptionResponse:
-    """Transcribe using local VibeVoice-ASR through Transformers on the backend."""
-    try:
-        text = await asyncio.wait_for(
-            run_in_threadpool(_transcribe_with_vibevoice_sync, audio_content),
-            timeout=VIBEVOICE_MAX_TIME_SECONDS + 20,
-        )
-    except asyncio.TimeoutError as exc:
-        raise HTTPException(
-            status_code=504,
-            detail=(
-                "VibeVoice-ASR transcription is too slow on this machine. "
-                "Try a shorter recording or run the backend on a GPU."
-            ),
-        ) from exc
-    return TranscriptionResponse(text=text, model="vibevoice")
-
-
 # ── Routing + fallback ───────────────────────────────────────────────────────
 
 async def transcribe_audio_content(
@@ -639,12 +425,9 @@ async def transcribe_audio_content(
     if model in {"ctwhisper", "chinese_taiwanese_whisper"}:
         return await transcribe_with_ct_whisper(audio_content, vocab_hint=vocab_hint)
 
-    if model == "vibevoice":
-        return await transcribe_with_vibevoice(audio_content)
-
     raise HTTPException(
         status_code=400,
-        detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', 'groq', or 'vibevoice'"
+        detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', or 'groq'"
     )
 
 

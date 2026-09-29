@@ -1,4 +1,4 @@
-export type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice" | "openai";
+export type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "openai";
 
 export type AssistiveFeedbackSyllable = {
   syllable_index: number;

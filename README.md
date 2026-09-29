@@ -82,7 +82,7 @@ flowchart LR
     API -->|"Praat / Parselmouth"| Praat["Acoustic analysis\npitch · tone · formants\nfluency · speech rate"]
     API -->|"parallel"| AIFeed["AI language feedback\nGemini / OpenAI / local"]
     IMG --> UPL
-    ASR -->|"optional"| FunASR["FunASR / VibeVoice\n(local GPU)"]
+    ASR -->|"fallback"| CTW["CT-Whisper\n(local CPU)"]
 
     DB --> Postgres[(PostgreSQL 17)]
 ```
@@ -146,7 +146,7 @@ produces it.
 
 | Dimension | What it measures | Engine | Deterministic / AI |
 |---|---|---|---|
-| **Transcription (ASR)** | Speech → Mandarin text | Browser **Web Speech API** (default, Traditional Chinese) · or server ASR: **CT-Whisper** (`openai/whisper-small`), **FunASR** (`paraformer-zh`), **VibeVoice-ASR** (`microsoft/VibeVoice-ASR`) · or cloud (OpenAI / Gemini) | Model-dependent |
+| **Transcription (ASR)** | Speech → Mandarin text | Browser **Web Speech API** (default, Traditional Chinese) · or server ASR: **CT-Whisper** (`openai/whisper-small`, local) · or cloud (Groq / OpenAI / Gemini) | Model-dependent |
 | **Tone accuracy** | How closely the pitch melody matches a Mandarin tone shape | **Praat / Parselmouth** pitch extraction → correlation (65%) + distance (35%) vs reference tone patterns (`chinese_tones.py`) | Deterministic |
 | **Pitch contour & word prosody** | F0 over time; per-syllable rising / falling / dipping / level shape | **Praat / Parselmouth** | Deterministic |
 | **Formants (F1 / F2 / F3)** | Vowel quality / resonance | **Praat / Parselmouth** formant tracking | Deterministic |
@@ -536,7 +536,7 @@ do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 |---|---|---|
 | `GET` | `/health` | Backend status |
 | `POST` | `/api/analyze` | WAV upload → Praat + AI feedback |
-| `POST` | `/api/transcribe` | WAV upload → transcription (openai / gemini / funasr / vibevoice) |
+| `POST` | `/api/transcribe` | WAV upload → transcription (groq / openai / gemini / ctwhisper) |
 | `GET` | `/api/audio-records` | List all student recordings |
 | `POST` | `/api/audio-records/upload` | Save a recording with audio file |
 | `DELETE` | `/api/audio-records/{id}` | Delete a recording |
