@@ -89,6 +89,15 @@
   .sa-page--stage .sa-page__stage-split { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Side-by-side layout: keep the scene image in view while a long feedback
+   column scrolls past it (#sa-main is the scroll container). */
+@media (min-width: 901px) {
+  .sa-page--stage .sa-page__stage-media {
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
 /* Shared footer action bar (ACTION-1/ACTION-2) */
 .sa-page__actions {
   display: flex;
