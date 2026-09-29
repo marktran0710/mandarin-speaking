@@ -1,4 +1,4 @@
-/* Foot-of-page source attribution. Quiet, left-aligned, in normal flow, aligned to the
+/* Foot-of-page source attribution. Quiet, centered, in normal flow, aligned to the
    shared content width so it lines up with page content on every route. */
 .source-attribution {
   box-sizing: border-box;
@@ -8,7 +8,7 @@
   padding: var(--space-lg) var(--content-gutter, 20px) var(--space-xl);
   border-top: 1px solid var(--clay-hairline);
   color: var(--clay-body);
-  text-align: left;
+  text-align: center;
   font-size: 13px;
   line-height: 1.65;
   display: grid;
