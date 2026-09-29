@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { useStudentSettingsValue } from "@app/student/StudentSettingsContext";
+import { useStudentSettingsValue } from "@features/settings/StudentSettingsContext";
 
 type RoleAvatarProps = {
   role: "character" | "student";

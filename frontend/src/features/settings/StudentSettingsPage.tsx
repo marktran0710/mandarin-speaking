@@ -6,7 +6,7 @@ import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentSection from "@shared/ui/student/StudentSection";
 import StudentStatusPill from "@shared/ui/student/StudentStatusPill";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
-import { useStudentSettings } from "@app/student/StudentSettingsContext";
+import { useStudentSettings } from "./StudentSettingsContext";
 import type { PartnerMascot, StudentMascot, VoiceHintMode } from "../../services/api/student-settings";
 import "./StudentSettingsPage.css";
 

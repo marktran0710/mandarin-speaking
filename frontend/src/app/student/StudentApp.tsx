@@ -31,7 +31,7 @@ import CompletionPage from "../../features/completion/CompletionPage";
 import ProgressPage from "../../features/progress/ProgressPage";
 import PlacementPage from "../../features/placement/PlacementPage";
 import StudentSettingsPage from "../../features/settings/StudentSettingsPage";
-import { StudentSettingsProvider } from "./StudentSettingsContext";
+import { StudentSettingsProvider } from "@features/settings/StudentSettingsContext";
 import { loadSubmittedStoryIds, markStoryLevelSubmitted } from "../../utils/storyLevelProgress";
 
 interface StudentAppProps {
