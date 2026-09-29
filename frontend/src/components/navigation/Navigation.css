@@ -40,11 +40,11 @@
 }
 
 .logo-icon {
+  display: block;
   width: 34px;
   height: 34px;
-  border-radius: var(--clay-radius-sm);
   object-fit: contain;
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--seal) 24%, transparent);
+  background: transparent;
 }
 
 .navbar-tonemark {
