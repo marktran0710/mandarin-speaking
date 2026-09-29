@@ -28,10 +28,10 @@ const SKILLS: Array<{ zh: string; key: "pronunciation" | "vocabulary" | "practic
    a large hero frame. The grid is intentionally data-driven so every card
    shares the same sizing and crop behavior. */
 const STORY_SCENES = [
-  { file: "street-conversation.png", className: "image-one" },
-  { file: "missing-cat-card.png", className: "image-two" },
-  { file: "campus-chat.png", className: "image-three" },
-  { file: "afternoon-tea-material.png", className: "image-four" },
+  { file: "street-conversation.png", className: "image-one", width: 357, height: 280 },
+  { file: "missing-cat-card.png", className: "image-two", width: 397, height: 316 },
+  { file: "campus-chat.png", className: "image-three", width: 395, height: 354 },
+  { file: "afternoon-tea-material.png", className: "image-four", width: 1448, height: 1086 },
 ];
 
 const STATS: Array<{ key: "fourTones" | "sixScenes" | "aiFeedback" }> = [
@@ -67,7 +67,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     setLoadedScenes((prev) => (prev.has(className) ? prev : new Set(prev).add(className)));
 
   return (
-    <div className="home-page">
+    <div className="home-page" lang="zh-Hant">
       <section className="home-hero" aria-labelledby="home-hero-title">
         <div className="home-hero-copy">
           <h1 id="home-hero-title" className="hero-title">
@@ -107,8 +107,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
           <ul className="hero-stats" aria-label={studentUiCopy.atAGlance.zh}>
             {STATS.map((stat) => (
-            <li key={stat.key} className="hero-stat-chip">
-              <StudentSystemText k={stat.key} />
+              <li key={stat.key} className="hero-stat-chip">
+                <StudentSystemText k={stat.key} />
               </li>
             ))}
           </ul>
@@ -126,11 +126,15 @@ export default function HomePage({ onNavigate }: HomePageProps) {
         <div className="home-hero-visual" aria-label="故事練習預覽">
           <div className="story-preview-stage">
             <div className="story-preview-scenes" aria-hidden="true">
-              {STORY_SCENES.map(({ file, className }) => (
+              {STORY_SCENES.map(({ file, className, width, height }, index) => (
                 <img
                   key={className}
                   src={`/sample-scenes/${file}`}
                   alt=""
+                  width={width}
+                  height={height}
+                  decoding="async"
+                  fetchPriority={index === 0 ? "high" : undefined}
                   className={`story-preview-image ${className}${loadedScenes.has(className) ? " is-loaded" : ""}`}
                   onLoad={() => markSceneLoaded(className)}
                 />

@@ -116,6 +116,42 @@
   background: var(--color-canvas);
   color: var(--color-ink);
 }
+
+/* Entry screens do not mount StudentShell's dark palette, so remap their
+   semantic colors here instead of letting the toggle change only its label. */
+:root[data-theme="dark"] .student-app:not(.student-shell-app) {
+  --color-canvas: #1b1712;
+  --color-surface: #2a241c;
+  --color-surface-soft: #241f18;
+  --color-sky: #302a20;
+  --color-sky-strong: #3f372a;
+  --color-mint: #17402d;
+  --color-peach: #453413;
+  --color-ink: #f4efe2;
+  --color-muted: #d5cab4;
+  --color-border: #3f372a;
+  --color-primary: #ffc44d;
+  --color-on-primary: #1b1712;
+  --color-success: #37c07e;
+  --color-success-ink: #85e0b0;
+  --color-peach-ink: #ffd089;
+  --color-error: #ff6b9c;
+  --color-error-soft: #4a1930;
+  --color-error-container: #4a1930;
+  --color-focus: #ffc44d;
+  --color-ink-variant: #d5cab4;
+  --color-on-primary-container: #f4efe2;
+  --color-peach-ink-container: #ffd089;
+  --color-primary-container: #4a3610;
+  --color-primary-fixed: #4a3610;
+  --color-sky-highest: #3f372a;
+  --color-sky-strongest: #4a4031;
+  --color-success-container: #17402d;
+  --color-primary-fixed-dim: #8a6920;
+  --color-on-primary-fixed: #f4efe2;
+  --color-on-primary-fixed-variant: #ffd98a;
+}
+
 .student-app *,
 .student-app *::before,
 .student-app *::after {

@@ -35,6 +35,11 @@ export default function Navigation({
 }: NavigationProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const isStudent = activeRole === "student";
+  const isHomeActive = currentPage === "home";
+  const isStudentLoginActive = currentPage === "student-login";
+  const isStudentLearningActive = currentPage === "student-workspace"
+    || currentPage === "student-practice"
+    || currentPage === "student-stories";
   // The teacher app renders this bar only on its login screen (once logged
   // in, ManagementShell's own topbar takes over), so the teacher logo has just
   // one target — there is no in-app dashboard page to route to.
@@ -48,7 +53,7 @@ export default function Navigation({
           className="navbar-logo"
           onClick={() => onNavigate(logoTarget)}
         >
-          <img className="logo-icon" src="/logo.png" alt="慢慢中文 logo" />
+          <img className="logo-icon" src="/logo.png" alt="慢慢中文 logo" width={34} height={34} />
           <span>慢慢中文</span>
           <ToneMark className="navbar-tonemark" size={26} />
         </button>
@@ -59,8 +64,9 @@ export default function Navigation({
               <li>
                 <button
                   type="button"
-                  className={`nav-link ${currentPage === "home" ? "active" : ""}`}
+                  className={`nav-link ${isHomeActive ? "active" : ""}`}
                   onClick={() => onNavigate("home")}
+                  aria-current={isHomeActive ? "page" : undefined}
                 >
                   {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="home" /></span>}
                   <StudentSystemText k="home" withinControl />
@@ -69,8 +75,9 @@ export default function Navigation({
               <li>
                 <button
                   type="button"
-                  className={`nav-link ${currentPage === "student-login" ? "active" : ""}`}
+                  className={`nav-link ${isStudentLoginActive ? "active" : ""}`}
                   onClick={() => onNavigate("student-login")}
+                  aria-current={isStudentLoginActive ? "page" : undefined}
                 >
                   {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="voice" /></span>}
                   <StudentSystemText k="studentLogin" withinControl />
@@ -83,8 +90,9 @@ export default function Navigation({
             <li>
               <button
                 type="button"
-                className={`nav-link ${currentPage === "student-workspace" || currentPage === "student-practice" || currentPage === "student-stories" ? "active" : ""}`}
+                className={`nav-link ${isStudentLearningActive ? "active" : ""}`}
                 onClick={() => onNavigate("student-workspace")}
+                aria-current={isStudentLearningActive ? "page" : undefined}
               >
                 <span className="nav-link-icon"><StudentIcon name="home" /></span>
                 <StudentSystemText k="myLearning" withinControl />

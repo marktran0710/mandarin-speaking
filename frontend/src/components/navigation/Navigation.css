@@ -37,6 +37,7 @@
   font-size: 18px;
   font-weight: 750;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .logo-icon {
@@ -69,6 +70,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   text-decoration: none;
   min-height: 44px;
   padding: 6px 12px;
@@ -89,6 +91,7 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   /* Darker than BiLabel's clay-muted default, which was landing at
      ~4.0-4.4:1 (just under 4.5:1) on this nav's various pill tints. */
@@ -171,8 +174,8 @@
   .navbar-container {
     flex-direction: column;
     align-items: stretch;
-    padding: 8px 0;
-    gap: 8px;
+    padding: 6px 0;
+    gap: 4px;
   }
 
   .navbar-menu {
@@ -182,7 +185,7 @@
   .navbar-menu-student {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 4px;
   }
 
   .navbar-menu-student > li,
@@ -197,7 +200,8 @@
 
   .nav-link {
     flex: 1;
-    padding: 8px 10px;
+    gap: 4px;
+    padding: 6px 8px;
   }
 
   .nav-link.active::after {
@@ -206,9 +210,43 @@
 }
 
 @media (max-width: 480px) {
+  .navbar-logo {
+    gap: 8px;
+    font-size: 17px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
   .navbar-menu-student {
     /* Student mode has three compact top-level actions. Keep them on one
        row so the learning surface is not pushed down by a second nav row. */
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nav-link {
+    padding-inline: 6px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .navbar-container {
+    padding-block: 4px 6px;
+  }
+
+  .navbar-logo {
+    font-size: 16px;
+  }
+
+  .logo-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .navbar-menu-student .nav-link-icon {
+    display: none;
   }
 }

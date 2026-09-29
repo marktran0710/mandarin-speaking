@@ -19,11 +19,39 @@ function renderStudentNav(props: Partial<Parameters<typeof Navigation>[0]> = {})
 }
 
 describe("Navigation student links", () => {
+  it("routes the logged-out entry links and exposes the current page", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+    const props = {
+      activeRole: null,
+      onNavigate,
+      onLogout: vi.fn(),
+    } as const;
+    const { rerender } = render(<Navigation currentPage="home" {...props} />);
+
+    const home = screen.getByRole("button", { name: /首頁/ });
+    const studentLogin = screen.getByRole("button", { name: /學生登入/ });
+    expect(home).toHaveAttribute("aria-current", "page");
+    expect(studentLogin).not.toHaveAttribute("aria-current");
+
+    await user.click(studentLogin);
+    expect(onNavigate).toHaveBeenCalledWith("student-login");
+
+    await user.click(screen.getByRole("button", { name: /慢慢中文/ }));
+    expect(onNavigate).toHaveBeenCalledWith("home");
+
+    rerender(<Navigation currentPage="student-login" {...props} />);
+    expect(screen.getByRole("button", { name: /學生登入/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /首頁/ })).not.toHaveAttribute("aria-current");
+  });
+
   it("links the single student workspace", async () => {
     const user = userEvent.setup();
     const onNavigate = renderStudentNav();
+    const learningLink = screen.getByRole("button", { name: /我的學習/ });
 
-    await user.click(screen.getByRole("button", { name: /我的學習/ }));
+    expect(learningLink).toHaveAttribute("aria-current", "page");
+    await user.click(learningLink);
     expect(onNavigate).toHaveBeenCalledWith("student-workspace");
   });
 

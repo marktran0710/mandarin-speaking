@@ -15,7 +15,7 @@
   .hero-primary-action { animation-delay: 440ms; }
 
   .hero-char {
-    animation: titleToneBreath 5.2s ease-in-out infinite;
+    animation: titleToneBreath 4.8s ease-in-out 1 both;
     animation-delay: calc(1.2s + var(--i, 0) * 170ms);
   }
 }
@@ -67,26 +67,49 @@
   --tone-lift: 10px;
 }
 
-@media (max-width: 900px) {
-  .home-hero {
-    grid-template-columns: 1fr;
-    padding-top: var(--space-xl);
-    gap: var(--space-xl);
-  }
-
-  .story-preview-stage {
-    height: clamp(340px, 64vw, 520px);
-  }
-
+@media (max-width: 1179px) {
   .practice-focus {
     grid-template-columns: 1fr;
     gap: var(--space-lg);
+  }
+
+  .practice-focus-heading {
+    max-width: 52rem;
   }
 
   .practice-focus-heading h2 {
     max-width: 22ch;
   }
 
+  .practice-focus-heading > p:last-child {
+    max-width: 52ch;
+  }
+}
+
+@media (max-width: 960px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+    padding-top: var(--space-xl);
+    gap: var(--space-xl);
+  }
+
+  .home-hero-copy {
+    max-width: 42rem;
+  }
+
+  .story-preview-stage {
+    height: clamp(340px, 58vw, 480px);
+  }
+}
+
+@media (max-width: 720px) {
+  .practice-focus-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-focus-card {
+    min-height: 0;
+  }
 }
 
 @media (max-width: 600px) {
@@ -100,7 +123,7 @@
   }
 
   .hero-title-zh {
-    font-size: 48px;
+    font-size: clamp(42px, 13vw, 48px);
   }
 
   .hero-subtitle {
@@ -127,7 +150,7 @@
   }
 
   .story-preview-stage {
-    height: 320px;
+    height: clamp(280px, 82vw, 340px);
     border-radius: var(--clay-radius-lg);
   }
 
@@ -145,12 +168,7 @@
     font-size: 28px;
   }
 
-  .practice-focus-grid {
-    grid-template-columns: 1fr;
-  }
-
   .practice-focus-card {
-    min-height: 0;
     padding: var(--space-md);
   }
 
