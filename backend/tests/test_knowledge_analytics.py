@@ -13,6 +13,13 @@ def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_a
     result here is pre-marked as already resolved)."""
     mode = "tier1"
     with db.connect_db() as conn:
+        # The real-evidence ledger only counts responses from existing,
+        # non-test student accounts (calibration_store._scope_filters).
+        conn.execute(
+            "INSERT INTO students (id, name, password, is_test_account) "
+            "VALUES (%s, %s, 'unused-test-password', FALSE) ON CONFLICT (id) DO NOTHING",
+            (student_id, "Pilot Student"),
+        )
         conn.execute(
             """
             INSERT INTO vocab_quiz_attempts

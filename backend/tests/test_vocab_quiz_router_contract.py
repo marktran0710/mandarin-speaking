@@ -78,7 +78,10 @@ def test_facade_preserves_auth_chain_and_endpoint_shapes():
         calls = set(_dependency_calls(route.dependant))
         assert auth.get_current_identity in calls
         if any((method, route.path) in student_only_operations for method in route.methods):
-            assert auth.require_student in calls
+            # Attempt/response writes enforce the student role (or an admin
+            # verifier context) inside _quiz_write_context; weak-words still
+            # uses auth.require_student directly.
+            assert auth.require_student in calls or vocab_quiz_attempts._quiz_write_context in calls
 
     seen_route = next(
         route
