@@ -11,8 +11,8 @@ describe("story-wide learning content", () => {
   it("preserves imported character metadata while editing a story", () => {
     const story = createCustomStory({
       ...emptyCustomStoryDraft,
-      imageUrls: { easy: ["image"], medium: [""], hard: [""] },
-      prompts: { easy: ["Say this"], medium: [""], hard: [""] },
+      imageUrls: { easy: ["image"] },
+      prompts: { easy: ["Say this"] },
       characters: ["中明"],
     });
 

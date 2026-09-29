@@ -12,7 +12,13 @@ const staffDb = vi.hoisted(() => ({
       createdAt: "2026-08-01T00:00:00.000Z",
       status: "active" as const,
     },
-  ],
+  ] as Array<{
+    id: string;
+    name: string;
+    createdAt: string;
+    status: "active";
+    isTestAccount?: boolean;
+  }>,
   teachers: [
     {
       id: "teacher-existing",
