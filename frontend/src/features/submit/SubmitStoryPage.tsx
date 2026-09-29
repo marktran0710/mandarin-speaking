@@ -55,7 +55,7 @@ export default function SubmitStoryPage({ topic, sceneCount, scenesRecorded, tur
   };
 
   return (
-    <div className="sa-page-container sa-page-container--narrow">
+    <div className="sa-page-container sa-page sa-page-container--narrow">
       <StudentPageHeader
         eyebrowKey="storySpeaking"
         context={<span lang="zh-Hant">準備提交</span>}

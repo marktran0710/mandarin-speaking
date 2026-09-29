@@ -37,7 +37,7 @@ export default function CompletionPage({
   const overallPercent = overallTotal === 0 ? 0 : Math.round((overallCompleted / overallTotal) * 100);
 
   return (
-    <div className="sa-page-container sa-page-container--narrow">
+    <div className="sa-page-container sa-page sa-page-container--narrow">
       <StudentPageHeader
         eyebrowKey="lessonComplete"
         context={<span lang="zh-Hant">{topic.name}</span>}
