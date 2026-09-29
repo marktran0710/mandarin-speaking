@@ -160,6 +160,8 @@ export default function PraatTimeline({
         <em>{timelineDuration.toFixed(2)}s</em>
       </div>
 
+      {modelNotice && <p className="praat-timeline-note" role="status">{modelNotice}</p>}
+
       <div className="praat-timeline-scroll">
         <svg
           className="praat-timeline"
@@ -227,11 +229,6 @@ export default function PraatTimeline({
               <line x1="800" y1={PITCH_TOP + 30} x2="818" y2={PITCH_TOP + 30} stroke="#9aa7b5" strokeWidth="3" />
               <text x="822" y={PITCH_TOP + 34} className="praat-axis-label">model voice</text>
             </g>
-          )}
-          {modelNotice && (
-            <text x="104" y={PITCH_TOP + 20} className="praat-axis-label praat-model-notice">
-              {modelNotice}
-            </text>
           )}
 
           <text x="18" y={WORD_TOP + 18} className="praat-row-label">

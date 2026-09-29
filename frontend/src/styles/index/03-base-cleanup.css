@@ -303,3 +303,12 @@ textarea:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
+
+/* Shown above the chart, not inside the SVG: an in-SVG label sat on top of the
+   pitch curve and shrank to unreadable size when the chart scaled down. */
+.praat-timeline-note {
+  margin: 0 0 8px;
+  color: var(--clay-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
