@@ -1,3 +1,4 @@
+import { studentUiCopy } from "../../i18n/student-ui-copy";
 import { SVG_HEIGHT, WAVEFORM_HEIGHT, WAVEFORM_TOP, WORD_TIER_HEIGHT, WORD_TOP, type WordProsody } from "./praatTimelineModel";
 
 export function TimelineGrid({ duration }: { duration: number }) {
@@ -93,8 +94,20 @@ export function WordSegment({
         {word.token}
       </text>
       <text x={x + width / 2} y={WORD_TOP + 48} className="praat-word-detail" textAnchor="middle">
-        {word.mean_pitch > 0 ? `${Math.round(word.mean_pitch)}Hz ${word.contour_shape}` : word.contour_shape}
+        {word.mean_pitch > 0 ? `${Math.round(word.mean_pitch)}Hz ${shapeLabel(word.contour_shape)}` : shapeLabel(word.contour_shape)}
       </text>
     </g>
   );
+}
+
+const SHAPE_LABELS: Record<string, string> = {
+  rising: studentUiCopy.shapeRising.zh,
+  falling: studentUiCopy.shapeFalling.zh,
+  dip: studentUiCopy.shapeDip.zh,
+  level: studentUiCopy.shapeLevel.zh,
+  variable: studentUiCopy.shapeVariable.zh,
+};
+
+function shapeLabel(shape: string): string {
+  return SHAPE_LABELS[shape] ?? shape;
 }

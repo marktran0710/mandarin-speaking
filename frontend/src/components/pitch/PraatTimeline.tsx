@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ModelOverlay } from "@entities/speech/modelOverlay";
 import { buildPitchPath, fallbackWordSegments, PITCH_HEIGHT, PITCH_TOP, SVG_HEIGHT, SVG_WIDTH, WAVEFORM_HEIGHT, WAVEFORM_TOP, WORD_TIER_HEIGHT, WORD_TOP, type WordProsody } from "./praatTimelineModel";
 import { TimelineGrid, WaveformBars, WordSegment } from "./praatTimelineLayers";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import { studentUiCopy } from "../../i18n/student-ui-copy";
 
 interface PraatTimelineProps {
   audioBlob?: Blob | null;
@@ -145,17 +147,17 @@ export default function PraatTimeline({
 
   const modelNotice =
     modelOverlay?.status === "missing"
-      ? "No model voice for this sentence yet"
+      ? studentUiCopy.noModelSentence.zh
       : modelOverlay?.status === "mismatch"
-        ? "You said a different sentence, so the model voice is hidden"
+        ? studentUiCopy.modelHiddenDifferent.zh
         : "";
 
   return (
     <div className="praat-timeline-card">
       <div className="praat-timeline-header">
         <div>
-          <span>Praat-style timeline</span>
-          <strong>Waveform, pitch contour, and word alignment</strong>
+          <span><StudentSystemText k="soundChart" /></span>
+          <strong><StudentSystemText k="soundChartHint" /></strong>
         </div>
         <em>{timelineDuration.toFixed(2)}s</em>
       </div>
@@ -166,14 +168,14 @@ export default function PraatTimeline({
         <svg
           className="praat-timeline"
           role="img"
-          aria-label="Praat style waveform, pitch contour, and word timeline"
+          aria-label={`${studentUiCopy.soundChart.zh}：${studentUiCopy.soundChartHint.zh}`}
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         >
           <rect width={SVG_WIDTH} height={SVG_HEIGHT} rx="14" fill="#f8fafc" />
           <TimelineGrid duration={timelineDuration} />
 
           <text x="18" y={WAVEFORM_TOP + 18} className="praat-row-label">
-            waveform
+            {studentUiCopy.waveformRow.zh}
           </text>
           <rect
             x="92"
@@ -188,12 +190,12 @@ export default function PraatTimeline({
             <WaveformBars peaks={waveform.peaks} />
           ) : (
             <text x="520" y={WAVEFORM_TOP + 54} className="praat-empty-label">
-              {decodeFailed ? "Waveform unavailable" : "Waveform appears after recording"}
+              {decodeFailed ? studentUiCopy.waveformUnavailable.zh : studentUiCopy.waveformAfterRecording.zh}
             </text>
           )}
 
           <text x="18" y={PITCH_TOP + 18} className="praat-row-label">
-            pitch
+            {studentUiCopy.pitchRow.zh}
           </text>
           <rect
             x="92"
@@ -225,14 +227,14 @@ export default function PraatTimeline({
           {modelPaths.length > 0 && (
             <g className="praat-pitch-legend">
               <line x1="800" y1={PITCH_TOP + 14} x2="818" y2={PITCH_TOP + 14} stroke="#167f92" strokeWidth="4" />
-              <text x="822" y={PITCH_TOP + 18} className="praat-axis-label">your pitch</text>
+              <text x="822" y={PITCH_TOP + 18} className="praat-axis-label">{studentUiCopy.yourPitchLine.zh}</text>
               <line x1="800" y1={PITCH_TOP + 30} x2="818" y2={PITCH_TOP + 30} stroke="#9aa7b5" strokeWidth="3" />
-              <text x="822" y={PITCH_TOP + 34} className="praat-axis-label">model voice</text>
+              <text x="822" y={PITCH_TOP + 34} className="praat-axis-label">{studentUiCopy.modelAudio.zh}</text>
             </g>
           )}
 
           <text x="18" y={WORD_TOP + 18} className="praat-row-label">
-            words
+            {studentUiCopy.wordsRow.zh}
           </text>
           <rect
             x="92"

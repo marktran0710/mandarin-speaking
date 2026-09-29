@@ -99,7 +99,7 @@
 .sa-result-review__transcript { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; color: var(--color-muted); font-family: var(--font-ui); font-size: var(--font-size-small); }
 .sa-result-review__transcript strong { color: var(--color-ink); font-family: var(--font-hanzi); font-size: var(--font-size-body); font-weight: 500; }
 .sa-result-review__content-note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-control); background: var(--color-peach); color: var(--color-peach-ink); font-family: var(--font-ui); font-size: var(--font-size-small); line-height: 1.5; }
-.sa-result-review__content-note > span { min-width: 0; }
+.sa-result-review__content-note > span { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .sa-result-review__content-note strong { font-family: var(--font-hanzi); font-weight: 600; }
 .sa-result-review__prompt,
 .sa-result-review__empty,

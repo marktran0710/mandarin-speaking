@@ -7,6 +7,7 @@ import StudentAudioControl from "@shared/ui/student/StudentAudioControl";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
 import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
 import { modelSimilarity } from "./modelSimilarity";
@@ -83,11 +84,11 @@ export default function SpeechResultReview({
         <StudentAudioControl audioUrl={audioUrl || recordingUrl} labelKey="playRecording" />
       </div>
 
-      <div className="sa-result-review__summary" aria-label="Result summary">
-        <ResultBadge label="Meaning" ok={meaningPassed} />
+      <div className="sa-result-review__summary" aria-label={studentUiCopy.resultStep.zh}>
+        <ResultBadge ok={meaningPassed} />
       </div>
 
-      <div className="sa-result-review__script" aria-label="Word by word script">
+      <div className="sa-result-review__script" aria-label={studentUiCopy.wordByWord.zh}>
         {scriptUnitGroups(units).map((group) => (
           <span className="sa-script-group" key={group[0].index}>
             {group.map(({ unit, index }) => (
@@ -113,8 +114,8 @@ export default function SpeechResultReview({
       </div>
 
       {splitTeacherScriptIntoPhrases(targetScript).length > 0 && (
-        <div className="sa-result-review__phrases" aria-label="Phrase result">
-          <span>View phrase</span>
+        <div className="sa-result-review__phrases" aria-label={studentUiCopy.viewPhrase.zh}>
+          <span><StudentSystemText k="viewPhrase" /></span>
           {splitTeacherScriptIntoPhrases(targetScript).map((phrase) => (
             <button
               key={phrase}
@@ -133,18 +134,23 @@ export default function SpeechResultReview({
       )}
 
       <p className="sa-result-review__transcript">
-        <span>You said</span>
-        <strong lang="zh-Hant">{transcript?.trim() || "No transcript available"}</strong>
+        <span><StudentSystemText k="youSaid" /></span>
+        <strong lang="zh-Hant">{transcript?.trim() || studentUiCopy.noTranscript.zh}</strong>
       </p>
       {scriptMismatchTokens(targetScript, transcript).length > 0 && (
         <p className="sa-result-review__content-note" role="status">
-          <StudentIcon name="info" size={16} role="meaningful" label="Content note" />
-          <span>The script portions not heard clearly: <strong lang="zh-Hant">{scriptMismatchTokens(targetScript, transcript).join(" · ")}</strong>. This affects content matching, not the tone color above.</span>
+          <StudentIcon name="info" size={16} role="meaningful" label={studentUiCopy.contentNote.zh} />
+          <span>
+            <span>
+              <StudentSystemText k="notHeardClearly" /> <strong lang="zh-Hant">{scriptMismatchTokens(targetScript, transcript).join(" · ")}</strong>
+            </span>
+            <StudentSystemText k="notHeardNote" />
+          </span>
         </p>
       )}
 
       <div className="sa-result-review__tone">
-        <p className="sa-result-review__eyebrow">Visualized tone</p>
+        <p className="sa-result-review__eyebrow"><StudentSystemText k="toneChart" /></p>
         {similarity && (
           <p className="sa-result-review__similarity" role="status">
             <StudentSystemText k="modelSimilarity" />
@@ -164,15 +170,15 @@ export default function SpeechResultReview({
         ) : selectedPhrase ? (
           <PhraseDetail phrase={selectedPhrase} metrics={metrics} audioBlob={audioBlob} modelOverlay={modelOverlay} />
         ) : (
-          <p className="sa-result-review__prompt">Tap a word above to inspect it closely.</p>
+          <p className="sa-result-review__prompt"><StudentSystemText k="tapAWord" /></p>
         )}
       </div>
 
       {aiFeedback && (
         <div className="sa-result-review__coach">
-          <StudentIcon name="school" size={18} role="meaningful" label="AI coach" />
+          <StudentIcon name="school" size={18} role="meaningful" label={studentUiCopy.aiTeacher.zh} />
           <div>
-            <strong>AI Coach</strong>
+            <strong><StudentSystemText k="aiTeacher" /></strong>
             <p>{aiFeedback}</p>
           </div>
         </div>
@@ -193,21 +199,21 @@ function WordDetail({ word, audioBlob, modelOverlay }: { word: WordProsody; audi
     <div className="sa-result-review__detail">
       <div className="sa-result-review__detail-heading">
         <div>
-          <span className="sa-result-review__detail-label">Selected word</span>
+          <span className="sa-result-review__detail-label"><StudentSystemText k="selectedWord" /></span>
           <strong lang="zh-Hant">{word.token}</strong>
         </div>
-        <SegmentPlayButton audioBlob={audioBlob} start={word.start_time} end={word.end_time} label="Play word" />
+        <SegmentPlayButton audioBlob={audioBlob} start={word.start_time} end={word.end_time} labelKey="playWord" />
       </div>
       {hasPitch ? (
         <div className="sa-result-review__mini-chart">
           <MiniContourChart actual={word.pitch_contour ?? []} reference={modelPoints} />
-          <p>{modelPoints ? "Your pitch compared with the model voice." : modelNoticeText(modelOverlay)}</p>
+          <p><StudentSystemText k={modelPoints ? "pitchVsModel" : modelNoticeKey(modelOverlay)} /></p>
         </div>
       ) : (
-        <p className="sa-result-review__empty">There is not enough pitch evidence for this word.</p>
+        <p className="sa-result-review__empty"><StudentSystemText k="notEnoughPitch" /></p>
       )}
       <button type="button" className="sa-result-review__disclosure" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        <span>{open ? "Hide" : "Show"} Praat timeline</span>
+        <span><StudentSystemText k={open ? "hideSoundChart" : "showSoundChart"} withinControl /></span>
         <StudentIcon name={open ? "expand_less" : "expand_more"} size={16} role="decorative" />
       </button>
       {open && (
@@ -232,14 +238,14 @@ function PhraseDetail({ phrase, metrics, audioBlob, modelOverlay }: { phrase: st
     <div className="sa-result-review__detail">
       <div className="sa-result-review__detail-heading">
         <div>
-          <span className="sa-result-review__detail-label">Selected phrase</span>
+          <span className="sa-result-review__detail-label"><StudentSystemText k="selectedPhrase" /></span>
           <strong lang="zh-Hant">{phrase}</strong>
         </div>
         <SegmentPlayButton
           audioBlob={audioBlob}
           start={phraseWords[0]?.start_time}
           end={phraseWords[phraseWords.length - 1]?.end_time}
-          label="Play phrase"
+          labelKey="playPhrase"
         />
       </div>
       <PraatTimeline
@@ -263,10 +269,8 @@ function overlayForWords(overlay: ModelOverlay, shown: WordProsody[]): ModelOver
   return segments.length ? { status: "ok", segments } : { status: "missing" };
 }
 
-function modelNoticeText(overlay: ModelOverlay): string {
-  return overlay.status === "mismatch"
-    ? "You said a different sentence, so the model voice is hidden."
-    : "No model voice for this word yet.";
+function modelNoticeKey(overlay: ModelOverlay): StudentUiCopyKey {
+  return overlay.status === "mismatch" ? "modelHiddenDifferent" : "noModelWord";
 }
 
 function wordsForPhrase(phrase: string, words: WordProsody[]): WordProsody[] {
@@ -286,12 +290,12 @@ function SegmentPlayButton({
   audioBlob,
   start,
   end,
-  label,
+  labelKey,
 }: {
   audioBlob?: Blob | null;
   start?: number;
   end?: number;
-  label: string;
+  labelKey: StudentUiCopyKey;
 }) {
   const [url, setUrl] = useState<string>();
   const [playing, setPlaying] = useState(false);
@@ -320,7 +324,7 @@ function SegmentPlayButton({
   return (
     <>
       <StudentButton variant="secondary" size="sm" icon={playing ? "graphic_eq" : "play_arrow"} disabled={!available} onClick={onClick}>
-        {available ? label : "Segment unavailable"}
+        <StudentSystemText k={available ? labelKey : "segmentUnavailable"} withinControl />
       </StudentButton>
       {url && (
         <audio
@@ -345,11 +349,11 @@ function SegmentPlayButton({
   );
 }
 
-function ResultBadge({ label, ok }: { label: string; ok: boolean }) {
+function ResultBadge({ ok }: { ok: boolean }) {
   return (
     <span className={`sa-result-badge ${ok ? "is-correct" : "is-attention"}`}>
       <StudentIcon name={ok ? "check_circle" : "change_history"} size={16} role="decorative" />
-      {label}: {ok ? "clear" : "needs attention"}
+      <span><StudentSystemText k="meaningLabel" withinControl />：<StudentSystemText k={ok ? "resultClear" : "resultNeedsWork"} withinControl /></span>
     </span>
   );
 }

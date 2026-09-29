@@ -154,7 +154,7 @@ describe("StorySpeakingPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Stop (5s)" }));
+    fireEvent.click(screen.getByRole("button", { name: /停止.*5/ }));
     expect(stopRecording).toHaveBeenCalledTimes(1);
   });
 
@@ -176,7 +176,7 @@ describe("StorySpeakingPage", () => {
     );
 
     const file = new File(["uploaded audio"], "practice.wav", { type: "audio/wav" });
-    fireEvent.change(screen.getByLabelText("Upload recording"), { target: { files: [file] } });
+    fireEvent.change(screen.getAllByLabelText("上傳").find((element) => element.tagName === "INPUT") as HTMLInputElement, { target: { files: [file] } });
 
     await screen.findByText("How did you do?");
     expect(screen.queryByText("你的錄音")).not.toBeInTheDocument();
@@ -217,10 +217,10 @@ describe("StorySpeakingPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
     await screen.findByText("How did you do?");
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
-    expect(await screen.findByText("AI Coach")).toBeInTheDocument();
+    expect(await screen.findByText("AI 老師")).toBeInTheDocument();
   });
 
   it("walks a clean scene straight to the next scene, then Fix before finishing the last scene", async () => {
@@ -247,11 +247,11 @@ describe("StorySpeakingPage", () => {
     render(<Harness topic={makeTopic()} onAddRecord={onAddRecord} onDone={onDone} onImageIndexChange={onImageIndexChange} />);
 
     // Scene 0: clean attempt — Overview is the only step, Continue advances the scene.
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
     await screen.findByText("How did you do?");
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
-    fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
+    fireEvent.click(screen.getByRole("button", { name: "下一個部分" }));
     // Advancing runs an async saveSpeakingProgress before the scene state
     // updates — wait for scene 1's target text to confirm it landed.
     await screen.findByText("再見");
@@ -264,14 +264,14 @@ describe("StorySpeakingPage", () => {
     expect(JSON.parse(localStorage.getItem("studentPhaseFlags:student-1:story-1") ?? "{}").speaking).not.toBe(true);
 
     // Scene 1 (last scene): needs Fix before Finish is reachable.
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
     await screen.findByText("How did you do?");
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
-    fireEvent.click(screen.getByRole("button", { name: "See Fix" }));
+    fireEvent.click(screen.getByRole("button", { name: "看怎麼改" }));
     // Overview's forward button also runs the async self-eval persist path.
     await screen.findByText("wrong tone on 再");
-    fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
 
     expect(onAddRecord).toHaveBeenCalledTimes(2);
     expect(onDone).toHaveBeenCalledTimes(1);

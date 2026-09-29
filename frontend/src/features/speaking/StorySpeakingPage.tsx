@@ -20,6 +20,7 @@ import StudentAudioUpload from "@shared/ui/student/StudentAudioUpload";
 import BilingualWord from "@shared/ui/student/BilingualWord";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
+import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import { SpeechResultReview, SpeechSelfEvaluation, type SelfEvalLevel } from "@entities/speech";
 import type { SpeakingAnalysisResult } from "./hooks/useSpeakingRecorder";
 import { normalizeSpeechModel } from "@entities/speech/recordingModel";
@@ -31,9 +32,14 @@ import "./StorySpeakingPage.css";
 type Stage = "recording" | "selfEval" | "feedback";
 type FeedbackStep = "overview" | "fix";
 
-const FEEDBACK_STEP_LABEL: Record<FeedbackStep, string> = {
-  overview: "Overview",
-  fix: "Fix",
+const FEEDBACK_STEP_KEY: Record<FeedbackStep, StudentUiCopyKey> = {
+  overview: "resultStep",
+  fix: "fixStep",
+};
+// Label of the button that moves on to that step.
+const SEE_STEP_KEY: Record<FeedbackStep, StudentUiCopyKey> = {
+  overview: "resultStep",
+  fix: "seeFixStep",
 };
 
 interface StorySpeakingPageProps {
@@ -247,7 +253,7 @@ export default function StorySpeakingPage({
     : ["overview"];
   const feedbackStepIndex = feedbackSteps.indexOf(feedbackStep);
   const isLastFeedbackStep = feedbackStepIndex === -1 || feedbackStepIndex === feedbackSteps.length - 1;
-  const nextSceneLabel = selectedImageIndex + 1 < topic.images.length ? "Next scene" : "Finish";
+  const nextSceneKey: StudentUiCopyKey = selectedImageIndex + 1 < topic.images.length ? "nextScene" : "finish";
 
   const advanceFeedback = () => {
     if (isLastFeedbackStep) {
@@ -260,10 +266,11 @@ export default function StorySpeakingPage({
   // Word-level chips: every scored syllable, marked attention when it's
   // one of the real weak/failed words analyzeSpeakingResult already found ??
   // never a re-derived threshold of our own.
-  const continueLabel = isLastFeedbackStep ? nextSceneLabel : `See ${FEEDBACK_STEP_LABEL[feedbackSteps[feedbackStepIndex + 1]]}`;
+  const continueKey: StudentUiCopyKey = isLastFeedbackStep ? nextSceneKey : SEE_STEP_KEY[feedbackSteps[feedbackStepIndex + 1]];
+  const continueLabel = <StudentSystemText k={continueKey} withinControl />;
   const recordAgainButton = (
     <StudentButton variant="secondary" icon="replay" onClick={recordAgain}>
-      Record again
+      <StudentSystemText k="recordAgain" withinControl />
     </StudentButton>
   );
 
@@ -314,7 +321,7 @@ export default function StorySpeakingPage({
           ) : (
             <div className="sa-speaking__media-empty">
               <StudentIcon name="image" size={28} role="decorative" />
-              <p><span lang="zh-Hant">No image</span> · No image for this scene</p>
+              <p><StudentSystemText k="noImageForPart" /></p>
             </div>
           )}
         </StudentSection>
@@ -325,15 +332,15 @@ export default function StorySpeakingPage({
         <div className="sa-speaking__stage-tracker">
           {(["recording", "selfEval", "feedback"] as Stage[]).map((s) => (
             <span key={s} className={`sa-speaking__stage ${stage === s ? "is-current" : ((stage === "selfEval" || stage === "feedback") && s === "recording") || (stage === "feedback" && s === "selfEval") ? "is-done" : ""}`}>
-              {s === "recording" ? "Recording" : s === "selfEval" ? "Self-evaluation" : "Feedback"}
+              <StudentSystemText k={s === "recording" ? "record" : s === "selfEval" ? "selfEvaluation" : "feedback"} />
             </span>
           ))}
         </div>
 
         <StudentSection variant="tinted" className="sa-speaking__target">
-          <p className="sa-speaking__target-label">Target</p>
+          <p className="sa-speaking__target-label"><StudentSystemText k="target" /></p>
           <BilingualWord hanzi={targetText} size="display" toneHighlight />
-          <StudentAudioControl audioUrl={topic.listenAudioUrls?.[selectedImageIndex]} label="Model" />
+          <StudentAudioControl audioUrl={topic.listenAudioUrls?.[selectedImageIndex]} labelKey="model" />
         </StudentSection>
 
         {stage === "recording" && (
@@ -347,10 +354,10 @@ export default function StorySpeakingPage({
                 disabled={recorder.isAnalyzing}
                 onClick={recorder.isRecording ? recorder.stopRecording : handleRecord}
               >
-                {recorder.isRecording ? `Stop (${recorder.recordingDuration}s)` : recorder.isAnalyzing ? "Analyzing…" : "Record"}
+                {recorder.isRecording ? <><StudentSystemText k="stop" withinControl />（{recorder.recordingDuration} 秒）</> : recorder.isAnalyzing ? <StudentSystemText k="analyzing" withinControl /> : <StudentSystemText k="record" withinControl />}
               </StudentButton>
               <StudentAudioUpload
-                label="Upload recording"
+                labelKey="upload"
                 disabled={recorder.isRecording || recorder.isAnalyzing}
                 onSelect={handleUpload}
               />
@@ -376,13 +383,13 @@ export default function StorySpeakingPage({
         {stage === "feedback" && lastAnalysis && lastResult && (
           <>
             {feedbackSteps.length > 1 && (
-              <div className="sa-speaking__feedback-steps" role="tablist" aria-label="Feedback steps">
+              <div className="sa-speaking__feedback-steps" role="tablist" aria-label={studentUiCopy.feedbackSteps.zh}>
                 {feedbackSteps.map((step, i) => (
                   <span
                     key={step}
                     className={`sa-speaking__feedback-step ${step === feedbackStep ? "is-current" : i < feedbackStepIndex ? "is-done" : ""}`}
                   >
-                    {FEEDBACK_STEP_LABEL[step]}
+                    <StudentSystemText k={FEEDBACK_STEP_KEY[step]} />
                   </span>
                 ))}
               </div>
@@ -404,14 +411,14 @@ export default function StorySpeakingPage({
               <StudentSection variant="panel" className="sa-speaking__fix">
                 <div className="sa-speaking__fix-head">
                   <StudentIcon name="edit_note" size={18} role="decorative" />
-                  <h3>What to fix</h3>
+                  <h3><StudentSystemText k="whatToFix" /></h3>
                 </div>
                 {lastAnalysis.corrective?.errors.map((error, i) => (
                   <p key={i} className="sa-speaking__fix-error">{error}</p>
                 ))}
                 {lastAnalysis.corrective?.correct_version && (
                   <div className="sa-speaking__fix-correct">
-                    <span className="sa-speaking__fix-correct-label">Try saying</span>
+                    <span className="sa-speaking__fix-correct-label"><StudentSystemText k="trySaying" /></span>
                     <BilingualWord hanzi={lastAnalysis.corrective.correct_version} size="inline" />
                   </div>
                 )}
