@@ -158,6 +158,55 @@ def test_admin_placement_data_import_replace_route(admin_client, monkeypatch):
     assert captured == {"content": b"workbook", "filename": "responses.xlsx"}
 
 
+def test_admin_can_activate_imported_student_logins_without_losing_placement_data(
+    admin_client, anonymous_client, monkeypatch,
+):
+    _seed_import_batch()
+    monkeypatch.setattr(workbook_import, "EXPECTED_STUDENT_IDS", ("SIM001",))
+
+    response = admin_client.post(
+        "/api/admin/placement-test/results/accounts/activate",
+        json={"temporaryPassword": "shared-login-2026"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "activatedAccounts": 1,
+        "studentIds": ["SIM001"],
+        "testAccounts": True,
+    }
+    login = anonymous_client.post(
+        "/api/students/login",
+        json={"studentId": "SIM001", "password": "shared-login-2026"},
+    )
+    assert login.status_code == 200
+
+    with db.connect_db() as connection:
+        student = connection.execute(
+            "SELECT password_reset_required, password_version, is_test_account FROM students WHERE id = 'SIM001'"
+        ).fetchone()
+        attempt_count = connection.execute(
+            "SELECT count(*) AS n FROM placement_test_attempts WHERE student_id = 'SIM001'"
+        ).fetchone()["n"]
+        response_count = connection.execute(
+            "SELECT count(*) AS n FROM vocab_quiz_responses WHERE student_id = 'SIM001'"
+        ).fetchone()["n"]
+        mastery_count = connection.execute(
+            "SELECT count(*) AS n FROM student_vocab_mastery WHERE student_id = 'SIM001'"
+        ).fetchone()["n"]
+
+    assert student == {"password_reset_required": False, "password_version": 1, "is_test_account": True}
+    assert (attempt_count, response_count, mastery_count) == (1, 2, 2)
+
+
+def test_activating_imported_student_logins_requires_admin(anonymous_client):
+    response = anonymous_client.post(
+        "/api/admin/placement-test/results/accounts/activate",
+        json={"temporaryPassword": "shared-login-2026"},
+    )
+    assert response.status_code in (401, 403)
+
+
 _REPLACE_BLUEPRINT_QUESTIONS = [
     {
         "questionId": "Q0016",

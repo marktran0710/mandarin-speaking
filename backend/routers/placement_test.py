@@ -31,6 +31,10 @@ class PlacementQuestionIdsRequest(BaseModel):
     questionIds: list[str] = Field(..., min_length=1)
 
 
+class PlacementStudentAccountActivationRequest(BaseModel):
+    temporaryPassword: str = Field(..., min_length=8, max_length=100)
+
+
 async def _read_admin_import(request: Request) -> tuple[list[str] | None, bytes, str]:
     content_type = request.headers.get("content-type", "").casefold()
     if content_type.startswith("application/json"):
@@ -108,6 +112,18 @@ async def replace_admin_placement_import(
     try:
         with connect_db() as db:
             return data_import_service.replace_import(db, content, file.filename or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/api/admin/placement-test/results/accounts/activate")
+def activate_admin_placement_student_accounts(
+    payload: PlacementStudentAccountActivationRequest,
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    try:
+        with connect_db() as db:
+            return data_import_service.activate_imported_student_accounts(db, payload.temporaryPassword)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

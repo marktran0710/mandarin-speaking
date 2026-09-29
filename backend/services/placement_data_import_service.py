@@ -9,6 +9,7 @@ from typing import Any
 import openpyxl
 from openpyxl.utils.exceptions import InvalidFileException
 
+import security.auth as auth
 from scripts import import_placement_bkt_workbook as workbook_import
 
 
@@ -140,6 +141,66 @@ def replace_import(db: Any, content: bytes, filename: str) -> dict[str, Any]:
         "deletedResponses": deleted["responses"],
         **_summary(plan, state),
         **_apply_result(result),
+    }
+
+
+def activate_imported_student_accounts(db: Any, temporary_password: str) -> dict[str, Any]:
+    """Give the imported SIM cohort a usable shared temporary password.
+
+    Placement imports already create student rows so every synthetic response
+    has a real owner, but those rows deliberately start with an unknown random
+    password and ``password_reset_required`` enabled. Activating them in place
+    preserves all placement/BKT ownership while keeping the accounts marked as
+    test data.
+    """
+    auth.validate_password_policy(temporary_password)
+    expected_ids = list(workbook_import.EXPECTED_STUDENT_IDS)
+    rows = db.execute(
+        """
+        SELECT s.id, s.name
+        FROM students s
+        WHERE s.id = ANY(%s)
+          AND s.is_test_account = TRUE
+          AND EXISTS (
+              SELECT 1
+              FROM vocab_quiz_responses response
+              WHERE response.student_id = s.id
+                AND response.evidence_origin = 'synthetic'
+                AND response.resolver_version = %s
+          )
+        ORDER BY s.id
+        FOR UPDATE
+        """,
+        (expected_ids, workbook_import.IMPORT_RESOLVER_VERSION),
+    ).fetchall()
+    found_ids = {str(row["id"]) for row in rows}
+    missing_ids = [student_id for student_id in expected_ids if student_id not in found_ids]
+    if missing_ids:
+        raise ValueError(
+            "Cannot activate placement student logins until the complete imported cohort exists. "
+            f"Missing {len(missing_ids)} account(s): {', '.join(missing_ids[:8])}"
+            + ("..." if len(missing_ids) > 8 else "")
+        )
+
+    password_hash = auth.hash_password(temporary_password)
+    updated = db.execute(
+        """
+        UPDATE students
+        SET password = %s,
+            password_reset_required = FALSE,
+            password_version = COALESCE(password_version, 0) + 1,
+            status = 'active'
+        WHERE id = ANY(%s)
+          AND is_test_account = TRUE
+        """,
+        (password_hash, expected_ids),
+    ).rowcount
+    if updated != len(expected_ids):
+        raise ValueError("The imported placement cohort changed while login accounts were being activated.")
+    return {
+        "activatedAccounts": updated,
+        "studentIds": expected_ids,
+        "testAccounts": True,
     }
 
 

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
+  activatePlacementStudentAccounts,
   confirmPlacementResponseImport,
   downloadPlacementResponseSample,
   getAdminPlacementImportResults,
@@ -71,6 +72,65 @@ function StudentDetail({ student, onClose }: { student: PlacementImportedStudent
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+function PlacementStudentAccountsPanel({ studentCount }: { studentCount: number }) {
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const passwordValid = temporaryPassword.length >= 8;
+
+  const activate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!passwordValid) return;
+    if (!window.confirm(`Set this temporary password for all ${studentCount} imported SIM accounts? Existing sessions will be signed out.`)) return;
+    setSubmitting(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await activatePlacementStudentAccounts(temporaryPassword);
+      setMessage(`Activated ${result.activatedAccounts} student logins. Use each student name below with the shared temporary password.`);
+      setTemporaryPassword("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not activate the placement student accounts.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="placement-data-card placement-data-accounts-card" aria-labelledby="placement-data-accounts-title">
+      <header className="placement-data-section-heading">
+        <div>
+          <span className="admin-eyebrow">Student access</span>
+          <h2 id="placement-data-accounts-title">Activate {studentCount} student logins</h2>
+          <p>The imported students already own their placement and BKT data. Set one temporary password so you can sign in as any student without recreating or losing that history.</p>
+        </div>
+      </header>
+      <form className="placement-data-accounts-form" onSubmit={(event) => void activate(event)}>
+        <label>
+          <span>Shared temporary password</span>
+          <input
+            type="password"
+            value={temporaryPassword}
+            onChange={(event) => setTemporaryPassword(event.target.value)}
+            minLength={8}
+            maxLength={100}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            disabled={submitting}
+          />
+        </label>
+        <button type="submit" className="placement-data-button" disabled={!passwordValid || submitting}>
+          {submitting ? "Activating accounts..." : `Activate ${studentCount} logins`}
+        </button>
+      </form>
+      <p className="placement-data-account-note">These remain synthetic test accounts. Their activity stays excluded from teacher rosters and real research evidence.</p>
+      {error && <p className="admin-error" role="alert">{error}</p>}
+      {message && <p className="placement-data-import-success" role="status">{message}</p>}
     </section>
   );
 }
@@ -256,6 +316,7 @@ export default function AdminPlacementDataPage() {
   return (
     <section className="placement-data" aria-label="Placement Data">
       <PlacementResponseImportPanel onImported={load} />
+      <PlacementStudentAccountsPanel studentCount={summary.studentCount} />
       <div className="placement-data-hero">
         <div><span className="admin-eyebrow">Synthetic placement batch</span><h2>40-student response view</h2><p>Read-only view of the workbook responses, server-graded against the active quiz bank and replayed through the current BKT configuration.</p></div>
         <div className="placement-data-hero-meta"><span><strong>{data.evidenceOrigin}</strong> evidence</span><span><strong>{data.resolverVersion}</strong> resolver</span><span>Imported {data.importedAt ? new Date(data.importedAt).toLocaleString() : "—"}</span></div>

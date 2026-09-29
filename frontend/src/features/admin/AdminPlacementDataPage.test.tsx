@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import AdminPlacementDataPage from "./AdminPlacementDataPage";
 
 vi.mock("../../shared/api/placement-test", () => ({
+  activatePlacementStudentAccounts: vi.fn(),
   confirmPlacementResponseImport: vi.fn(),
   downloadPlacementResponseSample: vi.fn(),
   getAdminPlacementImportResults: vi.fn().mockResolvedValue({
@@ -48,6 +49,7 @@ vi.mock("../../shared/api/placement-test", () => ({
 }));
 
 import {
+  activatePlacementStudentAccounts,
   downloadPlacementResponseSample,
   previewPlacementResponseImport,
   replacePlacementResponseImport,
@@ -91,6 +93,24 @@ describe("AdminPlacementDataPage", () => {
 
     await user.upload(screen.getByLabelText("Placement response XLSX file"), new File(["xlsx"], "responses.xlsx"));
     expect(await screen.findByText("1,120 responses ready")).toBeInTheDocument();
+  });
+
+  it("activates login access for the imported student cohort", async () => {
+    vi.mocked(activatePlacementStudentAccounts).mockResolvedValue({
+      activatedAccounts: 40,
+      studentIds: Array.from({ length: 40 }, (_, index) => `SIM${String(index + 1).padStart(3, "0")}`),
+      testAccounts: true,
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<AdminPlacementDataPage />);
+
+    expect(await screen.findByRole("heading", { name: "Activate 40 student logins" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Shared temporary password"), "shared-login-2026");
+    await user.click(screen.getByRole("button", { name: "Activate 40 logins" }));
+
+    await waitFor(() => expect(activatePlacementStudentAccounts).toHaveBeenCalledWith("shared-login-2026"));
+    expect(await screen.findByText("Activated 40 student logins. Use each student name below with the shared temporary password.")).toBeInTheDocument();
   });
 
   it("lets the admin delete conflicting SIM test data and re-import when a workbook is blocked", async () => {

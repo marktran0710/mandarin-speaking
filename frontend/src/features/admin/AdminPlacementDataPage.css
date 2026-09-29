@@ -72,6 +72,12 @@
 .placement-data-import-preview p { margin: 0; line-height: 1.5; }
 .placement-data-import-preview ul { margin: 0; padding-left: var(--space-lg); }
 .placement-data-import-success { margin: 0; color: var(--jade-deep); font-weight: 700; }
+.placement-data-accounts-card { background: linear-gradient(135deg, var(--clay-surface-card), var(--jade-soft)); }
+.placement-data-accounts-form { display: grid; grid-template-columns: minmax(240px, 1fr) auto; align-items: end; gap: var(--space-sm); }
+.placement-data-accounts-form label { display: grid; gap: var(--space-xs); color: var(--clay-muted); font-size: var(--text-sm); font-weight: 700; }
+.placement-data-accounts-form input { min-height: 40px; width: 100%; padding: 0 var(--space-sm); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); color: var(--clay-ink); background: var(--clay-surface-card); font: inherit; }
+.placement-data-accounts-form input:focus-visible { outline: 3px solid color-mix(in srgb, var(--tone1) 38%, transparent); outline-offset: 2px; }
+.placement-data-account-note { margin: 0; color: var(--clay-muted); font-size: var(--text-xs); line-height: 1.5; }
 .placement-data-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 900px) { .placement-data-hero { display: grid; } .placement-data-hero-meta { min-width: 0; } .placement-data-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .placement-data-analysis-grid { grid-template-columns: 1fr; } }
-@media (max-width: 620px) { .placement-data-card { padding: var(--space-md); } .placement-data-kpis { grid-template-columns: 1fr; } .placement-data-section-heading { display: grid; } .placement-data-search { min-width: 0; } .placement-data-student-browser-meta { display: grid; } .placement-data-student-table-wrap { max-height: 360px; } .placement-data-bar-row { grid-template-columns: 1fr auto; } .placement-data-bar-track { grid-column: 1 / -1; grid-row: 2; } .placement-data-contract div { grid-template-columns: 86px minmax(0, 1fr); } }
+@media (max-width: 620px) { .placement-data-card { padding: var(--space-md); } .placement-data-kpis { grid-template-columns: 1fr; } .placement-data-section-heading, .placement-data-accounts-form { grid-template-columns: 1fr; display: grid; } .placement-data-accounts-form .placement-data-button { width: 100%; } .placement-data-search { min-width: 0; } .placement-data-student-browser-meta { display: grid; } .placement-data-student-table-wrap { max-height: 360px; } .placement-data-bar-row { grid-template-columns: 1fr auto; } .placement-data-bar-track { grid-column: 1 / -1; grid-row: 2; } .placement-data-contract div { grid-template-columns: 86px minmax(0, 1fr); } }

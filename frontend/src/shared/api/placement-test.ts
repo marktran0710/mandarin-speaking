@@ -154,6 +154,12 @@ export interface PlacementResponseReplaceResult extends PlacementResponseImportR
   deletedResponses: number;
 }
 
+export interface PlacementStudentAccountActivationResult {
+  activatedAccounts: number;
+  studentIds: string[];
+  testAccounts: true;
+}
+
 async function parseError(response: Response, fallback: string): Promise<Error> {
   const body = await response.json().catch(() => null) as { detail?: unknown } | null;
   return new Error(typeof body?.detail === "string" ? body.detail : `${fallback} (${response.status}).`);
@@ -217,6 +223,16 @@ export async function downloadPlacementResponseSample(): Promise<Blob> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/placement-test/results/import/sample`);
   if (!response.ok) throw await parseError(response, "Could not download the placement response sample");
   return response.blob();
+}
+
+export async function activatePlacementStudentAccounts(temporaryPassword: string): Promise<PlacementStudentAccountActivationResult> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/placement-test/results/accounts/activate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ temporaryPassword }),
+  }, 1, 30_000);
+  if (!response.ok) throw await parseError(response, "Could not activate the placement student accounts");
+  return response.json() as Promise<PlacementStudentAccountActivationResult>;
 }
 
 async function postPlacementQuestionIds(path: string, questionIds: string[]): Promise<PlacementPreview> {
