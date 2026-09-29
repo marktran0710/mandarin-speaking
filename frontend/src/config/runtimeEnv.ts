@@ -9,11 +9,6 @@ export function getBackendUrl(): string {
   return viteBackendUrl || (typeof window !== "undefined" ? window.location.origin : "");
 }
 
-export function getVoiceTestAsrModel(): string {
-  const viteModel = typeof viteEnv.VITE_VOICE_TEST_ASR_MODEL === "string" ? viteEnv.VITE_VOICE_TEST_ASR_MODEL : "";
-  return viteModel || "ctwhisper";
-}
-
 export function isTestRuntime(): boolean {
   return viteEnv.MODE === "test";
 }

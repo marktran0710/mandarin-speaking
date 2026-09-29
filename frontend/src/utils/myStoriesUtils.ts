@@ -1,6 +1,5 @@
 import type { VocabQuizAttempt } from "../services/database";
 import { loadPublishedTeacherTopics } from "@entities/story";
-import type { AudioRecord } from "@entities/audio";
 import type { CustomStoryValidationErrors } from "@features/teacher/components/story-builder/StoryBuilderSection";
 
 export function getStudentTopics() {
@@ -17,18 +16,6 @@ export function quizAttemptAccuracy(attempt: VocabQuizAttempt): number {
   return attempt.totalQuestions > 0
     ? Math.round((attempt.correctCount / attempt.totalQuestions) * 100)
     : 0;
-}
-
-export function getAverageMetric(records: AudioRecord[], metric: string): number | null {
-  if (records.length === 0) {
-    return null;
-  }
-
-  const total = records.reduce(
-    (sum, record) => sum + (record.praatMetrics?.[metric] || 0),
-    0,
-  );
-  return Math.round(total / records.length);
 }
 
 export interface WordMissStats {
@@ -141,35 +128,6 @@ export function buildVocabRows(
   }));
 }
 
-export interface VocabWordSuggestion {
-  word: string;
-  pinyin: string;
-  pos: string;
-  translation: string;
-}
-
-/** Non-destructively folds AI-suggested word rows into what's already in the
- * table: a row the teacher already has keeps every cell they typed, only its
- * blank cells get filled; a suggested word with no matching row is appended
- * as a new row. Never removes or overwrites a cell the teacher already filled in. */
-export function mergeVocabSuggestions(
-  existingRows: VocabRow[],
-  suggestions: VocabWordSuggestion[],
-): VocabRow[] {
-  const rows = existingRows.map((row) => ({ ...row }));
-  for (const suggestion of suggestions) {
-    const match = rows.find((row) => row.word === suggestion.word);
-    if (match) {
-      if (!match.pinyin.trim()) match.pinyin = suggestion.pinyin;
-      if (!match.pos.trim()) match.pos = suggestion.pos;
-      if (!match.translation.trim()) match.translation = suggestion.translation;
-    } else {
-      rows.push({ ...suggestion });
-    }
-  }
-  return rows;
-}
-
 export interface PhraseRow {
   phrase: string;
   translation: string;
@@ -186,31 +144,6 @@ export function buildPhraseRows(phrases: string, phrasesTranslation: string): Ph
   const rawPhrases = splitPhraseColumn(phrases);
   const translations = splitPhraseColumn(phrasesTranslation);
   return rawPhrases.map((phrase, i) => ({ phrase, translation: translations[i] || "" }));
-}
-
-export interface PhraseSuggestion {
-  phrase: string;
-  translation: string;
-}
-
-/** Non-destructively folds AI-suggested phrases into what's already in the
- * table: a phrase the teacher already has keeps its typed translation (only
- * fills it in if blank), and a suggested phrase with no matching row is
- * appended as a new row — mirrors mergeVocabSuggestions. */
-export function mergePhraseSuggestions(
-  existingRows: PhraseRow[],
-  suggestions: PhraseSuggestion[],
-): PhraseRow[] {
-  const rows = existingRows.map((row) => ({ ...row }));
-  for (const suggestion of suggestions) {
-    const match = rows.find((row) => row.phrase === suggestion.phrase);
-    if (match) {
-      if (!match.translation.trim()) match.translation = suggestion.translation;
-    } else {
-      rows.push({ ...suggestion });
-    }
-  }
-  return rows;
 }
 
 export function formatRequestTime(value: string) {
