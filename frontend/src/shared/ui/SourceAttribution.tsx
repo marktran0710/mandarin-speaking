@@ -18,10 +18,10 @@ export default function SourceAttribution({
   return (
     <div className={`source-attribution ${className}`.trim()}>
       <p className="source-attribution-zh" lang="zh-Hant">
-        本教材改編自國立臺灣師範大學《時代華語一》，僅供教學使用，非商業用途。
+        本教材改編自國立臺灣師範大學《時代華語（一）》，原著作之權利歸原權利人所有。僅供教學與學習使用，不作商業用途。
       </p>
       <p className="source-attribution-en" lang="en">
-        Materials adapted from NTNU&nbsp;“Modern Chinese&nbsp;1.” For educational, non-commercial use only.
+        Adapted from <em>Modern Chinese&nbsp;1</em> (時代華語一), National Taiwan Normal University. All rights in the original work remain with their respective owners. For non-commercial educational use only.
       </p>
     </div>
   );
