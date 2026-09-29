@@ -31,8 +31,11 @@
 /* Pin the attribution to the bottom of the page and keep it compact so it
    reads as a page footer rather than a card floating under the form. */
 .login-page > .source-attribution {
+  max-width: 760px;
   margin-top: auto;
-  padding-top: var(--space-md);
+  padding: var(--space-xl) 0 var(--space-lg);
+  border-top: 0;
+  text-align: center;
 }
 
 .login-shell {

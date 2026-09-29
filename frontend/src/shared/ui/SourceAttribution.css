@@ -1,26 +1,34 @@
-/* Foot-of-page source attribution. Muted, in normal flow, aligned to the
+/* Foot-of-page source attribution. Quiet, left-aligned, in normal flow, aligned to the
    shared content width so it lines up with page content on every route. */
 .source-attribution {
   box-sizing: border-box;
   width: 100%;
   max-width: var(--content-max, 1160px);
   margin: var(--space-2xl) auto 0;
-  padding: var(--space-md) var(--content-gutter, 20px);
+  padding: var(--space-lg) var(--content-gutter, 20px) var(--space-xl);
   border-top: 1px solid var(--clay-hairline);
-  color: var(--clay-muted);
-  text-align: center;
-  font-size: var(--text-xs);
-  line-height: 1.55;
+  color: var(--clay-body);
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.65;
+  display: grid;
+  gap: 2px;
 }
 
-.source-attribution-zh {
+.source-attribution-zh,
+.source-attribution-en {
   margin: 0;
+  text-wrap: pretty;
 }
 
 .source-attribution-en {
-  margin: 2px 0 0;
   color: var(--clay-muted);
-  opacity: 0.85;
+  font-size: 0.92em;
+}
+
+.source-attribution-en em {
+  font-style: italic;
+  color: var(--clay-body);
 }
 
 /* When it sits inside a page that already carries its own side padding
@@ -37,6 +45,7 @@
    so it reads as a quiet caption at the foot of the rail rather than a full
    footer band. The rail owns its own horizontal padding. */
 .source-attribution.is-rail {
+  display: block;
   max-width: none;
   margin-top: var(--space-md);
   margin-bottom: 0;
@@ -48,4 +57,5 @@
 }
 .source-attribution.is-rail .source-attribution-en {
   margin-top: 1px;
+  font-size: inherit;
 }

@@ -300,8 +300,14 @@
   text-wrap: pretty;
 }
 
+/* The practice-focus section already closes with a hairline; drop the
+   attribution's own rule so the two don't stack into a double line. */
 .home-page > .source-attribution {
-  margin-top: var(--space-lg);
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  max-width: none;
+  margin-top: 0;
+  padding-inline: 0;
+  border-top: 0;
 }
 
 @keyframes previewCardIn {
