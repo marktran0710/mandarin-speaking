@@ -49,8 +49,6 @@ const baseStudentUiCopy = {
   submit: { zh: "提交", pinyin: "Tíjiāo" },
   logout: { zh: "登出", pinyin: "Dēngchū" },
   myLearning: { zh: "我的學習", pinyin: "Wǒ de xuéxí" },
-  darkMode: { zh: "深色", pinyin: "Shēnsè" },
-  lightMode: { zh: "亮色", pinyin: "Liàngsè" },
   learner: { zh: "學習者", pinyin: "Xuéxízhě" },
   study: { zh: "學習", pinyin: "Xuéxí" },
   course: { zh: "課程", pinyin: "Kèchéng" },

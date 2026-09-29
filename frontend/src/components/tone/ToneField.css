@@ -40,15 +40,3 @@
   opacity: 0.06;
 }
 
-:root[data-theme="dark"] .tone-field--student .tone-field-stroke--thick {
-  opacity: 0.22;
-}
-:root[data-theme="dark"] .tone-field--student .tone-field-stroke--thin {
-  opacity: 0.16;
-}
-:root[data-theme="dark"] .tone-field--teacher .tone-field-stroke--thick {
-  opacity: 0.16;
-}
-:root[data-theme="dark"] .tone-field--teacher .tone-field-stroke--thin {
-  opacity: 0.12;
-}

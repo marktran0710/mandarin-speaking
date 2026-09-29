@@ -1,5 +1,4 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import useColorMode from "../../hooks/useColorMode";
 import ToneMark from "../tone/ToneMark";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
 import SourceAttribution from "@shared/ui/SourceAttribution";
@@ -69,7 +68,6 @@ export default function ManagementShell({
   onRefresh?: () => void;
   onLogout: () => void;
 }) {
-  const [colorMode, toggleColorMode] = useColorMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuToggleRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -131,15 +129,6 @@ export default function ManagementShell({
         {/* No role badge here: the brand line already reads "Teacher Studio"
             / "Admin Console", so the badge said the same word twice. */}
         <div className="management-topbar-actions">
-          <button
-            type="button"
-            className="management-chip"
-            onClick={toggleColorMode}
-            aria-pressed={colorMode === "dark"}
-          >
-            <Icon name={colorMode === "dark" ? "sun" : "moon"} size={16} />
-            <span>{colorMode === "dark" ? "Light" : "Dark"}</span>
-          </button>
           {onRefresh && (
             <button type="button" className="management-chip management-refresh" aria-label={refreshing ? "Refreshing" : "Refresh"} title="Refresh" disabled={refreshing} onClick={onRefresh}>
               <Icon name="refresh" size={16} />

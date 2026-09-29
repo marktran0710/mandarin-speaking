@@ -1,7 +1,6 @@
 .management-shell {
-  /* Aliased onto the app's global tokens (not hardcoded) so this shell inherits
-     the [data-theme="dark"] remap in index.css for free — --jade is already the
-     "teacher accent" convention used elsewhere in the app. */
+  /* Aliased onto the app's global tokens (not hardcoded) — --jade is already
+     the "teacher accent" convention used elsewhere in the app. */
   --management-paper: var(--clay-canvas);
   --management-ink: var(--clay-ink);
   --management-body: var(--clay-body);

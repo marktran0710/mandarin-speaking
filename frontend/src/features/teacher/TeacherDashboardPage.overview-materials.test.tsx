@@ -90,7 +90,6 @@ function renderAdminMaterials() {
 describe("TeacherDashboardPage", () => {
   beforeEach(() => {
     localStorage.clear();
-    document.documentElement.removeAttribute("data-theme");
   });
 
   it("opens on the help queue and reaches recording evidence in one click", async () => {
@@ -131,19 +130,6 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: "Load more" }));
 
     expect(loadMoreRecords).toHaveBeenCalledOnce();
-  });
-
-  it("toggles dark mode from the shell and persists the choice", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-
-    await user.click(screen.getByRole("button", { name: /Dark/ }));
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(localStorage.getItem("colorMode")).toBe("dark");
-
-    await user.click(screen.getByRole("button", { name: /Light/ }));
-    expect(document.documentElement.getAttribute("data-theme")).toBeNull();
-    expect(localStorage.getItem("colorMode")).toBe("light");
   });
 
   it("doesn't crash the whole dashboard when a record's AI feedback is missing a category", async () => {

@@ -13,8 +13,6 @@ export const englishKeyOverrides: Record<string, string> = {
   vocabQuiz: "Vocabulary practice",
   storySpeaking: "Speaking practice",
   myLearning: "My learning",
-  darkMode: "Dark mode",
-  lightMode: "Light mode",
   courseTitle: "Your Chinese course",
   keepGoing: "Keep learning",
   allCoursesComplete: "All courses complete",

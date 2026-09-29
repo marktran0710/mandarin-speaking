@@ -94,8 +94,8 @@ for (const viewport of VIEWPORTS) {
     }
 
     const navButtons = page.locator(".navbar-menu-student .nav-link");
-    await expect(navButtons).toHaveCount(3);
-    for (let index = 0; index < 3; index += 1) {
+    await expect(navButtons).toHaveCount(2);
+    for (let index = 0; index < 2; index += 1) {
       const button = await rect(navButtons.nth(index), `navbar button ${index + 1}`);
       expect(button.x).toBeGreaterThanOrEqual(0);
       expect(right(button)).toBeLessThanOrEqual(viewport.width + 1);
@@ -117,24 +117,12 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
-test("Home navigation, CTA, and theme controls keep their behavior", async ({ page }) => {
+test("Home navigation and CTA keep their behavior", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
   const homeNav = page.getByRole("button", { name: "首頁" });
   await expect(homeNav).toHaveAttribute("aria-current", "page");
-
-  const lightCanvas = await page.locator(".app-container").evaluate((element) => getComputedStyle(element).backgroundColor);
-  await page.getByRole("button", { name: "深色" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.getByRole("button", { name: "亮色" })).toBeVisible();
-  await expect.poll(
-    () => page.locator(".app-container").evaluate((element) => getComputedStyle(element).backgroundColor),
-  ).toBe("rgb(27, 23, 18)");
-  expect(lightCanvas).not.toBe("rgb(27, 23, 18)");
-  await expect.poll(
-    () => page.locator(".hero-title").evaluate((element) => getComputedStyle(element).color),
-  ).toBe("rgb(244, 239, 226)");
 
   await page.getByRole("button", { name: "學生登入" }).click();
   await expect(page.getByRole("heading", { name: "學生登入" })).toBeVisible();

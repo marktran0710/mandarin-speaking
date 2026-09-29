@@ -5,7 +5,6 @@ import { BiLabel } from "@shared/ui";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import ToneMark from "../tone/ToneMark";
 import StudentIcon from "./StudentIcon";
-import useColorMode from "../../hooks/useColorMode";
 import "@shared/ui/BilingualText.css";
 
 interface NavigationProps {
@@ -33,7 +32,6 @@ export default function Navigation({
   compact = false,
   appVariant = "student",
 }: NavigationProps) {
-  const [colorMode, toggleColorMode] = useColorMode();
   const isStudent = activeRole === "student";
   const isHomeActive = currentPage === "home";
   const isStudentLoginActive = currentPage === "student-login";
@@ -100,30 +98,6 @@ export default function Navigation({
             </li>
           )}
 
-          <li>
-            <button
-              type="button"
-              className="nav-link nav-color-mode"
-              onClick={toggleColorMode}
-              aria-pressed={colorMode === "dark"}
-              title={
-                appVariant === "student"
-                  ? colorMode === "dark" ? "亮色" : "深色"
-                  : colorMode === "dark" ? "Switch to light mode" : "Switch to dark mode"
-              }
-            >
-              {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name={colorMode === "dark" ? "sun" : "moon"} /></span>}
-              {colorMode === "dark" ? (
-                appVariant === "student"
-                  ? <StudentSystemText k="lightMode" withinControl />
-                  : <BiLabel zh="亮色" pinyin="Liàngsè" en="Light" />
-              ) : (
-                appVariant === "student"
-                  ? <StudentSystemText k="darkMode" withinControl />
-                  : <BiLabel zh="深色" pinyin="Shēnsè" en="Dark" />
-              )}
-            </button>
-          </li>
 
           {activeRole && (
             <li>
