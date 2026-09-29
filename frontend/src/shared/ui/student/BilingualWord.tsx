@@ -74,6 +74,10 @@ export default function BilingualWord({
             lineHeight: LEADING_VAR[size],
             color: toneHighlight ? "var(--color-primary)" : "var(--color-ink)",
             fontWeight: toneHighlight ? 500 : 400,
+            // Parent bubbles set overflow-wrap:anywhere, which lets a closing
+            // 。？ wrap onto a line by itself; keep normal CJK line-breaking.
+            overflowWrap: "normal",
+            lineBreak: "strict",
           }}
         >
           {hanzi}

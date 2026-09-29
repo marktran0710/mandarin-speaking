@@ -81,6 +81,7 @@
   line-height: 1.7;
 }
 
+.sa-script-group { display: inline-flex; align-items: baseline; white-space: nowrap; }
 .sa-script-token {
   padding: 0 1px;
   border: 0;
@@ -98,6 +99,7 @@
 .sa-result-review__transcript { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; color: var(--color-muted); font-family: var(--font-ui); font-size: var(--font-size-small); }
 .sa-result-review__transcript strong { color: var(--color-ink); font-family: var(--font-hanzi); font-size: var(--font-size-body); font-weight: 500; }
 .sa-result-review__content-note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-control); background: var(--color-peach); color: var(--color-peach-ink); font-family: var(--font-ui); font-size: var(--font-size-small); line-height: 1.5; }
+.sa-result-review__content-note > span { min-width: 0; }
 .sa-result-review__content-note strong { font-family: var(--font-hanzi); font-weight: 600; }
 .sa-result-review__prompt,
 .sa-result-review__empty,
@@ -119,6 +121,8 @@
 .sa-result-review .praat-timeline-scroll { width: 100%; min-width: 0; }
 .sa-result-review__timeline { overflow-x: auto; }
 .sa-result-review .praat-timeline-header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.sa-result-review .praat-timeline-header span,
+.sa-result-review .praat-timeline-header strong { display: block; }
 .sa-result-review .praat-timeline { display: block; width: 100%; min-width: 0; height: auto; }
 .sa-result-review__hidden-audio { display: none; }
 .sa-result-review__timeline .praat-timeline-card { margin-top: var(--space-2); }

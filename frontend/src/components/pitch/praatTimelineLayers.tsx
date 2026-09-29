@@ -20,7 +20,12 @@ export function TimelineGrid({ duration }: { duration: number }) {
               stroke="#dfe5ee"
               strokeDasharray="5 7"
             />
-            <text x={x + 4} y={SVG_HEIGHT - 12} className="praat-axis-label">
+            <text
+              x={index === tickCount ? x - 4 : x + 4}
+              y={SVG_HEIGHT - 12}
+              textAnchor={index === tickCount ? "end" : undefined}
+              className="praat-axis-label"
+            >
               {label}
             </text>
           </g>

@@ -88,23 +88,27 @@ export default function SpeechResultReview({
       </div>
 
       <div className="sa-result-review__script" aria-label="Word by word script">
-        {units.map((unit, index) => (
-          <button
-            key={`${unit.text}-${index}`}
-            type="button"
-            className="sa-script-token"
-            disabled={!unit.word}
-            aria-label={`${unit.text}: 選擇以比較`}
-            aria-pressed={selectedIndex === unit.word?.index}
-            onClick={() => {
-              if (unit.word) {
-                setSelectedIndex(unit.word.index);
-                setSelectedPhrase(null);
-              }
-            }}
-          >
-            <span lang="zh-Hant">{unit.text}</span>
-          </button>
+        {scriptUnitGroups(units).map((group) => (
+          <span className="sa-script-group" key={group[0].index}>
+            {group.map(({ unit, index }) => (
+              <button
+                key={`${unit.text}-${index}`}
+                type="button"
+                className="sa-script-token"
+                disabled={!unit.word}
+                aria-label={`${unit.text}: 選擇以比較`}
+                aria-pressed={selectedIndex === unit.word?.index}
+                onClick={() => {
+                  if (unit.word) {
+                    setSelectedIndex(unit.word.index);
+                    setSelectedPhrase(null);
+                  }
+                }}
+              >
+                <span lang="zh-Hant">{unit.text}</span>
+              </button>
+            ))}
+          </span>
         ))}
       </div>
 
@@ -135,7 +139,7 @@ export default function SpeechResultReview({
       {scriptMismatchTokens(targetScript, transcript).length > 0 && (
         <p className="sa-result-review__content-note" role="status">
           <StudentIcon name="info" size={16} role="meaningful" label="Content note" />
-          The script portions not heard clearly: <strong lang="zh-Hant">{scriptMismatchTokens(targetScript, transcript).join(" · ")}</strong>. This affects content matching, not the tone color above.
+          <span>The script portions not heard clearly: <strong lang="zh-Hant">{scriptMismatchTokens(targetScript, transcript).join(" · ")}</strong>. This affects content matching, not the tone color above.</span>
         </p>
       )}
 
@@ -366,6 +370,19 @@ function getAiFeedback(metrics: PraatMetrics): string {
 
 function compact(value: string): string[] {
   return Array.from(value.normalize("NFKC")).filter((char) => /[\p{L}\p{N}]/u.test(char));
+}
+
+/** Groups each unit with the punctuation-only units that follow it so a
+ * closing 。？ can never wrap onto a line of its own. */
+function scriptUnitGroups(units: ScriptUnit[]) {
+  const groups: Array<Array<{ unit: ScriptUnit; index: number }>> = [];
+  units.forEach((unit, index) => {
+    const isPunctuation = !unit.word && /^[\p{P}\s]+$/u.test(unit.text);
+    const last = groups[groups.length - 1];
+    if (isPunctuation && last) last.push({ unit, index });
+    else groups.push([{ unit, index }]);
+  });
+  return groups;
 }
 
 function buildScriptUnits(script: string, words: WordProsody[]): ScriptUnit[] {
