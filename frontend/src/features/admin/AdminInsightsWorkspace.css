@@ -1,6 +1,7 @@
 .admin-insights-workspace {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .admin-insight-tabs {
@@ -14,6 +15,7 @@
 }
 
 .admin-insight-tabs button {
+  flex: 1 1 160px;
   min-height: 2.75rem;
   padding: 0.6rem 0.9rem;
   border: 0;
@@ -23,6 +25,7 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .admin-insight-tabs button:hover,
@@ -35,4 +38,24 @@
   background: var(--admin-surface, #fff);
   color: var(--admin-accent, #214f70);
   box-shadow: 0 1px 3px rgb(23 50 75 / 12%);
+}
+
+.admin-insight-tabpanel {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.admin-insight-loading {
+  min-height: 160px;
+  margin: 0;
+  padding: 2rem;
+  border: 1px dashed var(--admin-border, #d8e0e8);
+  border-radius: 0.75rem;
+  color: var(--admin-text-muted, #526274);
+  background: var(--admin-surface, #fff);
+}
+
+@media (min-width: 760px) {
+  .admin-insight-tabs button { flex: 0 1 auto; }
 }
