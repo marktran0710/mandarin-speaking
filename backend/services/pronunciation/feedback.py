@@ -4,9 +4,9 @@ The language model here is an explanation layer only. It is handed the score
 and the ranked issues the scoring policy already produced - never audio, never
 pitch arrays - and whatever it returns is sanitised against that evidence:
 score claims are discarded, words it was not given evidence for are dropped,
-and it can invent no error. If it fails, times out or returns junk, the
-deterministic local feedback is used, so the LLM is never a single point of
-failure for the score.
+and it can invent no error. The interactive API requires model feedback and
+reports failures explicitly. Offline callers may opt into deterministic local
+feedback when the model is unavailable.
 """
 
 from __future__ import annotations
@@ -380,14 +380,24 @@ def build_feedback_provider(config: Optional[FeedbackConfig] = None) -> Pronunci
 
 
 async def generate_feedback_safely(
-    provider: PronunciationFeedbackProvider, feedback_input: FeedbackInput
+    provider: PronunciationFeedbackProvider, feedback_input: FeedbackInput, *, require_llm: bool = False
 ) -> PronunciationFeedback:
-    """Feedback that never raises: any provider failure becomes local feedback."""
+    """Use explicit failures when LLM feedback is required; otherwise allow fallback."""
     local = await LocalFeedbackProvider().generate_feedback(feedback_input)
+    if require_llm and feedback_input.score.status != STATUS_SCORED:
+        raise FeedbackRejected("recording_unscorable")
+    if require_llm and isinstance(provider, LocalFeedbackProvider):
+        raise FeedbackRejected("llm_not_configured")
     if feedback_input.score.status != STATUS_SCORED or isinstance(provider, LocalFeedbackProvider):
         return local  # nothing to coach on, or no model configured
     try:
-        return await provider.generate_feedback(feedback_input)
+        feedback = await provider.generate_feedback(feedback_input)
+        if require_llm and (
+            feedback.source != "llm"
+            or any(action.endswith("_replaced") for action in feedback.adjustments)
+        ):
+            raise FeedbackRejected("llm_reply_requires_local_feedback")
+        return feedback
     except FeedbackRejected as exc:
         reason = str(exc) or "llm_rejected"
     except asyncio.TimeoutError:
@@ -397,4 +407,6 @@ async def generate_feedback_safely(
     except Exception as exc:  # the score must survive any provider failure
         logger.warning("Pronunciation feedback provider failed: %s", type(exc).__name__)
         reason = f"llm_error_{type(exc).__name__}"
+    if require_llm:
+        raise FeedbackRejected(reason)
     return replace(local, fallback_reason=reason)

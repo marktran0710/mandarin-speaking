@@ -1,5 +1,6 @@
 """POST /api/pronunciation/evaluate: target and reference come from the server."""
 
+import json
 import os
 
 import pytest
@@ -27,6 +28,16 @@ def isolated(monkeypatch, tmp_path):
     auth._login_attempts.clear()
     for name in ("OPENAI_API_KEY", "PRONUNCIATION_FEEDBACK_API_KEY", "PRONUNCIATION_SCORE_STUDENT_VISIBLE"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("PRONUNCIATION_FEEDBACK_API_KEY", "sk-test")
+    async def successful_http(url, headers, body, timeout):
+        evidence = json.loads(body["messages"][1]["content"])
+        reply = {
+            "summary": "Compare the recording with the reference.",
+            "focus_words": [{"word": issue["syllable"], "feedback": "Copy the reference pitch movement."} for issue in evidence["issues"]],
+            "practice_tip": "Practise the whole sentence slowly.",
+        }
+        return {"choices": [{"message": {"content": json.dumps(reply)}}]}
+    monkeypatch.setattr(evaluator_module, "build_feedback_provider", lambda config=None: OpenAICompatibleFeedbackProvider(config, successful_http))
     monkeypatch.setattr(evaluator_module, "default_reference_store", InMemoryReferenceStore())
     import services.pronunciation.reference_source as reference_source
 
@@ -153,16 +164,13 @@ def test_empty_audio_is_a_bad_request(isolated, logged_in_teacher):
     assert response.json()["detail"]["code"] == "empty_audio"
 
 
-def test_audio_praat_cannot_read_gives_an_unscorable_result_not_an_error(isolated, logged_in_teacher):
+def test_unreadable_audio_is_reported_without_local_feedback(isolated, logged_in_teacher):
     client, _ = logged_in_teacher
     _publish_story()
     _reference(isolated)
     response = _post(client, b"definitely not a wav file")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "unscorable"
-    assert body["score"]["total"] is None
-    assert "again" in body["feedback"]["summary"].lower()
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "recording_unscorable"
 
 
 def test_an_unreadable_reference_recording_is_a_server_side_problem_with_a_code(isolated, logged_in_teacher):
@@ -174,7 +182,7 @@ def test_an_unreadable_reference_recording_is_a_server_side_problem_with_a_code(
     assert response.json()["detail"]["code"] == "reference_unreadable"
 
 
-def test_the_score_survives_the_feedback_model_being_down(isolated, logged_in_teacher, monkeypatch):
+def test_model_failure_is_reported_without_local_feedback(isolated, logged_in_teacher, monkeypatch):
     async def failing_http(url, headers, body, timeout):
         raise RuntimeError("503 upstream")
 
@@ -185,11 +193,10 @@ def test_the_score_survives_the_feedback_model_being_down(isolated, logged_in_te
     client, _ = logged_in_teacher
     _publish_story()
     _reference(isolated)
-    body = _post(client, _wav(isolated, ("flat", "rise", "flat"))).json()
-    assert body["status"] == "scored" and body["score"]["total"] is not None
-    assert body["model"]["feedback_source"] == "local"
-    assert body["debug"]["provenance"]["feedback_fallback_reason"].startswith("llm_error")
-    assert body["words"]
+    response = _post(client, _wav(isolated, ("flat", "rise", "flat")))
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "llm_error_RuntimeError"
+    assert "No local feedback" in response.json()["detail"]["message"]
 
 
 def test_the_reference_is_analysed_once_across_requests(isolated, logged_in_teacher):
@@ -216,3 +223,14 @@ def test_a_conversation_turn_is_scored_against_its_own_target_recording(isolated
     body = response.json()
     assert body["status"] == "scored"
     assert body["reference"]["key"] == f"story:{STORY_ID}:turn:stu-1"
+
+
+def test_missing_model_key_is_reported_without_local_feedback(isolated, logged_in_teacher, monkeypatch):
+    from services.pronunciation.feedback import LocalFeedbackProvider
+    monkeypatch.setattr(evaluator_module, "build_feedback_provider", lambda config=None: LocalFeedbackProvider())
+    client, _ = logged_in_teacher
+    _publish_story()
+    _reference(isolated)
+    response = _post(client, _wav(isolated))
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "llm_not_configured"

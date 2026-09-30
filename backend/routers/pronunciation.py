@@ -43,8 +43,13 @@ def _main_module():
 
 
 def _error(exc: EvaluationError) -> HTTPException:
+    status = _STATUS_FOR_CODE.get(exc.code, 422)
+    if exc.code == "llm_not_configured":
+        status = 503
+    elif exc.code.startswith("llm_") or exc.code in {"invalid_reply", "missing_summary", "reply_not_an_object"}:
+        status = 502
     return HTTPException(
-        status_code=_STATUS_FOR_CODE.get(exc.code, 422),
+        status_code=status,
         detail={"code": exc.code, "message": str(exc)},
     )
 
@@ -95,6 +100,7 @@ async def evaluate_speaking_pronunciation(
         async def run():
             async with app_main.acquire_analysis_slot():
                 return await evaluate_pronunciation(
+                    require_llm=True,
                     student_audio=content,
                     reference_audio_path=reference.audio_path,
                     reference_key=reference.reference_key,

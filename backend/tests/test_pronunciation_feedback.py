@@ -10,6 +10,7 @@ from domain.pronunciation.scoring import score_comparison
 from pron_fixtures import make_utterance
 from services.pronunciation.config import FeedbackConfig
 from services.pronunciation.feedback import (
+    FeedbackRejected,
     LocalFeedbackProvider,
     OpenAICompatibleFeedbackProvider,
     build_feedback_input,
@@ -196,3 +197,20 @@ def test_a_dedicated_key_and_model_override_the_defaults():
 
 def test_without_a_key_the_llm_is_disabled():
     assert FeedbackConfig.from_env({}).enabled is False
+
+
+@pytest.mark.parametrize("provider,reason", [
+    (LocalFeedbackProvider(), "llm_not_configured"),
+    (_provider(FakeHttp(error=asyncio.TimeoutError())), "llm_timeout"),
+    (_provider(FakeHttp(reply={"unexpected": "shape"})), "invalid_reply"),
+    (_provider(FakeHttp(reply=_llm_reply({"summary": "99/100", "practice_tip": "Go."}))), "llm_reply_requires_local_feedback"),
+])
+async def test_required_llm_never_substitutes_local_feedback(provider, reason):
+    with pytest.raises(FeedbackRejected, match=reason):
+        await generate_feedback_safely(provider, build_feedback_input(SENTENCE, FLAT_T4), require_llm=True)
+
+
+async def test_required_llm_accepts_valid_model_feedback():
+    provider = _provider(FakeHttp(reply=_llm_reply({"summary": "Clear overall.", "focus_words": [], "practice_tip": "Repeat slowly."})))
+    feedback = await generate_feedback_safely(provider, build_feedback_input(SENTENCE, PERFECT), require_llm=True)
+    assert feedback.source == "llm" and feedback.model == "gpt-6-luna"

@@ -26,6 +26,7 @@ from services.content.verification import assess_recording_quality
 from services.pronunciation.config import FeedbackConfig
 from services.pronunciation.extraction import PIPELINE_VERSION, FeatureExtractionError, extract_utterance_features
 from services.pronunciation.feedback import (
+    FeedbackRejected,
     PronunciationFeedback,
     PronunciationFeedbackProvider,
     build_feedback_input,
@@ -127,6 +128,7 @@ async def evaluate_pronunciation(
     reference_audio_path: str,
     reference_key: str,
     expected_text: str,
+    require_llm: bool = False,
     policy: Optional[PronunciationScoringPolicy] = None,
     provider: Optional[PronunciationFeedbackProvider] = None,
     store: Optional[ReferenceFeatureStore] = None,
@@ -169,9 +171,19 @@ async def evaluate_pronunciation(
         except ReferenceMismatchError as exc:
             raise EvaluationError("reference_mismatch", str(exc)) from exc
 
-    feedback = await generate_feedback_safely(
-        provider, build_feedback_input(expected_text, score, max_issues=config.max_issues)
-    )
+    try:
+        feedback = await generate_feedback_safely(
+            provider, build_feedback_input(expected_text, score, max_issues=config.max_issues),
+            require_llm=require_llm,
+        )
+    except FeedbackRejected as exc:
+        code = str(exc)
+        message = (
+            "This recording cannot be scored. Record the full sentence again in a quiet place."
+            if code == "recording_unscorable" else
+            f"GPT-6 Luna feedback failed ({code}). No local feedback was substituted. Check the API configuration and retry."
+        )
+        raise EvaluationError(code, message) from exc
     return PronunciationEvaluation(
         expected_text=expected_text,
         reference_key=reference_key,
