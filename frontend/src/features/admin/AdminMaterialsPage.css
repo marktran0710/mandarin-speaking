@@ -53,7 +53,8 @@
 
 .admin-materials-upload-card h3 { color: var(--clay-ink); font-size: 1rem; }
 .admin-materials-upload-card p { min-height: 2.7em; color: var(--clay-muted); font-size: .82rem; line-height: 1.45; }
-.admin-materials-upload-card .admin-upload-button { margin-top: auto; }
+.admin-materials-upload-card > .admin-upload-button { margin-top: auto; }
+.admin-materials-upload-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); margin-top: auto; }
 
 .admin-materials-button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .admin-upload-button, .admin-primary-button, .admin-template-button {
@@ -121,4 +122,5 @@
   .materials-dialog-footer > * { width: 100%; }
   .admin-materials-inline-toolbar { padding: var(--space-md); }
   .admin-materials-inline-actions > * { flex: 1 1 100%; }
+  .admin-materials-upload-actions > * { flex: 1 1 100%; min-height: 44px; }
 }

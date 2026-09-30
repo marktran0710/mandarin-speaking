@@ -3,6 +3,7 @@ import Icon, { type UiIconName } from "../../shared/ui/Icon";
 import StoryBuilderSection from "@features/teacher/components/story-builder/StoryBuilderSection";
 import TeacherImageBuilderPage from "../teacher/TeacherImageBuilderPage";
 import { canUseDatabase, listCustomStories } from "../../services/database";
+import type { StoredCustomStory } from "../../services/api/stories-submissions";
 import { useBulkAudioUpload } from "../teacher/components/story-builder/bulkAudioUpload";
 import MaterialsImportDialog from "./MaterialsImportDialog";
 import "../../shared/styles/MyStoriesPage.css";
@@ -26,16 +27,63 @@ const MATERIALS_TOOLS: Array<{ id: AdminMaterialsTool; icon: UiIconName; title: 
   },
 ];
 
+type AudioTemplateRow = [filename: string, lesson: number, story: number, scene: number, title: string];
+
+function audioTemplateRows(stories: StoredCustomStory[]): AudioTemplateRow[] {
+  return stories
+    .filter((story) => Number.isInteger(story.lessonNumber)
+      && story.lessonNumber! >= 5
+      && story.lessonNumber! <= 8
+      && Number.isInteger(story.lessonSubOrder)
+      && story.lessonSubOrder! > 0)
+    .sort((left, right) => (left.lessonNumber! - right.lessonNumber!)
+      || (left.lessonSubOrder! - right.lessonSubOrder!))
+    .flatMap((story) => story.frames.map((_, index) => {
+      const lesson = story.lessonNumber!;
+      const storyOrder = story.lessonSubOrder!;
+      const scene = index + 1;
+      return [`${lesson}-${storyOrder}-${String(scene).padStart(2, "0")}.mp3`, lesson, storyOrder, scene, story.title] as AudioTemplateRow;
+    }));
+}
+
+function csvCell(value: string | number): string {
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadAudioTemplate(stories: StoredCustomStory[]) {
+  const rows = audioTemplateRows(stories);
+  const templateRows: AudioTemplateRow[] = rows.length
+    ? rows
+    : [
+      ["5-1-01.mp3", 5, 1, 1, "Example only"],
+      ["5-1-02.mp3", 5, 1, 2, "Example only"],
+      ["8-3-01.mp3", 8, 3, 1, "Example only"],
+    ];
+  const csv = [
+    ["Filename", "Lesson", "Story", "Scene", "Story title"],
+    ...templateRows,
+  ].map((row) => row.map(csvCell).join(",")).join("\r\n");
+  const blobUrl = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = "lesson-5-8-audio-filenames.csv";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
 function MaterialsInlineUploadBar({
   isBulkUploadingAudio,
   onBulkUploadAudio,
   onOpenImport,
+  onDownloadAudioTemplate,
   bulkAudioNotice,
   bulkAudioError,
 }: {
   isBulkUploadingAudio: boolean;
   onBulkUploadAudio: (files: File[]) => void;
   onOpenImport: (kind: "images" | "scripts") => void;
+  onDownloadAudioTemplate: () => void;
   bulkAudioNotice: string;
   bulkAudioError: string;
 }) {
@@ -47,6 +95,9 @@ function MaterialsInlineUploadBar({
         <small>Audio, full-story images, and shared scene scripts are available here while you edit a story.</small>
       </div>
       <div className="admin-materials-inline-actions">
+        <button type="button" className="admin-template-button" onClick={onDownloadAudioTemplate}>
+          <Icon name="download" size={16} /> Audio template
+        </button>
         <label className="admin-template-button admin-template-button--upload">
           <Icon name="volume" size={16} />
           {isBulkUploadingAudio ? "Uploading…" : "Upload audios"}
@@ -79,7 +130,7 @@ function MaterialsInlineUploadBar({
 export default function AdminMaterialsPage({ initialTool }: { initialTool?: AdminMaterialsTool } = {}) {
   const [tool, setTool] = useState<AdminMaterialsTool | null>(initialTool ?? null);
   const [importKind, setImportKind] = useState<"images" | "scripts" | null>(null);
-  const [customStories, setCustomStories] = useState<any[]>([]);
+  const [customStories, setCustomStories] = useState<StoredCustomStory[]>([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -100,6 +151,7 @@ export default function AdminMaterialsPage({ initialTool }: { initialTool?: Admi
           isBulkUploadingAudio={isBulkUploadingAudio}
           onBulkUploadAudio={(files) => { void handleBulkUploadAudio(files); }}
           onOpenImport={(kind) => { setError(""); setImportKind(kind); }}
+          onDownloadAudioTemplate={() => downloadAudioTemplate(customStories)}
           bulkAudioNotice={bulkAudioNotice}
           bulkAudioError={bulkAudioError}
         />
@@ -125,20 +177,25 @@ export default function AdminMaterialsPage({ initialTool }: { initialTool?: Admi
         <article className="admin-materials-upload-card">
           <Icon name="volume" size={20} />
           <h3>Upload audios</h3>
-          <p>Use names like <code>5-1-02.mp3</code> for lesson 5-1, scene 2.</p>
-          <label className="admin-upload-button">
-            <Icon name="upload" size={16} />
-            {isBulkUploadingAudio ? "Uploading…" : "Choose audio files"}
-            <input
-              type="file"
-              hidden
-              multiple
-              accept="audio/*,.zip,application/zip,application/x-zip-compressed"
-              disabled={isBulkUploadingAudio}
-              aria-label="Upload audio files for lessons 5 to 8"
-              onChange={(event) => { const files = Array.from(event.currentTarget.files ?? []); event.currentTarget.value = ""; if (files.length) void handleBulkUploadAudio(files); }}
-            />
-          </label>
+          <p>Name each file <code>lesson-story-scene.mp3</code>, for example <code>5-1-02.mp3</code>. The CSV lists saved lesson 5–8 scenes or includes naming examples.</p>
+          <div className="admin-materials-upload-actions">
+            <label className="admin-upload-button">
+              <Icon name="upload" size={16} />
+              {isBulkUploadingAudio ? "Uploading…" : "Choose audio files"}
+              <input
+                type="file"
+                hidden
+                multiple
+                accept="audio/*,.zip,application/zip,application/x-zip-compressed"
+                disabled={isBulkUploadingAudio}
+                aria-label="Upload audio files for lessons 5 to 8"
+                onChange={(event) => { const files = Array.from(event.currentTarget.files ?? []); event.currentTarget.value = ""; if (files.length) void handleBulkUploadAudio(files); }}
+              />
+            </label>
+            <button type="button" className="admin-template-button" onClick={() => downloadAudioTemplate(customStories)}>
+              <Icon name="download" size={16} /> Download template
+            </button>
+          </div>
           {(bulkAudioNotice || bulkAudioError) && <p className={bulkAudioError ? "admin-materials-error" : "admin-materials-notice"} role={bulkAudioError ? "alert" : "status"}>{bulkAudioError || bulkAudioNotice}</p>}
         </article>
         <article className="admin-materials-upload-card">
