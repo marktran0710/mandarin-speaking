@@ -107,6 +107,32 @@ of 299); the rest persist under every tracker tried and may be genuine creak. Th
 AUC change is inside the noise of the synthetic set. Scoring curves
 (`sentenceReferenceCurves`) were deliberately left on the original tracker.
 
+## Why real r looks low, and why "more forgiving" does not help (2026-09-30)
+
+Word-level check on real learner words (294 words matched to the correct teacher
+word from 6 recordings by one account; control = the same learner word against
+a *different* teacher word with the same syllable count). Limits: tiny sample.
+
+| shape measure | matched median | mismatched median | mismatched p90 | AUC matched vs mismatched |
+|---|---|---|---|---|
+| Pearson, window shift +-0.15 (current) | 0.70 | 0.40 | 0.92 | **0.637** |
+| Pearson, shift +-0.30 | 0.78 | 0.69 | 0.93 | 0.617 |
+| Pearson on smoothed curves | 0.89 | 0.66 | 0.98 | 0.606 |
+| Spearman | 0.61 | 0.44 | 0.94 | 0.610 |
+| direction agreement (4 segments) | 0.80 | 0.67 | 1.00 | 0.539 |
+| syllable-aware warp | 0.61-0.70 | 0.46-0.51 | 0.91-0.94 | 0.588-0.607 |
+| per-word chance correction | 0.47 | 0.02 | 0.83 | 0.615 |
+
+- Word-level r is a noisy measure: unrelated words already reach r above 0.9 in one
+  case out of ten, so no cut-off on a single word's r is reliable. The sentence
+  score averages words, which is what makes it usable.
+- r falls with word complexity: 1 syllable 0.84, 2 syllables 0.68, 3+ 0.50
+  (the syllables' internal timing differs between speakers), and words whose
+  model range is 4-8 st score lowest (0.28, subtle shapes are dominated by noise).
+- Every more forgiving measure raises matched scores but raises unrelated-word
+  scores more, so separation gets worse. Do not relax the shape term this way;
+  change the presentation (bands, softer mapping) or calibrate with teacher ratings.
+
 ## Known limits / next steps
 
 - The range policy (`rhoFull` 0.6) is a pedagogical choice, not a fitted value:

@@ -20,6 +20,7 @@ EXPORT=../export.json OCTAVE=0 node /tmp/evaluate.mjs      # same, clean tracker
 |---|---|
 | `evaluate.ts` | Can each candidate tell a natural re-recording of a teacher sentence from a degraded one (AUC + score distribution)? `CANDIDATES='[{"name":"x","opts":{"algorithm":"v2","params":{"rhoFull":0.7}}}]'` sweeps parameters; `COMPACT=1` prints one line each. |
 | `real.ts` | How do legacy and v2 score the real learner attempts, and how many teacher tokens does octave cleaning touch? |
+| `real-word-flexibility.ts` | On real learner words, does a more forgiving shape measure (wider shifts, smoothing, direction agreement, syllable-aware warp, chance correction) keep telling the right teacher word from a wrong one? Uses `export_after_regen.json`. |
 | `teacher-quality.ts` | How noisy are the stored teacher contours (edge jumps, ranges)? Runs the production scorer over the real attempts. |
 
 The synthetic classes are built from the teacher's own contours: a "natural
