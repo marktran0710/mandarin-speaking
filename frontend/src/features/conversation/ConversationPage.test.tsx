@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "@entities/topic";
 import type { ConversationTurn, WordProsody, WordProsodySyllable } from "../../components/story-recorder/StoryRecorder";
 import type { SpeakingResultAnalysis } from "../../components/speaking-flow-card/model/analysis";
@@ -140,6 +140,8 @@ describe("ConversationPage", () => {
     localStorage.clear();
   });
 
+  afterEach(() => vi.unstubAllGlobals());
+
   it("groups consecutive history turns by speaker so only each group end needs a marker", () => {
     const grouped = groupConversationTurns([
       { id: "system-1", speaker: "system", text: "你好" },
@@ -246,6 +248,51 @@ describe("ConversationPage", () => {
     await screen.findByText("你的錄音");
     expect(uploadRecording).toHaveBeenCalledWith(file);
     expect(onAddRecord).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the submitted recording for replay after advancing the conversation", async () => {
+    const submittedAudioUrl = "/uploads/audio/submitted-answer.wav";
+    const startRecording = vi.fn().mockResolvedValueOnce(makeRecorderResult({ audioUrl: submittedAudioUrl }));
+    vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ startRecording }));
+    vi.mocked(analyzeSpeakingResult).mockReturnValueOnce(makeAnalysis({ accepted: true }));
+
+    const constructedUrls: string[] = [];
+    class AudioMock {
+      duration = Number.NaN;
+      play = vi.fn().mockResolvedValue(undefined);
+
+      constructor(url: string) {
+        constructedUrls.push(url);
+      }
+
+      addEventListener() {}
+    }
+    vi.stubGlobal("Audio", AudioMock);
+
+    render(
+      <ConversationPage
+        topic={makeTopic()}
+        turns={[
+          ...turns,
+          { id: "t2", speaker: "system", text: "星期六下午有空嗎？", audioUrl: "/uploads/audio/next-model.mp3" },
+        ]}
+        onAddRecord={vi.fn()}
+        onSceneSubmission={vi.fn()}
+        onDone={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
+    fireEvent.click(screen.getByRole("button", { name: "錄音" }));
+    await screen.findByText("你覺得表現如何？");
+    fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
+    await screen.findByText("你的錄音");
+    fireEvent.click(screen.getByRole("button", { name: "下一頁" }));
+    fireEvent.click(await screen.findByRole("button", { name: "重播回答" }));
+
+    expect(constructedUrls).toEqual([submittedAudioUrl]);
+    expect(constructedUrls).not.toContain("/uploads/audio/student-model.mp3");
   });
 
   it("Record again returns to the student recording step", async () => {

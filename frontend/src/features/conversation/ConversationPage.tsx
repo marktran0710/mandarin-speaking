@@ -120,6 +120,7 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
                     key={turn.id}
                     turn={turn}
                     showRoleHeader={index === group.length - 1}
+                    studentAudioUrl={session.studentAudioUrls[turn.id]}
                   />
                 ))}
               </div>

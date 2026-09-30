@@ -38,6 +38,7 @@ export interface ConversationSession {
   lastResult: SpeakingAnalysisResult | null;
   lastRecognizedText: string;
   lastSubmission: SceneSubmission | null;
+  studentAudioUrls: Readonly<Record<string, string>>;
   selfEvalMeaning: SelfEvalLevel | null;
   selfEvalPronunciation: SelfEvalLevel | null;
   recorder: ReturnType<typeof useSpeakingRecorder>;
@@ -66,10 +67,12 @@ export function useConversationSession({
   const [lastResult, setLastResult] = useState<SpeakingAnalysisResult | null>(null);
   const [lastRecognizedText, setLastRecognizedText] = useState("");
   const [lastSubmission, setLastSubmission] = useState<SceneSubmission | null>(null);
+  const [studentAudioUrls, setStudentAudioUrls] = useState<Record<string, string>>({});
   const [selfEvalMeaning, setSelfEvalMeaning] = useState<SelfEvalLevel | null>(null);
   const [selfEvalPronunciation, setSelfEvalPronunciation] = useState<SelfEvalLevel | null>(null);
   const [selfEvalSaved, setSelfEvalSaved] = useState(false);
   const selfEvalCommitRef = useRef(false);
+  const localStudentAudioUrlsRef = useRef(new Map<string, string>());
   const conversationIdRef = useRef(`conv-${topic.id}-${Date.now()}`);
   const studentId = getStudentId();
   const baseStoryId = topic.sourceStory?.id ?? topic.id;
@@ -101,6 +104,48 @@ export function useConversationSession({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.step]);
+
+  useEffect(() => () => {
+    localStudentAudioUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    localStudentAudioUrlsRef.current.clear();
+  }, []);
+
+  const rememberStudentAudio = (turnId: string, persistedUrl: string | undefined, audioBlob: Blob) => {
+    const previousLocalUrl = localStudentAudioUrlsRef.current.get(turnId);
+    if (previousLocalUrl) {
+      URL.revokeObjectURL(previousLocalUrl);
+      localStudentAudioUrlsRef.current.delete(turnId);
+    }
+
+    const cleanPersistedUrl = persistedUrl?.trim();
+    const replayUrl = cleanPersistedUrl || (audioBlob.size > 0 ? URL.createObjectURL(audioBlob) : undefined);
+    if (!replayUrl) {
+      setStudentAudioUrls((current) => {
+        if (!(turnId in current)) return current;
+        const remaining = { ...current };
+        delete remaining[turnId];
+        return remaining;
+      });
+      return;
+    }
+
+    if (!cleanPersistedUrl) localStudentAudioUrlsRef.current.set(turnId, replayUrl);
+    setStudentAudioUrls((current) => ({ ...current, [turnId]: replayUrl }));
+  };
+
+  const forgetStudentAudio = (turnId: string) => {
+    const localUrl = localStudentAudioUrlsRef.current.get(turnId);
+    if (localUrl) {
+      URL.revokeObjectURL(localUrl);
+      localStudentAudioUrlsRef.current.delete(turnId);
+    }
+    setStudentAudioUrls((current) => {
+      if (!(turnId in current)) return current;
+      const remaining = { ...current };
+      delete remaining[turnId];
+      return remaining;
+    });
+  };
 
   const handleListen = () => dispatch({ type: "systemAudioCompleted" });
 
@@ -144,13 +189,12 @@ export function useConversationSession({
       difficultyLevel: topic.difficultyLevel ?? "easy",
       promptId: `${topic.sourceStory?.id ?? topic.id}:conversation:${currentTurn.id}`,
     };
-    setLastSubmission(submission);
     setSelfEvalMeaning(null);
     setSelfEvalPronunciation(null);
     setSelfEvalSaved(false);
     selfEvalCommitRef.current = false;
 
-    await onAddRecord({
+    const storedAudioUrl = await onAddRecord({
       id: `audio-${Date.now()}`,
       audioBlob: result.audioBlob,
       timestamp: new Date().toLocaleString(),
@@ -169,6 +213,13 @@ export function useConversationSession({
       serverRecordId: result.audioRecordId,
       audioUrl: result.audioUrl,
     });
+
+    const persistedAudioUrl = result.audioUrl?.trim() || storedAudioUrl?.trim() || undefined;
+    const finalSubmission = persistedAudioUrl
+      ? { ...submission, audioUrl: persistedAudioUrl }
+      : submission;
+    setLastSubmission(finalSubmission);
+    rememberStudentAudio(currentTurn.id, persistedAudioUrl, result.audioBlob);
 
     dispatch({ type: "studentRecordingCompleted", recordingId: currentTurn.id });
   };
@@ -227,6 +278,7 @@ export function useConversationSession({
   };
 
   const recordAgain = () => {
+    if (currentTurn?.speaker === "student") forgetStudentAudio(currentTurn.id);
     setLastAnalysis(null);
     setLastResult(null);
     setLastRecognizedText("");
@@ -274,6 +326,7 @@ export function useConversationSession({
     lastResult,
     lastRecognizedText,
     lastSubmission,
+    studentAudioUrls,
     selfEvalMeaning,
     selfEvalPronunciation,
     recorder,

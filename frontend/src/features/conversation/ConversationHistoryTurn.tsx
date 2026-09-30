@@ -6,11 +6,12 @@ import ConversationRoleHeader from "./ConversationRoleHeader";
 interface ConversationHistoryTurnProps {
   turn: ConversationTurn;
   showRoleHeader: boolean;
+  studentAudioUrl?: string;
 }
 
-export default function ConversationHistoryTurn({ turn, showRoleHeader }: ConversationHistoryTurnProps) {
+export default function ConversationHistoryTurn({ turn, showRoleHeader, studentAudioUrl }: ConversationHistoryTurnProps) {
   const isStudent = turn.speaker === "student";
-  const audioUrl = turn.audioUrl || turn.targetAudioUrl;
+  const audioUrl = isStudent ? studentAudioUrl?.trim() : turn.audioUrl || turn.targetAudioUrl;
 
   return (
     <article className={`sa-bubble-row sa-bubble-row--compact ${!showRoleHeader ? "is-grouped" : ""} ${isStudent ? "is-student" : "is-character"}`}>
