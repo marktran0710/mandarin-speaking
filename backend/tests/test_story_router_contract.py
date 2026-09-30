@@ -11,6 +11,7 @@ from routers.content.vocabulary_metadata import router as story_vocabulary_metad
 EXPECTED_STORY_OPERATIONS = {
     ("GET", "/api/custom-stories"),
     ("POST", "/api/custom-stories"),
+    ("GET", "/api/custom-stories/{story_id}/reference-data"),
     ("DELETE", "/api/custom-stories/{story_id}"),
     ("PATCH", "/api/custom-stories/{story_id}/vocabulary-metadata"),
     ("POST", "/api/custom-stories/{story_id}/quiz-vocabulary"),
