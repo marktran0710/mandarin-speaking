@@ -34,7 +34,7 @@ export interface SessionExpiredEventDetail {
 
 export function clientRoleHeader(): "student" | "teacher" | "admin" {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-  if (pathname.endsWith("/admin.html")) return "admin";
+  if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname.endsWith("/admin.html")) return "admin";
   if (pathname.endsWith("/teacher.html") || pathname.startsWith("/manage")) {
     if (typeof window !== "undefined" && window.localStorage.getItem("adminConsoleSession") === "true") return "admin";
     return "teacher";
