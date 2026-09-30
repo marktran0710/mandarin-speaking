@@ -79,6 +79,9 @@ class Issue:
     evidence: str
     tone_similarity: Optional[float]
     duration_ratio: Optional[float]
+    #: Measured pitch direction of the reference and of the student.
+    reference_direction: str = ""
+    student_direction: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -92,6 +95,8 @@ class Issue:
             "evidence": self.evidence,
             "tone_similarity": self.tone_similarity,
             "duration_ratio": self.duration_ratio,
+            "reference_direction": self.reference_direction,
+            "student_direction": self.student_direction,
         }
 
 
@@ -171,6 +176,8 @@ def _issues(comparison: UtteranceComparison, policy: PronunciationScoringPolicy)
             evidence=syllable.evidence,
             tone_similarity=syllable.tone_similarity,
             duration_ratio=syllable.duration_ratio,
+            reference_direction=syllable.reference_direction,
+            student_direction=syllable.student_direction,
         )
         for syllable in comparison.syllables
         for code in syllable.flags

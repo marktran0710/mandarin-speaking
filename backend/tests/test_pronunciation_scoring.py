@@ -94,6 +94,8 @@ def test_a_flat_tone_becomes_a_high_severity_issue_with_its_evidence():
     assert issue.expected_tone == 4
     assert issue.evidence == "strong"
     assert issue.tone_similarity < 0.2
+    # The measured pitch directions travel with the issue so feedback can cite them.
+    assert (issue.reference_direction, issue.student_direction) == ("fall", "flat")
 
 
 def test_issues_are_ranked_most_important_first():
