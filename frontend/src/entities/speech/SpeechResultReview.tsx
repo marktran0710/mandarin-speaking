@@ -10,7 +10,6 @@ import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
 import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
-import { modelSimilarity } from "./modelSimilarity";
 import "./SpeechResultReview.css";
 
 interface SpeechResultReviewProps {
@@ -53,10 +52,6 @@ export default function SpeechResultReview({
       pitchContour: metrics.pitch_contour ?? [],
     }),
     [modelContour, targetScript, transcript, words, metrics.pitch_contour],
-  );
-  const similarity = useMemo(
-    () => modelSimilarity(modelOverlay, metrics.pitch_contour ?? []),
-    [modelOverlay, metrics.pitch_contour],
   );
   const units = useMemo(() => buildScriptUnits(targetScript, words), [targetScript, words]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -158,12 +153,6 @@ export default function SpeechResultReview({
 
       <div className="sa-result-review__tone">
         <p className="sa-result-review__eyebrow"><StudentSystemText k="toneChart" /></p>
-        {similarity && (
-          <p className="sa-result-review__similarity" role="status">
-            <StudentSystemText k="modelSimilarity" />
-            <strong>{similarity.score}%</strong>
-          </p>
-        )}
         <PraatTimeline
           audioBlob={audioBlob}
           pitchContour={metrics.pitch_contour ?? []}
