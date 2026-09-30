@@ -25,6 +25,7 @@ from domain.pronunciation.compare import (
     FLAG_LONG,
     FLAG_NARROW,
     FLAG_NOT_LEVEL,
+    FLAG_SHAPE,
     FLAG_SHORT,
     FLAG_TOO_FLAT,
 )
@@ -41,6 +42,7 @@ ISSUE_MEANINGS = {
     FLAG_NOT_LEVEL: "The reference keeps this tone level but the pitch moved up or down.",
     FLAG_DIRECTION: "The pitch moved in a different direction than the reference.",
     FLAG_NARROW: "The pitch moved the right way but not as far as the reference.",
+    FLAG_SHAPE: "The pitch moved in the same direction as the reference but its shape was different.",
     FLAG_LONG: "This syllable was noticeably longer than the rest, compared with the reference.",
     FLAG_SHORT: "This syllable was noticeably shorter than the rest, compared with the reference.",
 }
@@ -182,6 +184,16 @@ _UNSCORABLE_MESSAGES = {
         "This recording did not sound like the whole sentence. "
         "Please record again and say the full sentence."
     ),
+    "recording_unusable": (
+        "We could not hear enough clear speech in this recording. "
+        "Please record again in a quiet place."
+    ),
+    "no_voiced_speech": (
+        "We could not hear enough clear speech in this recording. "
+        "Please record again in a quiet place."
+    ),
+    "audio_unreadable": "We could not read this recording. Please record again.",
+    "alignment_failed": "We could not match this recording to the sentence. Please record again and say the full sentence.",
 }
 
 
@@ -201,6 +213,11 @@ def _local_focus_text(issue: Issue) -> str:
         )
     elif issue.code == FLAG_NARROW:
         text = f"{label} moved the right way but not far enough. Make the movement a little bigger."
+    elif issue.code == FLAG_SHAPE:
+        text = (
+            f"{label} moved the same way as the reference, but its pitch shape was a little different. "
+            "Listen to the model and copy the shape."
+        )
     elif issue.code == FLAG_LONG:
         text = f"{label} was noticeably longer than the rest of the sentence compared with the reference. Keep your syllables more even."
     elif issue.code == FLAG_SHORT:

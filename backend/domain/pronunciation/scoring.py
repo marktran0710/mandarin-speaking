@@ -186,7 +186,8 @@ def _issues(comparison: UtteranceComparison, policy: PronunciationScoringPolicy)
     return tuple(issues)
 
 
-def _unscorable(reason: str, policy: PronunciationScoringPolicy) -> PronunciationScore:
+def unscorable_score(reason: str, policy: PronunciationScoringPolicy) -> PronunciationScore:
+    """A result that says, with a stable reason, that no score could be given."""
     return PronunciationScore(
         status=STATUS_UNSCORABLE, reason=reason, total=None, dimensions=(), issues=(),
         policy_version=policy.version,
@@ -199,9 +200,9 @@ def score_comparison(
 ) -> PronunciationScore:
     low, high = policy.rhythm.plausible_rate
     if not (low <= comparison.student_articulation_rate <= high):
-        return _unscorable(REASON_IMPLAUSIBLE_RATE, policy)
+        return unscorable_score(REASON_IMPLAUSIBLE_RATE, policy)
     if comparison.tone_similarity is None:
-        return _unscorable(REASON_NO_TONES, policy)
+        return unscorable_score(REASON_NO_TONES, policy)
 
     ratios = {
         "tone": comparison.tone_similarity,

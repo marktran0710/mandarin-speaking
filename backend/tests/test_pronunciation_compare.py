@@ -73,6 +73,18 @@ def test_a_narrower_movement_in_the_right_direction_is_flagged_as_narrow():
     assert "tone_range_too_narrow" in first.flags
 
 
+def test_the_right_direction_with_a_different_shape_is_flagged_but_not_with_full_confidence():
+    reference = make_utterance(["dip", "rise"])
+    student = make_utterance(["wide_dip", "rise"])
+    first = _compare(student, reference).syllables[0]
+    assert (first.reference_direction, first.student_direction) == ("dip", "dip")
+    assert first.tone_similarity < 0.6
+    # A low score must never be unexplained: the difference is named, but direction
+    # agrees so it is not stated as confidently as a missing or reversed tone.
+    assert first.flags == ("tone_shape_differs",)
+    assert first.evidence == "moderate"
+
+
 def test_slower_speech_than_the_textbook_does_not_hurt_rhythm_or_tone():
     reference = make_utterance(SHAPES)
     slow = make_utterance(SHAPES, syllable_ms=390)  # 1.3x slower, within the textbook-slack band

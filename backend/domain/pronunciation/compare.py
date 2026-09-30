@@ -24,6 +24,7 @@ FLAG_TOO_FLAT = "tone_contour_too_flat"
 FLAG_NOT_LEVEL = "tone_contour_not_level"
 FLAG_DIRECTION = "tone_direction_mismatch"
 FLAG_NARROW = "tone_range_too_narrow"
+FLAG_SHAPE = "tone_shape_differs"
 FLAG_SHORT = "syllable_too_short"
 FLAG_LONG = "syllable_too_long"
 
@@ -204,7 +205,9 @@ def _contour_flags(
     if stu_dir == "flat":
         return [FLAG_TOO_FLAT]
     if stu_dir == ref_dir:
-        return [FLAG_NARROW] if similarity.range < policy.flags.narrow_range_factor else []
+        # Same direction but a low score: name why, so no low score is unexplained.
+        narrow = similarity.range < policy.flags.narrow_range_factor
+        return [FLAG_NARROW if narrow else FLAG_SHAPE]
     if stu_dir != "unvoiced":
         return [FLAG_DIRECTION]
     return []
@@ -239,6 +242,15 @@ def _compare_syllable(
             flags.append(FLAG_LONG)
 
     judged = similarity is not None
+    evidence = (
+        _evidence(student, reference, word_size, alignment_confidence, policy)
+        if judged or flags
+        else EVIDENCE_WEAK
+    )
+    if flags == [FLAG_SHAPE]:
+        # Direction agrees with the reference, so a shape difference alone is
+        # never stated as confidently as a missing or reversed tone.
+        evidence = _EVIDENCE_LEVELS[max(_EVIDENCE_LEVELS.index(evidence), 1)]
     return SyllableComparison(
         index=expected.index,
         hanzi=expected.hanzi,
@@ -250,11 +262,7 @@ def _compare_syllable(
         reference_direction=reference.direction,
         student_direction=student.direction,
         duration_ratio=None if duration_ratio is None else round(duration_ratio, 4),
-        evidence=(
-            _evidence(student, reference, word_size, alignment_confidence, policy)
-            if judged or flags
-            else EVIDENCE_WEAK
-        ),
+        evidence=evidence,
         flags=tuple(flags),
     )
 

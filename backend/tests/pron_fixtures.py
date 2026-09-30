@@ -15,7 +15,7 @@ from domain.pronunciation.types import (
 
 STEP_MS = 10
 _HANZI = "友美妳這個週末要做什麼"
-_TONE_OF = {"fall": 4, "rise": 2, "dip": 3, "flat": 1, "neutral": 5}
+_TONE_OF = {"fall": 4, "rise": 2, "dip": 3, "flat": 1, "neutral": 5, "wide_dip": 3}
 
 
 def shape_values(kind: str, n: int) -> list[float]:
@@ -27,6 +27,8 @@ def shape_values(kind: str, n: int) -> list[float]:
         return [-3.0 + 6.0 * x for x in xs]
     if kind == "dip":
         return [-4.0 * math.sin(math.pi * x) for x in xs]
+    if kind == "wide_dip":  # same direction as "dip", different shape (flat-bottomed)
+        return [-4.0 * min(1.0, 3.0 * math.sin(math.pi * x)) for x in xs]
     if kind in ("flat", "neutral"):
         return [0.15 * math.sin(3.0 * i) for i in range(n)]
     raise ValueError(kind)
