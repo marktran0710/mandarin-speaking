@@ -64,7 +64,9 @@
 .round-scores-legend { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); margin: 0; padding: 0; list-style: none; color: var(--clay-body); font-size: var(--text-sm); font-weight: 700; }
 .round-scores-legend li { display: inline-flex; align-items: center; gap: var(--space-xs); }
 .round-scores-legend li > span { width: 12px; height: 12px; border-radius: 3px; }
-.round-scores-chart-canvas { min-width: 0; }
+.round-scores-chart-scroll { max-width: 100%; overflow-x: auto; padding-bottom: var(--space-xs); scrollbar-gutter: stable; }
+.round-scores-chart-scroll:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
+.round-scores-chart-canvas { width: 100%; height: 390px; max-width: none; }
 .round-scores-chart-canvas canvas { max-width: 100%; }
 
 .round-scores-empty { display: grid; justify-items: start; gap: var(--space-xs); min-height: 140px; padding: var(--space-xl); border: 1px dashed var(--clay-hairline); border-radius: var(--clay-radius-md); color: var(--clay-muted); background: var(--clay-surface-soft); }
@@ -115,5 +117,6 @@
   .round-scores-kpis article,
   .round-scores-card { padding: var(--space-md); }
   .round-scores-legend { display: grid; gap: var(--space-xs); }
+  .round-scores-chart-canvas { height: 340px; }
   .round-scores-pagination { justify-content: space-between; }
 }

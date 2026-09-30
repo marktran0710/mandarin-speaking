@@ -19,6 +19,11 @@ function formatCompletedAt(value: string): string {
   return Number.isNaN(date.getTime()) ? value : completedAtFormatter.format(date);
 }
 
+function compactStudentLabel(value: unknown): string {
+  const label = String(value ?? "");
+  return label.length > 11 ? `${label.slice(0, 10)}…` : label;
+}
+
 export function formatRoundScoreTooltip(rows: RoundScoreRow[], datasetIndex: number, dataIndex: number): string {
   const round = ROUND_DEFINITIONS[datasetIndex];
   if (!round) return "";
@@ -43,15 +48,17 @@ export function createRoundScoresChartConfig(
         borderWidth: 1,
         borderRadius: 4,
         borderSkipped: false,
-        maxBarThickness: 14,
+        maxBarThickness: 22,
+        categoryPercentage: 0.78,
+        barPercentage: 0.86,
       })),
     },
     options: {
-      indexAxis: "y",
+      indexAxis: "x",
       responsive: true,
       maintainAspectRatio: false,
       animation: reduceMotion ? false : { duration: 260 },
-      interaction: { mode: "nearest", axis: "y", intersect: true },
+      interaction: { mode: "nearest", axis: "x", intersect: true },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -67,7 +74,7 @@ export function createRoundScoresChartConfig(
         },
       },
       scales: {
-        x: {
+        y: {
           beginAtZero: true,
           min: 0,
           max: 100,
@@ -75,9 +82,16 @@ export function createRoundScoresChartConfig(
           ticks: { callback: (value) => `${value}%` },
           grid: { color: "rgba(111, 98, 72, 0.13)" },
         },
-        y: {
+        x: {
           grid: { display: false },
-          ticks: { autoSkip: false },
+          ticks: {
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0,
+            callback: function (_value, index) {
+              return compactStudentLabel(this.getLabelForValue(index));
+            },
+          },
         },
       },
     },
@@ -90,7 +104,7 @@ export default function RoundScoresChart({ rows }: { rows: RoundScoreRow[] }) {
   const reduceMotion = typeof window !== "undefined"
     && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
   const config = useMemo(() => createRoundScoresChartConfig(rows, reduceMotion), [reduceMotion, rows]);
-  const chartHeight = Math.max(280, rows.length * 48 + 108);
+  const chartMinWidth = Math.max(320, rows.length * 70);
 
   useEffect(() => {
     const context = canvasRef.current?.getContext("2d");
@@ -113,12 +127,14 @@ export default function RoundScoresChart({ rows }: { rows: RoundScoreRow[] }) {
           </li>
         ))}
       </ul>
-      <div className="round-scores-chart-canvas" style={{ height: chartHeight }}>
-        <canvas
-          ref={canvasRef}
-          role="img"
-          aria-label={`Horizontal grouped bar chart comparing ${rows.length} students across the three quiz rounds.`}
-        />
+      <div className="round-scores-chart-scroll" tabIndex={0} aria-label="Scrollable round scores chart">
+        <div className="round-scores-chart-canvas" style={{ minWidth: chartMinWidth }}>
+          <canvas
+            ref={canvasRef}
+            role="img"
+            aria-label={`Vertical grouped column chart comparing ${rows.length} students across the three quiz rounds.`}
+          />
+        </div>
       </div>
     </div>
   );

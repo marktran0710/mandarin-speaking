@@ -15,10 +15,10 @@ const rows: RoundScoreRow[] = [{
 }];
 
 describe("round scores chart configuration", () => {
-  it("builds three horizontal datasets and preserves a missing round as null", () => {
+  it("builds three vertical datasets and preserves a missing round as null", () => {
     const config = createRoundScoresChartConfig(rows, true);
 
-    expect(config.options?.indexAxis).toBe("y");
+    expect(config.options?.indexAxis).toBe("x");
     expect(config.data.datasets.map((dataset) => dataset.label)).toEqual([
       "Round 1 · Meaning",
       "Round 2 · Pinyin",
@@ -30,9 +30,9 @@ describe("round scores chart configuration", () => {
 
   it("fixes the accuracy scale to 0–100 and exposes rich tooltip detail", () => {
     const config = createRoundScoresChartConfig(rows);
-    const xScale = config.options?.scales?.x;
+    const yScale = config.options?.scales?.y;
 
-    expect(xScale).toMatchObject({ min: 0, max: 100, beginAtZero: true });
+    expect(yScale).toMatchObject({ min: 0, max: 100, beginAtZero: true });
     expect(formatRoundScoreTooltip(rows, 0, 0)).toContain("75% · 3/4");
     expect(formatRoundScoreTooltip(rows, 1, 0)).toBe("Round 2 · Pinyin: Not completed");
   });

@@ -98,6 +98,9 @@ for (const viewport of VIEWPORTS) {
     expect(new Set(kpiBoxes.map((box) => box.x)).size).toBe(viewport.kpiColumns);
 
     await expect(page.locator(".round-scores-chart canvas")).toBeVisible();
+    const chartScroll = page.locator(".round-scores-chart-scroll");
+    const chartSizing = await chartScroll.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
+    if (viewport.width < 600) expect(chartSizing.scrollWidth).toBeGreaterThan(chartSizing.clientWidth);
     await expect(page.getByRole("table", { name: /Round scores for At the market/ })).toBeVisible();
     const incompleteRow = page.getByRole("row").filter({ hasText: "Student 02" });
     await expect(incompleteRow.getByText("Not completed")).toHaveCount(2);
