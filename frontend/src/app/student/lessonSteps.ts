@@ -87,8 +87,18 @@ export function firstUnfinishedPhase(input: LessonProgressInput): LessonNavPhase
   if (input.submitted) return "vocab-preview";
   if (!steps["vocab-preview"].done) return "vocab-preview";
   if (steps["vocab-quiz"].visible && !steps["vocab-quiz"].done) return "vocab-quiz";
-  if (steps.submit.unlocked) return "submit";
-  // Resume whichever practice path the learner already started.
+  // Submit unlocks as soon as ONE practice path is finished, but that must not
+  // trap a learner who is still mid-way through the other path: keep landing
+  // them on the half-done path and leave Submit to the sidebar/path CTAs.
+  const speakingInProgress = input.sceneCount > 0 && input.scenesRecorded > 0 && !speakingPathDone(input);
+  const conversationInProgress =
+    input.conversationAvailable && input.turnCount > 0 && input.turnsRecorded > 0 && !conversationPathDone(input);
+  if (steps.submit.unlocked) {
+    if (speakingInProgress) return "story-speaking";
+    if (conversationInProgress) return "conversation";
+    return "submit";
+  }
+  // Nothing finished yet: resume whichever practice path the learner already started.
   const conversationProgress = input.turnCount > 0 ? input.turnsRecorded / input.turnCount : 0;
   const speakingProgress = input.sceneCount > 0 ? input.scenesRecorded / input.sceneCount : 0;
   return steps.conversation.unlocked && conversationProgress > speakingProgress ? "conversation" : "story-speaking";

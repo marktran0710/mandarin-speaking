@@ -84,6 +84,18 @@ describe("firstUnfinishedPhase", () => {
     expect(firstUnfinishedPhase({ ...fresh, previewDone: true, quizDone: true, turnsRecorded: 1 })).toBe("conversation");
     expect(firstUnfinishedPhase({ ...fresh, previewDone: true, quizDone: true, scenesRecorded: 3 })).toBe("submit");
   });
+
+  it("resumes a half-done practice path instead of pushing to Submit once the other path is complete", () => {
+    const base = { ...fresh, previewDone: true, quizDone: true, sceneCount: 9, turnCount: 4 };
+    // Dialogue finished, story speaking only 2/9 done: keep practising.
+    expect(firstUnfinishedPhase({ ...base, turnsRecorded: 4, scenesRecorded: 2 })).toBe("story-speaking");
+    // Story speaking finished, dialogue only 1/4 done: keep practising.
+    expect(firstUnfinishedPhase({ ...base, scenesRecorded: 9, turnsRecorded: 1 })).toBe("conversation");
+    // Both paths finished: nothing left but Submit.
+    expect(firstUnfinishedPhase({ ...base, scenesRecorded: 9, turnsRecorded: 4 })).toBe("submit");
+    // Already submitted lessons still reopen on the preview.
+    expect(firstUnfinishedPhase({ ...base, scenesRecorded: 9, turnsRecorded: 4, submitted: true })).toBe("vocab-preview");
+  });
 });
 
 function scene(sceneIndex: number, transcription: string): SceneSubmission {
