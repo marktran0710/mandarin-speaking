@@ -13,6 +13,12 @@ vi.mock("./RoundScoresChart", () => ({
   ),
 }));
 
+vi.mock("./StudentRoundChart", () => ({
+  default: ({ studentName, lesson }: { studentName: string; lesson: { title: string } }) => (
+    <div data-testid="student-round-chart">{studentName} · {lesson.title}</div>
+  ),
+}));
+
 const mockListCustomStories = vi.mocked(listCustomStories);
 
 const students: Student[] = [
@@ -115,6 +121,38 @@ describe("RoundScoresPanel", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("rowheader", { name: /Student 16/ })).toBeInTheDocument();
     expect(screen.queryByRole("rowheader", { name: /Student 01/ })).not.toBeInTheDocument();
+  });
+
+  it("opens a per-student dashboard on the lesson selected in the class view", async () => {
+    const user = userEvent.setup();
+    render(<RoundScoresPanel students={students} attempts={attempts} />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Lesson" })).toHaveValue("lesson-new"));
+
+    await user.click(screen.getByRole("button", { name: "An" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "An" })).toBeInTheDocument();
+    expect(screen.getByText("Student dashboard")).toBeInTheDocument();
+    expect(screen.getByTestId("student-round-chart")).toHaveTextContent("An · At the market");
+    expect(screen.queryByRole("combobox", { name: "Lesson" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("round-score-chart")).not.toBeInTheDocument();
+    const lessonTable = screen.getByRole("table", { name: "Round scores by lesson for An" });
+    expect(within(lessonTable).getByRole("button", { name: /At the market/ })).toBeInTheDocument();
+    expect(within(lessonTable).getByRole("button", { name: /Greetings/ })).toBeInTheDocument();
+  });
+
+  it("returns to the class view with filters intact and focus on the student who was opened", async () => {
+    const user = userEvent.setup();
+    render(<RoundScoresPanel students={students} attempts={attempts} />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Lesson" })).toHaveValue("lesson-new"));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Round progress" }), "completed");
+
+    await user.click(screen.getByRole("button", { name: "An" }));
+    await user.click(screen.getByRole("button", { name: "Back to class" }));
+
+    expect(screen.getByRole("combobox", { name: "Round progress" })).toHaveValue("completed");
+    expect(screen.getByRole("combobox", { name: "Lesson" })).toHaveValue("lesson-new");
+    expect(screen.queryByRole("rowheader", { name: /Binh/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "An" })).toHaveFocus();
   });
 
   it("shows ID fallback and a useful empty state when lesson titles or filters are unavailable", async () => {

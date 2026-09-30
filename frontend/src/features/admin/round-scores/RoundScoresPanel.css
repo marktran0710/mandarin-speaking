@@ -92,6 +92,27 @@
 .round-score-missing { font-style: italic; white-space: nowrap; }
 .round-response-time-value { min-width: 170px; }
 
+.round-scores-student-link,
+.student-lesson-link { display: inline-flex; align-items: center; min-height: 32px; padding: 0; border: 0; border-radius: var(--clay-radius-sm); color: var(--jade-deep); background: none; font: 800 var(--text-md) var(--font-sans); text-align: left; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--jade) 40%, transparent); text-underline-offset: 3px; overflow-wrap: anywhere; cursor: pointer; touch-action: manipulation; }
+.round-scores-student-link:hover,
+.student-lesson-link:hover { color: var(--jade); text-decoration-color: currentColor; }
+.round-scores-student-link:focus-visible,
+.student-lesson-link:focus-visible,
+.student-round-back:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
+.student-lesson-link[aria-pressed="true"] { color: var(--clay-ink); text-decoration: none; }
+.round-scores-table tbody tr.is-selected :is(th, td) { background: color-mix(in srgb, var(--jade-soft) 40%, var(--clay-surface-card)); }
+@media (pointer: coarse) {
+  .round-scores-student-link,
+  .student-lesson-link { min-height: 44px; }
+}
+
+.student-round-dashboard h2:focus { outline: none; }
+.student-round-back { flex: 0 0 auto; min-height: 44px; padding: 0 var(--space-md); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); color: var(--jade-deep); background: var(--clay-surface-card); font: 750 var(--text-sm) var(--font-sans); cursor: pointer; touch-action: manipulation; }
+.student-round-back:hover { border-color: var(--jade); background: var(--jade-soft); }
+.round-scores-kpis .round-scores-kpi-text { font-size: clamp(20px, 2.4vw, 26px); line-height: 1.2; }
+.round-scores-chart-canvas.student-round-chart-canvas { min-width: 300px; height: 340px; }
+.round-scores-table.student-lessons-table { min-width: 900px; }
+
 .round-scores-pagination { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-sm); }
 .round-scores-pagination button { min-height: 44px; padding: 0 var(--space-md); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); color: var(--jade-deep); background: var(--clay-surface-card); font: 750 var(--text-sm) var(--font-sans); cursor: pointer; touch-action: manipulation; }
 .round-scores-pagination button:hover:not(:disabled) { border-color: var(--jade); background: var(--jade-soft); }

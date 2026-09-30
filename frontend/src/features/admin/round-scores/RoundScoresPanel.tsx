@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { listCustomStories, type StoredCustomStory } from "../../../services/api/stories-submissions";
 import type { Student } from "../../../services/api/roster-help";
 import type { VocabQuizAttempt } from "../../../services/api/quiz-analytics";
 import RoundScoresChart from "./RoundScoresChart";
+import { ResponseTimeValue, RoundScoreValue } from "./RoundScoreCells";
+import StudentRoundDashboard from "./StudentRoundDashboard";
 import {
   ROUND_DEFINITIONS,
   buildRoundScoreRows,
   buildRoundScoreStoryOptions,
+  buildStudentRoundDashboard,
   mostRecentRoundScoreStoryId,
   selectLatestRoundAttempts,
   summarizeResponseTime,
   summarizeRoundScores,
-  type RoundScoreCell,
   type RoundScoreRow,
 } from "./model";
 import "./RoundScoresPanel.css";
@@ -20,40 +22,7 @@ const PAGE_SIZE = 15;
 type StatusFilter = "active" | "all";
 type ProgressFilter = "all" | "started" | "completed";
 
-const completedAtFormatter = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-function formatCompletedAt(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : completedAtFormatter.format(date);
-}
-
-function RoundScoreValue({ cell }: { cell: RoundScoreCell | null }) {
-  if (!cell) return <span className="round-score-missing">Not completed</span>;
-  return (
-    <span className="round-score-value">
-      <strong>{cell.score}%</strong>
-      <small>
-        {cell.correctCount}/{cell.totalQuestions}
-        {cell.totalTimeMs === null ? " · Time unavailable" : ` · ${Math.round((cell.totalTimeMs / cell.totalQuestions / 1000) * 10) / 10}s/question`}
-        {` · ${formatCompletedAt(cell.completedAt)}`}
-      </small>
-    </span>
-  );
-}
-
-function ResponseTimeValue({ row }: { row: RoundScoreRow }) {
-  const responseTime = summarizeResponseTime(row);
-  if (responseTime.secondsPerQuestion === null) return <span className="round-score-missing">Not available</span>;
-  return (
-    <span className="round-score-value round-response-time-value">
-      <strong>{responseTime.secondsPerQuestion}s/question</strong>
-      <small>{responseTime.totalQuestions} questions across {responseTime.completedRounds} round{responseTime.completedRounds === 1 ? "" : "s"}</small>
-    </span>
-  );
-}
+const studentButtonId = (studentId: string) => `round-score-student-${studentId}`;
 
 function matchesProgress(row: RoundScoreRow, filter: ProgressFilter): boolean {
   if (filter === "started") return row.completedRounds > 0;
@@ -76,6 +45,8 @@ export default function RoundScoresPanel({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [progressFilter, setProgressFilter] = useState<ProgressFilter>("all");
   const [page, setPage] = useState(1);
+  const [openedStudentId, setOpenedStudentId] = useState<string | null>(null);
+  const focusStudentId = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,10 +104,35 @@ export default function RoundScoresPanel({
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
+  const studentDashboard = useMemo(
+    () => (openedStudentId ? buildStudentRoundDashboard(students, latestAttempts, openedStudentId, storyOptions) : null),
+    [latestAttempts, openedStudentId, storyOptions, students],
+  );
+
+  useEffect(() => {
+    if (studentDashboard || !focusStudentId.current) return;
+    document.getElementById(studentButtonId(focusStudentId.current))?.focus();
+    focusStudentId.current = null;
+  }, [studentDashboard]);
+
   const changeFilter = (update: () => void) => {
     update();
     setPage(1);
   };
+
+  if (studentDashboard) {
+    return (
+      <StudentRoundDashboard
+        key={studentDashboard.studentId}
+        dashboard={studentDashboard}
+        initialStoryId={selectedStoryId}
+        onBack={() => {
+          focusStudentId.current = studentDashboard.studentId;
+          setOpenedStudentId(null);
+        }}
+      />
+    );
+  }
 
   return (
     <section className="round-scores-panel" aria-labelledby="round-scores-title">
@@ -272,14 +268,21 @@ export default function RoundScoresPanel({
                       {pageRows.map((row) => (
                         <tr key={row.studentId}>
                           <th scope="row">
-                            <strong>{row.studentName}</strong>
+                            <button
+                              type="button"
+                              id={studentButtonId(row.studentId)}
+                              className="round-scores-student-link"
+                              onClick={() => setOpenedStudentId(row.studentId)}
+                            >
+                              {row.studentName}
+                            </button>
                             <small>{row.studentId}</small>
                           </th>
                           <td><span className={`round-score-status is-${row.status}`}>{row.status}</span></td>
                           {ROUND_DEFINITIONS.map((round) => (
                             <td key={round.mode}><RoundScoreValue cell={row.rounds[round.mode]} /></td>
                           ))}
-                          <td><ResponseTimeValue row={row} /></td>
+                          <td><ResponseTimeValue summary={summarizeResponseTime(row)} /></td>
                         </tr>
                       ))}
                     </tbody>

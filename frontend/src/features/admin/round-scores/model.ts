@@ -53,6 +53,27 @@ export interface ResponseTimeSummary {
   completedRounds: number;
 }
 
+export interface StudentLessonRow {
+  storyId: string;
+  title: string;
+  rounds: Record<RoundMode, RoundScoreCell | null>;
+  completedRounds: number;
+  responseTime: ResponseTimeSummary;
+  classRounds: RoundScoreSummary["rounds"];
+  latestCompletedAt: string;
+}
+
+export interface StudentRoundDashboardData {
+  studentId: string;
+  studentName: string;
+  status: Student["status"];
+  lessons: StudentLessonRow[];
+  lessonsAttempted: number;
+  lessonsCompletedAll: number;
+  responseTime: ResponseTimeSummary;
+  lastActivityAt: string | null;
+}
+
 const ROUND_MODES = new Set<RoundMode>(ROUND_DEFINITIONS.map(({ mode }) => mode));
 const studentCollator = new Intl.Collator(["zh-Hant", "en"], { numeric: true, sensitivity: "base" });
 
@@ -186,13 +207,17 @@ export function mostRecentRoundScoreStoryId(attempts: LatestRoundAttempt[]): str
   return latest?.storyId ?? "";
 }
 
-export function summarizeResponseTime(row: RoundScoreRow): ResponseTimeSummary {
+export function cellSecondsPerQuestion(cell: RoundScoreCell): number | null {
+  if (cell.totalTimeMs === null) return null;
+  return Math.round((cell.totalTimeMs / cell.totalQuestions / 1000) * 10) / 10;
+}
+
+function summarizeCellResponseTime(cells: Array<RoundScoreCell | null>): ResponseTimeSummary {
   let totalTimeMs = 0;
   let totalQuestions = 0;
   let completedRounds = 0;
 
-  for (const { mode } of ROUND_DEFINITIONS) {
-    const cell = row.rounds[mode];
+  for (const cell of cells) {
     if (!cell || cell.totalTimeMs === null) continue;
     totalTimeMs += cell.totalTimeMs;
     totalQuestions += cell.totalQuestions;
@@ -205,6 +230,57 @@ export function summarizeResponseTime(row: RoundScoreRow): ResponseTimeSummary {
       : null,
     totalQuestions,
     completedRounds,
+  };
+}
+
+export function summarizeResponseTime(row: Pick<RoundScoreRow, "rounds">): ResponseTimeSummary {
+  return summarizeCellResponseTime(ROUND_DEFINITIONS.map(({ mode }) => row.rounds[mode]));
+}
+
+export function buildStudentRoundDashboard(
+  students: Student[],
+  attempts: LatestRoundAttempt[],
+  studentId: string,
+  stories: RoundScoreStoryDescriptor[],
+): StudentRoundDashboardData | null {
+  const student = students.find((candidate) => candidate.id === studentId && !candidate.isTestAccount);
+  if (!student) return null;
+
+  const titles = new Map(stories.map((story) => [story.id, story.title.trim() || story.id]));
+  const storyIds = new Set(attempts.filter((attempt) => attempt.studentId === studentId).map((attempt) => attempt.storyId));
+
+  const lessons = Array.from(storyIds, (storyId): StudentLessonRow => {
+    const rows = buildRoundScoreRows(students, attempts, storyId);
+    const own = rows.find((row) => row.studentId === studentId)!;
+    const latestCompletedAt = ROUND_DEFINITIONS
+      .flatMap(({ mode }) => own.rounds[mode]?.completedAt ?? [])
+      .reduce((latest, completedAt) => (timestamp(completedAt) > timestamp(latest) ? completedAt : latest));
+    return {
+      storyId,
+      title: titles.get(storyId) ?? storyId,
+      rounds: own.rounds,
+      completedRounds: own.completedRounds,
+      responseTime: summarizeResponseTime(own),
+      classRounds: summarizeRoundScores(rows.filter((row) => row.status === "active")).rounds,
+      latestCompletedAt,
+    };
+  }).sort((left, right) => (
+    timestamp(right.latestCompletedAt) - timestamp(left.latestCompletedAt)
+    || studentCollator.compare(left.title, right.title)
+    || left.storyId.localeCompare(right.storyId)
+  ));
+
+  return {
+    studentId: student.id,
+    studentName: student.name,
+    status: student.status,
+    lessons,
+    lessonsAttempted: lessons.length,
+    lessonsCompletedAll: lessons.filter((lesson) => lesson.completedRounds === ROUND_DEFINITIONS.length).length,
+    responseTime: summarizeCellResponseTime(
+      lessons.flatMap((lesson) => ROUND_DEFINITIONS.map(({ mode }) => lesson.rounds[mode])),
+    ),
+    lastActivityAt: lessons[0]?.latestCompletedAt ?? null,
   };
 }
 

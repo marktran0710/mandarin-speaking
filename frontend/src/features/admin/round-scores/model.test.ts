@@ -4,6 +4,8 @@ import type { VocabQuizAttempt } from "../../../services/api/quiz-analytics";
 import {
   buildRoundScoreRows,
   buildRoundScoreStoryOptions,
+  buildStudentRoundDashboard,
+  cellSecondsPerQuestion,
   mostRecentRoundScoreStoryId,
   selectLatestRoundAttempts,
   summarizeResponseTime,
@@ -112,5 +114,93 @@ describe("round score model", () => {
       totalQuestions: 6,
       completedRounds: 2,
     });
+  });
+});
+
+describe("cellSecondsPerQuestion", () => {
+  const cell = { score: 75, correctCount: 3, totalQuestions: 4, totalTimeMs: 9000, completedAt: "2026-09-01T08:00:00Z", attemptId: "a1" };
+
+  it("rounds to one decimal place", () => {
+    expect(cellSecondsPerQuestion(cell)).toBe(2.3);
+  });
+
+  it("is null when the attempt has no usable time", () => {
+    expect(cellSecondsPerQuestion({ ...cell, totalTimeMs: null })).toBeNull();
+  });
+});
+
+describe("student round dashboard model", () => {
+  const dashboardStudents: Student[] = [
+    ...students,
+    { id: "s3", name: "Chi", status: "active", createdAt: "2026-01-04" },
+  ];
+  const lessons = [
+    { id: "lesson-1", title: "Greetings" },
+    { id: "lesson-2", title: "Family" },
+  ];
+  const dashboardAttempts = [
+    attempt({ id: "l1-r1", storyId: "lesson-1", mode: "tier1", correctCount: 4, totalTimeMs: 8000, completedAt: "2026-09-01T08:00:00Z" }),
+    attempt({ id: "l1-r2", storyId: "lesson-1", mode: "tier2", correctCount: 2, totalTimeMs: 4000, completedAt: "2026-09-02T08:00:00Z" }),
+    attempt({ id: "l2-r1", storyId: "lesson-2", mode: "tier1", correctCount: 3, totalTimeMs: 6000, completedAt: "2026-09-10T08:00:00Z" }),
+    attempt({ id: "l2-r2", storyId: "lesson-2", mode: "tier2", correctCount: 4, totalTimeMs: 4000, completedAt: "2026-09-11T08:00:00Z" }),
+    attempt({ id: "l2-r3", storyId: "lesson-2", mode: "tier3", correctCount: 1, totalTimeMs: 2000, completedAt: "2026-09-12T08:00:00Z" }),
+    attempt({ id: "chi-l1-r1", studentId: "s3", studentName: "Chi", storyId: "lesson-1", mode: "tier1", correctCount: 2, totalTimeMs: 2000 }),
+    attempt({ id: "binh-l1-r1", studentId: "s2", studentName: "Binh", storyId: "lesson-1", mode: "tier1", correctCount: 0 }),
+  ];
+
+  function dashboardFor(studentId: string, source = dashboardAttempts) {
+    const latest = selectLatestRoundAttempts(dashboardStudents, source);
+    return buildStudentRoundDashboard(dashboardStudents, latest, studentId, buildRoundScoreStoryOptions(latest, lessons));
+  }
+
+  it("lists only the lessons the student attempted, newest first, with per-lesson scores and time", () => {
+    const dashboard = dashboardFor("s1");
+
+    expect(dashboard?.lessons.map(({ storyId, title }) => ({ storyId, title }))).toEqual([
+      { storyId: "lesson-2", title: "Family" },
+      { storyId: "lesson-1", title: "Greetings" },
+    ]);
+    const [family, greetings] = dashboard!.lessons;
+    expect([family.rounds.tier1?.score, family.rounds.tier2?.score, family.rounds.tier3?.score]).toEqual([75, 100, 25]);
+    expect(family.completedRounds).toBe(3);
+    expect(family.responseTime).toEqual({ secondsPerQuestion: 1, totalQuestions: 12, completedRounds: 3 });
+    expect(greetings.rounds.tier3).toBeNull();
+    expect(greetings.completedRounds).toBe(2);
+    expect(greetings.responseTime).toEqual({ secondsPerQuestion: 1.5, totalQuestions: 8, completedRounds: 2 });
+  });
+
+  it("compares each lesson with active students only and never counts a missing round as zero", () => {
+    const [, greetings] = dashboardFor("s1")!.lessons;
+
+    // s1 scored 100 and s3 scored 50; inactive Binh's 0 must not pull the average down.
+    expect(greetings.classRounds.tier1).toEqual({ average: 75, completed: 2 });
+    expect(greetings.classRounds.tier2).toEqual({ average: 50, completed: 1 });
+    expect(greetings.classRounds.tier3).toEqual({ average: null, completed: 0 });
+  });
+
+  it("summarizes lessons attempted, full completions, overall response time, and last activity", () => {
+    const dashboard = dashboardFor("s1")!;
+
+    expect(dashboard).toMatchObject({
+      studentId: "s1",
+      studentName: "An",
+      status: "active",
+      lessonsAttempted: 2,
+      lessonsCompletedAll: 1,
+      lastActivityAt: "2026-09-12T08:00:00Z",
+    });
+    expect(dashboard.responseTime).toEqual({ secondsPerQuestion: 1.2, totalQuestions: 20, completedRounds: 5 });
+  });
+
+  it("returns an empty dashboard for a student without attempts and null for unknown or test accounts", () => {
+    expect(dashboardFor("s2", [])).toMatchObject({
+      lessons: [],
+      lessonsAttempted: 0,
+      lessonsCompletedAll: 0,
+      lastActivityAt: null,
+      responseTime: { secondsPerQuestion: null, totalQuestions: 0, completedRounds: 0 },
+    });
+    expect(dashboardFor("missing")).toBeNull();
+    expect(dashboardFor("test")).toBeNull();
   });
 });

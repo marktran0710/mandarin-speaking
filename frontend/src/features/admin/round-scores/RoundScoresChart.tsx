@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
 import type { ChartConfiguration, TooltipItem } from "chart.js";
-import { ROUND_DEFINITIONS, summarizeResponseTime, type RoundScoreRow } from "./model";
+import { formatCompletedAt } from "./format";
+import { ROUND_DEFINITIONS, cellSecondsPerQuestion, summarizeResponseTime, type RoundScoreRow } from "./model";
 
 const SERIES_COLORS = [
   { fill: "rgba(39, 105, 148, 0.78)", border: "#276994" },
@@ -11,16 +12,6 @@ const SERIES_COLORS = [
 const RESPONSE_TIME_COLOR = "#3f3528";
 const RESPONSE_TIME_LABEL = "Avg response time / question";
 type RoundScoresChartType = "bar" | "line";
-
-const completedAtFormatter = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-function formatCompletedAt(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : completedAtFormatter.format(date);
-}
 
 function compactStudentLabel(value: unknown): string {
   const label = String(value ?? "");
@@ -37,10 +28,9 @@ export function formatRoundScoreTooltip(rows: RoundScoreRow[], datasetIndex: num
   if (!round) return "";
   const cell = rows[dataIndex]?.rounds[round.mode];
   if (!cell) return `${round.label}: Not completed`;
-  const secondsPerQuestion = cell.totalTimeMs === null
-    ? "time unavailable"
-    : `${Math.round((cell.totalTimeMs / cell.totalQuestions / 1000) * 10) / 10}s/question`;
-  return `${round.label}: ${cell.score}% · ${cell.correctCount}/${cell.totalQuestions} · ${secondsPerQuestion} · ${formatCompletedAt(cell.completedAt)}`;
+  const seconds = cellSecondsPerQuestion(cell);
+  const time = seconds === null ? "time unavailable" : `${seconds}s/question`;
+  return `${round.label}: ${cell.score}% · ${cell.correctCount}/${cell.totalQuestions} · ${time} · ${formatCompletedAt(cell.completedAt)}`;
 }
 
 export function createRoundScoresChartConfig(

@@ -16,10 +16,10 @@ const students = [
   { id: "inactive-01", name: "Inactive Student", status: "inactive", createdAt: "2026-01-01T00:00:00Z" },
 ];
 
-function attempt(id: string, studentId: string, mode: "tier1" | "tier2" | "tier3", correctCount: number, day: number) {
+function attempt(id: string, studentId: string, mode: "tier1" | "tier2" | "tier3", correctCount: number, day: number, storyId = "lesson-1") {
   return {
     id,
-    storyId: "lesson-1",
+    storyId,
     studentId,
     studentName: students.find((student) => student.id === studentId)?.name ?? studentId,
     mode,
@@ -39,6 +39,8 @@ const attempts = [
   attempt("s3-r1", "student-03", "tier1", 2, 20),
   attempt("s3-r2", "student-03", "tier2", 3, 21),
   attempt("s4-r1", "student-04", "tier1", 0, 20),
+  // Older than every lesson-1 attempt, so the class view still defaults to lesson-1.
+  attempt("s1-l2-r1", "student-01", "tier1", 2, 5, "lesson-2"),
 ];
 
 async function mockAdminApi(page: Page) {
@@ -121,5 +123,47 @@ for (const viewport of VIEWPORTS) {
     const tableScroll = page.locator(".round-scores-table-scroll");
     const tableSizing = await tableScroll.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
     if (viewport.width < 600) expect(tableSizing.scrollWidth).toBeGreaterThan(tableSizing.clientWidth);
+  });
+
+  test(`Student dashboard stays responsive on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openRoundScores(page);
+
+    await page.getByRole("button", { name: "Student 01", exact: true }).click();
+    const dashboardHeading = page.getByRole("heading", { level: 2, name: "Student 01" });
+    await expect(dashboardHeading).toBeVisible();
+    await expect(dashboardHeading).toBeFocused();
+    const topbarBottom = await page.locator(".management-topbar").evaluate((element) => element.getBoundingClientRect().bottom);
+    for (const locator of [dashboardHeading, page.getByRole("button", { name: "Back to class" })]) {
+      const box = await locator.boundingBox();
+      expect(box?.y ?? 0, "the sticky top bar must not cover the dashboard header").toBeGreaterThanOrEqual(topbarBottom - 1);
+    }
+    await expect(page.locator("#student-round-chart-title")).toHaveText("At the market");
+    await expect(page.locator(".student-round-dashboard .round-scores-chart canvas")).toBeVisible();
+
+    const overflow = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(overflow.scrollWidth, "the admin page should not scroll horizontally").toBeLessThanOrEqual(overflow.clientWidth + 1);
+
+    const kpiBoxes = await page.locator(".round-scores-kpis article").evaluateAll((elements) => elements.map((element) => Math.round(element.getBoundingClientRect().x)));
+    expect(kpiBoxes).toHaveLength(4);
+    expect(new Set(kpiBoxes).size).toBe(viewport.kpiColumns);
+
+    const lessonTable = page.getByRole("table", { name: "Round scores by lesson for Student 01" });
+    await expect(lessonTable).toBeVisible();
+    await expect(lessonTable.getByRole("row")).toHaveCount(3);
+    await lessonTable.getByRole("button", { name: /lesson-2/ }).click();
+    await expect(page.locator("#student-round-chart-title")).toHaveText("lesson-2");
+    const tableSizing = await page.locator(".round-scores-table-scroll").evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
+    if (viewport.width < 600) expect(tableSizing.scrollWidth).toBeGreaterThan(tableSizing.clientWidth);
+    if (viewport.width >= 1200) expect(tableSizing.scrollWidth, "the lessons table should fit without scrolling on desktop").toBeLessThanOrEqual(tableSizing.clientWidth + 1);
+
+    await page.getByRole("button", { name: "Back to class" }).click();
+    await expect(page.getByRole("heading", { name: "Three-round quiz scores" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Lesson" })).toHaveValue("lesson-1");
+    await expect(page.getByRole("button", { name: "Student 01", exact: true })).toBeFocused();
   });
 }
