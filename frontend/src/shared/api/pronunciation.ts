@@ -1,0 +1,127 @@
+import { BACKEND_URL, fetchWithRetry } from "./client";
+
+/** Mirrors backend services/pronunciation/presenter.py. The student response
+ * has no `debug`; teachers and admins always get it. */
+export type PronunciationBasis = "measured" | "inferred" | "unavailable";
+
+export interface PronunciationDimension {
+  key: "tone" | "segmental" | "fluency" | "intelligibility";
+  basis: PronunciationBasis;
+  points: number | null;
+  out_of: number | null;
+  note: string;
+}
+
+export interface PronunciationWord {
+  word: string;
+  pinyin: string;
+  expected_tone: number;
+  tone_similarity: number | null;
+  reference_shape: string;
+  student_shape: string;
+  duration_ratio: number | null;
+  evidence: "strong" | "moderate" | "weak";
+  flags: string[];
+}
+
+export interface PronunciationFeedback {
+  summary: string;
+  focus_words: Array<{ word: string; feedback: string }>;
+  practice_tip: string;
+  source?: "llm" | "local";
+  model?: string | null;
+  fallback_reason?: string | null;
+  adjustments?: string[];
+}
+
+export interface PronunciationSyllableFeatures {
+  expected: { hanzi: string; pinyin: string; expected_tone: number };
+  start_ms: number;
+  end_ms: number;
+  direction: string;
+  f0_points: Array<[number, number]>;
+}
+
+export interface PronunciationFeatureSet {
+  duration_ms: number;
+  syllables: PronunciationSyllableFeatures[];
+}
+
+export interface PronunciationDebug {
+  provenance: Record<string, unknown>;
+  policy: Record<string, unknown>;
+  issues: Array<Record<string, unknown>>;
+  comparison: Record<string, unknown> | null;
+  reference_features: PronunciationFeatureSet;
+  student_features: PronunciationFeatureSet | null;
+  recording_quality: Record<string, unknown> | null;
+}
+
+export interface PronunciationEvaluation {
+  status: "scored" | "unscorable";
+  reason: string | null;
+  score: {
+    total: number | null;
+    renormalized: boolean;
+    dimensions: PronunciationDimension[];
+  };
+  metrics: Partial<Record<"tone_similarity" | "rhythm_similarity" | "duration_similarity" | "pause_similarity", number | null>>;
+  words: PronunciationWord[];
+  feedback: PronunciationFeedback;
+  model: {
+    scoring_version: string;
+    acoustic_pipeline_version: string;
+    feedback_model: string | null;
+    feedback_source: "llm" | "local";
+  };
+  reference: { key: string; cache_hit: boolean };
+  debug?: PronunciationDebug;
+}
+
+export class PronunciationRequestError extends Error {
+  constructor(readonly code: string, message: string, readonly status: number) {
+    super(message);
+    this.name = "PronunciationRequestError";
+  }
+}
+
+// The backend analysis deadline is 120 seconds; leave enough time for its
+// structured timeout response to reach the browser instead of aborting first.
+const EVALUATION_TIMEOUT_MS = 125_000;
+
+export interface PronunciationRequest {
+  storyId: string;
+  sceneIndex: number;
+  conversationId?: string;
+  turnId?: string;
+  turnIndex?: number;
+}
+
+export async function evaluatePronunciation(
+  audio: Blob,
+  request: PronunciationRequest,
+): Promise<PronunciationEvaluation> {
+  const form = new FormData();
+  form.append("file", audio, "recording.wav");
+  form.append("story_id", request.storyId);
+  form.append("scene_index", String(request.sceneIndex));
+  if (request.conversationId) form.append("conversation_id", request.conversationId);
+  if (request.turnId) form.append("turn_id", request.turnId);
+  if (request.turnIndex !== undefined) form.append("turn_index", String(request.turnIndex));
+
+  // One attempt only: a repeated upload would re-run Praat and the language model.
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/pronunciation/evaluate`,
+    { method: "POST", body: form },
+    1,
+    EVALUATION_TIMEOUT_MS,
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const detail = body?.detail;
+    const code = typeof detail === "object" && detail?.code ? String(detail.code) : "request_failed";
+    const message = typeof detail === "string" ? detail : detail?.message ?? "Could not evaluate this recording.";
+    throw new PronunciationRequestError(code, message, response.status);
+  }
+  return response.json() as Promise<PronunciationEvaluation>;
+}

@@ -12,6 +12,9 @@ vi.mock("../features/admin/AdminAudioLibraryPage", () => ({
   default: () => <p>Audio library content</p>,
 }));
 vi.mock("../features/admin/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
+vi.mock("../features/admin/pronunciation/EvaluationPage", () => ({
+  default: () => <p>Pronunciation evaluator content</p>,
+}));
 
 describe("admin-only diagnostic navigation", () => {
   beforeEach(() => {
@@ -41,6 +44,8 @@ describe("admin-only diagnostic navigation", () => {
     await user.click(screen.getByRole("button", { name: "Speech diagnostics" }));
     expect(screen.getByText("Practice debug content")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "ASR compare" })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Pronunciation score" }));
+    expect(await screen.findByText("Pronunciation evaluator content")).toBeInTheDocument();
   });
 
   it("keeps retired insight links working by opening the merged workspace tab", () => {

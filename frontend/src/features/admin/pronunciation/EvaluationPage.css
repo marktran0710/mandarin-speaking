@@ -1,0 +1,45 @@
+.pron-page { display: grid; gap: 1.1rem; color: var(--clay-ink); }
+.pron-intro { margin: 0; color: var(--clay-muted); font-size: .86rem; max-width: 62ch; }
+.pron-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.pron-controls label { display: grid; gap: .3rem; font-size: .78rem; font-weight: 700; color: var(--clay-muted); }
+.pron-controls select { width: 100%; min-height: 44px; padding: .5rem .6rem; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); color: var(--clay-ink); font-size: .9rem; }
+.pron-target { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: .04em; }
+.pron-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.pron-actions audio { max-width: min(100%, 28rem); }
+.pron-record.is-recording { background: var(--clay-error-deep); color: #fff; }
+.pron-status { margin: 0; color: var(--clay-muted); font-size: .86rem; }
+.pron-note { color: var(--clay-muted); font-size: .76rem; }
+
+.pron-result { display: grid; gap: 1rem; }
+.pron-result h3 { margin: 0 0 .5rem; font-size: 1rem; }
+.pron-score, .pron-feedback, .pron-chart-card { padding: 1rem 1.1rem; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-card); }
+.pron-score { display: grid; gap: .75rem; }
+.pron-total { display: flex; align-items: baseline; gap: .4rem; }
+.pron-total strong { font-size: 3rem; line-height: 1; }
+.pron-total span { color: var(--clay-muted); font-weight: 700; }
+.pron-dimensions { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.pron-dimensions li { display: flex; justify-content: space-between; gap: 1rem; font-size: .88rem; }
+.pron-dimensions li.is-unavailable { color: var(--clay-muted); }
+.pron-unscored { display: grid; gap: .25rem; }
+.pron-unscored span { color: var(--clay-muted); }
+
+.pron-feedback header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .4rem; }
+.pron-feedback header h3 { margin: 0; }
+.pron-feedback p { margin: .35rem 0; }
+.pron-feedback ul { margin: .4rem 0; padding-left: 1.1rem; display: grid; gap: .35rem; }
+.pron-tip { color: var(--clay-muted); }
+.pron-badge { padding: .15rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 800; }
+.pron-badge.is-llm { background: var(--jade-soft); color: var(--jade-deep); }
+.pron-badge.is-local { background: var(--clay-error-soft); color: var(--clay-error-deep); }
+
+.pron-chart { position: relative; height: 280px; }
+.pron-table-wrap { max-width: 100%; overflow-x: auto; border-radius: var(--clay-radius-md); }
+.pron-table { width: 100%; border-collapse: collapse; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); overflow: hidden; background: var(--clay-surface-card); }
+.pron-table th, .pron-table td { padding: .5rem .75rem; border-bottom: 1px solid var(--clay-hairline); text-align: left; font-size: .84rem; }
+.pron-table thead th { background: var(--jade-soft); color: var(--jade-deep); font-weight: 800; }
+.pron-table tbody tr:last-child td { border-bottom: 0; }
+.pron-details pre { overflow: auto; max-height: 22rem; padding: .75rem; border-radius: var(--clay-radius-sm); background: var(--clay-surface-soft); font-size: .74rem; }
+
+@media (max-width: 720px) {
+  .pron-controls { grid-template-columns: 1fr; }
+}
