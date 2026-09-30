@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 import security.auth as auth
 import main
 import services.media as media_service
+import services.media_optimize as media_optimize
 import services.media_access_service as media_access_service
 import services.content.images as story_images_service
 from db import connect_db
@@ -20,6 +21,7 @@ router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 @router.get("/uploads/{relative_path:path}")
 def serve_upload(
     relative_path: str,
+    request: Request,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     """Serve uploaded media only to an authenticated session."""
@@ -36,14 +38,23 @@ def serve_upload(
         if not allowed:
             raise HTTPException(status_code=403, detail="Media access is not allowed.")
     media_type, _ = mimetypes.guess_type(str(requested))
+    headers = {"Cache-Control": "private, max-age=3600"}
+    served = requested
+    if media_optimize.is_raster_image(requested):
+        # Same URL, different bytes per Accept header: caches must key on it.
+        headers["Vary"] = "Accept"
+        if media_optimize.accepts_webp(request.headers.get("accept")):
+            variant = media_optimize.webp_variant(requested, upload_root)
+            if variant is not None:
+                served, media_type = variant, "image/webp"
     # Uploaded media is immutable (its URL is content/id-addressed), and it is
     # the highest-volume request type, so let the browser cache it and skip the
     # round-trip (and this authorization check) when a student reopens a story.
     # `private`, never a shared/CDN cache, because the media is auth-gated.
     return FileResponse(
-        requested,
+        served,
         media_type=media_type or "application/octet-stream",
-        headers={"Cache-Control": "private, max-age=3600"},
+        headers=headers,
     )
 
 
