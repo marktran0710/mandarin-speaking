@@ -88,6 +88,14 @@ export function useQuizSessionData({
     }
     let cancelled = false;
     const loadAuthoritativeProgress = async () => {
+      // The attempts list and the validated progression are independent
+      // reads, so start both now instead of chaining them (one round trip
+      // saved on every quiz open). Progression is only ever used when the
+      // attempts read succeeds, exactly as before.
+      type Progression = import("../../../services/api/quiz-analytics").VocabularyProgression;
+      const progressionRequest: Promise<Progression | null> = studentId && canonicalStoryId
+        ? getVocabularyProgression(canonicalStoryId, studentId).catch(() => null)
+        : Promise.resolve(null);
       let serverAttempts: VocabQuizAttempt[];
       try {
         serverAttempts = await listVocabQuizAttempts(canonicalStoryId, { studentId, studentName });
@@ -104,14 +112,11 @@ export function useQuizSessionData({
       let derived: 0 | QuizTier;
       let progression: import("../../../services/api/quiz-analytics").VocabularyProgression | null = null;
       if (studentId && canonicalStoryId) {
-        try {
-          progression = await getVocabularyProgression(canonicalStoryId, studentId);
-          derived = progression.quizStars;
-        } catch {
-          // Authenticated progression needs the validated response ledger.
-          // A raw attempt's client-side score cannot replace that read.
-          derived = 0;
-        }
+        progression = await progressionRequest;
+        // Authenticated progression needs the validated response ledger.
+        // A raw attempt's client-side score cannot replace that read, so a
+        // failed progression read leaves the stars at 0.
+        derived = progression ? progression.quizStars : 0;
       } else {
         const progressAttempts = hasApprovedMaterial
           ? serverAttempts.filter((attempt) => Boolean(attempt.questionResults?.length && attempt.questionResults.every((result) => result.bktValidationStatus === "APPROVED")))

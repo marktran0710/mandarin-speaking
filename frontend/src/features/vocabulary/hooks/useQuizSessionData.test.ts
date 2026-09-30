@@ -47,3 +47,24 @@ it("keeps the authenticated gate closed when progression cannot be validated", a
   expect(result.current.stars).toBe(0);
   expect(createVocabQuizAttempt).not.toHaveBeenCalled();
 });
+
+it("starts the attempts and progression reads together instead of chaining them", async () => {
+  let resolveAttempts!: (value: never[]) => void;
+  vi.mocked(listVocabQuizAttempts).mockReturnValue(new Promise<never[]>((resolve) => { resolveAttempts = resolve; }));
+  const { result } = loadSession();
+
+  // Attempts are still pending, yet progression has already been requested.
+  await waitFor(() => expect(getVocabularyProgression).toHaveBeenCalledTimes(1));
+  expect(result.current.sessionReady).toBe(false);
+
+  resolveAttempts([]);
+  await waitFor(() => expect(result.current.sessionReady).toBe(true));
+});
+
+it("still opens the screen with 0 stars when attempts fail and progression is in flight", async () => {
+  vi.mocked(listVocabQuizAttempts).mockRejectedValue(new Error("Unavailable"));
+  vi.mocked(getVocabularyProgression).mockRejectedValue(new Error("Also unavailable"));
+  const { result } = loadSession();
+  await waitFor(() => expect(result.current.sessionReady).toBe(true));
+  expect(result.current.stars).toBe(0);
+});
