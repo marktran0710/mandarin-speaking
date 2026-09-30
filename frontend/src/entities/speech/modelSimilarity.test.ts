@@ -56,3 +56,56 @@ describe("modelSimilarity (mean per-word Pearson r)", () => {
     expect(modelSimilarity(overlay, lowVoiceSameShape.filter(([t]) => t < 0.2))).toBeNull();
   });
 });
+
+describe("modelSimilarity v2 (shape AND size)", () => {
+  // The model's pitch in Hz at time t (two words, see `overlay`).
+  const modelHz = (t: number) => (t < 0.5 ? 200 - 120 * t : 140 + 140 * (t - 0.5));
+  /** The model's movement scaled by `scale` around its own middle, in a lower voice. */
+  const attempt = (scale: number, wobble = 0) =>
+    sample((t) => 120 * 2 ** ((scale * Math.log2(modelHz(t) / 170)) + wobble * Math.sin(t * 40)));
+
+  it("gives full credit to the model's shape at the model's size", () => {
+    const result = modelSimilarity(overlay, attempt(1))!;
+    expect(result.score).toBeGreaterThan(95);
+    expect(result.shape).toBeGreaterThan(0.95);
+    expect(result.range).toBe(1);
+  });
+
+  it("does not let a nearly flat attempt ride on a tiny wobble in the right direction", () => {
+    const flatish = attempt(0.08);
+    expect(modelSimilarity(overlay, flatish, { algorithm: "legacy" })!.score).toBeGreaterThan(80);
+    expect(modelSimilarity(overlay, flatish)!.score).toBeLessThan(15);
+  });
+
+  it("is generous to a learner who moves less than the teacher, but not to a half-size fall", () => {
+    expect(modelSimilarity(overlay, attempt(0.7))!.score).toBeGreaterThan(85);
+    const half = modelSimilarity(overlay, attempt(0.4))!.score;
+    expect(half).toBeGreaterThan(30);
+    expect(half).toBeLessThan(75);
+  });
+
+  it("never penalises moving MORE than the model", () => {
+    const wide = modelSimilarity(overlay, attempt(1.8))!.score;
+    expect(wide).toBeGreaterThanOrEqual(modelSimilarity(overlay, attempt(1))!.score - 2);
+  });
+
+  it("is not thrown by a half-frequency error that lasts many frames", () => {
+    const clean = attempt(1);
+    const broken = clean.map(([t, hz]): [number, number] => [t, t > 0.62 && t < 0.95 ? hz / 2 : hz]);
+    expect(modelSimilarity(overlay, broken)!.score).toBeGreaterThan(85);
+    expect(modelSimilarity(overlay, broken, { algorithm: "legacy" })!.score).toBeLessThan(85);
+  });
+
+  it("reports no shape/range breakdown for the legacy algorithm and keeps the flat/inverted floors", () => {
+    const legacy = modelSimilarity(overlay, attempt(1), { algorithm: "legacy" })!;
+    expect(legacy.shape).toBeUndefined();
+    expect(legacy.range).toBeUndefined();
+    const inverted = sample((t) => 120 * 2 ** (-Math.log2(modelHz(t) / 170)));
+    expect(modelSimilarity(overlay, inverted)!.score).toBe(0);
+  });
+
+  it("lets the parameters be moved without touching the code", () => {
+    const strict = modelSimilarity(overlay, attempt(0.7), { params: { rhoFull: 0.9 } })!;
+    expect(strict.score).toBeLessThan(modelSimilarity(overlay, attempt(0.7))!.score);
+  });
+});
