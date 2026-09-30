@@ -36,9 +36,11 @@ def is_published_story_media(db, stored_url: str) -> bool:
               AND (
                 frames::text LIKE %s
                 OR COALESCE(conversation_turns::text, '') LIKE %s
+                OR COALESCE(vocab_assessment::text, '') LIKE %s
+                OR COALESCE(story_vocabulary::text, '') LIKE %s
               )
             LIMIT 1
             """,
-            (like_pattern, like_pattern),
+            (like_pattern,) * 4,
         ).fetchone()
     )
