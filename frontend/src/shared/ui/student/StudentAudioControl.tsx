@@ -18,12 +18,13 @@ interface StudentAudioControlProps {
  */
 export default function StudentAudioControl({ audioUrl, label, labelKey, compact = false, showDuration = false }: StudentAudioControlProps) {
   const [playing, setPlaying] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [duration, setDuration] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const available = Boolean(audioUrl?.trim());
-  const displayLabel = available ? (labelKey ? undefined : label ?? "聆聽") : "沒有音訊";
+  const displayLabel = !available ? "沒有音訊" : failed ? "不能播放" : labelKey ? undefined : label ?? "聆聽";
   const durationLabel = showDuration && duration !== null ? ` (${formatAudioDuration(duration)})` : "";
-  const ariaLabel = `${available ? (labelKey ? studentUiCopy[labelKey].zh : displayLabel) : "沒有音訊"}${durationLabel}`.trim();
+  const ariaLabel = `${available && !failed && labelKey ? studentUiCopy[labelKey].zh : displayLabel}${durationLabel}`.trim();
 
   const handlePlay = () => {
     if (!audioUrl?.trim()) return;
@@ -36,15 +37,23 @@ export default function StudentAudioControl({ audioUrl, label, labelKey, compact
           if (Number.isFinite(audioRef.current?.duration)) setDuration(audioRef.current!.duration);
         });
       }
+      setFailed(false);
       setPlaying(true);
-      void audioRef.current.play().catch(() => setPlaying(false));
+      // A rejected play() (missing file, 403, unsupported format) used to fail
+      // silently, leaving a normal-looking button that did nothing. Show it,
+      // and drop the element so the next click retries from a fresh request.
+      void audioRef.current.play().catch(() => {
+        audioRef.current = null;
+        setPlaying(false);
+        setFailed(true);
+      });
     }
   };
 
   return (
     <button
       type="button"
-      className={`sa-audio-control ${compact ? "is-compact" : ""}`}
+      className={`sa-audio-control ${compact ? "is-compact" : ""} ${failed ? "is-error" : ""}`}
       onClick={handlePlay}
       disabled={!available}
       aria-label={ariaLabel}

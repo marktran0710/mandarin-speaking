@@ -27,6 +27,9 @@
 .sa-audio-control:disabled .sa-icon { color: var(--color-muted); }
 .sa-audio-control:disabled:hover { background: var(--color-surface-soft); border-color: var(--color-border); }
 
+.sa-audio-control.is-error { border-color: var(--color-error); color: var(--color-error); background: var(--color-error-soft); }
+.sa-audio-control.is-error .sa-icon { color: var(--color-error); }
+
 .sa-audio-control.is-compact {
   padding: var(--space-1) var(--space-2);
   min-height: 28px;
