@@ -68,3 +68,60 @@ it("still opens the screen with 0 stars when attempts fail and progression is in
   await waitFor(() => expect(result.current.sessionReady).toBe(true));
   expect(result.current.stars).toBe(0);
 });
+
+const reviewQueue = () => ({
+  unlocked: true, requiredDiagnosticQuizzes: 3, completedDiagnosticQuizzes: 3,
+  diagnostic: { status: "COMPLETE" }, diagnosticComplete: true, roundPresence: undefined,
+  words: [{ wordId: "w1", word: "學習", reviewRank: 1 }],
+  mastery: [{ wordId: "w1", word: "學習" }, { wordId: "w2", word: "朋友" }],
+  queue: [
+    { wordId: "w2", word: "朋友", reviewReason: "due" },
+    { wordId: "w1", word: "學習", reviewReason: "weak" },
+  ],
+});
+
+it("loads weak words and due words from ONE review-queue request", async () => {
+  const { getVocabQuizReviewQueue, getVocabQuizWeakWords } = await import("../../../services/database");
+  vi.mocked(getVocabQuizReviewQueue).mockResolvedValue(reviewQueue() as never);
+  const { result } = renderHook(() => useQuizSessionData({ entries: [], storyId: "lesson-1", studentId: "student-1", quizIdRef: { current: null } }));
+  await waitFor(() => expect(result.current.sessionReady).toBe(true));
+  await waitFor(() => expect(result.current.dueWords).toHaveLength(1));
+
+  expect(getVocabQuizReviewQueue).toHaveBeenCalledTimes(1);
+  expect(getVocabQuizWeakWords).not.toHaveBeenCalled();
+  expect(result.current.weakWords).toEqual(["學習"]);
+  expect(result.current.priorityReviewWords.map((word) => word.wordId)).toEqual(["w1"]);
+  expect(result.current.masteryWords).toHaveLength(2);
+  expect(result.current.diagnosticComplete).toBe(true);
+  expect(result.current.dueWords.map((word) => word.wordId)).toEqual(["w2"]);
+});
+
+it("refreshReview re-reads both lists with a single further request", async () => {
+  const { getVocabQuizReviewQueue } = await import("../../../services/database");
+  vi.mocked(getVocabQuizReviewQueue).mockResolvedValue(reviewQueue() as never);
+  const { result } = renderHook(() => useQuizSessionData({ entries: [], storyId: "lesson-1", studentId: "student-1", quizIdRef: { current: null } }));
+  await waitFor(() => expect(result.current.sessionReady).toBe(true));
+  vi.mocked(getVocabQuizReviewQueue).mockClear();
+
+  await result.current.refreshReview();
+  expect(getVocabQuizReviewQueue).toHaveBeenCalledTimes(1);
+});
+
+it("re-reads after an in-flight read instead of trusting data that predates a saved answer", async () => {
+  const { getVocabQuizReviewQueue } = await import("../../../services/database");
+  let releaseFirst!: (value: never) => void;
+  vi.mocked(getVocabQuizReviewQueue)
+    .mockReturnValueOnce(new Promise((resolve) => { releaseFirst = resolve as never; }) as never)
+    .mockResolvedValue(reviewQueue() as never);
+  const { result } = renderHook(() => useQuizSessionData({ entries: [], storyId: "lesson-1", studentId: "student-1", quizIdRef: { current: null } }));
+  await waitFor(() => expect(getVocabQuizReviewQueue).toHaveBeenCalledTimes(1));
+
+  // Two refreshes requested while the first read is still pending share ONE follow-up read.
+  const refreshes = Promise.all([result.current.refreshReview(), result.current.refreshReview()]);
+  expect(getVocabQuizReviewQueue).toHaveBeenCalledTimes(1);
+  releaseFirst(reviewQueue() as never);
+  await refreshes;
+
+  expect(getVocabQuizReviewQueue).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(result.current.sessionReady).toBe(true));
+});

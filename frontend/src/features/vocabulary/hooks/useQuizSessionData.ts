@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
   loadLocalStars,
   starsFromAttempts,
@@ -23,7 +23,7 @@ import {
   loadLessonProgressSnapshot,
   type LessonVocabularyProgress,
 } from "../model/lesson-vocab-progress";
-import type { VocabPriorityReviewResponse, VocabQuizAttempt } from "../../../services/api/quiz-analytics";
+import { weakWordsResultFromPriorityReview, type VocabPriorityReviewResponse, type VocabQuizAttempt, type VocabWeakWordsResult } from "../../../services/api/quiz-analytics";
 import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventName } from "../../../utils/measurement";
 
 type QuizSessionDataProps = {
@@ -149,11 +149,7 @@ export function useQuizSessionData({
   // the UI can label "ôn tập duy trì" separately from "từ cần luyện".
   const [dueWords, setDueWords] = useState<ReviewQueueItem[]>([]);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
-  const refreshWeakWords = useCallback(async () => {
-    if (!storyId || !canUseDatabase()) return;
-    // Weak Words is a story-wide summary, so the API must receive the source
-    // story id and aggregate into one learner list.
-    const words = await getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName });
+  const applyWeakWords = useCallback((words: VocabWeakWordsResult) => {
     setPriorityReviewWords(words.priorityReview ?? []);
     setWeakWords(Array.isArray(words) ? [...words] : []);
     setMasteryWords(words.mastery ?? []);
@@ -162,38 +158,63 @@ export function useQuizSessionData({
       ?? (words.diagnostic?.diagnostic?.status === "COMPLETE" ? true : words.diagnostic?.diagnostic?.status === "INCOMPLETE" ? false : undefined);
     setDiagnosticComplete(serverDiagnostic);
     setRoundPresence(words.diagnostic?.roundPresence);
-  }, [storyId, baseStoryId, studentId, studentName]);
+  }, []);
+  // The weak-word card and the due-review list used to be two requests that
+  // each replayed the student's whole BKT history on the server. The
+  // review-queue payload contains the weak-words payload plus `queue`, so one
+  // read feeds both. An active research participant's due words come from the
+  // separate research retention schedule (researchDueWordIds below), never
+  // this production SM-2 queue, so they keep the weak-words-only read.
+  const reviewRequestRef = useRef<Promise<void> | null>(null);
+  const readReview = useCallback((): Promise<void> => {
+    const request = (async () => {
+      // Weak Words is a story-wide summary, so the API must receive the
+      // source story id and aggregate into one learner list.
+      const source = baseStoryId ?? storyId;
+      if (!source) return;
+      if (!studentId) {
+        applyWeakWords(await getVocabQuizWeakWords(source, { studentId, studentName }));
+        setDueWords([]);
+        return;
+      }
+      if (getCachedResearchContext().active) {
+        applyWeakWords(await getVocabQuizWeakWords(source, { studentId, studentName }));
+        setDueWords([]);
+        return;
+      }
+      const queue = await getVocabQuizReviewQueue(source, studentId, { includeAllWeak: true });
+      applyWeakWords(weakWordsResultFromPriorityReview(queue));
+      setDueWords((queue.queue ?? []).filter((item) => item.reviewReason === "due"));
+    })().finally(() => { if (reviewRequestRef.current === request) reviewRequestRef.current = null; });
+    reviewRequestRef.current = request;
+    return request;
+  }, [storyId, baseStoryId, studentId, studentName, applyWeakWords]);
+  // Refresh after a saved answer. A read already in flight may have started
+  // before that answer was saved, so wait for it and then read again rather
+  // than trusting it; calls made in the same tick share that one follow-up.
+  const followUpRef = useRef<Promise<void> | null>(null);
+  const refreshReview = useCallback((): Promise<void> => {
+    if (!storyId || !canUseDatabase()) return Promise.resolve();
+    if (!reviewRequestRef.current) return readReview();
+    if (followUpRef.current) return followUpRef.current;
+    const followUp = reviewRequestRef.current
+      .catch(() => undefined)
+      .then(() => readReview())
+      .finally(() => { if (followUpRef.current === followUp) followUpRef.current = null; });
+    followUpRef.current = followUp;
+    return followUp;
+  }, [storyId, readReview]);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
       setWeakWordsReady(true);
       return;
     }
     let cancelled = false;
-    refreshWeakWords()
-      .catch(() => { /* the always-visible card falls back to its empty state */ })
+    refreshReview()
+      .catch(() => { /* the always-visible card falls back to its empty state */ setDueWords([]); })
       .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
-  }, [storyId, refreshWeakWords]);
-
-  // Due-review words (SM-2 schedule) load independently of the weak-word
-  // readiness gate — a slow or failed queue fetch must never delay the mode
-  // screen. Best-effort: empty on any error.
-  const refreshDueWords = useCallback(async () => {
-    // An active research participant's due words come from the separate
-    // research retention schedule (see researchDueWordIds below), never
-    // this production SM-2 queue.
-    if (!storyId || !studentId || !canUseDatabase() || getCachedResearchContext().active) {
-      setDueWords([]);
-      return;
-    }
-    const queue = await getVocabQuizReviewQueue(baseStoryId ?? storyId, studentId, { includeAllWeak: true });
-    setDueWords((queue.queue ?? []).filter((item) => item.reviewReason === "due"));
-  }, [storyId, baseStoryId, studentId]);
-  useEffect(() => {
-    let cancelled = false;
-    refreshDueWords().catch(() => { if (!cancelled) setDueWords([]); });
-    return () => { cancelled = true; };
-  }, [refreshDueWords]);
+  }, [storyId, refreshReview]);
 
   // Epic 5: a research participant's due words come from the separate
   // research retention schedule, never production's SM-2 queue above. The
@@ -246,8 +267,7 @@ export function useQuizSessionData({
     researchDueEntries,
     sessionReady,
     lessonProgress,
-    refreshWeakWords,
-    refreshDueWords,
+    refreshReview,
     studentScope,
   };
 }

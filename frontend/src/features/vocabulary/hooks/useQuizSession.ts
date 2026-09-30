@@ -98,8 +98,7 @@ export function useQuizSession({
     researchDueEntries,
     sessionReady,
     lessonProgress,
-    refreshWeakWords,
-    refreshDueWords,
+    refreshReview,
     studentScope,
   } = useQuizSessionData({
     entries,
@@ -320,7 +319,7 @@ export function useQuizSession({
       pendingResponsesRef.current.add(saved);
       if (isLast) {
         void saved
-          .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
+          .then(() => refreshReview())
           .catch(() => { /* retain the last known menu state */ });
       }
     }
@@ -475,7 +474,7 @@ export function useQuizSession({
     // Refresh here so the menu reflects that newly rebuilt BKT state without
     // requiring a route reload or completion of the other diagnostic tiers.
     void Promise.allSettled([...pendingResponsesRef.current])
-      .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
+      .then(() => refreshReview())
       .catch(() => { /* retain the last known menu state */ });
   };
 

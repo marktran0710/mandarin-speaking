@@ -28,7 +28,7 @@ vi.mock("./useQuizSessionData", async () => {
         stars, setStars, setAttempts: vi.fn(), recordLessonEvent: vi.fn(),
         priorityReviewWords: [], weakWords: [], masteryWords: [], strongWords: [],
         dueWords: [], researchDueEntries: [], sessionReady: true,
-        refreshWeakWords: vi.fn(async () => undefined), refreshDueWords: vi.fn(async () => undefined),
+        refreshReview: vi.fn(async () => undefined),
         studentScope: "student-1",
         lessonProgress: { challenge: { bestScore: 0, attempts: [] } },
       };

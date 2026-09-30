@@ -87,5 +87,14 @@ export async function getVocabQuizReviewQueue(storyId: string | undefined, stude
  * The story picker asks for the complete cumulative weak-word set, while the
  * endpoint can still serve a smaller Bottom-K result to other callers. */
 export type VocabWeakWordsResult = string[] & { diagnostic?: Pick<VocabPriorityReviewResponse, "unlocked" | "requiredDiagnosticQuizzes" | "completedDiagnosticQuizzes" | "diagnostic" | "diagnosticComplete" | "roundPresence">; priorityReview?: VocabPriorityReviewWord[]; mastery?: VocabPriorityReviewWord[] };
-export async function getVocabQuizWeakWords(storyId: string, student: { studentId?: string; studentName?: string }): Promise<VocabWeakWordsResult> { if (!student.studentId) return []; const data = await getVocabQuizPriorityReview(storyId, student.studentId, { includeAllWeak: true }); const words = data.words.map((word) => word.word) as VocabWeakWordsResult; Object.defineProperty(words, "diagnostic", { value: { unlocked: data.unlocked, requiredDiagnosticQuizzes: data.requiredDiagnosticQuizzes, completedDiagnosticQuizzes: data.completedDiagnosticQuizzes, diagnostic: data.diagnostic, diagnosticComplete: data.diagnosticComplete, roundPresence: data.roundPresence }, enumerable: false }); Object.defineProperty(words, "priorityReview", { value: data.words, enumerable: false }); Object.defineProperty(words, "mastery", { value: data.mastery ?? [], enumerable: false }); return words; }
+/** The review-queue payload is the weak-words payload plus `queue`, so one
+ * response can feed both the weak-word card and the due-review list. */
+export function weakWordsResultFromPriorityReview(data: VocabPriorityReviewResponse): VocabWeakWordsResult {
+  const words = data.words.map((word) => word.word) as VocabWeakWordsResult;
+  Object.defineProperty(words, "diagnostic", { value: { unlocked: data.unlocked, requiredDiagnosticQuizzes: data.requiredDiagnosticQuizzes, completedDiagnosticQuizzes: data.completedDiagnosticQuizzes, diagnostic: data.diagnostic, diagnosticComplete: data.diagnosticComplete, roundPresence: data.roundPresence }, enumerable: false });
+  Object.defineProperty(words, "priorityReview", { value: data.words, enumerable: false });
+  Object.defineProperty(words, "mastery", { value: data.mastery ?? [], enumerable: false });
+  return words;
+}
+export async function getVocabQuizWeakWords(storyId: string, student: { studentId?: string; studentName?: string }): Promise<VocabWeakWordsResult> { if (!student.studentId) return []; const data = await getVocabQuizPriorityReview(storyId, student.studentId, { includeAllWeak: true }); return weakWordsResultFromPriorityReview(data); }
 
