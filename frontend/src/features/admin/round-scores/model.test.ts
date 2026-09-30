@@ -6,6 +6,7 @@ import {
   buildRoundScoreStoryOptions,
   mostRecentRoundScoreStoryId,
   selectLatestRoundAttempts,
+  summarizeResponseTime,
   summarizeRoundScores,
 } from "./model";
 
@@ -39,7 +40,7 @@ describe("round score model", () => {
     ]);
 
     expect(selected).toHaveLength(1);
-    expect(selected[0]).toMatchObject({ attemptId: "latest", score: 25, correctCount: 1 });
+    expect(selected[0]).toMatchObject({ attemptId: "latest", score: 25, correctCount: 1, totalTimeMs: 1000 });
   });
 
   it("ignores non-round, empty, legacy, unknown, and test-account attempts", () => {
@@ -97,5 +98,19 @@ describe("round score model", () => {
     expect(summary.rounds.tier2).toEqual({ average: 50, completed: 1 });
     expect(summary.rounds.tier3).toEqual({ average: 75, completed: 1 });
     expect(summary.completedAll).toBe(1);
+  });
+
+  it("calculates weighted average response time per question across completed rounds", () => {
+    const latest = selectLatestRoundAttempts(students, [
+      attempt({ id: "s1-r1", mode: "tier1", totalQuestions: 4, totalTimeMs: 8000 }),
+      attempt({ id: "s1-r2", mode: "tier2", totalQuestions: 2, totalTimeMs: 6000 }),
+    ]);
+    const [row] = buildRoundScoreRows(students, latest, "lesson-1");
+
+    expect(summarizeResponseTime(row)).toEqual({
+      secondsPerQuestion: 2.3,
+      totalQuestions: 6,
+      completedRounds: 2,
+    });
   });
 });

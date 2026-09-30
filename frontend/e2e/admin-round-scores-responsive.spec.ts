@@ -102,9 +102,11 @@ for (const viewport of VIEWPORTS) {
     const chartSizing = await chartScroll.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
     if (viewport.width < 600) expect(chartSizing.scrollWidth).toBeGreaterThan(chartSizing.clientWidth);
     await expect(page.getByRole("table", { name: /Round scores for At the market/ })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Avg response time" })).toBeVisible();
     const incompleteRow = page.getByRole("row").filter({ hasText: "Student 02" });
     await expect(incompleteRow.getByText("Not completed")).toHaveCount(2);
     await expect(incompleteRow.getByText("0%", { exact: true })).toHaveCount(0);
+    await expect(incompleteRow.getByText("0.3s/question", { exact: true })).toBeVisible();
 
     const statusFilter = page.getByRole("combobox", { name: "Student status" });
     await statusFilter.focus();

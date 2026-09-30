@@ -14,6 +14,7 @@ export interface RoundScoreCell {
   score: number;
   correctCount: number;
   totalQuestions: number;
+  totalTimeMs: number | null;
   completedAt: string;
   attemptId: string;
 }
@@ -44,6 +45,12 @@ export interface RoundScoreStoryOption extends RoundScoreStoryDescriptor {
 export interface RoundScoreSummary {
   rounds: Record<RoundMode, { average: number | null; completed: number }>;
   completedAll: number;
+}
+
+export interface ResponseTimeSummary {
+  secondsPerQuestion: number | null;
+  totalQuestions: number;
+  completedRounds: number;
 }
 
 const ROUND_MODES = new Set<RoundMode>(ROUND_DEFINITIONS.map(({ mode }) => mode));
@@ -89,6 +96,7 @@ export function selectLatestRoundAttempts(students: Student[], attempts: VocabQu
     score: roundScore(attempt.correctCount, attempt.totalQuestions),
     correctCount: attempt.correctCount,
     totalQuestions: attempt.totalQuestions,
+    totalTimeMs: Number.isFinite(attempt.totalTimeMs) && attempt.totalTimeMs >= 0 ? attempt.totalTimeMs : null,
     completedAt: attempt.completedAt,
     attemptId: attempt.id,
   }));
@@ -107,6 +115,7 @@ export function buildRoundScoreRows(
       score: attempt.score,
       correctCount: attempt.correctCount,
       totalQuestions: attempt.totalQuestions,
+      totalTimeMs: attempt.totalTimeMs,
       completedAt: attempt.completedAt,
       attemptId: attempt.attemptId,
     };
@@ -175,6 +184,28 @@ export function mostRecentRoundScoreStoryId(attempts: LatestRoundAttempt[]): str
     )) latest = attempt;
   }
   return latest?.storyId ?? "";
+}
+
+export function summarizeResponseTime(row: RoundScoreRow): ResponseTimeSummary {
+  let totalTimeMs = 0;
+  let totalQuestions = 0;
+  let completedRounds = 0;
+
+  for (const { mode } of ROUND_DEFINITIONS) {
+    const cell = row.rounds[mode];
+    if (!cell || cell.totalTimeMs === null) continue;
+    totalTimeMs += cell.totalTimeMs;
+    totalQuestions += cell.totalQuestions;
+    completedRounds += 1;
+  }
+
+  return {
+    secondsPerQuestion: totalQuestions > 0
+      ? Math.round((totalTimeMs / totalQuestions / 1000) * 10) / 10
+      : null,
+    totalQuestions,
+    completedRounds,
+  };
 }
 
 export function summarizeRoundScores(rows: RoundScoreRow[]): RoundScoreSummary {

@@ -74,6 +74,8 @@ describe("RoundScoresPanel", () => {
     expect(within(table).queryByText("Chi")).not.toBeInTheDocument();
     expect(within(table).getByText("0%")).toBeInTheDocument();
     expect(within(table).getAllByText("Not completed")).toHaveLength(2);
+    expect(within(table).getByRole("columnheader", { name: "Avg response time" })).toBeInTheDocument();
+    expect(within(table).getAllByText("0.3s/question").length).toBeGreaterThan(0);
   });
 
   it("applies account, search, and completion filters to both chart and table", async () => {

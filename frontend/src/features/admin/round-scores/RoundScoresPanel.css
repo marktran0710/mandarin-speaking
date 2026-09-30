@@ -64,6 +64,7 @@
 .round-scores-legend { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); margin: 0; padding: 0; list-style: none; color: var(--clay-body); font-size: var(--text-sm); font-weight: 700; }
 .round-scores-legend li { display: inline-flex; align-items: center; gap: var(--space-xs); }
 .round-scores-legend li > span { width: 12px; height: 12px; border-radius: 3px; }
+.round-scores-legend li > .round-scores-legend-line { width: 24px; height: 0; border-top: 3px dashed #3f3528; border-radius: 0; background: transparent; }
 .round-scores-chart-scroll { max-width: 100%; overflow-x: auto; padding-bottom: var(--space-xs); scrollbar-gutter: stable; }
 .round-scores-chart-scroll:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
 .round-scores-chart-canvas { width: 100%; height: 390px; max-width: none; }
@@ -74,7 +75,7 @@
 .round-scores-chart-empty { align-content: center; }
 
 .round-scores-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); scrollbar-gutter: stable; }
-.round-scores-table { width: 100%; min-width: 860px; border-collapse: collapse; color: var(--clay-body); background: var(--clay-surface-card); font-size: var(--text-sm); }
+.round-scores-table { width: 100%; min-width: 1080px; border-collapse: collapse; color: var(--clay-body); background: var(--clay-surface-card); font-size: var(--text-sm); }
 .round-scores-table caption { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .round-scores-table :is(th, td) { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--clay-hairline); text-align: left; vertical-align: top; }
 .round-scores-table thead th { color: var(--clay-muted); background: var(--clay-surface-soft); font-size: var(--text-xs); letter-spacing: .02em; }
@@ -89,6 +90,7 @@
 .round-score-value small,
 .round-score-missing { color: var(--clay-muted); font-size: var(--text-xs); }
 .round-score-missing { font-style: italic; white-space: nowrap; }
+.round-response-time-value { min-width: 170px; }
 
 .round-scores-pagination { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-sm); }
 .round-scores-pagination button { min-height: 44px; padding: 0 var(--space-md); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); color: var(--jade-deep); background: var(--clay-surface-card); font: 750 var(--text-sm) var(--font-sans); cursor: pointer; touch-action: manipulation; }

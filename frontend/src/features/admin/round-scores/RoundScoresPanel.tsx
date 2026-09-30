@@ -9,6 +9,7 @@ import {
   buildRoundScoreStoryOptions,
   mostRecentRoundScoreStoryId,
   selectLatestRoundAttempts,
+  summarizeResponseTime,
   summarizeRoundScores,
   type RoundScoreCell,
   type RoundScoreRow,
@@ -34,7 +35,22 @@ function RoundScoreValue({ cell }: { cell: RoundScoreCell | null }) {
   return (
     <span className="round-score-value">
       <strong>{cell.score}%</strong>
-      <small>{cell.correctCount}/{cell.totalQuestions} · {formatCompletedAt(cell.completedAt)}</small>
+      <small>
+        {cell.correctCount}/{cell.totalQuestions}
+        {cell.totalTimeMs === null ? " · Time unavailable" : ` · ${Math.round((cell.totalTimeMs / cell.totalQuestions / 1000) * 10) / 10}s/question`}
+        {` · ${formatCompletedAt(cell.completedAt)}`}
+      </small>
+    </span>
+  );
+}
+
+function ResponseTimeValue({ row }: { row: RoundScoreRow }) {
+  const responseTime = summarizeResponseTime(row);
+  if (responseTime.secondsPerQuestion === null) return <span className="round-score-missing">Not available</span>;
+  return (
+    <span className="round-score-value round-response-time-value">
+      <strong>{responseTime.secondsPerQuestion}s/question</strong>
+      <small>{responseTime.totalQuestions} questions across {responseTime.completedRounds} round{responseTime.completedRounds === 1 ? "" : "s"}</small>
     </span>
   );
 }
@@ -130,12 +146,13 @@ export default function RoundScoresPanel({
           <h2 id="round-scores-title">Three-round quiz scores</h2>
           <p>Latest completed attempt for each student, lesson, and round.</p>
         </div>
-        <span className="round-scores-scale">Accuracy · 0–100%</span>
+        <span className="round-scores-scale">Accuracy · 0–100% · Time · seconds/question</span>
       </header>
 
       <p className="round-scores-note">
         <strong>Interpret with care.</strong> Meaning, pinyin, and context are different assessment dimensions.
-        Score differences between rounds are not evidence of growth over time.
+        Score differences between rounds are not evidence of growth over time. Response time is descriptive only;
+        a shorter time is not automatically a better result.
       </p>
 
       <div className="round-scores-controls">
@@ -248,6 +265,7 @@ export default function RoundScoresPanel({
                         <th scope="col">Student</th>
                         <th scope="col">Status</th>
                         {ROUND_DEFINITIONS.map((round) => <th scope="col" key={round.mode}>{round.label}</th>)}
+                        <th scope="col">Avg response time</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -261,6 +279,7 @@ export default function RoundScoresPanel({
                           {ROUND_DEFINITIONS.map((round) => (
                             <td key={round.mode}><RoundScoreValue cell={row.rounds[round.mode]} /></td>
                           ))}
+                          <td><ResponseTimeValue row={row} /></td>
                         </tr>
                       ))}
                     </tbody>
