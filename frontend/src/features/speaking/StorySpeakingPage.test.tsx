@@ -159,10 +159,19 @@ describe("StorySpeakingPage", () => {
   });
 
   it("analyses an uploaded recording through the same feedback flow", async () => {
-    const uploadRecording = vi.fn().mockResolvedValue(makeRecorderResult());
+    const result = makeRecorderResult();
+    result.metrics.pronunciation_evaluation = {
+      status: "scored", reason: null, score: { total: 87, renormalized: false, dimensions: [] },
+      metrics: {}, words: [],
+      feedback: { summary: "Keep the falling tone clear.", focus_words: [{ word: "好", feedback: "Let the pitch dip gently." }], practice_tip: "Repeat the sentence slowly.", source: "llm" },
+      model: { scoring_version: "pronunciation-score-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
+      reference: { key: "reference-1", cache_hit: false, audio_url: "/uploads/sample.wav" },
+    };
+    const uploadRecording = vi.fn().mockResolvedValue(result);
     vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ uploadRecording }));
     vi.mocked(analyzeSpeakingResult).mockReturnValue(makeAnalysis());
     const onAddRecord = vi.fn();
+    const onSceneSubmission = vi.fn();
 
     render(
       <StorySpeakingPage
@@ -170,7 +179,7 @@ describe("StorySpeakingPage", () => {
         selectedImageIndex={0}
         onImageIndexChange={vi.fn()}
         onAddRecord={onAddRecord}
-        onSceneSubmission={vi.fn()}
+        onSceneSubmission={onSceneSubmission}
         onDone={vi.fn()}
       />,
     );
@@ -182,8 +191,14 @@ describe("StorySpeakingPage", () => {
     expect(screen.queryByText("你的錄音")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
+    expect(screen.getByText("87/100")).toBeInTheDocument();
+    expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
+    expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
+    expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "老師示範" })).toBeInTheDocument();
     expect(uploadRecording).toHaveBeenCalledWith(file);
     expect(onAddRecord).toHaveBeenCalledTimes(1);
+    expect(onSceneSubmission).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pronScore: 87 }));
   });
 
   it("shows the executed feedback provider and Praat grounding", async () => {

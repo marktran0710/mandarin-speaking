@@ -222,17 +222,26 @@ describe("ConversationPage", () => {
   });
 
   it("analyses an uploaded recording for the current response", async () => {
-    const uploadRecording = vi.fn().mockResolvedValue(makeRecorderResult());
+    const result = makeRecorderResult();
+    result.metrics.pronunciation_evaluation = {
+      status: "scored", reason: null, score: { total: 87, renormalized: false, dimensions: [] },
+      metrics: {}, words: [],
+      feedback: { summary: "Keep the falling tone clear.", focus_words: [{ word: "好", feedback: "Let the pitch dip gently." }], practice_tip: "Repeat the sentence slowly.", source: "llm" },
+      model: { scoring_version: "pronunciation-score-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
+      reference: { key: "reference-1", cache_hit: false, audio_url: "/uploads/sample.wav" },
+    };
+    const uploadRecording = vi.fn().mockResolvedValue(result);
     vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ uploadRecording }));
     vi.mocked(analyzeSpeakingResult).mockReturnValueOnce(makeAnalysis({ accepted: true }));
     const onAddRecord = vi.fn();
+    const onSceneSubmission = vi.fn();
 
     render(
       <ConversationPage
         topic={makeTopic()}
         turns={turns}
         onAddRecord={onAddRecord}
-        onSceneSubmission={vi.fn()}
+        onSceneSubmission={onSceneSubmission}
         onDone={vi.fn()}
         onBack={vi.fn()}
       />,
@@ -246,8 +255,14 @@ describe("ConversationPage", () => {
     await screen.findByText("你覺得表現如何？");
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
+    expect(screen.getByText("87/100")).toBeInTheDocument();
+    expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
+    expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
+    expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "老師示範" })).toBeInTheDocument();
     expect(uploadRecording).toHaveBeenCalledWith(file);
     expect(onAddRecord).toHaveBeenCalledTimes(1);
+    expect(onSceneSubmission).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pronScore: 87 }));
   });
 
   it("keeps the submitted recording for replay after advancing the conversation", async () => {

@@ -172,7 +172,7 @@ export function useConversationSession({
       vocabMissing: result.metrics.ai_feedback?.vocabulary_coverage?.missing ?? [],
       vocabScore: result.metrics.ai_feedback?.vocabulary_coverage?.score ?? 0,
       toneAccuracy: Math.round(result.metrics.tone_accuracy ?? 0),
-      pronScore: Math.round(result.metrics.tone_accuracy ?? 0),
+      pronScore: Math.round(result.metrics.pronunciation_evaluation?.score.total ?? result.metrics.tone_accuracy ?? 0),
       fluencyScore: Math.round(result.metrics.fluency_score ?? 0),
       audioUrl: result.audioUrl,
       modelSimilarity: attemptModelSimilarity({

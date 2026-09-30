@@ -28,3 +28,12 @@ describe("postSpeechAnalysis", () => {
       .rejects.toThrow("Field required (body.scene_index)");
   });
 });
+
+
+it("shows structured pronunciation model errors", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    detail: { code: "llm_http_401", message: "GPT feedback failed. No local feedback was substituted." },
+  }), { status: 502 })));
+  await expect(postSpeechAnalysis(new FormData(), true)).rejects.toThrow("No local feedback was substituted. (llm_http_401)");
+  vi.unstubAllGlobals();
+});

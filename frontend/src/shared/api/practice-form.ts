@@ -4,6 +4,7 @@
  */
 export interface PracticeAnalysisRequestContext {
   transcription?: string;
+  pronunciationFeedback?: boolean;
   asrModel?: string;
   aiProvider?: string;
   sceneVocabulary?: string;
@@ -58,6 +59,7 @@ export function buildPracticeAnalysisFormData(
 
   appendIfPresent("asr_model", context.asrModel);
   appendIfPresent("ai_provider", context.aiProvider);
+  if (context.pronunciationFeedback) formData.append("pronunciation_feedback", "true");
   appendIfPresent("scene_vocabulary", context.sceneVocabulary);
   appendIfPresent("scene_prompt", context.scenePrompt);
   appendIfPresent("scene_image_url", context.sceneImageUrl);

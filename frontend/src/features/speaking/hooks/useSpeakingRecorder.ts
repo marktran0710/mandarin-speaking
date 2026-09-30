@@ -74,6 +74,7 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
       const context = buildContext(nextAttemptNumber);
       const formData = buildPracticeAnalysisFormData(wav, {
         ...context,
+        pronunciationFeedback: true,
         attemptId: context.attemptId ?? createAnalysisAttemptId(),
         participantId: getStudentId(),
         attemptNumber: nextAttemptNumber,
@@ -91,6 +92,9 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
         analysis_version?: string;
         progression_eligible?: boolean;
       };
+      if (!metrics?.pronunciation_evaluation) {
+        throw new Error("The server did not return GPT pronunciation feedback. Restart the backend with the latest version and retry.");
+      }
       metrics.analysis_version = metrics.analysis_version ?? "stable_v1";
       metrics.progression_eligible = verified ? Boolean(payload.progressionEligible) : true;
       const masteryPassed = verified

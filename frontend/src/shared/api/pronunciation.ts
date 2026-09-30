@@ -58,6 +58,7 @@ export interface PronunciationDebug {
 }
 
 export interface PronunciationEvaluation {
+  target_text?: string;
   status: "scored" | "unscorable";
   reason: string | null;
   score: {
@@ -74,7 +75,7 @@ export interface PronunciationEvaluation {
     feedback_model: string | null;
     feedback_source: "llm" | "local";
   };
-  reference: { key: string; cache_hit: boolean };
+  reference: { key: string; cache_hit: boolean; audio_url?: string };
   debug?: PronunciationDebug;
 }
 

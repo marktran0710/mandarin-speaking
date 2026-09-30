@@ -3,7 +3,8 @@
 The reference comes from story data the server owns, never from the client: a
 scene uses its ``listenAudioUrl``; a conversation turn uses that turn's own
 ``targetAudioUrl`` (a turn must not borrow the scene's recording, which is of a
-different sentence).
+different sentence). A turn linked to a scene may reuse that scene recording
+only when their scripts match.
 """
 
 from __future__ import annotations
@@ -38,22 +39,44 @@ def _path_for_upload_url(audio_url: str) -> str:
     return path
 
 
-def _turn_audio_url(story_id: str, turn_id: str) -> Optional[str]:
-    with connect_db() as db:
-        row = repo.find_published_conversation_turns(db, story_id)
-    for turn in (row or {}).get("conversation_turns") or []:
-        if isinstance(turn, dict) and turn.get("id") == turn_id:
-            return turn.get("targetAudioUrl") or None
-    return None
+def _same_script(left: str, right: str) -> bool:
+    from services.pronunciation.script import build_expected_syllables
+    return [s.hanzi for s in build_expected_syllables(left)] == [s.hanzi for s in build_expected_syllables(right)]
 
 
-def _scene_audio_url(story_id: str, scene_index: int) -> Optional[str]:
+def _scene_audio_url(story_id: str, scene_index: int, difficulty_level: str, expected_text: str) -> Optional[str]:
     with connect_db() as db:
         row = repo.find_published_scene(db, story_id)
     frames: list[Any] = (row or {}).get("frames") or []
     if scene_index >= len(frames) or not isinstance(frames[scene_index], dict):
         return None
-    return frames[scene_index].get("listenAudioUrl") or None
+    frame = frames[scene_index]
+    suffix = {"easy": "", "medium": "Medium", "hard": "Hard"}.get(difficulty_level, "")
+    tier_audio = frame.get(f"listenAudioUrl{suffix}") if suffix else None
+    if tier_audio:
+        return tier_audio
+    # A base recording may only be reused when the requested script matches it.
+    recorded_script = str(frame.get("listenScript") or frame.get("suggestedAnswer") or "")
+    if expected_text and not _same_script(expected_text, recorded_script):
+        raise EvaluationError("reference_mismatch", "The teacher recording is for a different sentence. Add a recording for this target.")
+    return frame.get("listenAudioUrl") or None
+
+
+def _turn_audio_url(story_id: str, turn_id: str, scene_index: int, difficulty_level: str, expected_text: str) -> Optional[str]:
+    with connect_db() as db:
+        row = repo.find_published_conversation_turns(db, story_id)
+    turns = (row or {}).get("conversation_turns") or []
+    for turn in turns:
+        if isinstance(turn, dict) and turn.get("id") == turn_id:
+            if turn.get("targetAudioUrl"):
+                return turn["targetAudioUrl"]
+            # Only an explicit scene link with the same target can reuse a sample.
+            if turn.get("sceneIndex") == scene_index and expected_text:
+                return _scene_audio_url(story_id, scene_index, difficulty_level, expected_text)
+            return None
+    if not turns and turn_id == f"student-scene-{scene_index}" and expected_text:
+        return _scene_audio_url(story_id, scene_index, difficulty_level, expected_text)
+    return None
 
 
 def resolve_reference_source(
@@ -62,12 +85,14 @@ def resolve_reference_source(
     *,
     conversation_id: str = "",
     turn_id: str = "",
+    difficulty_level: str = "easy",
+    expected_text: str = "",
 ) -> ReferenceSource:
     if conversation_id or turn_id:
-        audio_url = _turn_audio_url(story_id, turn_id)
+        audio_url = _turn_audio_url(story_id, turn_id, scene_index, difficulty_level, expected_text)
         key = f"story:{story_id}:turn:{turn_id}"
     else:
-        audio_url = _scene_audio_url(story_id, scene_index)
+        audio_url = _scene_audio_url(story_id, scene_index, difficulty_level, expected_text)
         key = f"story:{story_id}:scene:{scene_index}"
     if not audio_url:
         raise EvaluationError(_MISSING, "This exercise has no teacher recording to compare against.")

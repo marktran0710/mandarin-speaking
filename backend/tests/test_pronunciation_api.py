@@ -234,3 +234,89 @@ def test_missing_model_key_is_reported_without_local_feedback(isolated, logged_i
     response = _post(client, _wav(isolated))
     assert response.status_code == 503
     assert response.json()["detail"]["code"] == "llm_not_configured"
+
+
+@pytest.fixture
+def stable_speaking_analysis(monkeypatch):
+    from unittest.mock import AsyncMock
+    from api.schemas.models import AnalysisResponse
+    import main
+    analysis = AnalysisResponse(
+        transcription=TEXT, pitch_contour=[], word_prosody=[], detected_tone=1,
+        tone_accuracy=80, formants={}, speech_rate=3, fluency_score=80,
+        pitch_statistics={}, feedback="Old feedback", ai_feedback={},
+        content_match=True, pronunciation_mastery={"passed": True},
+    )
+    analyzer = AsyncMock(return_value=analysis)
+    monkeypatch.setattr(main, "_do_analyze", analyzer)
+    monkeypatch.setattr(main, "save_uploaded_audio", AsyncMock(return_value="/uploads/audio/attempt.wav"))
+    return analyzer
+
+
+@pytest.mark.parametrize("verified,conversation", [(True, False), (True, True), (False, False), (False, True)])
+def test_speaking_flows_return_and_save_gpt_feedback(
+    isolated, logged_in_student, stable_speaking_analysis, verified, conversation,
+):
+    client, _ = logged_in_student
+    turns = [{"id": "student-1", "speaker": "student", "text": TEXT, "targetText": TEXT,
+              "targetAudioUrl": "/uploads/story_audio/ref.wav"}] if conversation else None
+    _publish_story(turns=turns)
+    _reference(isolated)
+    data = {"base_story_id": STORY_ID, "scene_index": "0", "pronunciation_feedback": "true",
+            "attempt_id": "new-feedback-attempt"}
+    if conversation:
+        data.update(conversation_id="conv-1", turn_id="student-1", turn_index="0")
+    endpoint = "/api/analyze/verified" if verified else "/api/analyze"
+    audio = _wav(isolated)
+    response = client.post(endpoint, files={"file": ("recording.wav", audio, "audio/wav")}, data=data)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    analysis = body["analysis"] if verified else body
+    assert analysis["pronunciation_evaluation"]["score"]["total"] == 100
+    assert analysis["pronunciation_evaluation"]["model"]["feedback_model"] == "gpt-6-luna"
+    assert analysis["pronunciation_evaluation"]["reference"]["audio_url"] == "/uploads/story_audio/ref.wav"
+    assert "debug" not in analysis["pronunciation_evaluation"]
+    assert analysis["feedback_provenance"]["fallback_used"] is False
+    assert analysis["processing_trace"]["stages"][-1]["model"] == "gpt-6-luna"
+    assert analysis["content_match"] is True
+    assert stable_speaking_analysis.call_args.kwargs["skip_language_feedback"] is True
+    if verified:
+        with db.connect_db() as conn:
+            saved = conn.execute("SELECT praat_metrics FROM audio_records WHERE attempt_id = %s", (data["attempt_id"],)).fetchone()
+        assert saved["praat_metrics"]["pronunciation_evaluation"] == analysis["pronunciation_evaluation"]
+        replay = client.post(endpoint, files={"file": ("recording.wav", audio, "audio/wav")}, data=data)
+        assert replay.status_code == 200, replay.text
+        assert replay.json()["analysis"]["pronunciation_evaluation"] == analysis["pronunciation_evaluation"]
+        assert stable_speaking_analysis.await_count == 1
+
+
+def test_gpt_failure_does_not_persist_a_successful_speaking_attempt(
+    isolated, logged_in_student, stable_speaking_analysis, monkeypatch,
+):
+    from services.pronunciation.feedback import FeedbackRejected
+    async def failed_http(*args):
+        raise FeedbackRejected("llm_http_401")
+    monkeypatch.setattr(evaluator_module, "build_feedback_provider", lambda config=None: OpenAICompatibleFeedbackProvider(config, failed_http))
+    client, _ = logged_in_student
+    _publish_story()
+    _reference(isolated)
+    response = client.post("/api/analyze/verified", files={"file": ("recording.wav", _wav(isolated), "audio/wav")},
+                           data={"base_story_id": STORY_ID, "scene_index": "0", "pronunciation_feedback": "true", "attempt_id": "failed-feedback"})
+    assert response.status_code == 502, response.text
+    assert response.json()["detail"]["code"] == "llm_http_401"
+    with db.connect_db() as conn:
+        assert conn.execute("SELECT id FROM audio_records WHERE attempt_id = %s", ("failed-feedback",)).fetchone() is None
+
+
+@pytest.mark.parametrize("matches", [True, False])
+def test_generated_conversation_reuses_only_a_matching_scene_sample(isolated, matches):
+    from services.pronunciation.reference_source import resolve_reference_source
+    from services.pronunciation.evaluator import EvaluationError
+    _publish_story()
+    _reference(isolated)
+    if matches:
+        reference = resolve_reference_source(STORY_ID, 0, conversation_id="conv", turn_id="student-scene-0", expected_text=TEXT)
+        assert reference.audio_url == "/uploads/story_audio/ref.wav"
+    else:
+        with pytest.raises(EvaluationError, match="different sentence"):
+            resolve_reference_source(STORY_ID, 0, conversation_id="conv", turn_id="student-scene-0", expected_text="你好")

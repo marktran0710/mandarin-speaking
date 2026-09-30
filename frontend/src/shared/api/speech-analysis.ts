@@ -3,6 +3,12 @@ import { clientRoleHeader, SESSION_EXPIRED_EVENT, type SessionExpiredEventDetail
 
 function formatValidationDetail(detail: unknown): string | null {
   if (typeof detail === "string" && detail.trim()) return detail;
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    const error = detail as { message?: unknown; code?: unknown };
+    if (typeof error.message === "string") {
+      return `${error.message}${typeof error.code === "string" ? ` (${error.code})` : ""}`;
+    }
+  }
   if (!Array.isArray(detail)) return null;
 
   const messages = detail.map((item) => {
@@ -27,7 +33,7 @@ export async function postSpeechAnalysis(formData: FormData, verified: boolean):
     body: formData,
     credentials: "include",
     headers: { "X-Client-Role": clientRoleHeader() },
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(125_000),
   });
   if (!response.ok) {
     let detail = "Speech analysis failed.";

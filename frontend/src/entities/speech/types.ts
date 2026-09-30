@@ -1,3 +1,4 @@
+import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 export type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "openai";
 
 export type AssistiveFeedbackSyllable = {
@@ -122,6 +123,7 @@ export interface FeedbackProvenance {
 }
 
 export interface PraatMetrics {
+  pronunciation_evaluation?: PronunciationEvaluation;
   transcription?: string;
   transcription_model?: string;
   pitch_contour: Array<[number, number]>;

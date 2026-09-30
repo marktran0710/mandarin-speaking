@@ -389,6 +389,7 @@ class AnalysisResponse(BaseModel):
     pause_analysis: dict = {}
     feedback: str
     ai_feedback: dict
+    pronunciation_evaluation: Optional[Dict[str, Any]] = None
     feedback_provenance: FeedbackProvenance = Field(default_factory=FeedbackProvenance)
     # Set only when the caller passed `verify_word` ??an independent real ASR
     # pass confirming whether the recording actually contains that word,

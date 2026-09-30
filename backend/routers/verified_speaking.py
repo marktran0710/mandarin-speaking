@@ -14,6 +14,7 @@ import security.auth as auth
 from db import connect_db
 from repositories import verified_speech_repository as repo
 from services import student_service
+from services.pronunciation.evaluator import EvaluationError
 
 router = APIRouter()
 
@@ -219,6 +220,7 @@ async def analyze_verified_speech(
     difficulty_level: str = Form("easy"),
     asr_model: str = Form(""),
     ai_provider: str = Form(""),
+    pronunciation_feedback: bool = Form(False),
     transcription: str = Form(""),
     conversation_id: str = Form("", max_length=200),
     turn_id: str = Form("", max_length=128),
@@ -262,7 +264,15 @@ async def analyze_verified_speech(
         )
         if existing.get("topic_id") != scene["story_id"] or existing.get("image_index") != scene["scene_index"]:
             raise HTTPException(status_code=409, detail="Attempt ID was already used for a different scene.")
-        return _response(existing["id"], attempt_id, scene, difficulty_level, existing.get("praat_metrics") or {}, existing.get("audio_url"))
+        saved_payload = existing.get("praat_metrics") or {}
+        if pronunciation_feedback is True:
+            evaluation = saved_payload.get("pronunciation_evaluation")
+            expected_key = (f"story:{scene['story_id']}:turn:{turn_id}" if conversation_id or turn_id
+                            else f"story:{scene['story_id']}:scene:{scene['scene_index']}")
+            if (not evaluation or evaluation.get("target_text") != scene["target_text"]
+                    or evaluation.get("reference", {}).get("key") != expected_key):
+                raise HTTPException(status_code=409, detail="This attempt has no matching GPT pronunciation result. Submit a new attempt.")
+        return _response(existing["id"], attempt_id, scene, difficulty_level, saved_payload, existing.get("audio_url"))
     if attempts:
         raise HTTPException(status_code=409, detail="Attempt ID already exists without server verification.")
 
@@ -273,7 +283,7 @@ async def analyze_verified_speech(
     try:
         async def run_stable_analysis():
             async with app_main.acquire_analysis_slot():
-                return await app_main._do_analyze(
+                stable = await app_main._do_analyze(
                     content, transcription, asr_model, scene["prompt"], scene["vocabulary"], ai_provider,
                     scene["image_url"], scene["phrases"], scene["suggested_answer"],
                     scene_attempt_number=1,
@@ -283,18 +293,31 @@ async def analyze_verified_speech(
                     scene_target_text=scene["target_text"],
                     attempt_id=attempt_id,
                     pitch_profile_snapshot=pitch_profile_snapshot,
+                    skip_language_feedback=pronunciation_feedback is True,
                 )
+
+                if pronunciation_feedback is True:
+                    from services.pronunciation.speaking import attach_pronunciation_feedback
+                    payload = stable.model_dump() if hasattr(stable, "model_dump") else stable.dict()
+                    return await attach_pronunciation_feedback(
+                        payload, content, scene, difficulty_level,
+                        conversation_id=conversation_id, turn_id=turn_id,
+                    )
+                return stable
 
         stable = await asyncio.wait_for(run_stable_analysis(), timeout=app_main.ANALYZE_TIMEOUT_SECONDS)
     except asyncio.TimeoutError as exc:
         raise HTTPException(status_code=504, detail="Verified analysis timed out.") from exc
     except HTTPException:
         raise
+    except EvaluationError as exc:
+        from routers.pronunciation import _error
+        raise _error(exc) from exc
     except Exception as exc:
         app_main.logger.exception("Verified stable analysis failed")
         raise HTTPException(status_code=500, detail="Verified analysis failed.") from exc
 
-    payload = stable.model_dump() if hasattr(stable, "model_dump") else stable.dict()
+    payload = stable if isinstance(stable, dict) else stable.model_dump() if hasattr(stable, "model_dump") else stable.dict()
     record_id = str(uuid.uuid4())
     audio_url = ""
     try:

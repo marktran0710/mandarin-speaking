@@ -1,3 +1,4 @@
+import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 import type { AssistiveFeedbackSyllable, BackendFeedbackQuality, FeedbackProvenance } from "@entities/speech";
 import { averageWordProsodyAccuracy } from "../../../utils/storyRecorderFeedback";
 import type { SceneSubmission, StoredAudioRecord } from "../../../services/database";
@@ -18,6 +19,7 @@ export interface PauseAnalysis {
 }
 
 export interface PraatMetrics {
+  pronunciation_evaluation?: PronunciationEvaluation;
   transcription?: string;
   transcription_model?: string;
   pitch_contour: Array<[number, number]>;

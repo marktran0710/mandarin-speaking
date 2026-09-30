@@ -133,6 +133,7 @@ async def _do_analyze(
     attempt_type: str = "WHOLE_SENTENCE_INITIAL",
     study_phase: str = "",
     pitch_profile_snapshot: Optional[Dict[str, str]] = None,
+    skip_language_feedback: bool = False,
 ) -> AnalysisResponse:
     tmp_path = None
     trace_started_at = time.perf_counter()
@@ -462,7 +463,7 @@ async def _do_analyze(
 
         feedback_started_at = time.perf_counter()
         feedback_timeout = False
-        if feedback_quality["can_score_pronunciation"]:
+        if feedback_quality["can_score_pronunciation"] and not skip_language_feedback:
             try:
                 ai_feedback = await asyncio.wait_for(
                     generate_language_feedback(
@@ -515,7 +516,8 @@ async def _do_analyze(
                 "skipped",
                 feedback_started_at,
                 provider=ai_provider or "backend-default",
-                detail="Recording evidence was not reliable enough for coaching.",
+                detail=("Coaching is handled by the pronunciation evaluator."
+                        if skip_language_feedback else "Recording evidence was not reliable enough for coaching."),
                 reason_codes=feedback_quality.get("reason_codes"),
             )
 

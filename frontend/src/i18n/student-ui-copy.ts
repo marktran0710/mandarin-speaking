@@ -20,6 +20,7 @@ const baseStudentUiCopy = {
   placement: { zh: "入門測驗", pinyin: "Rùmén cèyàn", en: "Placement" },
   settings: { zh: "設定", pinyin: "Shèdìng", en: "Settings" },
   characterSettings: { zh: "角色設定", pinyin: "Juésè shèdìng", en: "Character settings" },
+  pronunciationScore: { zh: "發音分數", pinyin: "Fāyīn fēnshù", en: "Pronunciation score" },
   voiceAnalysis: { zh: "聲音分析", pinyin: "Shēngyīn fēnxī", en: "Voice analysis" },
   changePassword: { zh: "更改密碼", pinyin: "Gēnggǎi mìmǎ", en: "Change password" },
   studentAvatar: { zh: "我的角色", pinyin: "Wǒ de juésè", en: "My avatar" },

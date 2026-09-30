@@ -32,7 +32,7 @@ interface ScriptUnit {
 }
 
 export default function SpeechResultReview({
-  targetScript,
+  targetScript: requestedTargetScript,
   transcript,
   metrics,
   audioBlob,
@@ -41,6 +41,8 @@ export default function SpeechResultReview({
   modelContour,
   footer,
 }: SpeechResultReviewProps) {
+  const pronunciation = metrics.pronunciation_evaluation;
+  const targetScript = pronunciation?.target_text ?? requestedTargetScript;
   const words = metrics.word_prosody ?? [];
   const modelOverlay = useMemo(
     () => buildModelOverlay({
@@ -61,7 +63,7 @@ export default function SpeechResultReview({
   const [selectedPhrase, setSelectedPhrase] = useState<string | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string>();
   const selectedWord = selectedIndex === null ? undefined : words[selectedIndex];
-  const aiFeedback = getAiFeedback(metrics);
+  const aiFeedback = pronunciation?.feedback.summary ?? getAiFeedback(metrics);
 
   useEffect(() => {
     if (!audioBlob || audioBlob.size === 0 || audioUrl) {
@@ -86,6 +88,11 @@ export default function SpeechResultReview({
 
       <div className="sa-result-review__summary" aria-label={studentUiCopy.resultStep.zh}>
         <ResultBadge ok={meaningPassed} />
+        {pronunciation?.score.total != null && (
+          <span className="sa-result-badge">
+            <StudentSystemText k="pronunciationScore" withinControl />：<strong>{pronunciation.score.total}/100</strong>
+          </span>
+        )}
       </div>
 
       <div className="sa-result-review__script" aria-label={studentUiCopy.wordByWord.zh}>
@@ -179,7 +186,15 @@ export default function SpeechResultReview({
           <StudentIcon name="school" size={18} role="meaningful" label={studentUiCopy.aiTeacher.zh} />
           <div>
             <strong><StudentSystemText k="aiTeacher" /></strong>
+            {pronunciation?.model.feedback_model && <span> · {pronunciation.model.feedback_model}</span>}
             <p>{aiFeedback}</p>
+            {pronunciation?.feedback.focus_words.map((focus) => (
+              <p key={focus.word}><strong lang="zh-Hant">{focus.word}</strong>：<span>{focus.feedback}</span></p>
+            ))}
+            {pronunciation?.feedback.practice_tip && <p>{pronunciation.feedback.practice_tip}</p>}
+            {pronunciation?.reference.audio_url && (
+              <StudentAudioControl audioUrl={pronunciation.reference.audio_url} labelKey="teacherModel" />
+            )}
           </div>
         </div>
       )}

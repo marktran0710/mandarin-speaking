@@ -117,7 +117,7 @@ export default function StorySpeakingPage({
       vocabMissing: coverage?.missing ?? [],
       vocabScore: coverage?.score ?? 0,
       toneAccuracy: Math.round(result.metrics.tone_accuracy ?? 0),
-      pronScore: Math.round(result.metrics.tone_accuracy ?? 0),
+      pronScore: Math.round(result.metrics.pronunciation_evaluation?.score.total ?? result.metrics.tone_accuracy ?? 0),
       fluencyScore: Math.round(result.metrics.fluency_score ?? 0),
       audioUrl: result.audioUrl,
       pauseCount: result.metrics.pause_analysis?.pause_count ?? 0,

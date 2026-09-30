@@ -13,6 +13,7 @@ from services.asr import TranscriptionResponse
 from services.text_normalization import correct_homophones
 from db import connect_db
 from services import student_service
+from services.pronunciation.evaluator import EvaluationError
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
@@ -40,6 +41,13 @@ async def analyze_speech(
     scene_prompt: str = Form(""),
     scene_vocabulary: str = Form(""),
     ai_provider: str = Form(""),
+    pronunciation_feedback: bool = Form(False),
+    base_story_id: str = Form(""),
+    scene_index: int = Form(0, ge=0),
+    difficulty_level: str = Form("easy"),
+    conversation_id: str = Form(""),
+    turn_id: str = Form(""),
+    turn_index: int | None = Form(None, ge=0),
     scene_image_url: str = Form(""),
     scene_phrases: str = Form(""),
     scene_suggested_answer: str = Form(""),
@@ -129,13 +137,28 @@ async def analyze_speech(
         except (json.JSONDecodeError, TypeError):
             reference_word_curves = None
 
+    target = None
+    if pronunciation_feedback is True:
+        from routers.verified_speaking import resolve_verified_speaking_target, _TIER_SUFFIX
+        if difficulty_level not in _TIER_SUFFIX or not base_story_id:
+            raise HTTPException(status_code=422, detail="A published story and valid difficulty are required.")
+        target = resolve_verified_speaking_target(
+            base_story_id, scene_index, difficulty_level,
+            conversation_id=conversation_id, turn_id=turn_id, turn_index=turn_index,
+        )
+        scene_target_text = target["target_text"]
+        scene_prompt, scene_vocabulary = target["prompt"], target["vocabulary"]
+        scene_image_url, scene_phrases = target["image_url"], target["phrases"]
+        scene_suggested_answer = target["suggested_answer"]
+        reference_word_curves = target["reference_word_curves"]
+
     async def _run_analysis():
         # Bounds how many of these run their CPU-bound stages at once - see
         # main.analyze_semaphore. Acquired inside the timeout so a long
         # queue wait counts against ANALYZE_TIMEOUT_SECONDS same as
         # processing time, instead of being able to wait forever.
         async with main.acquire_analysis_slot():
-            return await main._do_analyze(
+            stable = await main._do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
                 scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
                 reference_word_curves, scene_target_text,
@@ -143,7 +166,16 @@ async def analyze_speech(
                 attempt_id=attempt_id, attempt_number=attempt_number, attempt_type=attempt_type,
                 study_phase=study_phase,
                 pitch_profile_snapshot=pitch_profile_snapshot,
+                skip_language_feedback=pronunciation_feedback is True,
             )
+
+            if target is not None:
+                from services.pronunciation.speaking import attach_pronunciation_feedback
+                return await attach_pronunciation_feedback(
+                    stable.model_dump(), content, target, difficulty_level,
+                    conversation_id=conversation_id, turn_id=turn_id,
+                )
+            return stable
 
     try:
         return await asyncio.wait_for(_run_analysis(), timeout=main.ANALYZE_TIMEOUT_SECONDS)
@@ -154,6 +186,9 @@ async def analyze_speech(
         )
     except HTTPException:
         raise
+    except EvaluationError as exc:
+        from routers.pronunciation import _error
+        raise _error(exc) from exc
     except Exception as exc:
         main.logger.exception("Error in analyze_speech")
         raise HTTPException(status_code=500, detail=f"Error analyzing speech: {exc}") from exc

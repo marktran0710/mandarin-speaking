@@ -200,3 +200,17 @@ async def test_final_cloud_coaching_receives_praat_evidence_after_auto_asr():
     stages = [stage.stage for stage in result.processing_trace.stages]
     assert stages.index("feedback") > stages.index("praat")
     assert stages.index("feedback") > stages.index("quality_gate")
+
+
+@pytest.mark.asyncio
+async def test_new_pronunciation_flow_skips_old_cloud_feedback():
+    import main
+    cloud = AsyncMock(return_value=LOCAL_FEEDBACK)
+    with contextlib.ExitStack() as stack:
+        for cm in _common_patches(lambda *_a, **_k: PRAAT_RESULT, cloud):
+            stack.enter_context(cm)
+        result = await main._do_analyze(
+            b"wav-bytes", "你好", "test", scene_target_text="你好", skip_language_feedback=True,
+        )
+    cloud.assert_not_awaited()
+    assert result.transcription == "你好"
