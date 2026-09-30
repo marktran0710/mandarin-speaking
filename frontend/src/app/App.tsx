@@ -28,7 +28,7 @@ import {
 } from "@entities/audio";
 import {
   publishedTopicsFromStories,
-  saveCustomStories,
+  saveStoryTitleIndex,
 } from "@entities/story";
 import type { Topic } from "@entities/topic";
 import { primePinyin } from "@entities/vocabulary";
@@ -168,12 +168,13 @@ export default function App() {
     if (publishedTopicsRequestRef.current) return publishedTopicsRequestRef.current;
     const request = (async () => {
       try {
-        const stories = await listCustomStories();
+        // Slim list: each lesson loads its own pitch data when opened.
+        const stories = await listCustomStories({ includeReferenceData: false });
         const signature = JSON.stringify(stories);
         if (signature === publishedStoriesSignatureRef.current) return;
         publishedStoriesSignatureRef.current = signature;
         setPublishedTopics(publishedTopicsFromStories(stories));
-        saveCustomStories(stories);
+        saveStoryTitleIndex(stories);
       } catch {/* keep current */}
     })().finally(() => { publishedTopicsRequestRef.current = null; });
     publishedTopicsRequestRef.current = request;

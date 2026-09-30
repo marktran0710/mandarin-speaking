@@ -33,6 +33,31 @@ export function saveCustomStories(stories: CustomTeacherStory[]) {
   }
 }
 
+// Topic id -> title, kept by the student app. It replaces writing the student's
+// (pitch-data-free) story list into the teacher authoring cache above: a teacher
+// editor opened later in the same browser hydrates from that cache and must
+// never see stories with their pitch data stripped.
+const STORY_TITLE_INDEX_KEY = "studentStoryTitles";
+
+export function saveStoryTitleIndex(stories: CustomTeacherStory[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const titles = Object.fromEntries(stories.map((story) => [`teacher-${story.id}`, story.title]));
+    window.localStorage.setItem(STORY_TITLE_INDEX_KEY, JSON.stringify(titles));
+  } catch {/* best-effort cache */}
+}
+
+export function loadStoryTitle(topicId: string | undefined): string | undefined {
+  if (typeof window === "undefined" || !topicId) return undefined;
+  try {
+    const stored = window.localStorage.getItem(STORY_TITLE_INDEX_KEY);
+    const title = stored ? (JSON.parse(stored) as Record<string, unknown>)[topicId] : undefined;
+    return typeof title === "string" ? title : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function loadPublishedTeacherTopics(): Topic[] {
   return publishedTopicsFromStories(loadCustomStories());
 }

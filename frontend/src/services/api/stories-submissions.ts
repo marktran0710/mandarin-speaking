@@ -1,5 +1,5 @@
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
-import type { StoryPhrasesByLevel, StoryVocabularyByLevel } from "@entities/story";
+import type { StoryPhrasesByLevel, StoryReferenceData, StoryVocabularyByLevel } from "@entities/story";
 import type { VocabAssessmentQuestion } from "@entities/vocabulary";
 import type { ConversationTurn } from "@entities/conversation";
 
@@ -12,7 +12,20 @@ export interface SubmissionQuizRoundScore { finished: boolean; score: number | n
 /** Server-filled context of a submission: one per student per lesson, overwritten on resubmit. */
 export interface StorySubmission { id: string; storyId: string; storyTitle: string; studentName: string; studentId?: string; submittedAt: string; scenes: SceneSubmission[]; concatenatedAudioUrl?: string | null; storyFeedback?: StoryFeedback | null; reviewStatus: "pending" | "reviewed"; teacherNote?: string | null; practicePath?: "speaking" | "conversation" | "both" | null; quizScores?: Partial<Record<"tier1" | "tier2" | "tier3", SubmissionQuizRoundScore>> | null; submissionCount?: number; }
 
-export async function listCustomStories(): Promise<StoredCustomStory[]> { const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories`); if (!response.ok) throw new Error("Could not load custom stories from the database."); const stories = await response.json(); return Array.isArray(stories) ? stories : []; }
+/** `includeReferenceData: false` omits the per-sentence pitch data (~77% of the payload);
+ * the student app then loads it per lesson via getStoryReferenceData. */
+export async function listCustomStories(options?: { includeReferenceData?: boolean }): Promise<StoredCustomStory[]> {
+  const query = options?.includeReferenceData === false ? "?include_reference_data=false" : "";
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories${query}`);
+  if (!response.ok) throw new Error("Could not load custom stories from the database.");
+  const stories = await response.json();
+  return Array.isArray(stories) ? stories : [];
+}
+export async function getStoryReferenceData(storyId: string): Promise<StoryReferenceData> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/reference-data`);
+  if (!response.ok) throw new Error("Could not load the lesson's reference data from the database.");
+  return response.json() as Promise<StoryReferenceData>;
+}
 export async function createCustomStory(story: StoredCustomStory): Promise<StoredCustomStory> { const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(story) }); if (!response.ok) throw new Error("Could not save custom story to the database."); return response.json() as Promise<StoredCustomStory>; }
 export async function deleteCustomStoryFromDatabase(id: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(id)}`, { method: "DELETE" }); if (!response.ok) throw new Error("Could not delete custom story from the database."); }
 export async function listStorySubmissions(storyId?: string, student?: { studentId?: string; studentName?: string }, options?: { includeScenes?: boolean }): Promise<StorySubmission[]> { const params = new URLSearchParams(); if (storyId) params.set("story_id", storyId); if (student?.studentId) params.set("student_id", student.studentId); else if (student?.studentName) params.set("student_name", student.studentName); if (options?.includeScenes === false) params.set("include_scenes", "false"); const query = params.toString(); const response = await fetchWithRetry(query ? `${BACKEND_URL}/api/story-submissions?${query}` : `${BACKEND_URL}/api/story-submissions`); if (!response.ok) throw new Error("Could not load story submissions."); const data = await response.json(); return Array.isArray(data) ? data : []; }

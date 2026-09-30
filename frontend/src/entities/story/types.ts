@@ -45,6 +45,17 @@ export interface CustomStoryFrame {
   sentenceModelContour?: string;
 }
 
+/** The pitch fields the student story list omits (see
+ * GET /api/custom-stories?include_reference_data=false). */
+export type SentenceReferenceFields = Pick<CustomStoryFrame, "sentenceReferenceCurves" | "sentenceModelContour">;
+
+/** GET /api/custom-stories/{id}/reference-data: one entry per frame, index
+ * aligned with the story's frames. */
+export interface StoryReferenceData {
+  storyId: string;
+  frames: SentenceReferenceFields[];
+}
+
 export interface CustomTeacherStory {
   id: string;
   title: string;

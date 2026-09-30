@@ -9,6 +9,8 @@ import { computeQuizStarsSummary, loadLocalStars, PRACTICE_UNLOCK_STARS, topicHa
 import { getStudentId, isAdminSession } from "../../utils/studentSession";
 import { loadPhaseFlags, markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import { resetLocalVocabularyProgress, syncServerVocabularyProgress } from "../../utils/serverVocabularyProgress";
+import LessonReferenceGate from "./LessonReferenceGate";
+import { useStoryReferenceData } from "./useStoryReferenceData";
 import StudentShell from "./shell/StudentShell";
 import type { StudentPhase, StudentTopSection } from "./shell/StudentSidebar";
 import {
@@ -59,6 +61,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   // when the lesson opens, so a refresh doesn't lose finished work.
   const [sceneSubmissions, setSceneSubmissions] = useState<Record<string, SceneSubmission>>({});
   const [activeProgression, setActiveProgression] = useState<VocabularyProgression | null>(null);
+  // The story list omits per-sentence pitch data; Story Speaking and
+  // Conversation get it (and wait for it) through this.
+  const referenceData = useStoryReferenceData(activeTopic);
   const [previewCompletedFor, setPreviewCompletedFor] = useState<string | null>(null);
   // Bumped whenever saved progress changes outside React state (quiz rounds
   // write localStorage, pages write the phase flags) so derived gates re-read.
@@ -289,10 +294,12 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         }}
       />
     );
+  } else if ((phase === "story-speaking" || phase === "conversation") && referenceData.status !== "ready") {
+    body = <LessonReferenceGate status={referenceData.status} onRetry={referenceData.retry} />;
   } else if (phase === "story-speaking") {
     body = (
       <StorySpeakingPage
-        topic={activeTopic}
+        topic={referenceData.topic ?? activeTopic}
         selectedImageIndex={sceneIndex}
         onImageIndexChange={setSceneIndex}
         onAddRecord={onAddRecord}
@@ -307,7 +314,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   } else if (phase === "conversation") {
     body = (
       <ConversationPage
-        topic={activeTopic}
+        topic={referenceData.topic ?? activeTopic}
         turns={availableConversationTurns}
         onAddRecord={onAddRecord}
         onSceneSubmission={handleSceneSubmission}

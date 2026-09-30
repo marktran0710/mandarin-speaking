@@ -3,7 +3,14 @@ import { buildConversationTurnsFromScenes } from "@entities/conversation";
 import { numericToToneMarked } from "@entities/vocabulary";
 import { parseSentenceModelContour, type SentenceModelContour } from "../speech/modelOverlay";
 import { resolveImageUrl, splitCsvField, tierText, TIER_SUFFIX } from "./storyText";
-import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "./types";
+import type {
+  CustomStoryFrame,
+  CustomTeacherStory,
+  SentenceReferenceFields,
+  StoryDifficultyLevel,
+  StoryReferenceData,
+  VocabGroup,
+} from "./types";
 
 /** Map a stored teacher story to the runtime topic shape.
  *
@@ -74,19 +81,9 @@ export function storyToTopic(
         Array.isArray(curve) ? curve.filter((value): value is number => typeof value === "number") : [],
       );
     }
-    const sentenceCurves = parseJson(frame[`sentenceReferenceCurves${suffix}` as keyof CustomStoryFrame]);
-    if (sentenceCurves && typeof sentenceCurves === "object" && !Array.isArray(sentenceCurves)) {
-      const safeCurves: Record<string, number[]> = {};
-      Object.entries(sentenceCurves).forEach(([token, curve]) => {
-        if (Array.isArray(curve)) {
-          const numbers = curve.filter((value): value is number => typeof value === "number");
-          if (numbers.length) safeCurves[token] = numbers;
-        }
-      });
-      if (Object.keys(safeCurves).length) sentenceReferenceCurves[index] = safeCurves;
-    }
-    const modelContour = parseSentenceModelContour(frame[`sentenceModelContour${suffix}` as keyof CustomStoryFrame]);
-    if (modelContour) sentenceModelContours[index] = modelContour;
+    const sentenceData = sentenceReferenceDataFromFrame(frame, suffix);
+    if (sentenceData.curves) sentenceReferenceCurves[index] = sentenceData.curves;
+    if (sentenceData.contour) sentenceModelContours[index] = sentenceData.contour;
   });
 
   // Story-wide learning content is represented by one logical scene so the
@@ -172,6 +169,51 @@ export function storyToTopic(
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),
     difficultyLevel,
     sourceStory: story,
+  };
+}
+
+/** The per-sentence pitch data of one frame, parsed from its stored JSON. */
+function sentenceReferenceDataFromFrame(
+  frame: SentenceReferenceFields,
+  suffix: string,
+): { curves?: Record<string, number[]>; contour?: SentenceModelContour } {
+  const result: { curves?: Record<string, number[]>; contour?: SentenceModelContour } = {};
+  const sentenceCurves = parseJson(frame[`sentenceReferenceCurves${suffix}` as keyof SentenceReferenceFields]);
+  if (sentenceCurves && typeof sentenceCurves === "object" && !Array.isArray(sentenceCurves)) {
+    const safeCurves: Record<string, number[]> = {};
+    Object.entries(sentenceCurves).forEach(([token, curve]) => {
+      if (Array.isArray(curve)) {
+        const numbers = curve.filter((value): value is number => typeof value === "number");
+        if (numbers.length) safeCurves[token] = numbers;
+      }
+    });
+    if (Object.keys(safeCurves).length) result.curves = safeCurves;
+  }
+  const modelContour = parseSentenceModelContour(frame[`sentenceModelContour${suffix}` as keyof SentenceReferenceFields]);
+  if (modelContour) result.contour = modelContour;
+  return result;
+}
+
+/** Overlay the lesson's pitch data (fetched separately from the slim story
+ * list) onto its topic. Returns the same topic when there is nothing to add. */
+export function topicWithReferenceData(
+  topic: Topic,
+  referenceData: StoryReferenceData,
+  difficultyLevel: StoryDifficultyLevel = "easy",
+): Topic {
+  const suffix = TIER_SUFFIX[difficultyLevel];
+  const sentenceReferenceCurves: Record<number, Record<string, number[]>> = {};
+  const sentenceModelContours: Record<number, SentenceModelContour> = {};
+  referenceData.frames.forEach((frame, index) => {
+    const data = sentenceReferenceDataFromFrame(frame, suffix);
+    if (data.curves) sentenceReferenceCurves[index] = data.curves;
+    if (data.contour) sentenceModelContours[index] = data.contour;
+  });
+  if (!Object.keys(sentenceReferenceCurves).length && !Object.keys(sentenceModelContours).length) return topic;
+  return {
+    ...topic,
+    ...(Object.keys(sentenceReferenceCurves).length ? { sentenceReferenceCurves } : {}),
+    ...(Object.keys(sentenceModelContours).length ? { sentenceModelContours } : {}),
   };
 }
 

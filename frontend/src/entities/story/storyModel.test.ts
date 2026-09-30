@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { storyToTopic } from "./model";
+import { storyToTopic, topicWithReferenceData } from "./model";
 import type { CustomTeacherStory } from "./types";
 
 describe("storyToTopic", () => {
@@ -56,5 +56,36 @@ describe("storyToTopic", () => {
     expect(topic).not.toHaveProperty("vocabularyCloze");
     expect(topic).not.toHaveProperty("vocabularySynonym");
     expect(topic).not.toHaveProperty("quizVocabulary");
+  });
+});
+
+describe("topicWithReferenceData", () => {
+  const curves = JSON.stringify({ "你": [0.5, 0.4, 0.3], bad: ["x"] });
+  const contour = JSON.stringify({ text: "你", tokens: [{ token: "你", points: [[0, 1]] }] });
+  const frames = [
+    { imageUrl: "", prompt: "one", vocabulary: "", sentenceReferenceCurves: curves, sentenceModelContour: contour },
+    { imageUrl: "", prompt: "two", vocabulary: "" },
+  ];
+
+  it("gives a slim-list topic exactly the pitch data a full-list topic would have", () => {
+    const full = storyToTopic({ id: "s", title: "S", frames });
+    const slim = storyToTopic({ id: "s", title: "S", frames: frames.map(({ sentenceReferenceCurves, sentenceModelContour, ...rest }) => rest) });
+    expect(slim.sentenceReferenceCurves).toBeUndefined();
+    expect(slim.sentenceModelContours).toBeUndefined();
+
+    const merged = topicWithReferenceData(slim, {
+      storyId: "s",
+      frames: [{ sentenceReferenceCurves: curves, sentenceModelContour: contour }, {}],
+    });
+
+    expect(merged.sentenceReferenceCurves).toEqual(full.sentenceReferenceCurves);
+    expect(merged.sentenceModelContours).toEqual(full.sentenceModelContours);
+    expect(merged.sentenceReferenceCurves?.[0]).toEqual({ 你: [0.5, 0.4, 0.3] });
+    expect(merged.name).toBe(slim.name);
+  });
+
+  it("returns the same topic when the story has no pitch data", () => {
+    const topic = storyToTopic({ id: "s", title: "S", frames: [{ imageUrl: "", prompt: "one", vocabulary: "" }] });
+    expect(topicWithReferenceData(topic, { storyId: "s", frames: [{}] })).toBe(topic);
   });
 });

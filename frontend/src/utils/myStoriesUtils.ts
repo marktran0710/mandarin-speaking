@@ -1,5 +1,5 @@
 import type { VocabQuizAttempt } from "../services/database";
-import { loadPublishedTeacherTopics } from "@entities/story";
+import { loadPublishedTeacherTopics, loadStoryTitle } from "@entities/story";
 import type { CustomStoryValidationErrors } from "@features/teacher/components/story-builder/StoryBuilderSection";
 
 export function getStudentTopics() {
@@ -216,7 +216,7 @@ export function getToneName(tone: number): string {
 
 export function getTopicLabel(topicId?: string): string {
   const topic = getStudentTopics().find((item) => item.id === topicId);
-  return topic?.name || "故事 Story";
+  return loadStoryTitle(topicId) || topic?.name || "故事 Story";
 }
 
 export function formatContourShape(shape: string): string {
