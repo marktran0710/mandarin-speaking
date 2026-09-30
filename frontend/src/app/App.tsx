@@ -71,6 +71,10 @@ export default function App() {
   const [publishedTopicsReady, setPublishedTopicsReady] = useState(false);
   const studentDataReady = publishedTopicsReady;
   const [publishedTopics, setPublishedTopics] = useState<Topic[]>([]);
+  // Signature of the stories behind `publishedTopics`. A focus refresh whose
+  // payload is unchanged must keep the same array: StudentApp's effects are
+  // keyed on it, so a fresh identity re-fired its progress requests.
+  const publishedStoriesSignatureRef = useRef<string | null>(null);
   const [, setPinyinRevision] = useState(0);
   const storyTopics = publishedTopics;
 
@@ -83,6 +87,7 @@ export default function App() {
       signOut("student");
       setActiveRole(null);
       setAudioRecords([]);
+      publishedStoriesSignatureRef.current = null;
       setPublishedTopics([]);
       setCurrentPage("student-login");
     };
@@ -156,6 +161,7 @@ export default function App() {
   const publishedTopicsRequestRef = useRef<Promise<void> | null>(null);
   const refreshPublishedTopics = useCallback(async () => {
     if (!canUseDatabase()) {
+      publishedStoriesSignatureRef.current = null;
       setPublishedTopics([]);
       return;
     }
@@ -163,6 +169,9 @@ export default function App() {
     const request = (async () => {
       try {
         const stories = await listCustomStories();
+        const signature = JSON.stringify(stories);
+        if (signature === publishedStoriesSignatureRef.current) return;
+        publishedStoriesSignatureRef.current = signature;
         setPublishedTopics(publishedTopicsFromStories(stories));
         saveCustomStories(stories);
       } catch {/* keep current */}
@@ -173,6 +182,7 @@ export default function App() {
 
   useEffect(() => {
     if (activeRole !== "student") {
+      publishedStoriesSignatureRef.current = null;
       setPublishedTopics([]);
       setPublishedTopicsReady(true);
       return;
