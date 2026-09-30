@@ -90,6 +90,9 @@ services:
       BACKEND_PROXY_TARGET: http://backend:8000
       VITE_OPEN_BROWSER: "false"
       CHOKIDAR_USEPOLLING: "true"
+      # Default poll interval is 100ms, which on a Windows bind mount pegs the
+      # dev server and makes every request (incl. the /api proxy) take 0.5-2s.
+      CHOKIDAR_INTERVAL: "1000"
     volumes:
       - ./frontend:/app
       - dev_node_modules:/app/node_modules

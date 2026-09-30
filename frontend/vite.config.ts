@@ -26,6 +26,14 @@ export default defineConfig({
     // is dev-server only (`vite dev`/`preview`); it has no effect on the
     // production build, which Vite never serves.
     allowedHosts: true,
+    // In Docker on Windows the source is a bind mount that Vite has to poll
+    // (inotify events don't cross it). Polling stats every watched file every
+    // interval and starves the event loop / libuv threadpool, so each dev
+    // request (even the /api proxy) took 0.5-2s. Keep build output, test
+    // artefacts and the Next.js cache out of the watch set.
+    watch: {
+      ignored: ["**/.next/**", "**/dist/**", "**/output/**", "**/test-results/**", "**/e2e/**", "**/*.png"],
+    },
     // Proxying /api and /uploads makes the browser see frontend+backend as
     // one origin, so the httpOnly session cookie (backend/auth.py) is sent
     // on every request - a plain cross-port fetch is cross-origin, and
