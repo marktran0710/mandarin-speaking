@@ -4,6 +4,8 @@ Coordinates the story repository with frame-media persistence and payload
 validation. Raises StoryValidationError (not HTTPException) - the router
 maps it to an HTTP status code.
 """
+from typing import Optional
+
 from db import connect_db
 import services.media as media_service
 from domain.vocabulary.assessment import validate_assessment_payload
@@ -18,9 +20,45 @@ class StoryValidationError(Exception):
         self.detail = detail
 
 
-def list_stories(db, *, published_only: bool, limit: int, skip: int) -> list[dict]:
+# Per-sentence pitch data: ~77% of a student's story-list payload, yet only the
+# lesson being practised needs it. Served on its own via get_reference_data().
+_REFERENCE_DATA_FIELDS = tuple(
+    f"{base}{suffix}"
+    for base in ("sentenceReferenceCurves", "sentenceModelContour")
+    for suffix in ("", "Medium", "Hard")
+)
+
+
+def _without_reference_data(story: dict) -> dict:
+    frames = [
+        {key: value for key, value in frame.items() if key not in _REFERENCE_DATA_FIELDS}
+        for frame in story["frames"]
+    ]
+    return {**story, "frames": frames}
+
+
+def list_stories(
+    db, *, published_only: bool, limit: int, skip: int, include_reference_data: bool = True
+) -> list[dict]:
     rows = repo.list_stories(db, published_only=published_only, limit=limit, skip=skip)
-    return [row_to_custom_story(row) for row in rows]
+    stories = [row_to_custom_story(row) for row in rows]
+    if include_reference_data:
+        return stories
+    return [_without_reference_data(story) for story in stories]
+
+
+def get_reference_data(db, story_id: str, *, published_only: bool) -> Optional[dict]:
+    """The per-frame pitch fields stripped from the slim list, index-aligned
+    with ``frames``. ``None`` when the story is missing (or a draft the caller
+    may not see)."""
+    row = repo.find_story_reference_row(db, story_id)
+    if row is None or (published_only and not row["published"]):
+        return None
+    frames = [
+        {field: frame[field] for field in _REFERENCE_DATA_FIELDS if frame.get(field)}
+        for frame in (row["frames"] or [])
+    ]
+    return {"storyId": story_id, "frames": frames}
 
 
 def create_story(story) -> dict:

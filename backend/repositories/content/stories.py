@@ -70,6 +70,15 @@ def upsert_story(
     )
 
 
+def find_story_reference_row(db, story_id: str) -> Optional[dict]:
+    """Just ``frames`` + ``published`` - the columns the lesson-time
+    reference-data read needs, without the quiz bank and conversation audio."""
+    return db.execute(
+        "SELECT frames, published FROM custom_stories WHERE id = %s",
+        (story_id,),
+    ).fetchone()
+
+
 def find_story_frames_row(db, story_id: str) -> Optional[dict]:
     """Raw media-bearing story columns for delete cleanup."""
     return db.execute(

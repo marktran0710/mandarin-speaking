@@ -29,11 +29,32 @@ def _tier_field(base: str, tier: str) -> str:
 def list_custom_stories(
     limit: int = Query(default=100, ge=1, le=500),
     skip: int = Query(default=0, ge=0),
+    # The student app passes false and fetches each lesson's pitch data on
+    # demand (see get_story_reference_data); staff editors keep the default.
+    include_reference_data: bool = Query(default=True),
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     published_only = identity.role == "student"
     with connect_db() as db:
-        return story_service.list_stories(db, published_only=published_only, limit=limit, skip=skip)
+        return story_service.list_stories(
+            db,
+            published_only=published_only,
+            limit=limit,
+            skip=skip,
+            include_reference_data=include_reference_data,
+        )
+
+
+@router.get("/api/custom-stories/{story_id}/reference-data")
+def get_story_reference_data(
+    story_id: str,
+    identity: auth.Identity = Depends(auth.get_current_identity),
+):
+    with connect_db() as db:
+        data = story_service.get_reference_data(db, story_id, published_only=identity.role == "student")
+    if data is None:
+        raise HTTPException(status_code=404, detail="Story not found.")
+    return data
 
 
 @router.post("/api/custom-stories")
