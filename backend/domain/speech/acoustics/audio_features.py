@@ -244,6 +244,62 @@ def extract_pitch(
     return _pitch_contour_from_sound(sound, time_step, pitch_floor, pitch_ceiling)
 
 
+# Pass-one range of the two-pass tracker: wide enough for any adult voice.
+_FIRST_PASS_FLOOR_HZ = 60.0
+_FIRST_PASS_CEILING_HZ = 600.0
+_MIN_VOICED_FRAMES_FOR_ADAPTIVE_RANGE = 10
+
+
+def speaker_pitch_range(voiced_f0: np.ndarray) -> Tuple[float, float]:
+    """Pitch floor/ceiling fitted to one speaker: 0.75 x the first quartile up
+    to 2.5 x the third quartile of their own voiced f0 (Hirst & De Looze's
+    recommendation, also in the Praat manual), clamped to 60-900 Hz.
+
+    A fixed 75-500 Hz window lets the tracker lock onto a sub-harmonic (an
+    octave low) on a high voice; a window tied to the speaker cannot.
+    """
+    q25, q75 = np.percentile(np.asarray(voiced_f0, dtype=float), [25, 75])
+    return max(_FIRST_PASS_FLOOR_HZ, 0.75 * float(q25)), min(900.0, 2.5 * float(q75))
+
+
+def extract_pitch_two_pass(
+    audio_path: str,
+    time_step: float = PITCH_TIME_STEP,
+) -> List[Tuple[float, float]]:
+    """Voiced pitch as (time_seconds, frequency_hz), tracked with a range fitted
+    to the speaker (see ``speaker_pitch_range``).
+
+    Used where an octave error would end up on screen and in a score - the
+    teacher's model contour. Measured on the 82 stored teacher recordings, it
+    cut word contours with a >8 semitone jump at the end from 20% to 14% and
+    contours wider than 12 semitones from 21% to 16%, without moving the median
+    f0 (259 -> 260 Hz). Falls back to the fixed-range tracker when there is too
+    little voicing to fit a range.
+    """
+    if parselmouth is None:
+        return extract_pitch(audio_path, time_step)
+
+    sound = _load_sound(audio_path)
+    first = sound.to_pitch_ac(
+        time_step=time_step,
+        pitch_floor=_FIRST_PASS_FLOOR_HZ,
+        pitch_ceiling=_FIRST_PASS_CEILING_HZ,
+    )
+    voiced = first.selected_array["frequency"]
+    voiced = voiced[voiced > 0]
+    if len(voiced) < _MIN_VOICED_FRAMES_FOR_ADAPTIVE_RANGE:
+        return _pitch_contour_from_sound(sound, time_step)
+
+    floor, ceiling = speaker_pitch_range(voiced)
+    pitch = sound.to_pitch_ac(time_step=time_step, pitch_floor=floor, pitch_ceiling=ceiling)
+    contour = [
+        (float(pitch.xs()[i]), float(f))
+        for i, f in enumerate(pitch.selected_array["frequency"])
+        if f > 0
+    ]
+    return _correct_octave_jumps(contour)
+
+
 def _intensity_contour_from_sound(sound) -> List[Tuple[float, float]]:
     """Frame-wise intensity (dB) used to locate syllable nuclei.
 

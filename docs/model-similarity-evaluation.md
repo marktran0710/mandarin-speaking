@@ -84,14 +84,37 @@ treat this as a sanity check only: Spearman(legacy, v2) = 0.83 (rankings agree),
 median 60 -> 42, v2 lower in 37 of 44. The drop is mostly the removal of the
 ~30-point floor unrelated words used to get.
 
+## Teacher contours regenerated with a speaker-adaptive tracker
+
+`extract_pitch_two_pass` (`domain/speech/acoustics/audio_features.py`) fits the
+pitch range to the speaker (0.75 x q25 .. 2.5 x q75 of their own f0) instead of a
+fixed 75-500 Hz window and is now used when the teacher's model contour is
+generated. All 82 stored teacher recordings were re-tracked
+(`python -m scripts.backfill_model_contours --regenerate --apply --backup ...`;
+the replaced contours are in `backend/output/contours_before_regen_20260930.json`,
+git-ignored, so the change can be reverted).
+
+| | before | after |
+|---|---|---|
+| word contours ending >8 st away from their body | 20% | 16% |
+| word contours wider than 12 st | 24% | 19% |
+| word contours with an octave-error block | 23% | 21% |
+| v2 overall AUC (synthetic, tracker errors injected) | 0.991 | 0.987 |
+
+A modest cleanup, not a fix for everything: the two-pass tracker resolved about a
+quarter of the one-syllable words that contained an octave-error block (38 -> 29
+of 299); the rest persist under every tracker tried and may be genuine creak. The
+AUC change is inside the noise of the synthetic set. Scoring curves
+(`sentenceReferenceCurves`) were deliberately left on the original tracker.
+
 ## Known limits / next steps
 
 - The range policy (`rhoFull` 0.6) is a pedagogical choice, not a fitted value:
   sweeping it moves the AUC of the "half range" class from 0.86 (0.5) to 0.99 (0.7).
-- Teacher contours still run wide (median word range ~8 st, 133 words over 12 st
-  after cleaning): multi-syllable words legitimately include resets, but some
-  are tracker artefacts. Fixing that at the source (two-pass pitch range,
-  higher octave-jump cost when the model contour is generated) is the next step.
+- Teacher contours still run wide (median word range ~8 st, 103 words over 12 st
+  after cleaning): multi-syllable words legitimately include resets and some
+  large steps may be genuine creak. Learner recordings still use the fixed-range
+  tracker; moving them to `extract_pitch_two_pass` is the obvious next experiment.
 - Recalibrate `DEFAULT_SIMILARITY_PARAMS` when real teacher ratings or many more
   learners' attempts exist. Reproduce everything with
   `frontend/scripts/model-similarity-eval/`.

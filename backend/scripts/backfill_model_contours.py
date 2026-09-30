@@ -5,10 +5,14 @@ Examples::
 
     python -m scripts.backfill_model_contours            # dry run
     python -m scripts.backfill_model_contours --apply
+    python -m scripts.backfill_model_contours --regenerate --apply --backup old.json
 
-Only frames that already have a local model recording and no contour yet are
-touched. The contour is display-only (the student pitch chart's "model voice"
-line); scoring curves are left exactly as they are.
+By default only frames that already have a local model recording and no
+contour yet are touched. ``--regenerate`` also re-tracks frames that already
+have one (e.g. after the tracker improved); with ``--apply`` it first writes
+every replaced contour to ``--backup`` so the change can be reverted. The
+contour drives the student pitch chart's "model voice" line and the similarity
+score; scoring curves are left exactly as they are.
 """
 
 from __future__ import annotations
@@ -25,7 +29,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--apply", action="store_true", help="write changes (default: dry run)")
+    parser.add_argument("--regenerate", action="store_true", help="also re-track frames that already have a contour")
+    parser.add_argument("--backup", help="JSON file receiving the replaced contours (required with --regenerate --apply)")
     args = parser.parse_args()
+    if args.regenerate and args.apply and not args.backup:
+        parser.error("--regenerate --apply needs --backup so the old contours can be restored")
 
     from psycopg.types.json import Jsonb
 
@@ -37,12 +45,14 @@ def main() -> int:
         rows = db.execute("SELECT id, frames FROM custom_stories ORDER BY id").fetchall()
 
     updated_stories = 0
+    replaced: dict[str, dict[str, str]] = {}
     for row in rows:
         frames = list(row["frames"] or [])
         changed = False
         for index, frame in enumerate(frames):
             for suffix in _AUDIO_TIER_SUFFIXES:
-                if frame.get(f"sentenceModelContour{suffix}"):
+                previous = frame.get(f"sentenceModelContour{suffix}")
+                if previous and not args.regenerate:
                     continue
                 audio_url = frame.get(f"listenAudioUrl{suffix}") or ""
                 text = (
@@ -60,6 +70,8 @@ def main() -> int:
                 except Exception as exc:  # noqa: BLE001 — report and keep going
                     print(f"  fail {row['id']} frame {index}: {exc}")
                     continue
+                if previous:
+                    replaced.setdefault(row["id"], {})[f"{index}{suffix}"] = previous
                 frame = dict(frame)
                 frame[f"sentenceModelContour{suffix}"] = json.dumps(contour, ensure_ascii=False)
                 frames[index] = frame
@@ -68,6 +80,8 @@ def main() -> int:
         if changed:
             updated_stories += 1
             if args.apply:
+                if args.backup and replaced:
+                    Path(args.backup).write_text(json.dumps(replaced, ensure_ascii=False), encoding="utf-8")
                 with connect_db() as db:
                     db.execute(
                         "UPDATE custom_stories SET frames = %s WHERE id = %s",

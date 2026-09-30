@@ -9,6 +9,8 @@ from .audio_features import (
     calculate_speech_rate,
     extract_formants,
     extract_pitch,
+    extract_pitch_two_pass,
+    speaker_pitch_range,
 )
 from .pause_fluency import (
     SYLLABLE_PASS_THRESHOLD,
@@ -43,6 +45,8 @@ __all__ = [
     "estimate_word_prosody",
     "extract_formants",
     "extract_pitch",
+    "extract_pitch_two_pass",
+    "speaker_pitch_range",
     "get_pitch_statistics",
     "reference_curve_for_span",
     "slice_reference_word_span",

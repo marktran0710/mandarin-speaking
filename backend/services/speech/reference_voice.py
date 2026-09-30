@@ -14,6 +14,7 @@ import numpy as np
 from domain.speech.acoustics import (
     analyze_all,
     extract_pitch,
+    extract_pitch_two_pass,
     reference_curve_for_span,
     slice_reference_word_span,
 )
@@ -151,7 +152,13 @@ def extract_scene_model_references(
         )
         if curve:
             curves.setdefault(token, curve)
-    return curves, _sentence_model_contour(text, words, pitch_contour)
+    # The model contour drives the on-screen model voice and the similarity
+    # score, so it gets the speaker-adaptive tracker; the scoring curves above
+    # keep the original tracker and stay exactly as they were.
+    model_pitch = extract_pitch_two_pass(sentence_audio_path)
+    if len(model_pitch) < 2:
+        model_pitch = pitch_contour
+    return curves, _sentence_model_contour(text, words, model_pitch)
 
 
 def _sentence_model_contour(
