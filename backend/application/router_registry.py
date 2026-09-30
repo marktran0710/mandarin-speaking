@@ -23,6 +23,7 @@ from routers.help_requests import router as help_requests_router
 from routers.media import router as media_router
 from routers.measurement import router as measurement_router
 from routers.pinyin import router as pinyin_router
+from routers.pronunciation import router as pronunciation_router
 from routers.speaking_progress import router as speaking_progress_router
 from routers.content.crud import router as story_crud_router
 from routers.students import router as students_router
@@ -50,6 +51,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(media_router)
     app.include_router(measurement_router)
     app.include_router(pinyin_router)
+    app.include_router(pronunciation_router)
     app.include_router(speaking_progress_router)
     app.include_router(story_crud_router)
     app.include_router(students_router)
