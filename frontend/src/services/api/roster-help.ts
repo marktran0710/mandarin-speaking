@@ -25,6 +25,20 @@ export async function loginStudent(params: { studentId?: string; name?: string; 
   }
   return response.json() as Promise<Student>;
 }
+/** Public self-signup: creates the account and the server signs the student in. */
+export async function registerStudent(params: { name: string; password: string }): Promise<Student> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!response.ok) {
+    const payload = await response.clone().json().catch(() => null) as { detail?: unknown } | null;
+    const detail = typeof payload?.detail === "string" ? payload.detail : undefined;
+    throw Object.assign(new Error(detail ?? "Could not create the account."), { status: response.status, detail });
+  }
+  return response.json() as Promise<Student>;
+}
 export async function logoutStudent(): Promise<void> { await fetchWithRetry(`${BACKEND_URL}/api/students/logout`, { method: "POST" }); }
 export async function createStudent(name: string, password: string): Promise<Student> { const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, password }) }); if (!response.ok) throw new Error("Could not add the student to the roster."); return response.json() as Promise<Student>; }
 export async function deleteStudent(id: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(id)}`, { method: "DELETE" }); if (!response.ok) throw new Error("Could not remove the student from the roster."); }

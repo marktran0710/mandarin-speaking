@@ -27,3 +27,9 @@
 .login-page.student .login-submit:hover:not(:disabled) { background: var(--color-ink); }
 .login-page.student .login-submit:focus-visible,
 .login-page.student .login-password-toggle:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 36%, transparent); outline-offset: 3px; }
+
+/* Text-link button that switches between signing in and creating an account. */
+.login-page.student .login-switch { min-height: 44px; margin-top: var(--space-xs); border: 0; background: none; color: var(--color-primary); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.login-page.student .login-switch:hover:not(:disabled) { color: var(--color-ink); }
+.login-page.student .login-switch:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 36%, transparent); outline-offset: 3px; border-radius: var(--clay-radius-sm); }
+.login-page.student .login-switch:disabled { opacity: .6; cursor: default; }

@@ -3,29 +3,51 @@ import ToneMark from "../../components/tone/ToneMark";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import "./LoginPage.css";
 import "./StudentLoginPage.css";
-import { loginStudent } from "../../services/database";
+import { loginStudent, registerStudent } from "../../services/database";
+import { studentUiCopy } from "../../i18n/student-ui-copy";
 import { signIn } from "../../utils/session";
 import StudentIcon from "../../components/navigation/StudentIcon";
 import SourceAttribution from "@shared/ui/SourceAttribution";
 
-/** Dedicated student sign-in. Student accounts are provisioned by an admin;
- * the public student portal never creates roster accounts. */
+type Mode = "login" | "signup";
+type LoginError = "empty" | "password" | "inactive" | "resetRequired" | "server";
+type SignupError = "nameTaken" | "nameInvalid" | "passwordInvalid" | "tooMany";
+type FormError = LoginError | SignupError;
+
+/** Sort a failed signup into the one message the student can act on: the name
+ * is taken, the name or the password is refused, or they should wait. */
+function signupError(err: unknown): FormError {
+  const { status, detail } = err as { status?: number; detail?: string };
+  if (status === 409) return "nameTaken";
+  if (status === 429) return "tooMany";
+  if (status === 400 && /name/i.test(detail ?? "")) return "nameInvalid";
+  if (status === 400 || status === 422) return "passwordInvalid";
+  return "server";
+}
+
+/** Dedicated student sign-in, with a basic name + password signup on the same
+ * page: a new account is created and signed in at once. */
 export default function StudentLoginPage({
   onLogin,
 }: {
   onLogin: () => void;
 }) {
+  const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<"empty" | "password" | "inactive" | "resetRequired" | "server" | null>(
-    null,
-  );
+  const [error, setError] = useState<FormError | null>(null);
   const [busy, setBusy] = useState(false);
+  const signingUp = mode === "signup";
 
   const startSession = (finalName: string, studentId?: string) => {
     signIn("student", finalName, studentId);
     onLogin();
+  };
+
+  const switchMode = () => {
+    setMode(signingUp ? "login" : "signup");
+    setError(null);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -39,9 +61,15 @@ export default function StudentLoginPage({
     setBusy(true);
     setError(null);
     try {
-      const student = await loginStudent({ name: trimmed, password });
+      const student = signingUp
+        ? await registerStudent({ name: trimmed, password })
+        : await loginStudent({ name: trimmed, password });
       startSession(student.name, student.id);
     } catch (err) {
+      if (signingUp) {
+        setError(signupError(err));
+        return;
+      }
       const flags = err as { wrongCredentials?: boolean; status?: number; detail?: string };
       if (flags.wrongCredentials) {
         setError("password");
@@ -74,10 +102,10 @@ export default function StudentLoginPage({
             <StudentSystemText k="studentPortal" />
           </p>
           <h1>
-            <StudentSystemText k="studentLogin" />
+            <StudentSystemText k={signingUp ? "createAccount" : "studentLogin"} />
           </h1>
           <p className="login-description">
-            <StudentSystemText k="loginDescription" />
+            <StudentSystemText k={signingUp ? "createAccountDescription" : "loginDescription"} />
           </p>
 
           <ol className="login-trail" aria-label="登入步驟">
@@ -121,9 +149,9 @@ export default function StudentLoginPage({
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="輸入教師提供的密碼"
-                  autoComplete="current-password"
-                  aria-invalid={error === "password" || undefined}
+                  placeholder={signingUp ? studentUiCopy.choosePasswordPlaceholder.zh : "輸入教師提供的密碼"}
+                  autoComplete={signingUp ? "new-password" : "current-password"}
+                  aria-invalid={error === "password" || error === "passwordInvalid" || undefined}
                 />
                 <button
                   type="button"
@@ -153,11 +181,18 @@ export default function StudentLoginPage({
                 {error === "server" && (
                   <StudentSystemText k="loginServerError" />
                 )}
+                {error === "nameTaken" && <StudentSystemText k="signupNameTakenError" />}
+                {error === "nameInvalid" && <StudentSystemText k="signupNameError" />}
+                {error === "passwordInvalid" && <StudentSystemText k="signupPasswordError" />}
+                {error === "tooMany" && <StudentSystemText k="signupTooManyError" />}
               </p>
             )}
 
             <button type="submit" className="login-submit" disabled={busy}>
-              <StudentSystemText k="enterStudentMode" withinControl />
+              <StudentSystemText k={signingUp ? "createAccountAndStart" : "enterStudentMode"} withinControl />
+            </button>
+            <button type="button" className="login-switch" onClick={switchMode} disabled={busy}>
+              <StudentSystemText k={signingUp ? "switchToLogin" : "switchToSignup"} withinControl />
             </button>
           </form>
         </div>
