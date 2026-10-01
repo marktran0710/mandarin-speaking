@@ -21,6 +21,7 @@ from services.pronunciation.config import FeedbackConfig
 from services.pronunciation.evaluator import EvaluationError, _reference_features, _sha256
 from services.pronunciation.extraction import FeatureExtractionError, extract_utterance_features
 from services.pronunciation.feedback import FeedbackRejected, OpenAICompatibleFeedbackProvider, build_feedback_provider
+from services.pronunciation.librosa_comparison import compare_recordings
 from services.pronunciation.reference_cache import default_reference_store
 from services.pronunciation.script import build_expected_syllables
 
@@ -93,6 +94,11 @@ async def evaluate_rubric_pronunciation(
             pronunciation = _unavailable_pronunciation(str(exc))
         fluency = score_fluency(student, reference, policy)
         prosody = score_prosody(student, reference, policy)
+        librosa_comparison = await run_in_threadpool(
+            compare_recordings,
+            reference_audio_path,
+            student_path,
+        )
     finally:
         if student_path and os.path.exists(student_path):
             os.unlink(student_path)
@@ -111,6 +117,14 @@ async def evaluate_rubric_pronunciation(
     evidence = {
         "sentence": expected_text, "pronunciation": model_dimension(pronunciation),
         "fluency": model_dimension(fluency), "prosody": model_dimension(prosody),
+        "reference_relative_comparison": {
+            "status": librosa_comparison["status"],
+            "backend": librosa_comparison["backend"],
+            "evidence_quality": librosa_comparison.get("evidence_quality"),
+            "reason": librosa_comparison.get("reason"),
+            "similarity_validation_status": "uncalibrated_engineering_transform",
+            "measurements": librosa_comparison.get("measurements", {}),
+        },
         "validation_status": policy.validation_status,
         "alignment": {"student": student.to_dict()["alignment"], "reference": reference.to_dict()["alignment"]},
     }
@@ -139,6 +153,8 @@ async def evaluate_rubric_pronunciation(
         "pronunciation_source": pronunciation["source"],
         "wav2vec2_model": (pronunciation.get("measurements") or {}).get("model"),
         "wav2vec2_layer": (pronunciation.get("measurements") or {}).get("layer"),
+        "librosa_comparison_status": librosa_comparison["status"],
+        "librosa_comparison_backend": librosa_comparison["backend"],
         "validation_status": policy.validation_status,
     }
     return RubricEvaluation({
@@ -157,5 +173,6 @@ async def evaluate_rubric_pronunciation(
         "debug": {"provenance": provenance, "policy": policy.to_dict(), "issues": [],
                   "comparison": comparison.to_dict(), "reference_features": reference.to_dict(),
                   "student_features": student.to_dict(), "recording_quality": preflight,
-                  "pronunciation_evidence": pronunciation_evidence},
+                  "pronunciation_evidence": pronunciation_evidence,
+                  "librosa_comparison": librosa_comparison},
     })

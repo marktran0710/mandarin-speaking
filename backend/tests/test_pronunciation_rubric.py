@@ -207,6 +207,29 @@ async def test_real_praat_different_voice_and_luna_preserve_separate_scores(tmp_
     assert "debug" not in present_evaluation(result, include_debug=False)
 
 
+async def test_librosa_supporting_evidence_reaches_luna_without_raw_arrays(tmp_path, monkeypatch):
+    comparison = {
+        "status": "scored", "backend": "librosa", "evidence_quality": "full",
+        "measurements": {"mfcc_similarity": .8, "pitch_mae_semitones": 1.5},
+        "parameters": {"sample_rate": 16000},
+        "debug": {"reference_pitch_contour": [[0, 1]], "dtw_path": [[0, 0]]},
+    }
+    monkeypatch.setattr("services.pronunciation.rubric_evaluator.compare_recordings", lambda *args: comparison)
+
+    async def checked_http(url, headers, body, timeout):
+        payload = json.loads(body["messages"][1]["content"])
+        evidence = payload["reference_relative_comparison"]
+        assert evidence["measurements"] == comparison["measurements"]
+        assert evidence["evidence_quality"] == "full"
+        assert "debug" not in evidence and "parameters" not in evidence
+        assert all(not isinstance(value, (list, dict)) for value in evidence["measurements"].values())
+        return await provider_http(url, headers, body, timeout)
+
+    result = await evaluate(tmp_path, http=checked_http)
+    assert result.body["debug"]["librosa_comparison"] == comparison
+    assert result.body["provenance"]["librosa_comparison_status"] == "scored"
+
+
 async def test_luna_numeric_score_claims_are_rejected_without_local_feedback(tmp_path):
     async def bad_http(*args):
         return {"choices": [{"message": {"content": json.dumps({

@@ -4,6 +4,7 @@ import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 import PronunciationResult from "./Result";
 
 vi.mock("./ContourOverlayChart", () => ({ default: () => <p>Contour chart</p> }));
+vi.mock("./LibrosaPitchChart", () => ({ default: () => <p>Librosa chart</p> }));
 
 const scoredResult: PronunciationEvaluation = {
   status: "scored",
@@ -60,6 +61,11 @@ const rubricResult: PronunciationEvaluation = {
   debug: {
     provenance: {}, policy: { validation_status: "uncalibrated_engineering_defaults" }, issues: [], comparison: null,
     reference_features: { duration_ms: 0, syllables: [] }, student_features: null, recording_quality: null,
+    librosa_comparison: {
+      status: "scored", backend: "librosa",
+      measurements: { mfcc_similarity: 0.91, pitch_similarity: 0.84, timing_similarity: 0.76 },
+      debug: { reference_pitch_contour: [[0, 0], [1, 1]], student_pitch_contour: [[0, 0], [1, 0.8]] },
+    },
   },
 };
 
@@ -74,6 +80,8 @@ describe("PronunciationResult", () => {
     fireEvent.click(screen.getAllByText("Measurements and rubric decision")[1]);
     expect(screen.getByText(/pause_ratio": 0.21/)).toBeInTheDocument();
     expect(screen.getByText(/uncalibrated_engineering_defaults/)).toBeInTheDocument();
+    expect(screen.getByText("Librosa chart")).toBeInTheDocument();
+    expect(screen.getByText(/MFCC similarity 91%/)).toBeInTheDocument();
   });
 
   it("shows the deterministic score, evidence, and feedback provenance", () => {
@@ -85,6 +93,37 @@ describe("PronunciationResult", () => {
     expect(screen.getByText(/local feedback \(llm_timeout\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Pitch stayed flatter than the reference/)).toBeInTheDocument();
     expect(screen.getByText(/tone 81%/i)).toBeInTheDocument();
+  });
+
+  it("keeps MFCC and timing evidence visible when librosa pitch is unavailable", () => {
+    render(<PronunciationResult result={{
+      ...rubricResult,
+      debug: {
+        ...rubricResult.debug!,
+        librosa_comparison: {
+          status: "scored", backend: "librosa", evidence_quality: "degraded",
+          reason: "insufficient_aligned_pitch",
+          measurements: { mfcc_similarity: .8, pitch_similarity: null, timing_similarity: .9 },
+          debug: { reference_pitch_contour: [[0, null]], student_pitch_contour: [[0, null]] },
+        },
+      },
+    }} />);
+    expect(screen.queryByText("Librosa chart")).not.toBeInTheDocument();
+    expect(screen.getByText(/Pitch evidence unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/MFCC similarity 80% · pitch similarity – · timing similarity 90%/)).toBeInTheDocument();
+  });
+
+  it("shows an unavailable optional comparison without affecting the rubric", () => {
+    render(<PronunciationResult result={{
+      ...rubricResult,
+      debug: {
+        ...rubricResult.debug!,
+        librosa_comparison: { status: "unavailable", backend: "librosa", reason: "feature_flag_disabled", measurements: {} },
+      },
+    }} />);
+    expect(screen.getByText(/Unavailable: feature_flag_disabled/)).toBeInTheDocument();
+    expect(screen.getByText("3 / 5")).toBeInTheDocument();
+    expect(screen.queryByText("Librosa chart")).not.toBeInTheDocument();
   });
 
   it("explains why an unusable recording has no score", () => {

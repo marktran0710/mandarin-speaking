@@ -1,6 +1,6 @@
 # Pronunciation rubric pilot
 
-The active Practice Speaking, Conversation Speaking and admin pronunciation evaluator returns three separate dimensions and no `/100` total. Pronunciation uses Wav2Vec2 reference-relative initial/final segment similarity and Praat F0 lexical-tone evidence. Fluency and Prosody use the existing Praat feature extraction. GPT-6 Luna receives only scalar measurements, errors and rubric decisions; it receives neither audio nor embedding/F0 arrays and cannot choose scores. Its written explanation is stored with the attempt.
+The active Practice Speaking, Conversation Speaking and admin pronunciation evaluator returns three separate dimensions and no `/100` total. Pronunciation uses Wav2Vec2 reference-relative initial/final segment similarity and Praat F0 lexical-tone evidence. An optional librosa adapter compares the teacher and student recordings with MFCC/DTW, speaker-relative pYIN F0 and timing evidence. Fluency and Prosody use the existing Praat feature extraction. GPT-6 Luna receives only scalar measurements, errors and rubric decisions; it receives neither audio nor embedding/F0 arrays and cannot choose scores. Its written explanation is stored with the attempt.
 
 ## Dimensions
 
@@ -9,6 +9,16 @@ The active Practice Speaking, Conversation Speaking and admin pronunciation eval
 - **Prosody:** Praat reports speaker median normalized semitone contours, within syllable pitch samples, pitch range and movement, per syllable voiced duration, relative timing, rhythm similarity and rate stability. Pause count and time do not affect Prosody. Relative durations divide by each speaker's total; pitch uses semitones relative to each speaker's own median.
 
 A score is the **lowest level passed across that dimension's criteria**. Levels 5, 4, 3 and 2 have configurable thresholds; a failed level 2 criterion gives level 1. Fluency and Prosody still return a 1–5 rubric level when alignment or paired pitch evidence is weak. Criteria that cannot be measured reliably use the neutral level 3 and are marked `evidence: degraded`; the dimension stores `evidence_quality: degraded` and explicit evidence reasons. Every result stores raw measurements, each criterion's value and threshold, the selected level, reason, policy and pipeline provenance. The teacher admin view shows these decisions.
+
+## Optional librosa comparison
+
+Set `PRONUNCIATION_LIBROSA_COMPARISON_ENABLED=true` (the default) to compare the teacher recording for the selected scene or conversation turn with the student's recording. Install `librosa>=0.10.0` if it is absent; the development image already includes it through `backend/requirements-local-asr.txt`. The production base image deliberately omits that dependency.
+
+Each recording is loaded as mono 16 kHz audio and trimmed at the edges. The adapter compares z-scored MFCC sequences aligned by dynamic time warping. Voiced pYIN F0 is normalized around each speaker's median and compared in semitones; active-span duration and pause ratio provide timing evidence. The admin view plots the pitch contours on the reference timeline using the stored DTW path, with gaps where pitch is unavailable.
+
+Raw distances, durations, pause ratios, coverage, contours, DTW path, library version and effective parameters are kept in `debug.librosa_comparison`. GPT receives scalar measurements and evidence caveats only. The convenience transforms are `exp(-MFCC distance / scale)`, `exp(-pitch MAE in semitones / scale)`, `exp(-abs(log(duration ratio)))`, and timing similarity as duration similarity times `exp(-absolute pause-ratio difference)`. They are uncalibrated engineering transforms, not pronunciation grades or probabilities of correct pronunciation. Parameters can be tuned with the `PRONUNCIATION_LIBROSA_*` settings in `backend/.env.example` and do not set rubric scores.
+
+If only pitch is unavailable, the result retains MFCC and timing evidence, sets pitch measurements to null and records `evidence_quality: degraded`. If librosa is absent, audio is unusable, or the configured duration limit is exceeded, the optional comparison records `status: unavailable` while Praat/Wav2Vec2 continue. DTW uses a configurable frame limit to bound memory and stores the frame stride used for longer recordings.
 
 ## Threshold status and configuration
 

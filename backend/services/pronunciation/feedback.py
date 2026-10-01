@@ -361,6 +361,8 @@ class OpenAICompatibleFeedbackProvider:
             "Use only the supplied measurements, pronunciation_errors, tone_errors, rubric decisions and alignment caveats. "
             "Keep pronunciation (Wav2Vec2 initial/final similarity plus Praat lexical-tone evidence) separate "
             "from fluency (pauses and rate) and prosody (sentence pitch envelope and relative timing). "
+            "The reference_relative_comparison block is librosa teacher-student evidence; use its scalar measurements "
+            "as supporting evidence for similarity, never as a phoneme-classifier verdict. "
             "A degraded evidence_quality still has a rubric score: explain the limitation as a confidence caveat, "
             "but do not call that dimension unassessed or say that no score was produced. "
             "These are uncalibrated research rubrics; do not claim scientific validity. "

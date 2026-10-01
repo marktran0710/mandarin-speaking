@@ -1,5 +1,6 @@
 import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 import ContourOverlayChart from "./ContourOverlayChart";
+import LibrosaPitchChart from "./LibrosaPitchChart";
 import { dimensionLabel, feedbackBadge, flagLabel, shapeLabel } from "./model";
 
 const UNSCORABLE_TITLE: Record<string, string> = {
@@ -14,10 +15,17 @@ function percent(value: number | null | undefined): string {
   return value === null || value === undefined ? "–" : `${Math.round(value * 100)}%`;
 }
 
+function metricPercent(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value) ? percent(value) : "–";
+}
+
 export default function PronunciationResult({ result }: { result: PronunciationEvaluation }) {
   const { score, feedback, words, metrics, debug } = result;
   const badge = feedbackBadge(feedback);
   const scored = result.status === "scored" && score?.total != null;
+  const librosa = debug?.librosa_comparison;
+  const librosaReference = librosa?.debug?.reference_pitch_contour ?? [];
+  const librosaStudent = librosa?.debug?.student_pitch_contour ?? [];
 
   return (
     <div className="pron-result">
@@ -97,6 +105,33 @@ export default function PronunciationResult({ result }: { result: PronunciationE
         <section className="pron-chart-card" aria-label="Pitch comparison">
           <h3>Pitch: teacher vs student</h3>
           <ContourOverlayChart reference={debug.reference_features} student={debug.student_features} />
+        </section>
+      )}
+
+      {librosa && (
+        <section className="pron-chart-card" aria-label="Librosa reference comparison">
+          <h3>Librosa teacher–student evidence</h3>
+          {librosa.status === "scored" ? (
+            <>
+              {librosaReference.some(([, pitch]) => pitch !== null) && librosaStudent.some(([, pitch]) => pitch !== null) ? (
+                <LibrosaPitchChart reference={librosaReference} student={librosaStudent} alignment={librosa.debug?.dtw_path} />
+              ) : (
+                <p className="pron-note">Pitch evidence unavailable: {librosa.reason ?? "insufficient voiced pitch"}.</p>
+              )}
+              <p className="pron-note">
+                MFCC similarity {metricPercent(librosa.measurements.mfcc_similarity)} · pitch similarity{" "}
+                {metricPercent(librosa.measurements.pitch_similarity)} · timing similarity{" "}
+                {metricPercent(librosa.measurements.timing_similarity)}
+              </p>
+              <p className="pron-note">These similarities describe this pair of recordings; they are not pronunciation grades.</p>
+            </>
+          ) : (
+            <p className="pron-note">Unavailable: {librosa.reason ?? "insufficient paired audio evidence"}.</p>
+          )}
+          <details>
+            <summary>Librosa measurements</summary>
+            <pre>{JSON.stringify({ status: librosa.status, reason: librosa.reason, evidence_quality: librosa.evidence_quality, parameters: librosa.parameters, measurements: librosa.measurements }, null, 2)}</pre>
+          </details>
         </section>
       )}
 

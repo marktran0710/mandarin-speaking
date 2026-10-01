@@ -73,6 +73,21 @@ export interface PronunciationFeatureSet {
   syllables: PronunciationSyllableFeatures[];
 }
 
+export interface PronunciationLibrosaComparison {
+  status: "scored" | "unavailable";
+  backend: "librosa";
+  reason?: string | null;
+  evidence_quality?: "full" | "degraded";
+  parameters?: Record<string, unknown>;
+  measurements: Record<string, number | null>;
+  debug?: {
+    reference_pitch_contour?: Array<[number, number | null]>;
+    student_pitch_contour?: Array<[number, number | null]>;
+    dtw_path_length?: number;
+    dtw_path?: Array<[number, number]>;
+  };
+}
+
 export interface PronunciationDebug {
   provenance: Record<string, unknown>;
   policy: Record<string, unknown>;
@@ -82,6 +97,7 @@ export interface PronunciationDebug {
   student_features: PronunciationFeatureSet | null;
   recording_quality: Record<string, unknown> | null;
   pronunciation_evidence?: Record<string, unknown>;
+  librosa_comparison?: PronunciationLibrosaComparison;
 }
 
 export interface PronunciationEvaluation {
