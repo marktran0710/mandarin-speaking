@@ -171,6 +171,20 @@ export async function getPlacementBlueprint(): Promise<PlacementBlueprint> {
   return response.json() as Promise<PlacementBlueprint>;
 }
 
+/** Whether this student is held at the placement test before the rest of Student Mode opens. */
+export interface PlacementStatus {
+  configured: boolean;
+  required: boolean;
+  completed: boolean;
+  gated: boolean;
+}
+
+export async function getPlacementStatus(): Promise<PlacementStatus> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/placement-test/status`);
+  if (!response.ok) throw await parseError(response, "Could not check the placement test status");
+  return response.json() as Promise<PlacementStatus>;
+}
+
 export async function startPlacementAttempt(): Promise<PlacementAttempt> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/placement-test/attempts`, { method: "POST" }, 1);
   if (!response.ok) throw await parseError(response, "Could not start the placement test");

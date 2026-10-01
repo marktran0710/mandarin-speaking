@@ -28,6 +28,16 @@ export interface PlacementPageProps {
   adapter?: PlacementSessionAdapter;
 }
 
+/** Wiring for a placement test that gates a new account (see usePlacementGate). */
+interface PlacementGateProps {
+  /** The account must finish this test before the rest of Student Mode opens. */
+  gated?: boolean;
+  /** Called once the attempt is saved, so the gate can re-check and unlock. */
+  onCompleted?: () => void;
+  /** Shown on the result screen as the way on into the lessons. */
+  onStartLearning?: () => void;
+}
+
 interface PlacementStatusPresentation {
   labelKey: StudentUiCopyKey;
   tone: StudentStatusTone;
@@ -129,7 +139,7 @@ function shuffleQuestions(questions: PlacementQuestion[]): PlacementQuestion[] {
   return shuffled;
 }
 
-function PlacementAssessmentPage() {
+function PlacementAssessmentPage({ gated, onCompleted, onStartLearning }: PlacementGateProps) {
   const [blueprint, setBlueprint] = useState<PlacementBlueprint | null>(null);
   const [attemptId, setAttemptId] = useState("");
   const [questions, setQuestions] = useState<PlacementQuestion[]>([]);
@@ -230,6 +240,7 @@ function PlacementAssessmentPage() {
       const completed = await completePlacementAttempt(attemptId, responseAnswers);
       setResult(completed);
       setStatus("result");
+      onCompleted?.();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "入門測驗無法提交。請再試一次。");
       setStatus("answering");
@@ -272,6 +283,11 @@ function PlacementAssessmentPage() {
           <h2>你答對 {result.correctCount} / {result.totalQuestions} 題。</h2>
           <p className="sa-placement__result-score">{result.percentage}%</p>
           <p><StudentSystemText k={congratulations ? "greatWork" : "keepPractising"} /></p>
+          {onStartLearning && (
+            <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onStartLearning}>
+              <StudentSystemText k="startLearning" withinControl />
+            </StudentButton>
+          )}
         </StudentSection>
       </StudentPage>
     );
@@ -291,7 +307,7 @@ function PlacementAssessmentPage() {
       layout="task"
       header={placementHeader(status === "answering" ? <StudentStatusPill tone="info">第 {index + 1} / {displayedQuestions.length} 題</StudentStatusPill> : undefined)}
     >
-      {status === "ready" && <StudentSection variant="panel" className="sa-placement__start"><div><p className="sa-placement__kicker"><StudentSystemText k="placementTest" /> · <StudentSystemText k="shortDiagnostic" /></p><h2><StudentSystemText k="placementIntro" /></h2><p><StudentSystemText k="placementDataNote" />（{blueprint.questionCount} 題）</p></div><div className="sa-placement__start-controls"><label className="sa-placement__randomize"><input type="checkbox" checked={randomize} onChange={(event) => setRandomize(event.target.checked)} /> <StudentSystemText k="randomizeQuestions" /></label><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => void start()}><StudentSystemText k="startTest" withinControl /></StudentButton></div></StudentSection>}
+      {status === "ready" && <StudentSection variant="panel" className="sa-placement__start"><div>{gated && <p className="sa-placement__required" role="note"><StudentSystemText k="placementRequiredNotice" /></p>}<p className="sa-placement__kicker"><StudentSystemText k="placementTest" /> · <StudentSystemText k="shortDiagnostic" /></p><h2><StudentSystemText k="placementIntro" /></h2><p><StudentSystemText k="placementDataNote" />（{blueprint.questionCount} 題）</p></div><div className="sa-placement__start-controls"><label className="sa-placement__randomize"><input type="checkbox" checked={randomize} onChange={(event) => setRandomize(event.target.checked)} /> <StudentSystemText k="randomizeQuestions" /></label><StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => void start()}><StudentSystemText k="startTest" withinControl /></StudentButton></div></StudentSection>}
       {(status === "starting" || status === "submitting") && <StudentSection variant="panel" className="sa-placement__start"><p role="status">{status === "starting" ? <StudentSystemText k="startingAssessment" /> : <StudentSystemText k="saveAnswers" />}</p></StudentSection>}
       {status === "answering" && activeQuestion && <div className="sa-placement">
         <div className="sa-placement__progress" role="progressbar" aria-label="入門測驗進度" aria-valuemin={0} aria-valuemax={displayedQuestions.length} aria-valuenow={index + 1}><span style={{ width: `${progress}%` }} /></div>
@@ -301,6 +317,10 @@ function PlacementAssessmentPage() {
   );
 }
 
-export default function PlacementPage({ adapter, live = true }: PlacementPageProps & { live?: boolean }) {
-  return live ? <PlacementAssessmentPage /> : <UnavailablePlacementPage adapter={adapter ?? unavailablePlacementSession} />;
+export default function PlacementPage({
+  adapter,
+  live = true,
+  ...gate
+}: PlacementPageProps & PlacementGateProps & { live?: boolean }) {
+  return live ? <PlacementAssessmentPage {...gate} /> : <UnavailablePlacementPage adapter={adapter ?? unavailablePlacementSession} />;
 }

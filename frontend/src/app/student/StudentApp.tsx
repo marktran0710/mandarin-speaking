@@ -32,9 +32,16 @@ import SubmitStoryPage from "../../features/submit/SubmitStoryPage";
 import CompletionPage from "../../features/completion/CompletionPage";
 import ProgressPage from "../../features/progress/ProgressPage";
 import PlacementPage from "../../features/placement/PlacementPage";
+import { usePlacementGate } from "../../features/placement/usePlacementGate";
+import OnboardingIntro from "../../features/onboarding/OnboardingIntro";
+import { hasSeenOnboarding } from "../../features/onboarding/onboardingFlag";
+import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import StudentSettingsPage from "../../features/settings/StudentSettingsPage";
 import { StudentSettingsProvider } from "@features/settings/StudentSettingsContext";
 import { loadSubmittedStoryIds, markStoryLevelSubmitted } from "../../utils/storyLevelProgress";
+
+/** Sections a new account cannot open until it has finished the placement test. */
+const PLACEMENT_GATED_SECTIONS: StudentTopSection[] = ["study", "progress"];
 
 interface StudentAppProps {
   studentName: string;
@@ -52,6 +59,18 @@ interface StudentAppProps {
  */
 export default function StudentApp({ studentName, topics, onAddRecord, onLogout }: StudentAppProps) {
   const [section, setSection] = useState<StudentTopSection>("study");
+  // A new account is held at the placement test (after a short intro) until it
+  // has finished one - see usePlacementGate. Settings stays reachable.
+  const placementGate = usePlacementGate();
+  const heldAtPlacement = placementGate.state !== "clear";
+  const [introSeen, setIntroSeen] = useState(hasSeenOnboarding);
+  const activeSection: StudentTopSection = heldAtPlacement && section !== "settings" ? "placement" : section;
+  useEffect(() => {
+    // Keep the state in step so the result screen stays up after the gate lifts.
+    if (placementGate.state === "required" && section !== "placement" && section !== "settings") {
+      setSection("placement");
+    }
+  }, [placementGate.state, section]);
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
   const [phase, setPhase] = useState<StudentPhase>("vocab-preview");
   const [sceneIndex, setSceneIndex] = useState(0);
@@ -221,7 +240,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
   const availableConversationTurns = conversationContentAvailable ? (conversationTurns ?? []) : [];
 
   const statusByStoryId: Record<string, StudyTopicStatus> = {};
-  if (section === "study" && !activeTopic) {
+  if (activeSection === "study" && !activeTopic) {
     const rowStatuses = computeStudyRowStatuses(topics, loadSubmittedStoryIds());
     for (const [id, status] of Object.entries(rowStatuses)) {
       statusByStoryId[id] = {
@@ -249,12 +268,30 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
 
   let body: React.ReactNode;
 
-  if (section === "settings") {
+  if (placementGate.state === "loading") {
+    body = (
+      <div className="app-loading">
+        <div className="app-loading-card">
+          <div className="app-loading-icon" aria-hidden="true" />
+          <h2><StudentSystemText k="loadingProgress" /></h2>
+        </div>
+      </div>
+    );
+  } else if (activeSection === "settings") {
     body = <StudentSettingsPage onRequireRelogin={onLogout} />;
-  } else if (section === "progress") {
+  } else if (activeSection === "progress") {
     body = <ProgressPage topics={topics} />;
-  } else if (section === "placement") {
-    body = <PlacementPage live />;
+  } else if (activeSection === "placement") {
+    body = placementGate.state === "required" && !introSeen ? (
+      <OnboardingIntro onStartPlacement={() => setIntroSeen(true)} />
+    ) : (
+      <PlacementPage
+        live
+        gated={placementGate.state === "required"}
+        onCompleted={() => void placementGate.refresh()}
+        onStartLearning={() => setSection("study")}
+      />
+    );
   } else if (!activeTopic) {
     body = <StudyPage topics={topics} statusByStoryId={statusByStoryId} onOpenTopic={openTopic} />;
   } else if (phase === "vocab-preview") {
@@ -367,8 +404,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <StudentShell
         studentName={studentName}
         currentLessonTitle={currentLessonTitle}
-        activeSection={section}
-        activePhase={section === "study" && activeTopic ? phase : null}
+        activeSection={activeSection}
+        lockedSections={heldAtPlacement ? PLACEMENT_GATED_SECTIONS : undefined}
+        activePhase={activeSection === "study" && activeTopic ? phase : null}
         quizStars={totalQuizStars}
         maxQuizStars={maxQuizStars}
         steps={lessonSteps}

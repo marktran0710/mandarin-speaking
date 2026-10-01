@@ -268,3 +268,7 @@
   .sa-sidebar__footer { padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom)); }
   .sa-sidebar.is-open { transform: translateX(0); box-shadow: var(--shadow-soft); }
 }
+
+/* A section held back by the placement gate: muted, but still focusable so the lock notice can explain it. */
+.sa-sidebar__nav-item.is-locked { color: var(--color-muted); cursor: not-allowed; }
+.sa-sidebar__nav-item.is-locked:hover { background: none; }

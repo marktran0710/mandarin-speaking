@@ -148,4 +148,50 @@ describe("StudentSidebar", () => {
     expect(phaseButton("vocab-preview")).toHaveTextContent("已完成");
     expect(phaseButton("vocab-quiz")).not.toHaveClass("is-done");
   });
+
+  describe("locked sections (placement gate)", () => {
+    const renderGated = (onNavigateSection = vi.fn()) => {
+      render(
+        <StudentSidebar
+          studentName="Student One"
+          activeSection="placement"
+          lockedSections={["study", "progress"]}
+          onNavigateSection={onNavigateSection}
+          onLogout={vi.fn()}
+        />,
+      );
+      return onNavigateSection;
+    };
+
+    it("locks Lessons and Progress but leaves Placement and Settings open", () => {
+      renderGated();
+      expect(screen.getByRole("button", { name: "課程" })).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("button", { name: "進度" })).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("button", { name: "入門測驗" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "設定" })).not.toHaveAttribute("aria-disabled");
+    });
+
+    it("does not navigate into a locked section and says what unlocks it", () => {
+      const onNavigateSection = renderGated();
+      fireEvent.click(screen.getByRole("button", { name: "課程" }));
+      expect(onNavigateSection).not.toHaveBeenCalled();
+      expect(screen.getByRole("status")).toHaveTextContent("做完入門測驗後解鎖");
+    });
+
+    it("still navigates to the sections that are open and clears the notice", () => {
+      const onNavigateSection = renderGated();
+      fireEvent.click(screen.getByRole("button", { name: "進度" }));
+      fireEvent.click(screen.getByRole("button", { name: "設定" }));
+      expect(onNavigateSection).toHaveBeenCalledOnce();
+      expect(onNavigateSection).toHaveBeenCalledWith("settings");
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("locks nothing when no section is locked", () => {
+      render(
+        <StudentSidebar studentName="Student One" activeSection="study" onNavigateSection={vi.fn()} onLogout={vi.fn()} />,
+      );
+      expect(screen.getByRole("button", { name: "課程" })).not.toHaveAttribute("aria-disabled");
+    });
+  });
 });

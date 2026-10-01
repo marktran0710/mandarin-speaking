@@ -16,6 +16,7 @@ interface StudentShellProps {
   maxQuizStars?: number;
   steps?: LessonSteps;
   currentLessonTitle?: string;
+  lockedSections?: StudentTopSection[];
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -35,6 +36,7 @@ export default function StudentShell({
   maxQuizStars,
   steps,
   currentLessonTitle,
+  lockedSections,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
@@ -57,6 +59,7 @@ export default function StudentShell({
           maxQuizStars={maxQuizStars}
           steps={steps}
           currentLessonTitle={currentLessonTitle}
+          lockedSections={lockedSections}
           onNavigateSection={(section) => {
             onNavigateSection(section);
             setMobileOpen(false);

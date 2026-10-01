@@ -1,0 +1,12 @@
+.sa-onboarding { display: grid; justify-items: center; gap: var(--space-md); padding: var(--space-xl) var(--space-lg); text-align: center; }
+.sa-onboarding__icon { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--color-sky); color: var(--color-primary); }
+.sa-onboarding__body { max-width: 34ch; margin: 0; font-size: 1.15rem; line-height: 1.7; color: var(--color-ink); }
+.sa-onboarding__dots { display: flex; gap: var(--space-xs); margin: 0; padding: 0; list-style: none; }
+.sa-onboarding__dots li { width: 10px; height: 10px; border-radius: 50%; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
+.sa-onboarding__dots li.is-done { background: color-mix(in srgb, var(--color-primary) 55%, transparent); }
+.sa-onboarding__dots li.is-active { background: var(--color-primary); transform: scale(1.25); }
+.sa-onboarding__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-sm); }
+
+@media (max-width: 560px) {
+  .sa-onboarding { padding: var(--space-lg) var(--space-md); }
+}

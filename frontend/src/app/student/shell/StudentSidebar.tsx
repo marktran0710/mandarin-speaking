@@ -52,6 +52,9 @@ interface StudentSidebarProps {
    * (see app/student/lessonSteps.ts). Omitted → every step is open. */
   steps?: LessonSteps;
   currentLessonTitle?: string;
+  /** Sections the learner cannot open yet (the placement gate). They show a lock
+   * and, when clicked, say what unlocks them instead of navigating. */
+  lockedSections?: StudentTopSection[];
   onNavigateSection: (section: StudentTopSection) => void;
   onNavigatePhase?: (phase: StudentPhase) => void;
   onLogout: () => void;
@@ -67,15 +70,29 @@ export default function StudentSidebar({
   maxQuizStars = 0,
   steps,
   currentLessonTitle,
+  lockedSections,
   onNavigateSection,
   onNavigatePhase,
   onLogout,
 }: StudentSidebarProps) {
   const [lockNotice, setLockNotice] = useState<{ phase: StudentPhase; reason: StudentUiCopyKey } | null>(null);
+  const [sectionNoticeShown, setSectionNoticeShown] = useState(false);
 
   useEffect(() => {
     setLockNotice(null);
   }, [activePhase]);
+
+  const sectionLocked = (section: StudentTopSection) => lockedSections?.includes(section) ?? false;
+  const goToSection = (section: StudentTopSection) => {
+    if (sectionLocked(section)) {
+      setSectionNoticeShown(true);
+      return;
+    }
+    setSectionNoticeShown(false);
+    onNavigateSection(section);
+  };
+  const sectionItemClass = (section: StudentTopSection) =>
+    `sa-sidebar__nav-item ${activeSection === section ? "is-active" : ""} ${sectionLocked(section) ? "is-locked" : ""}`;
 
   const renderPhase = (phase: { id: LessonNavPhase }) => {
     const step = steps?.[phase.id] ?? OPEN_STEP;
@@ -133,12 +150,13 @@ export default function StudentSidebar({
         <nav className="sa-sidebar__nav" aria-label="學習區域">
           <button
             type="button"
-            className={`sa-sidebar__nav-item ${activeSection === "study" ? "is-active" : ""}`}
+            className={sectionItemClass("study")}
             aria-current={activeSection === "study" ? "page" : undefined}
-            onClick={() => onNavigateSection("study")}
+            aria-disabled={sectionLocked("study") || undefined}
+            onClick={() => goToSection("study")}
           >
             <span className="sa-sidebar__nav-item-main">
-              <StudentIcon name="menu_book" size={18} role="decorative" />
+              <StudentIcon name={sectionLocked("study") ? "lock" : "menu_book"} size={18} role="decorative" />
               <span>
                 <StudentSystemText k="lessons" withinControl />
               </span>
@@ -146,12 +164,13 @@ export default function StudentSidebar({
           </button>
           <button
             type="button"
-            className={`sa-sidebar__nav-item ${activeSection === "progress" ? "is-active" : ""}`}
+            className={sectionItemClass("progress")}
             aria-current={activeSection === "progress" ? "page" : undefined}
-            onClick={() => onNavigateSection("progress")}
+            aria-disabled={sectionLocked("progress") || undefined}
+            onClick={() => goToSection("progress")}
           >
             <span className="sa-sidebar__nav-item-main">
-              <StudentIcon name="trending_up" size={18} role="decorative" />
+              <StudentIcon name={sectionLocked("progress") ? "lock" : "trending_up"} size={18} role="decorative" />
               <span>
                 <StudentSystemText k="progress" withinControl />
               </span>
@@ -159,12 +178,13 @@ export default function StudentSidebar({
           </button>
           <button
             type="button"
-            className={`sa-sidebar__nav-item ${activeSection === "placement" ? "is-active" : ""}`}
+            className={sectionItemClass("placement")}
             aria-current={activeSection === "placement" ? "page" : undefined}
-            onClick={() => onNavigateSection("placement")}
+            aria-disabled={sectionLocked("placement") || undefined}
+            onClick={() => goToSection("placement")}
           >
             <span className="sa-sidebar__nav-item-main">
-              <StudentIcon name="flag" size={18} role="decorative" />
+              <StudentIcon name={sectionLocked("placement") ? "lock" : "flag"} size={18} role="decorative" />
               <span>
                 <StudentSystemText k="placement" withinControl />
               </span>
@@ -172,18 +192,24 @@ export default function StudentSidebar({
           </button>
           <button
             type="button"
-            className={`sa-sidebar__nav-item ${activeSection === "settings" ? "is-active" : ""}`}
+            className={sectionItemClass("settings")}
             aria-current={activeSection === "settings" ? "page" : undefined}
-            onClick={() => onNavigateSection("settings")}
+            aria-disabled={sectionLocked("settings") || undefined}
+            onClick={() => goToSection("settings")}
           >
             <span className="sa-sidebar__nav-item-main">
-              <StudentIcon name="settings" size={18} role="decorative" />
+              <StudentIcon name={sectionLocked("settings") ? "lock" : "settings"} size={18} role="decorative" />
               <span>
                 <StudentSystemText k="settings" withinControl />
               </span>
             </span>
           </button>
         </nav>
+        {sectionNoticeShown && (
+          <p className="sa-sidebar__lock-notice" role="status">
+            <StudentSystemText k="lockedUntilPlacement" />
+          </p>
+        )}
 
         {activeSection === "study" && maxQuizStars > 0 && (
           <section className="sa-sidebar__stars" aria-label="學習星星">

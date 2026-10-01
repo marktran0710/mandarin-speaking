@@ -18,7 +18,14 @@ const { blueprint, attempt } = vi.hoisted(() => {
 });
 vi.mock("@shared/api/placement-test", async () => {
   const actual = await vi.importActual<typeof import("@shared/api/placement-test")>("@shared/api/placement-test");
-  return { ...actual, getPlacementBlueprint: vi.fn().mockResolvedValue(blueprint), startPlacementAttempt: vi.fn().mockResolvedValue(attempt) };
+  return {
+    ...actual,
+    getPlacementBlueprint: vi.fn().mockResolvedValue(blueprint),
+    startPlacementAttempt: vi.fn().mockResolvedValue(attempt),
+    completePlacementAttempt: vi.fn().mockResolvedValue({
+      attemptId: "a1", totalQuestions: 2, correctCount: 2, percentage: 100, messageKey: "CONGRATULATIONS",
+    }),
+  };
 });
 import PlacementPage from "./PlacementPage";
 import { unavailablePlacementSession } from "./placementSession";
@@ -47,5 +54,46 @@ describe("PlacementPage", () => {
     expect(screen.queryByText("第 1 / 2 題")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "開始測驗" }));
     await waitFor(() => expect(screen.getByText("第 1 / 2 題")).toBeInTheDocument());
+  });
+
+  it("tells a new account that this test comes first, and says nothing to anyone else", async () => {
+    const { unmount } = render(<PlacementPage gated />);
+    expect(await screen.findByText("新帳號要先完成這個測驗。")).toBeInTheDocument();
+    unmount();
+
+    render(<PlacementPage />);
+    await screen.findByText("開始測驗");
+    expect(screen.queryByText("新帳號要先完成這個測驗。")).not.toBeInTheDocument();
+  });
+
+  it("reports completion once and offers a way to start learning", async () => {
+    const user = userEvent.setup();
+    const onCompleted = vi.fn();
+    const onStartLearning = vi.fn();
+    render(<PlacementPage onCompleted={onCompleted} onStartLearning={onStartLearning} />);
+
+    await user.click(await screen.findByRole("button", { name: "開始測驗" }));
+    await user.click(await screen.findByRole("button", { name: /tea/ }));
+    await user.click(screen.getByRole("button", { name: "下一題" }));
+    await user.click(await screen.findByRole("button", { name: /water/ }));
+    await user.click(screen.getByRole("button", { name: "完成測驗" }));
+
+    expect(await screen.findByText("入門測驗完成")).toBeInTheDocument();
+    expect(onCompleted).toHaveBeenCalledOnce();
+    expect(onStartLearning).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "開始學習" }));
+    expect(onStartLearning).toHaveBeenCalledOnce();
+  });
+
+  it("shows no start-learning button when nobody asked for one", async () => {
+    const user = userEvent.setup();
+    render(<PlacementPage />);
+    await user.click(await screen.findByRole("button", { name: "開始測驗" }));
+    await user.click(await screen.findByRole("button", { name: /tea/ }));
+    await user.click(screen.getByRole("button", { name: "下一題" }));
+    await user.click(await screen.findByRole("button", { name: /water/ }));
+    await user.click(screen.getByRole("button", { name: "完成測驗" }));
+    expect(await screen.findByText("入門測驗完成")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "開始學習" })).not.toBeInTheDocument();
   });
 });

@@ -21,6 +21,10 @@ vi.mock("../../utils/studentSession", () => ({
   getStudentName: () => "Student One",
   isAdminSession: () => false,
 }));
+// These tests are about the vocabulary gates, not the placement gate (own test file):
+vi.mock("../../features/placement/usePlacementGate", () => ({
+  usePlacementGate: () => ({ state: "clear", refresh: async () => {} }),
+}));
 vi.mock("../../features/vocabulary/VocabularyQuizPage", () => ({
   default: () => <div data-testid="vocabulary-practice">Vocabulary Practice</div>,
 }));
