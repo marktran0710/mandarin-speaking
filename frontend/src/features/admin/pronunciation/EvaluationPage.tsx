@@ -182,8 +182,9 @@ export default function PronunciationEvaluationPage() {
   return (
     <div className="pron-page" aria-busy={isEvaluating}>
       <p className="pron-intro">
-        Fluency and Prosody are scored separately out of 5 using Praat. GPT-6 Luna explains the measurements.
-        Accuracy is not assessed because Luna cannot hear audio. Thresholds are configurable research defaults;
+        Pronunciation is scored 1–5 from Wav2Vec2 initial/final evidence plus Praat F0 tone evidence. Fluency and
+        Prosody are scored separately out of 5 using Praat. GPT-6 Luna explains the measurements.
+        Thresholds are configurable research defaults;
         they have not been calibrated against teacher ratings. Nothing here affects student progress.
       </p>
 

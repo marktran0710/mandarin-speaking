@@ -362,7 +362,7 @@ class FeedbackProvenance(BaseModel):
     acoustic_context_used: bool = False
     acoustic_context_supplied: bool = False
     pronunciation_source: Literal[
-        "praat_acoustic_measurements", "local_deterministic"
+        "wav2vec2_plus_praat_f0", "praat_acoustic_measurements", "local_deterministic"
     ] = "local_deterministic"
 
 

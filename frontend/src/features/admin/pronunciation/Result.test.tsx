@@ -48,7 +48,7 @@ const rubricResult: PronunciationEvaluation = {
   status: "scored",
   reason: null,
   dimensions: {
-    accuracy: { key: "accuracy", score: null, out_of: 5, source: "unavailable", rubric_level: null, rubric_description: null, reason: "GPT-6 Luna cannot hear audio.", measurements: {}, criteria: [], ai_result: null },
+    pronunciation: { key: "pronunciation", score: 4, out_of: 5, source: "wav2vec2_plus_praat", rubric_level: 4, rubric_description: "Close", reason: "Measured", measurements: {}, criteria: [], pronunciation_errors: [], tone_errors: [] },
     fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderately fluent.", reason: "Pause fraction is limiting.", feedback: "Keep the phrase moving.", measurements: { pause_count: 4, pause_ratio: 0.21 }, criteria: [] },
     prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Minor deviations.", reason: "Pitch range is limiting.", feedback: "Follow the model's sentence movement.", measurements: { pitch_range: 5.1 }, criteria: [] },
   },
@@ -68,8 +68,8 @@ describe("PronunciationResult", () => {
     render(<PronunciationResult result={rubricResult} />);
     expect(screen.queryByText("84")).not.toBeInTheDocument();
     expect(screen.getByText("3 / 5")).toBeInTheDocument();
-    expect(screen.getByText("4 / 5")).toBeInTheDocument();
-    expect(screen.getAllByText("not assessed")).toHaveLength(1);
+    expect(screen.getAllByText("4 / 5")).toHaveLength(2);
+    expect(screen.queryByText("not assessed")).not.toBeInTheDocument();
     expect(screen.getByText("Keep the phrase moving.")).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("Measurements and rubric decision")[1]);
     expect(screen.getByText(/pause_ratio": 0.21/)).toBeInTheDocument();

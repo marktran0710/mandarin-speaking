@@ -95,6 +95,7 @@ const DIMENSION_LABELS: Record<string, string> = {
   segmental: "Pronunciation (sounds)",
   fluency: "Fluency",
   accuracy: "Accuracy",
+  pronunciation: "Pronunciation (Wav2Vec2 + Praat tone)",
   prosody: "Prosody",
   intelligibility: "Intelligibility",
 };

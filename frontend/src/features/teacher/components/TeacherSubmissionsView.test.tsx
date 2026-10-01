@@ -87,7 +87,7 @@ describe("TeacherSubmissionsView", () => {
         pronunciationEvaluation: {
           status: "scored", reason: null,
           dimensions: {
-            accuracy: { key: "accuracy", score: null, out_of: 5, source: "unavailable", rubric_level: null, rubric_description: null, reason: "Not assessed", measurements: {}, criteria: [] },
+            pronunciation: { key: "pronunciation", score: 4, out_of: 5, source: "wav2vec2_plus_praat", rubric_level: 4, rubric_description: "Close", reason: "Measured", measurements: {}, criteria: [], pronunciation_errors: [], tone_errors: [] },
             fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderate", reason: "Measured", measurements: {}, criteria: [] },
             prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Good", reason: "Measured", measurements: {}, criteria: [] },
           },

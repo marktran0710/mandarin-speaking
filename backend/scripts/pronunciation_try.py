@@ -1,8 +1,9 @@
-"""Try independent AI + Praat rubrics on two recordings, without a database.
+"""Try Wav2Vec2 + Praat rubrics on two recordings, without a database.
 
 python -m scripts.pronunciation_try --reference teacher.wav --student me.wav --text "你好嗎"
 
-GPT-6 Luna explains the measurements. Accuracy is not assessed; no overall score.
+Wav2Vec2 scores Pronunciation, Praat scores Fluency and Prosody, and GPT-6 Luna
+explains the measurements. There is no overall score.
 """
 
 import argparse
@@ -40,6 +41,8 @@ async def _run(args):
         print(json.dumps(dimension["measurements"], ensure_ascii=False, indent=2))
     print(result["feedback"]["summary"])
     print(result["feedback"]["practice_tip"])
+    print("pronunciation errors:", json.dumps(result.get("pronunciation_errors", []), ensure_ascii=False))
+    print("tone errors:", json.dumps(result.get("tone_errors", []), ensure_ascii=False))
     if args.provenance:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

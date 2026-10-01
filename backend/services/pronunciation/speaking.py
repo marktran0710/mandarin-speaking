@@ -29,12 +29,16 @@ async def attach_pronunciation_feedback(
         "executed_provider": feedback["model"],
         "fallback_used": False, "fallback_reason": None,
         "acoustic_context_used": True, "acoustic_context_supplied": True,
-        "pronunciation_source": "praat_acoustic_measurements",
+        "pronunciation_source": "wav2vec2_plus_praat_f0",
     }
     language = {**(payload.get("ai_feedback") or {})}
+    pronunciation_dimension = result["dimensions"]["pronunciation"]
     language.update({
         "provider": feedback["model"],
-        "pronunciation_note": {"score": None, "feedback": feedback["summary"]},
+        "pronunciation_score": pronunciation_dimension["score"],
+        "pronunciation_errors": result.get("pronunciation_errors", []),
+        "tone_errors": result.get("tone_errors", []),
+        "pronunciation_note": {"score": pronunciation_dimension["score"], "feedback": feedback["summary"]},
         "corrective_feedback": {"errors": [], "hint": feedback["summary"], "reveal_answer": False, "correct_version": ""},
         "practice_prompt": feedback["practice_tip"],
         "feedback_provenance": provenance,
@@ -44,7 +48,7 @@ async def attach_pronunciation_feedback(
     trace["stages"] = [*(trace.get("stages") or []), {
         "stage": "pronunciation_feedback", "status": "passed", "duration_ms": elapsed_ms,
         "model": feedback["model"], "provider": "openai",
-        "detail": "Luna explains separate Praat Fluency and Prosody rubrics. Accuracy is not assessed.",
+        "detail": "Wav2Vec2 scores initial/final similarity; Praat scores tone, Fluency and Prosody separately; Luna explains.",
         "output": {"dimensions": result["dimensions"], "feedback_provenance": provenance},
     }]
     trace["total_duration_ms"] = round(trace.get("total_duration_ms", 0) + elapsed_ms, 1)

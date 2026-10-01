@@ -17,7 +17,7 @@ from services.speaking_progress_service import _merge_latest_result
 def test_new_rubric_replaces_old_same_attempt_pronunciation_percentage():
     old = {"snapshotId": "audio-1", "pronScore": 84}
     new = {"snapshotId": "audio-1", "pronScore": None,
-           "pronunciationEvaluation": {"dimensions": {"accuracy": {"score": None},
+           "pronunciationEvaluation": {"dimensions": {"pronunciation": {"score": None},
            "fluency": {"score": 4}, "prosody": {"score": 3}}}}
     merged = _merge_latest_result(old, new, same_attempt=True)
     assert merged["pronScore"] is None

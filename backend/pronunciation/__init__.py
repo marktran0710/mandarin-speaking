@@ -1,6 +1,6 @@
-"""Experimental pronunciation research modules.
+"""Wav2Vec2 pronunciation representation modules.
 
-Deliberately separate from the production scoring path. Nothing here is
-imported by the running application, and nothing here imports from it, so an
-experiment cannot change what students receive.
+The active rubric imports the embedding extractor through a narrow scoring
+adapter. Raw neural vectors stay internal; API results persist only scalar
+similarities, model provenance and the evidence used for each decision.
 """

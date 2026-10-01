@@ -163,7 +163,7 @@ describe("StorySpeakingPage", () => {
     result.metrics.pronunciation_evaluation = {
       status: "scored", reason: null,
       dimensions: {
-        accuracy: { key: "accuracy", score: null, out_of: 5, source: "unavailable", rubric_level: null, rubric_description: null, reason: "Not assessed", measurements: {}, criteria: [] },
+        pronunciation: { key: "pronunciation", score: 4, out_of: 5, source: "wav2vec2_plus_praat", rubric_level: 4, rubric_description: "Close", reason: "Measured", measurements: {}, criteria: [], pronunciation_errors: [], tone_errors: [] },
         fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderately fluent", reason: "Several pauses", feedback: "Practise continuous phrases.", measurements: { pause_count: 4 }, criteria: [] },
         prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Minor deviations", reason: "Reference timing", feedback: "Match the sentence rhythm.", measurements: { rhythm_similarity: .8 }, criteria: [] },
       },
@@ -197,9 +197,9 @@ describe("StorySpeakingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
     expect(screen.queryByText("87/100")).not.toBeInTheDocument();
-    expect(screen.getByText("尚未評分")).toBeInTheDocument();
+    expect(screen.getByText("發音")).toBeInTheDocument();
     expect(screen.getByText("3/5")).toBeInTheDocument();
-    expect(screen.getByText("4/5")).toBeInTheDocument();
+    expect(screen.getAllByText("4/5")).toHaveLength(2);
     expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
     expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
     expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();

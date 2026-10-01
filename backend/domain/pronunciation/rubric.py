@@ -55,6 +55,13 @@ class RubricPolicy:
             "pitch_range_similarity", "rhythm_similarity", "speaking_rate_stability",
         )
     })
+    # Minimum similarity for Wav2Vec2 initial/final segments and Praat F0 tone
+    # evidence, in levels 5, 4, 3 and 2. These are calibration starting points.
+    pronunciation_limits: dict[str, tuple[float, ...]] = field(default_factory=lambda: {
+        "initial_similarity": (.92, .84, .72, .58),
+        "final_similarity": (.92, .84, .72, .58),
+        "tone_similarity": (.90, .78, .60, .38),
+    })
     pause_duration_tolerance_seconds: float = .15
     pitch_distance_scale_semitones: float = 4.0
     pitch_range_floor_semitones: float = .5
@@ -67,7 +74,7 @@ class RubricPolicy:
         if self.validation_status != "uncalibrated_engineering_defaults":
             raise ValueError("Teacher calibration must be evidenced before changing validation status")
         expected = RubricPolicy.__dataclass_fields__
-        for name, lower in (("fluency_limits", False), ("prosody_limits", True)):
+        for name, lower in (("fluency_limits", False), ("prosody_limits", True), ("pronunciation_limits", True)):
             defaults = expected[name].default_factory()
             actual = getattr(self, name)
             if set(actual) != set(defaults):

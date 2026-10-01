@@ -352,16 +352,17 @@ class OpenAICompatibleFeedbackProvider:
         self._http_post = http_post
 
     async def generate_rubric_feedback(self, evidence: dict) -> PronunciationFeedback:
-        """Text coaching for independent Praat rubrics; Accuracy is NOT assessed."""
+        """Text coaching for Wav2Vec2 pronunciation and Praat rubrics."""
         config = self._config
         prompt = (
-            "Explain measured Mandarin fluency and sentence prosody to a learner. "
-            "You have no audio. Accuracy (consonants, vowels and lexical tones) is NOT assessed. "
-            "Never claim a word or tone is correct or incorrect. Never change or restate scores. "
-            "Use only the supplied measurements, rubric decisions and alignment caveats. "
-            "Keep fluency (pauses and overall rate) separate from prosody (sentence pitch envelope and relative timing). "
+            "Explain the supplied Mandarin pronunciation, fluency and sentence prosody evidence to a learner. "
+            "You have no audio: Wav2Vec2 and Praat already produced the evidence. "
+            "Do not invent errors, change scores, or restate numeric scores. "
+            "Use only the supplied measurements, pronunciation_errors, tone_errors, rubric decisions and alignment caveats. "
+            "Keep pronunciation (Wav2Vec2 initial/final similarity plus Praat lexical-tone evidence) separate "
+            "from fluency (pauses and rate) and prosody (sentence pitch envelope and relative timing). "
             "These are uncalibrated research rubrics; do not claim scientific validity. "
-            "Return JSON with summary, fluency_feedback, prosody_feedback, practice_tip; "
+            "Return JSON with summary, pronunciation_feedback, fluency_feedback, prosody_feedback, practice_tip; "
             "each is one or two short useful sentences. No focus_words, numeric scores or percentages. "
             f"Write in {config.language}."
         )
@@ -375,24 +376,29 @@ class OpenAICompatibleFeedbackProvider:
         try:
             data = json.loads(_strip_fence(reply["choices"][0]["message"]["content"]))
             fields = {key: _clean_text(data.get(key)) for key in
-                      ("summary", "fluency_feedback", "prosody_feedback", "practice_tip")}
+                      ("summary", "pronunciation_feedback", "fluency_feedback", "prosody_feedback", "practice_tip")}
             if any(value is None for value in fields.values()):
                 raise FeedbackRejected("llm_invalid_rubric_feedback")
-            # Accuracy is unavailable, so prose must not claim that Luna heard
-            # lexical tones, consonants, vowels or individual word errors.
-            accuracy_claim = re.compile(
-                r"\b(?:lexical\s+)?tones?\b|\b(?:consonants?|vowels?|phonemes?)\b|"
-                r"\bpronunciation\s+(?:accuracy|errors?)\b|聲調|声调|聲母|声母|韻母|韵母|發音準確|发音准确",
-                re.IGNORECASE,
-            )
-            if any(accuracy_claim.search(value) for value in fields.values()):
-                raise FeedbackRejected("llm_unassessed_accuracy_claim")
+            if any(_SCORE_CLAIM.search(value) for value in fields.values()):
+                raise FeedbackRejected("llm_score_claim")
+            if evidence.get("pronunciation", {}).get("source") == "unavailable":
+                unassessed_claim = re.compile(
+                    r"\b(?:lexical\s+)?tones?\b|\b(?:consonants?|vowels?|phonemes?)\b|"
+                    r"\bpronunciation\s+(?:accuracy|errors?)\b|聲調|声调|聲母|声母|韻母|韵母|發音準確|发音准确",
+                    re.IGNORECASE,
+                )
+                if any(unassessed_claim.search(value) for value in fields.values()):
+                    raise FeedbackRejected("llm_unassessed_pronunciation_claim")
         except (KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError) as exc:
             raise FeedbackRejected("invalid_reply") from exc
         return PronunciationFeedback(
             summary=fields["summary"], practice_tip=fields["practice_tip"], focus_words=(),
             source="llm", model=config.model,
-            dimension_feedback={"fluency": fields["fluency_feedback"], "prosody": fields["prosody_feedback"]},
+            dimension_feedback={
+                "pronunciation": fields["pronunciation_feedback"],
+                "fluency": fields["fluency_feedback"],
+                "prosody": fields["prosody_feedback"],
+            },
         )
 
     async def generate_feedback(self, feedback_input: FeedbackInput) -> PronunciationFeedback:

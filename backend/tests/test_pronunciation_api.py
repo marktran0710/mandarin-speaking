@@ -29,10 +29,12 @@ def isolated(monkeypatch, tmp_path):
     for name in ("OPENAI_API_KEY", "PRONUNCIATION_FEEDBACK_API_KEY", "PRONUNCIATION_SCORE_STUDENT_VISIBLE"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PRONUNCIATION_FEEDBACK_API_KEY", "sk-test")
+    monkeypatch.setenv("PRONUNCIATION_WAV2VEC2_ENABLED", "false")
     async def successful_http(url, headers, body, timeout):
         evidence = json.loads(body["messages"][1]["content"])
         reply = {
             "summary": "Compare the recording with the reference.",
+            "pronunciation_feedback": "The Wav2Vec2 pronunciation model is unavailable for this recording.",
             "fluency_feedback": "Keep the sentence flowing between phrase boundaries.",
             "prosody_feedback": "Follow the reference sentence pitch and relative timing.",
             "practice_tip": "Practise the whole sentence slowly.",
@@ -82,7 +84,7 @@ def test_a_teacher_gets_the_score_feedback_and_full_debug_evidence(isolated, log
     body = _post(client, _wav(isolated, base_hz=200)).json()
     assert body["status"] == "scored"
     assert "score" not in body
-    assert body["dimensions"]["accuracy"]["score"] is None
+    assert body["dimensions"]["pronunciation"]["score"] is None
     assert body["dimensions"]["fluency"]["score"] == 5
     assert body["dimensions"]["prosody"]["score"] == 5
     assert body["dimensions"]["fluency"]["measurements"]["speech_rate"] > 0
@@ -102,7 +104,7 @@ def test_a_flat_tone_is_reported_per_word_with_its_flag(isolated, logged_in_teac
     body = _post(client, _wav(isolated, ("flat", "rise", "flat"))).json()
     assert "score" not in body
     assert body["words"] == []  # diagnostic tone flags do not claim Accuracy
-    assert body["dimensions"]["accuracy"]["ai_result"] is None
+    assert body["dimensions"]["pronunciation"]["score"] is None
     assert body["dimensions"]["prosody"]["score"] < 5
     assert body["feedback"]["focus_words"] == []
 
@@ -125,7 +127,7 @@ def test_an_enabled_student_gets_no_debug_or_raw_pitch_data(isolated, logged_in_
     assert response.status_code == 200
     body = response.json()
     assert "score" not in body
-    assert body["dimensions"]["accuracy"]["score"] is None
+    assert body["dimensions"]["pronunciation"]["score"] is None
     assert body["dimensions"]["fluency"]["score"] == 5
     assert body["dimensions"]["prosody"]["score"] == 5
     assert "debug" not in body
@@ -279,7 +281,7 @@ def test_speaking_flows_return_and_save_gpt_feedback(
     body = response.json()
     analysis = body["analysis"] if verified else body
     assert "score" not in analysis["pronunciation_evaluation"]
-    assert analysis["pronunciation_evaluation"]["dimensions"]["accuracy"]["score"] is None
+    assert analysis["pronunciation_evaluation"]["dimensions"]["pronunciation"]["score"] is None
     assert analysis["pronunciation_evaluation"]["dimensions"]["prosody"]["score"] == 5
     assert analysis["pronunciation_evaluation"]["model"]["feedback_model"] == "gpt-6-luna"
     assert analysis["pronunciation_evaluation"]["reference"]["audio_url"] == "/uploads/story_audio/ref.wav"

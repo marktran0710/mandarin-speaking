@@ -29,6 +29,11 @@ export default function PronunciationResult({ result }: { result: PronunciationE
                 <span>{dimensionLabel(dimension.key)}</span>
                 <b>{dimension.score === null ? "not assessed" : `${dimension.score} / 5`}</b>
                 <p>{dimension.feedback || dimension.reason}</p>
+                {dimension.key === "pronunciation" && (
+                  <small>
+                    {dimension.pronunciation_errors?.length ?? 0} segmental errors · {dimension.tone_errors?.length ?? 0} tone errors
+                  </small>
+                )}
                 <details>
                   <summary>Measurements and rubric decision</summary>
                   <pre>{JSON.stringify(dimension, null, 2)}</pre>

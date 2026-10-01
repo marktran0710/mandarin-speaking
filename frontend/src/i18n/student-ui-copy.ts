@@ -22,6 +22,7 @@ const baseStudentUiCopy = {
   characterSettings: { zh: "角色設定", pinyin: "Juésè shèdìng", en: "Character settings" },
   pronunciationScore: { zh: "發音分數", pinyin: "Fāyīn fēnshù", en: "Pronunciation score" },
   accuracyLabel: { zh: "發音準確度", pinyin: "Fāyīn zhǔnquèdù", en: "Accuracy" },
+  pronunciationLabel: { zh: "發音", pinyin: "Fāyīn", en: "Pronunciation" },
   fluencyLabel: { zh: "流暢度", pinyin: "Liúchàngdù", en: "Fluency" },
   prosodyLabel: { zh: "語調與節奏", pinyin: "Yǔdiào yǔ jiézòu", en: "Prosody" },
   scoreNotAssessed: { zh: "尚未評分", pinyin: "Shàngwèi píngfēn", en: "Not assessed" },

@@ -91,9 +91,15 @@ export default function SpeechResultReview({
           <div className="sa-result-review__rubrics" aria-label="Pronunciation dimensions">
             {Object.values(pronunciation.dimensions).map((dimension) => (
               <article key={dimension.key} className="sa-result-review__rubric">
-                <strong><StudentSystemText k={dimension.key === "accuracy" ? "accuracyLabel" : dimension.key === "fluency" ? "fluencyLabel" : "prosodyLabel"} /></strong>
+                <strong><StudentSystemText k={dimension.key === "accuracy" ? "accuracyLabel" : dimension.key === "pronunciation" ? "pronunciationLabel" : dimension.key === "fluency" ? "fluencyLabel" : "prosodyLabel"} /></strong>
                 <p>{dimension.score == null ? <StudentSystemText k="scoreNotAssessed" /> : <strong>{dimension.score}/5</strong>}</p>
                 <p>{dimension.key === "accuracy" ? <StudentSystemText k="accuracyNotAssessed" /> : dimension.feedback || dimension.reason}</p>
+                {dimension.key === "pronunciation" && (
+                  <small>
+                    {(dimension.pronunciation_errors?.length ?? 0) > 0 && `${dimension.pronunciation_errors?.length} segmental issues. `}
+                    {(dimension.tone_errors?.length ?? 0) > 0 && `${dimension.tone_errors?.length} tone issues.`}
+                  </small>
+                )}
               </article>
             ))}
           </div>
