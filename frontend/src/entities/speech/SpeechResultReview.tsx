@@ -12,6 +12,10 @@ import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAli
 import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
 import "./SpeechResultReview.css";
 
+// Voice practice currently presents Praat visualizations and GPT feedback only.
+// The rubric payload remains available for admin/debug views and future calibration.
+const SHOW_VOICE_RUBRIC_SCORES = import.meta.env.VITE_SHOW_VOICE_RUBRIC_SCORES === "true";
+
 interface SpeechResultReviewProps {
   targetScript: string;
   transcript?: string;
@@ -85,7 +89,7 @@ export default function SpeechResultReview({
         <ResultBadge ok={meaningPassed} />
       </div>
 
-      {pronunciation?.dimensions && (
+      {SHOW_VOICE_RUBRIC_SCORES && pronunciation?.dimensions && (
         <>
           <p className="sa-result-review__rubric-note"><StudentSystemText k="rubricResearchStatus" /></p>
           <div className="sa-result-review__rubrics" aria-label="Pronunciation dimensions">

@@ -197,9 +197,9 @@ describe("StorySpeakingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
     expect(screen.queryByText("87/100")).not.toBeInTheDocument();
-    expect(screen.getByText("發音")).toBeInTheDocument();
-    expect(screen.getByText("3/5")).toBeInTheDocument();
-    expect(screen.getAllByText("4/5")).toHaveLength(2);
+    expect(screen.queryByText("3/5")).not.toBeInTheDocument();
+    expect(screen.queryByText("4/5")).not.toBeInTheDocument();
+    expect(screen.queryByText(/研究試行分數/)).not.toBeInTheDocument();
     expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
     expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
     expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();
