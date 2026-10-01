@@ -177,7 +177,10 @@ async def build_story_extras(submission_id: str, scenes_sorted: list) -> tuple:
             scene_count = len(scenes_sorted) or 1
             avg_tone_accuracy = sum(s.toneAccuracy for s in scenes_sorted) / scene_count
             avg_fluency_score = sum(s.fluencyScore for s in scenes_sorted) / scene_count
-            avg_pron_score = sum(s.pronScore for s in scenes_sorted) / scene_count
+            legacy_scores = [s.pronScore for s in scenes_sorted if s.pronScore is not None]
+            # Independent rubrics have no aggregate. Zero is the existing story
+            # feedback provider's "not judged" sentinel, never a rubric score.
+            avg_pron_score = sum(legacy_scores) / len(legacy_scores) if legacy_scores else 0
             # Real delivery data (not just the composite fluency score) so the
             # story-level feedback can cite actual pausing/utterance behavior —
             # this matters more now that a scene can hand the student a
@@ -188,7 +191,10 @@ async def build_story_extras(submission_id: str, scenes_sorted: list) -> tuple:
             total_utterance_count = sum(s.utteranceCount for s in scenes_sorted)
             total_choppy_pause_count = sum(s.choppyPauseCount for s in scenes_sorted)
             avg_articulation_rate = sum(s.articulationRate for s in scenes_sorted) / scene_count
-            story_feedback = await generate_story_feedback(
+            # The new per-scene rubric explanations are already persisted.
+            # Do not feed them into the legacy holistic /100 feedback pipeline.
+            has_rubrics = any(s.pronunciationEvaluation and s.pronunciationEvaluation.get("dimensions") for s in scenes_sorted)
+            story_feedback = None if has_rubrics else await generate_story_feedback(
                 combined_transcript,
                 avg_tone_accuracy=avg_tone_accuracy,
                 avg_fluency_score=avg_fluency_score,

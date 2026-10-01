@@ -136,3 +136,19 @@
   .sa-result-review { padding: var(--space-4); }
   .sa-result-review__script { padding: var(--space-4); }
 }
+.sa-result-review__rubrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.sa-result-review__rubric {
+  border: 1px solid var(--student-border, #e4dbc9);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.sa-result-review__rubric p { margin: 8px 0 0; }
+
+.sa-result-review__rubric-note { margin: 12px 0 0; color: var(--student-muted, #6b655a); font-size: .88rem; }

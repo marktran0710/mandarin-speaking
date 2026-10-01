@@ -14,8 +14,7 @@ import "./EvaluationPage.css";
 
 const MAX_RECORDING_SECONDS = 30;
 
-/** Try the pronunciation evaluator on a real scene: Praat measures the pitch,
- * fixed rules give the score, and the configured model only explains it. */
+/** Try independent Praat fluency/prosody rubrics against a scene recording. */
 export default function PronunciationEvaluationPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [topicId, setTopicId] = useState("");
@@ -183,8 +182,9 @@ export default function PronunciationEvaluationPage() {
   return (
     <div className="pron-page" aria-busy={isEvaluating}>
       <p className="pron-intro">
-        Record the scene's sentence. Pitch and timing are measured with Praat and compared with the teacher's recording;
-        the score comes from fixed rules and the language model only explains it. Nothing here affects student progress.
+        Fluency and Prosody are scored separately out of 5 using Praat. GPT-6 Luna explains the measurements.
+        Accuracy is not assessed because Luna cannot hear audio. Thresholds are configurable research defaults;
+        they have not been calibrated against teacher ratings. Nothing here affects student progress.
       </p>
 
       <div className="pron-controls">
@@ -228,7 +228,7 @@ export default function PronunciationEvaluationPage() {
         {audioUrl && <audio controls src={audioUrl} aria-label="Your recording" />}
       </div>
 
-      {isEvaluating && <p className="pron-status" role="status">Measuring pitch and writing feedback…</p>}
+      {isEvaluating && <p className="pron-status" role="status">Measuring Fluency and Prosody; asking GPT-6 Luna for feedback…</p>}
       {error && <p className="admin-error" role="alert">{error}</p>}
       {result && <PronunciationResult result={result} />}
     </div>

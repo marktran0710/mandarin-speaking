@@ -92,7 +92,7 @@ export function useSpeakingRecorder(buildContext: (attemptNumber: number) => Pra
         analysis_version?: string;
         progression_eligible?: boolean;
       };
-      if (!metrics?.pronunciation_evaluation) {
+      if (!metrics?.pronunciation_evaluation?.dimensions) {
         throw new Error("The server did not return GPT pronunciation feedback. Restart the backend with the latest version and retry.");
       }
       metrics.analysis_version = metrics.analysis_version ?? "stable_v1";

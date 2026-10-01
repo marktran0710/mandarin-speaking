@@ -32,6 +32,21 @@ export interface PronunciationFeedback {
   model?: string | null;
   fallback_reason?: string | null;
   adjustments?: string[];
+  dimension_feedback?: Partial<Record<"fluency" | "prosody", string>>;
+}
+
+export interface PronunciationRubricDimension {
+  key: "accuracy" | "fluency" | "prosody";
+  score: number | null;
+  out_of: 5;
+  source: "praat" | "unavailable" | "ai";
+  rubric_level: number | null;
+  rubric_description: string | null;
+  reason: string;
+  feedback?: string;
+  measurements: Record<string, unknown>;
+  criteria: Array<{ feature: string; value: number; level: number; thresholds_levels_5_to_2: number[]; comparison: string }>;
+  ai_result?: Record<string, unknown> | null;
 }
 
 export interface PronunciationSyllableFeatures {
@@ -61,11 +76,15 @@ export interface PronunciationEvaluation {
   target_text?: string;
   status: "scored" | "unscorable";
   reason: string | null;
-  score: {
+  /** Legacy saved results only; new evaluations never calculate a total. */
+  score?: {
     total: number | null;
     renormalized: boolean;
     dimensions: PronunciationDimension[];
   };
+  dimensions?: Record<"accuracy" | "fluency" | "prosody", PronunciationRubricDimension>;
+  scoring_policy?: Record<string, unknown>;
+  provenance?: Record<string, unknown>;
   metrics: Partial<Record<"tone_similarity" | "rhythm_similarity" | "duration_similarity" | "pause_similarity", number | null>>;
   words: PronunciationWord[];
   feedback: PronunciationFeedback;

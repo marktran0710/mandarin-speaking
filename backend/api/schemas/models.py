@@ -130,7 +130,8 @@ class SceneSubmission(BaseModel):
     vocabMissing: List[str] = []
     vocabScore: float = 0
     toneAccuracy: float = 0
-    pronScore: float = 0
+    pronScore: Optional[float] = 0  # null for independent rubrics; no overall score
+    pronunciationEvaluation: Optional[Dict] = None
     fluencyScore: float = 0
     audioUrl: Optional[str] = None
     # Praat pause-analysis data for this scene's recording ??see

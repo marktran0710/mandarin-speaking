@@ -8,7 +8,7 @@ from psycopg.types.json import Jsonb
 
 import db
 from pron_audio import synth_wav
-from services.pronunciation import evaluator as evaluator_module
+from services.pronunciation import rubric_evaluator as evaluator_module
 from services.pronunciation.config import FeedbackConfig
 from services.pronunciation.feedback import OpenAICompatibleFeedbackProvider
 from services.pronunciation.reference_cache import InMemoryReferenceStore
@@ -33,7 +33,8 @@ def isolated(monkeypatch, tmp_path):
         evidence = json.loads(body["messages"][1]["content"])
         reply = {
             "summary": "Compare the recording with the reference.",
-            "focus_words": [{"word": issue["syllable"], "feedback": "Copy the reference pitch movement."} for issue in evidence["issues"]],
+            "fluency_feedback": "Keep the sentence flowing between phrase boundaries.",
+            "prosody_feedback": "Follow the reference sentence pitch and relative timing.",
             "practice_tip": "Practise the whole sentence slowly.",
         }
         return {"choices": [{"message": {"content": json.dumps(reply)}}]}
@@ -80,16 +81,18 @@ def test_a_teacher_gets_the_score_feedback_and_full_debug_evidence(isolated, log
     _reference(isolated)
     body = _post(client, _wav(isolated, base_hz=200)).json()
     assert body["status"] == "scored"
-    assert body["score"]["total"] == 100
-    by_key = {d["key"]: d for d in body["score"]["dimensions"]}
-    assert by_key["tone"]["basis"] == "measured" and by_key["segmental"]["basis"] == "unavailable"
+    assert "score" not in body
+    assert body["dimensions"]["accuracy"]["score"] is None
+    assert body["dimensions"]["fluency"]["score"] == 5
+    assert body["dimensions"]["prosody"]["score"] == 5
+    assert body["dimensions"]["fluency"]["measurements"]["speech_rate"] > 0
     assert body["feedback"]["summary"]
-    assert body["model"]["scoring_version"] == "pronunciation-score-v1"
+    assert body["model"]["scoring_version"] == "pronunciation-rubric-v1"
     debug = body["debug"]
     assert debug["provenance"]["expected_text"] == TEXT  # resolved server-side
     assert debug["reference_features"]["syllables"][0]["f0_points"]
     assert debug["student_features"]["syllables"][2]["direction"] == "fall"
-    assert debug["policy"]["weights"]["tone"] == 0.4
+    assert debug["policy"]["validation_status"] == "uncalibrated_engineering_defaults"
 
 
 def test_a_flat_tone_is_reported_per_word_with_its_flag(isolated, logged_in_teacher):
@@ -97,11 +100,11 @@ def test_a_flat_tone_is_reported_per_word_with_its_flag(isolated, logged_in_teac
     _publish_story()
     _reference(isolated)
     body = _post(client, _wav(isolated, ("flat", "rise", "flat"))).json()
-    assert body["score"]["total"] < 100
-    word = next(w for w in body["words"] if w["word"] == "罵")
-    assert word["flags"] == ["tone_contour_too_flat"]
-    assert (word["reference_shape"], word["student_shape"]) == ("fall", "flat")
-    assert body["feedback"]["focus_words"][0]["word"] == "罵"
+    assert "score" not in body
+    assert body["words"] == []  # diagnostic tone flags do not claim Accuracy
+    assert body["dimensions"]["accuracy"]["ai_result"] is None
+    assert body["dimensions"]["prosody"]["score"] < 5
+    assert body["feedback"]["focus_words"] == []
 
 
 def test_students_do_not_see_the_score_until_it_is_enabled(isolated, logged_in_student):
@@ -121,10 +124,13 @@ def test_an_enabled_student_gets_no_debug_or_raw_pitch_data(isolated, logged_in_
     response = _post(client, _wav(isolated))
     assert response.status_code == 200
     body = response.json()
-    assert body["score"]["total"] == 100
+    assert "score" not in body
+    assert body["dimensions"]["accuracy"]["score"] is None
+    assert body["dimensions"]["fluency"]["score"] == 5
+    assert body["dimensions"]["prosody"]["score"] == 5
     assert "debug" not in body
     assert "f0_points" not in response.text
-    assert set(body["feedback"]) == {"summary", "focus_words", "practice_tip"}
+    assert body["feedback"]["dimension_feedback"]["fluency"]
 
 
 def test_an_anonymous_caller_is_rejected(isolated, anonymous_client):
@@ -272,7 +278,9 @@ def test_speaking_flows_return_and_save_gpt_feedback(
     assert response.status_code == 200, response.text
     body = response.json()
     analysis = body["analysis"] if verified else body
-    assert analysis["pronunciation_evaluation"]["score"]["total"] == 100
+    assert "score" not in analysis["pronunciation_evaluation"]
+    assert analysis["pronunciation_evaluation"]["dimensions"]["accuracy"]["score"] is None
+    assert analysis["pronunciation_evaluation"]["dimensions"]["prosody"]["score"] == 5
     assert analysis["pronunciation_evaluation"]["model"]["feedback_model"] == "gpt-6-luna"
     assert analysis["pronunciation_evaluation"]["reference"]["audio_url"] == "/uploads/story_audio/ref.wav"
     assert "debug" not in analysis["pronunciation_evaluation"]

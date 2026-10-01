@@ -269,7 +269,9 @@ async def analyze_verified_speech(
             evaluation = saved_payload.get("pronunciation_evaluation")
             expected_key = (f"story:{scene['story_id']}:turn:{turn_id}" if conversation_id or turn_id
                             else f"story:{scene['story_id']}:scene:{scene['scene_index']}")
-            if (not evaluation or evaluation.get("target_text") != scene["target_text"]
+            from domain.pronunciation.rubric import VERSION as RUBRIC_VERSION
+            if (not evaluation or evaluation.get("model", {}).get("scoring_version") != RUBRIC_VERSION
+                    or evaluation.get("target_text") != scene["target_text"]
                     or evaluation.get("reference", {}).get("key") != expected_key):
                 raise HTTPException(status_code=409, detail="This attempt has no matching GPT pronunciation result. Submit a new attempt.")
         return _response(existing["id"], attempt_id, scene, difficulty_level, saved_payload, existing.get("audio_url"))

@@ -93,7 +93,9 @@ export function feedbackBadge(feedback: PronunciationFeedback): { label: string;
 const DIMENSION_LABELS: Record<string, string> = {
   tone: "Tone",
   segmental: "Pronunciation (sounds)",
-  fluency: "Rhythm & fluency",
+  fluency: "Fluency",
+  accuracy: "Accuracy",
+  prosody: "Prosody",
   intelligibility: "Intelligibility",
 };
 

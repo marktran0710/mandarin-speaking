@@ -37,7 +37,7 @@ function submittedTime(submission: StorySubmission) {
  * without opening it. The per-scene breakdown is still there, just behind
  * the Details toggle. */
 function overallScore(submission: StorySubmission): number {
-  const scores = submission.scenes.flatMap((scene) => [scene.vocabScore, scene.toneAccuracy, scene.pronScore]);
+  const scores = submission.scenes.flatMap((scene) => [scene.vocabScore, scene.toneAccuracy, ...(scene.pronScore == null ? [] : [scene.pronScore])]);
   if (scores.length === 0) return 0;
   return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
@@ -179,9 +179,13 @@ export default function TeacherSubmissionsView({
                   </div>
                   <span
                     className="story-submission-row-score"
-                    title="Blends vocab, tone, and pronunciation. Tone/pronunciation are experimental — not validated against human raters."
+                    title={sub.scenes.some((scene) => scene.pronunciationEvaluation?.dimensions)
+                      ? "Accuracy, Fluency and Prosody are shown as separate scores in the scene details."
+                      : "Legacy summary of vocabulary, tone, and pronunciation scores."}
                   >
-                    {overallScore(sub)}%
+                    {sub.scenes.some((scene) => scene.pronunciationEvaluation?.dimensions)
+                      ? "Separate scores"
+                      : `${overallScore(sub)}%`}
                   </span>
                   <span className="story-submission-row-date">
                     {new Date(sub.submittedAt).toLocaleDateString()}
@@ -268,7 +272,9 @@ export default function TeacherSubmissionsView({
                               className="sss-score"
                               title="Vocab / Tone / Character-by-character prosody. Tone and Prosody are experimental — not validated against human raters."
                             >
-                              Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore}%
+                              {scene.pronunciationEvaluation?.dimensions
+                                ? Object.values(scene.pronunciationEvaluation.dimensions).map((d) => `${d.key}: ${d.score == null ? "not assessed" : `${d.score}/5`}`).join(" · ")
+                                : <>Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore ?? "–"}%</>}
                             </span>
                           </div>
                           {(scene.selfEvalContent || scene.selfEvalPronunciation) && (

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from services.pronunciation.evaluator import PronunciationEvaluation
+from services.pronunciation.rubric_evaluator import RubricEvaluation
 
 
 def _score_block(evaluation: PronunciationEvaluation) -> dict[str, Any]:
@@ -63,7 +64,9 @@ def _words_block(evaluation: PronunciationEvaluation) -> list[dict[str, Any]]:
     ]
 
 
-def present_evaluation(evaluation: PronunciationEvaluation, *, include_debug: bool) -> dict[str, Any]:
+def present_evaluation(evaluation: PronunciationEvaluation | RubricEvaluation, *, include_debug: bool) -> dict[str, Any]:
+    if isinstance(evaluation, RubricEvaluation):
+        return {key: value for key, value in evaluation.body.items() if include_debug or key != "debug"}
     feedback = evaluation.feedback
     provenance = evaluation.provenance()
     body: dict[str, Any] = {

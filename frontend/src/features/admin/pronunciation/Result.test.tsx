@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 import PronunciationResult from "./Result";
@@ -44,7 +44,38 @@ const scoredResult: PronunciationEvaluation = {
   reference: { key: "story:s1:scene:0", cache_hit: true },
 };
 
+const rubricResult: PronunciationEvaluation = {
+  status: "scored",
+  reason: null,
+  dimensions: {
+    accuracy: { key: "accuracy", score: null, out_of: 5, source: "unavailable", rubric_level: null, rubric_description: null, reason: "GPT-6 Luna cannot hear audio.", measurements: {}, criteria: [], ai_result: null },
+    fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderately fluent.", reason: "Pause fraction is limiting.", feedback: "Keep the phrase moving.", measurements: { pause_count: 4, pause_ratio: 0.21 }, criteria: [] },
+    prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Minor deviations.", reason: "Pitch range is limiting.", feedback: "Follow the model's sentence movement.", measurements: { pitch_range: 5.1 }, criteria: [] },
+  },
+  scoring_policy: { validation_status: "uncalibrated_engineering_defaults" },
+  metrics: {}, words: [],
+  feedback: { summary: "Repeat after the model.", focus_words: [], practice_tip: "Practise one phrase.", source: "llm", model: "gpt-6-luna" },
+  model: { scoring_version: "pronunciation-rubric-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
+  reference: { key: "story:s1:scene:0", cache_hit: true },
+  debug: {
+    provenance: {}, policy: { validation_status: "uncalibrated_engineering_defaults" }, issues: [], comparison: null,
+    reference_features: { duration_ms: 0, syllables: [] }, student_features: null, recording_quality: null,
+  },
+};
+
 describe("PronunciationResult", () => {
+  it("renders independent dimensions, calculation evidence and no total", () => {
+    render(<PronunciationResult result={rubricResult} />);
+    expect(screen.queryByText("84")).not.toBeInTheDocument();
+    expect(screen.getByText("3 / 5")).toBeInTheDocument();
+    expect(screen.getByText("4 / 5")).toBeInTheDocument();
+    expect(screen.getAllByText("not assessed")).toHaveLength(1);
+    expect(screen.getByText("Keep the phrase moving.")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText("Measurements and rubric decision")[1]);
+    expect(screen.getByText(/pause_ratio": 0.21/)).toBeInTheDocument();
+    expect(screen.getByText(/uncalibrated_engineering_defaults/)).toBeInTheDocument();
+  });
+
   it("shows the deterministic score, evidence, and feedback provenance", () => {
     render(<PronunciationResult result={scoredResult} />);
 

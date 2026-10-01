@@ -24,6 +24,7 @@ _RESULT_CORE_FIELDS = (
     "vocabScore",
     "toneAccuracy",
     "pronScore",
+    "pronunciationEvaluation",
     "fluencyScore",
     "pauseCount",
     "longestPause",
@@ -78,6 +79,10 @@ def _merge_latest_result(existing: object, incoming: dict, *, same_attempt: bool
         if value in (None, "", [], {}) and merged.get(key) not in (None, "", [], {}):
             continue
         merged[key] = value
+    if isinstance(incoming.get("pronunciationEvaluation"), dict) and incoming["pronunciationEvaluation"].get("dimensions"):
+        # A rubric refresh replaces the retired same-attempt percentage too;
+        # None is meaningful here and must not resurrect an older total.
+        merged["pronScore"] = None
     return merged
 
 
@@ -113,6 +118,9 @@ def _verified_record_scene_result(record: dict[str, Any], progress: Any) -> tupl
         if isinstance(word, dict) and isinstance(word.get("display_score"), (int, float))
     ]
     pron_score = fmean(word_scores) if word_scores else _metric_number(metrics, "tone_accuracy")
+    rubric = metrics.get("pronunciation_evaluation")
+    if isinstance(rubric, dict) and rubric.get("dimensions"):
+        pron_score = None
     pause_analysis = metrics.get("pause_analysis")
     if not isinstance(pause_analysis, dict):
         pause_analysis = {}
@@ -125,6 +133,7 @@ def _verified_record_scene_result(record: dict[str, Any], progress: Any) -> tupl
         "vocabScore": _metric_number(coverage, "score"),
         "toneAccuracy": _metric_number(metrics, "tone_accuracy"),
         "pronScore": pron_score,
+        "pronunciationEvaluation": rubric if isinstance(rubric, dict) and rubric.get("dimensions") else None,
         "fluencyScore": _metric_number(metrics, "fluency_score"),
         "audioUrl": record.get("audio_url"),
         "pauseCount": pause_analysis.get("pause_count", 0),

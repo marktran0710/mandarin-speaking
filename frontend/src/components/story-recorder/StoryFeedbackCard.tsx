@@ -77,7 +77,7 @@ function computePronunciationProfile(scenes: SceneSubmission[]): Record<
 
   const toneAvg = average(attempted.map((s) => s.toneAccuracy));
   const rhythmAvg = average(attempted.map((s) => s.fluencyScore ?? 0));
-  const stressAvg = average(attempted.map((s) => s.pronScore));
+  const stressAvg = average(attempted.flatMap((s) => s.pronScore == null ? [] : [s.pronScore]));
 
   const pauseScenes = attempted.filter((s) => s.pauseCount !== undefined);
   const pausingJudged = pauseScenes.length > 0;
@@ -233,6 +233,26 @@ export default function StoryFeedbackCard({
   concatenatedAudioUrl?: string | null;
   scenes?: SceneSubmission[];
 }) {
+  const rubricScenes = scenes.filter((scene) => scene.pronunciationEvaluation?.dimensions);
+  if (rubricScenes.length > 0) {
+    return (
+      <section className="story-feedback-panel" aria-label="Story-level feedback">
+        <p className="story-feedback-heading"><BiLabel zh="整個故事回顧" pinyin="Zhěnggè gùshì huígù" en="Whole-story review" /></p>
+        {concatenatedAudioUrl && <audio controls src={resolveAudioUrl(concatenatedAudioUrl)} />}
+        {rubricScenes.map((scene) => (
+          <div className="story-feedback-cards" key={scene.turnId ?? scene.sceneIndex}>
+            <p>{scene.turnId ? "Exchange" : "Scene"} {scene.sceneIndex + 1}</p>
+            {Object.values(scene.pronunciationEvaluation!.dimensions!).map((d) => (
+              <div className="story-feedback-card" key={d.key}>
+                <strong>{d.key}: {d.score == null ? "not assessed" : `${d.score}/5`}</strong>
+                <p>{d.feedback || d.reason}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+    );
+  }
   if (!feedback && !concatenatedAudioUrl) return null;
 
   return (

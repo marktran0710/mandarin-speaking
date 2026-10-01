@@ -14,7 +14,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 
 import security.auth as auth
 from routers.verified_speaking import resolve_verified_speaking_target
-from services.pronunciation.evaluator import EvaluationError, evaluate_pronunciation
+from services.pronunciation.evaluator import EvaluationError
+from services.pronunciation.rubric_evaluator import evaluate_rubric_pronunciation
 from services.pronunciation.presenter import present_evaluation
 from services.pronunciation.reference_source import resolve_reference_source
 
@@ -45,6 +46,8 @@ def _main_module():
 def _error(exc: EvaluationError) -> HTTPException:
     status = _STATUS_FOR_CODE.get(exc.code, 422)
     if exc.code == "llm_not_configured":
+        status = 503
+    elif exc.code == "rubric_policy_invalid":
         status = 503
     elif exc.code.startswith("llm_") or exc.code in {"invalid_reply", "missing_summary", "reply_not_an_object"}:
         status = 502
@@ -99,8 +102,7 @@ async def evaluate_speaking_pronunciation(
 
         async def run():
             async with app_main.acquire_analysis_slot():
-                return await evaluate_pronunciation(
-                    require_llm=True,
+                return await evaluate_rubric_pronunciation(
                     student_audio=content,
                     reference_audio_path=reference.audio_path,
                     reference_key=reference.reference_key,
@@ -113,4 +115,6 @@ async def evaluate_speaking_pronunciation(
     except asyncio.TimeoutError as exc:
         raise HTTPException(status_code=504, detail="Pronunciation evaluation timed out.") from exc
 
-    return present_evaluation(evaluation, include_debug=not is_student)
+    result = present_evaluation(evaluation, include_debug=not is_student)
+    result["reference"]["audio_url"] = reference.audio_url
+    return result

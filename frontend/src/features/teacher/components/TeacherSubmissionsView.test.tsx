@@ -79,6 +79,30 @@ describe("TeacherSubmissionsView", () => {
     expect(onReviewUpdate).toHaveBeenCalledWith(reviewedSubmission);
   });
 
+  it("does not display a combined total for the separate research rubric scores", () => {
+    const rubricSubmission: StorySubmission = {
+      ...submissions[0],
+      scenes: [{
+        ...submissions[0].scenes[0], pronScore: null,
+        pronunciationEvaluation: {
+          status: "scored", reason: null,
+          dimensions: {
+            accuracy: { key: "accuracy", score: null, out_of: 5, source: "unavailable", rubric_level: null, rubric_description: null, reason: "Not assessed", measurements: {}, criteria: [] },
+            fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderate", reason: "Measured", measurements: {}, criteria: [] },
+            prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Good", reason: "Measured", measurements: {}, criteria: [] },
+          },
+          metrics: {}, words: [],
+          feedback: { summary: "Practise fluency and prosody.", focus_words: [], practice_tip: "Repeat the sentence." },
+          model: { scoring_version: "pronunciation-rubric-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
+          reference: { key: "story-1", cache_hit: false },
+        },
+      }],
+    };
+    render(<TeacherSubmissionsView submissions={[rubricSubmission]} onReviewUpdate={vi.fn()} />);
+    expect(screen.getByText("Separate scores")).toBeInTheDocument();
+    expect(screen.queryByText("88%")).not.toBeInTheDocument();
+  });
+
   it("shows the student's self-eval next to the scene score, only for scenes that have it, once expanded", async () => {
     const user = userEvent.setup();
     const withSelfEval: StorySubmission = {

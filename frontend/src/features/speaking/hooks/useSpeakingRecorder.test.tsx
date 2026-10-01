@@ -7,7 +7,7 @@ vi.mock("@entities/audio", () => ({ convertBlobToWav: vi.fn(async (audio: Blob) 
 vi.mock("@shared/api/speech-analysis", () => ({ postSpeechAnalysis: vi.fn() }));
 vi.mock("../../../utils/studentSession", () => ({ getStudentId: () => "student-1" }));
 
-const evaluation = { score: { total: 86 }, model: { feedback_model: "gpt-6-luna" } };
+const evaluation = { dimensions: { fluency: { score: 3 }, prosody: { score: 4 }, accuracy: { score: null } }, model: { feedback_model: "gpt-6-luna" } };
 
 beforeEach(() => { vi.mocked(postSpeechAnalysis).mockReset(); });
 

@@ -161,10 +161,15 @@ describe("StorySpeakingPage", () => {
   it("analyses an uploaded recording through the same feedback flow", async () => {
     const result = makeRecorderResult();
     result.metrics.pronunciation_evaluation = {
-      status: "scored", reason: null, score: { total: 87, renormalized: false, dimensions: [] },
+      status: "scored", reason: null,
+      dimensions: {
+        accuracy: { key: "accuracy", score: null, out_of: 5, source: "unavailable", rubric_level: null, rubric_description: null, reason: "Not assessed", measurements: {}, criteria: [] },
+        fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderately fluent", reason: "Several pauses", feedback: "Practise continuous phrases.", measurements: { pause_count: 4 }, criteria: [] },
+        prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Minor deviations", reason: "Reference timing", feedback: "Match the sentence rhythm.", measurements: { rhythm_similarity: .8 }, criteria: [] },
+      },
       metrics: {}, words: [],
       feedback: { summary: "Keep the falling tone clear.", focus_words: [{ word: "好", feedback: "Let the pitch dip gently." }], practice_tip: "Repeat the sentence slowly.", source: "llm" },
-      model: { scoring_version: "pronunciation-score-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
+      model: { scoring_version: "pronunciation-rubric-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
       reference: { key: "reference-1", cache_hit: false, audio_url: "/uploads/sample.wav" },
     };
     const uploadRecording = vi.fn().mockResolvedValue(result);
@@ -191,14 +196,17 @@ describe("StorySpeakingPage", () => {
     expect(screen.queryByText("你的錄音")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
-    expect(screen.getByText("87/100")).toBeInTheDocument();
+    expect(screen.queryByText("87/100")).not.toBeInTheDocument();
+    expect(screen.getByText("尚未評分")).toBeInTheDocument();
+    expect(screen.getByText("3/5")).toBeInTheDocument();
+    expect(screen.getByText("4/5")).toBeInTheDocument();
     expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
     expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
     expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "老師示範" })).toBeInTheDocument();
     expect(uploadRecording).toHaveBeenCalledWith(file);
     expect(onAddRecord).toHaveBeenCalledTimes(1);
-    expect(onSceneSubmission).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pronScore: 87 }));
+    expect(onSceneSubmission).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pronScore: null, pronunciationEvaluation: result.metrics.pronunciation_evaluation }));
   });
 
   it("shows the executed feedback provider and Praat grounding", async () => {

@@ -17,12 +17,26 @@ function percent(value: number | null | undefined): string {
 export default function PronunciationResult({ result }: { result: PronunciationEvaluation }) {
   const { score, feedback, words, metrics, debug } = result;
   const badge = feedbackBadge(feedback);
-  const scored = result.status === "scored" && score.total !== null;
+  const scored = result.status === "scored" && score?.total != null;
 
   return (
     <div className="pron-result">
       <section className="pron-score" aria-label="Score">
-        {scored ? (
+        {result.dimensions ? (
+          <ul className="pron-dimensions">
+            {Object.values(result.dimensions).map((dimension) => (
+              <li key={dimension.key} className={dimension.score === null ? "is-unavailable" : ""}>
+                <span>{dimensionLabel(dimension.key)}</span>
+                <b>{dimension.score === null ? "not assessed" : `${dimension.score} / 5`}</b>
+                <p>{dimension.feedback || dimension.reason}</p>
+                <details>
+                  <summary>Measurements and rubric decision</summary>
+                  <pre>{JSON.stringify(dimension, null, 2)}</pre>
+                </details>
+              </li>
+            ))}
+          </ul>
+        ) : scored && score ? (
           <>
             <div className="pron-total">
               <strong>{score.total}</strong>
@@ -124,7 +138,7 @@ export default function PronunciationResult({ result }: { result: PronunciationE
       {debug && (
         <details className="pron-details">
           <summary>Provenance and scoring policy</summary>
-          <pre>{JSON.stringify({ provenance: debug.provenance, policy: debug.policy, issues: debug.issues }, null, 2)}</pre>
+          <pre>{JSON.stringify({ provenance: result.provenance ?? debug.provenance, policy: result.scoring_policy ?? debug.policy, issues: debug.issues }, null, 2)}</pre>
         </details>
       )}
     </div>
