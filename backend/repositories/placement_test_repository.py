@@ -18,6 +18,23 @@ def get_active_blueprint(db: Any) -> dict[str, Any] | None:
     ).fetchone()
 
 
+def get_student_gate_facts(db: Any, student_id: str) -> dict[str, Any] | None:
+    """Whether the account is a new one (placement required) and whether a
+    completed placement attempt exists. None when the student does not exist."""
+    return db.execute(
+        """
+        SELECT s.placement_required AS required,
+               EXISTS (
+                   SELECT 1 FROM placement_test_attempts a
+                   WHERE a.student_id = s.id AND a.status = 'completed'
+               ) AS completed
+        FROM students s
+        WHERE s.id = %s
+        """,
+        (student_id,),
+    ).fetchone()
+
+
 def replace_active_blueprint(db: Any, questions: list[dict[str, Any]], now: str) -> dict[str, Any]:
     # The advisory lock serializes the first insert as well as later revisions,
     # so two admins cannot both publish revision 1.

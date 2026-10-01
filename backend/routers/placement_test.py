@@ -161,6 +161,15 @@ def get_student_placement_test(_identity: auth.Identity = Depends(auth.require_s
         return service.get_student_blueprint(db)
 
 
+@router.get("/api/placement-test/status")
+def get_student_placement_status(identity: auth.Identity = Depends(auth.require_student)):
+    try:
+        with connect_db() as db:
+            return service.get_student_status(db, identity.id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.post("/api/placement-test/attempts")
 def start_student_placement_test(
     payload: PlacementCompleteRequest | None = None,

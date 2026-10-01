@@ -337,6 +337,28 @@ def get_student_blueprint(db: Any) -> dict[str, Any]:
     }
 
 
+def get_student_status(db: Any, student_id: str) -> dict[str, Any]:
+    """Is this student gated behind the placement test?
+
+    Gated only for a new account (``required``), only while a placement test is
+    actually published (``configured`` - otherwise there is nothing to take and
+    the student would be locked out), and only until a completed attempt exists.
+    """
+    facts = repo.get_student_gate_facts(db, student_id)
+    if facts is None:
+        raise LookupError("Student not found.")
+    blueprint = repo.get_active_blueprint(db)
+    configured = bool(blueprint and blueprint.get("questions"))
+    required = bool(facts["required"])
+    completed = bool(facts["completed"])
+    return {
+        "configured": configured,
+        "required": required,
+        "completed": completed,
+        "gated": configured and required and not completed,
+    }
+
+
 def get_admin_blueprint(db: Any) -> dict[str, Any]:
     blueprint = repo.get_active_blueprint(db)
     if not blueprint:
