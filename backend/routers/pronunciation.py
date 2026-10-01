@@ -33,7 +33,7 @@ _STATUS_FOR_CODE = {
 
 
 def _student_score_visible() -> bool:
-    return os.getenv(STUDENT_VISIBLE_ENV, "").strip().lower() in _TRUTHY
+    return os.getenv(STUDENT_VISIBLE_ENV, "true").strip().lower() in _TRUTHY
 
 
 def _main_module():

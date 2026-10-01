@@ -11,6 +11,7 @@ import { useSpeakingRecorder, type SpeakingAnalysisResult } from "../speaking/ho
 vi.mock("../speaking/hooks/useSpeakingRecorder", () => ({ useSpeakingRecorder: vi.fn() }));
 vi.mock("../../components/speaking-flow-card/model/analysis", () => ({ analyzeSpeakingResult: vi.fn() }));
 vi.mock("../../services/database", () => ({ saveSpeakingProgress: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../../components/pitch/LibrosaPitchChart", () => ({ default: () => <div role="img" aria-label="老師與學生音高比較" /> }));
 vi.mock("../../utils/studentSession", () => ({
   getStudentId: () => "student-1",
   getStudentScopeKey: () => "student-1",
@@ -234,6 +235,11 @@ describe("ConversationPage", () => {
       feedback: { summary: "Keep the falling tone clear.", focus_words: [{ word: "好", feedback: "Let the pitch dip gently." }], practice_tip: "Repeat the sentence slowly.", source: "llm" },
       model: { scoring_version: "pronunciation-rubric-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
       reference: { key: "reference-1", cache_hit: false, audio_url: "/uploads/sample.wav" },
+      reference_comparison: {
+        status: "scored", backend: "librosa", evidence_quality: "full",
+        measurements: { mfcc_similarity: .82, pitch_similarity: .91, timing_similarity: .74 },
+        contours: { reference: [[0, 0], [1, 2]], student: [[0, 0], [1, 1]] },
+      },
     };
     const uploadRecording = vi.fn().mockResolvedValue(result);
     vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ uploadRecording }));
@@ -261,9 +267,12 @@ describe("ConversationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
     expect(screen.queryByText("87/100")).not.toBeInTheDocument();
-    expect(screen.queryByText("3/5")).not.toBeInTheDocument();
-    expect(screen.queryByText("4/5")).not.toBeInTheDocument();
-    expect(screen.queryByText(/研究試行分數/)).not.toBeInTheDocument();
+    expect(screen.getByText("3/5")).toBeInTheDocument();
+    expect(screen.getAllByText("4/5")).toHaveLength(2);
+    expect(screen.getByText(/研究試行分數/)).toBeInTheDocument();
+    expect(screen.getByText("時間與停頓相似度")).toBeInTheDocument();
+    expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "老師與學生音高比較" })).toBeInTheDocument();
     expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
     expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
     expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();

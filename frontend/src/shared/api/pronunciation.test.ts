@@ -43,7 +43,7 @@ describe("evaluatePronunciation", () => {
       sceneIndex: 2,
     });
 
-    expect(result.score.total).toBe(84);
+    expect(result.score?.total).toBe(84);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

@@ -10,11 +10,11 @@ import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
 import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
+import ReferenceComparison from "./ReferenceComparison";
 import "./SpeechResultReview.css";
 
-// Voice practice currently presents Praat visualizations and GPT feedback only.
-// The rubric payload remains available for admin/debug views and future calibration.
-const SHOW_VOICE_RUBRIC_SCORES = import.meta.env.VITE_SHOW_VOICE_RUBRIC_SCORES === "true";
+// Both speaking flows show separate rubric scores unless explicitly disabled.
+const SHOW_VOICE_RUBRIC_SCORES = import.meta.env.VITE_SHOW_VOICE_RUBRIC_SCORES !== "false";
 
 interface SpeechResultReviewProps {
   targetScript: string;
@@ -189,6 +189,8 @@ export default function SpeechResultReview({
           <p className="sa-result-review__prompt"><StudentSystemText k="tapAWord" /></p>
         )}
       </div>
+
+      {pronunciation?.reference_comparison && <ReferenceComparison comparison={pronunciation.reference_comparison} />}
 
       {aiFeedback && (
         <div className="sa-result-review__coach">

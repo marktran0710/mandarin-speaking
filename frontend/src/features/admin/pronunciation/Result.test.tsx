@@ -4,7 +4,7 @@ import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 import PronunciationResult from "./Result";
 
 vi.mock("./ContourOverlayChart", () => ({ default: () => <p>Contour chart</p> }));
-vi.mock("./LibrosaPitchChart", () => ({ default: () => <p>Librosa chart</p> }));
+vi.mock("../../../components/pitch/LibrosaPitchChart", () => ({ default: () => <p>Librosa chart</p> }));
 
 const scoredResult: PronunciationEvaluation = {
   status: "scored",

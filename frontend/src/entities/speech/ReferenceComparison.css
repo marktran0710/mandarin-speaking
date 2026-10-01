@@ -1,0 +1,19 @@
+.sa-reference-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-sky-strongest);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+}
+
+.sa-reference-comparison h3,
+.sa-reference-comparison p { margin: 0; }
+.sa-reference-comparison h3 { color: var(--color-ink); font-family: var(--font-hanzi); }
+.sa-reference-comparison p { color: var(--color-muted); font-family: var(--font-ui); font-size: var(--font-size-small); line-height: 1.5; }
+.sa-reference-comparison__chart { width: 100%; height: 15rem; min-width: 0; }
+.sa-reference-comparison dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-3); margin: 0; }
+.sa-reference-comparison dt { color: var(--color-ink-variant); font-family: var(--font-ui); font-size: var(--font-size-small); }
+.sa-reference-comparison dd { margin: var(--space-1) 0 0; color: var(--color-primary); font-family: var(--font-ui); font-size: var(--font-size-heading); font-weight: 700; }

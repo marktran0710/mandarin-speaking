@@ -88,6 +88,19 @@ export interface PronunciationLibrosaComparison {
   };
 }
 
+/** Learner visualization data; extraction settings and DTW paths stay in debug. */
+export interface PronunciationReferenceComparison {
+  status: "scored" | "unavailable";
+  backend: "librosa";
+  reason?: string | null;
+  evidence_quality?: "full" | "degraded" | null;
+  measurements: Record<string, number | null>;
+  contours: {
+    reference: Array<[number, number | null]>;
+    student: Array<[number, number | null]>;
+  };
+}
+
 export interface PronunciationDebug {
   provenance: Record<string, unknown>;
   policy: Record<string, unknown>;
@@ -128,6 +141,7 @@ export interface PronunciationEvaluation {
     feedback_source: "llm" | "local";
   };
   reference: { key: string; cache_hit: boolean; audio_url?: string };
+  reference_comparison?: PronunciationReferenceComparison;
   debug?: PronunciationDebug;
 }
 

@@ -30,6 +30,17 @@ def isolated(monkeypatch, tmp_path):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PRONUNCIATION_FEEDBACK_API_KEY", "sk-test")
     monkeypatch.setenv("PRONUNCIATION_WAV2VEC2_ENABLED", "false")
+    # Real-librosa behavior is covered separately; keep API tests deterministic.
+    monkeypatch.setattr(evaluator_module, "compare_recordings", lambda *args: {
+        "status": "scored", "backend": "librosa", "evidence_quality": "full",
+        "measurements": {"mfcc_similarity": .8, "pitch_similarity": .9, "timing_similarity": .7},
+        "parameters": {"sample_rate": 16000},
+        "debug": {
+            "reference_pitch_contour": [[0, 0], [1, 2]],
+            "student_pitch_contour": [[0, 0], [.5, 1], [1, 2]],
+            "dtw_path": [[0, 0], [1, 0], [2, 1]],
+        },
+    })
     async def successful_http(url, headers, body, timeout):
         evidence = json.loads(body["messages"][1]["content"])
         reply = {
@@ -109,7 +120,8 @@ def test_a_flat_tone_is_reported_per_word_with_its_flag(isolated, logged_in_teac
     assert body["feedback"]["focus_words"] == []
 
 
-def test_students_do_not_see_the_score_until_it_is_enabled(isolated, logged_in_student):
+def test_student_access_can_be_explicitly_disabled(isolated, logged_in_student, monkeypatch):
+    monkeypatch.setenv("PRONUNCIATION_SCORE_STUDENT_VISIBLE", "false")
     client, _ = logged_in_student
     _publish_story()
     _reference(isolated)
@@ -118,8 +130,7 @@ def test_students_do_not_see_the_score_until_it_is_enabled(isolated, logged_in_s
     assert response.json()["detail"]["code"] == "pronunciation_score_not_enabled"
 
 
-def test_an_enabled_student_gets_no_debug_or_raw_pitch_data(isolated, logged_in_student, monkeypatch):
-    monkeypatch.setenv("PRONUNCIATION_SCORE_STUDENT_VISIBLE", "true")
+def test_student_gets_scores_and_aligned_comparison_by_default_without_debug(isolated, logged_in_student):
     client, _ = logged_in_student
     _publish_story()
     _reference(isolated)
@@ -132,6 +143,12 @@ def test_an_enabled_student_gets_no_debug_or_raw_pitch_data(isolated, logged_in_
     assert body["dimensions"]["prosody"]["score"] == 5
     assert "debug" not in body
     assert "f0_points" not in response.text
+    comparison = body["reference_comparison"]
+    assert comparison["measurements"]["mfcc_similarity"] == .8
+    assert comparison["contours"]["reference"] == [[0, 0], [0, 0], [1, 2]]
+    assert comparison["contours"]["student"] == [[0, 0], [0, 1], [1, 2]]
+    assert "parameters" not in comparison and "debug" not in comparison
+    assert "dtw_path" not in response.text
     assert body["feedback"]["dimension_feedback"]["fluency"]
 
 
@@ -286,6 +303,10 @@ def test_speaking_flows_return_and_save_gpt_feedback(
     assert analysis["pronunciation_evaluation"]["model"]["feedback_model"] == "gpt-6-luna"
     assert analysis["pronunciation_evaluation"]["reference"]["audio_url"] == "/uploads/story_audio/ref.wav"
     assert "debug" not in analysis["pronunciation_evaluation"]
+    comparison = analysis["pronunciation_evaluation"]["reference_comparison"]
+    assert comparison["status"] == "scored"
+    assert comparison["contours"]["student"] == [[0, 0], [0, 1], [1, 2]]
+    assert "parameters" not in comparison and "debug" not in comparison
     assert analysis["feedback_provenance"]["fallback_used"] is False
     assert analysis["processing_trace"]["stages"][-1]["model"] == "gpt-6-luna"
     assert analysis["content_match"] is True

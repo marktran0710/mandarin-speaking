@@ -1,9 +1,8 @@
 """Shape an evaluation for the API.
 
-Students get the score, the per-word findings and the feedback text. Raw pitch
-data, policy internals and provenance are for teachers and admins only: a
-student never needs F0 numbers, and the debug view exists to answer "why 84
-and not 90" from measurements.
+Students get the scores, feedback and a limited reference-relative comparison
+for visualization. Extraction details and the full debug view remain available
+to teachers and admins.
 """
 
 from __future__ import annotations
@@ -12,6 +11,27 @@ from typing import Any
 
 from services.pronunciation.evaluator import PronunciationEvaluation
 from services.pronunciation.rubric_evaluator import RubricEvaluation
+
+
+def _reference_comparison(comparison: dict[str, Any]) -> dict[str, Any]:
+    """Expose scalar similarity evidence and aligned contours, without debug."""
+    debug = comparison.get("debug") or {}
+    reference = debug.get("reference_pitch_contour") or []
+    student = debug.get("student_pitch_contour") or []
+    reference_contour, student_contour = [], []
+    for student_index, reference_index in debug.get("dtw_path") or []:
+        if not (0 <= student_index < len(student) and 0 <= reference_index < len(reference)):
+            continue
+        time, reference_pitch = reference[reference_index]
+        reference_contour.append([time, reference_pitch])
+        student_contour.append([time, student[student_index][1]])
+    return {
+        "status": comparison["status"], "backend": comparison["backend"],
+        "reason": comparison.get("reason"),
+        "evidence_quality": comparison.get("evidence_quality"),
+        "measurements": comparison.get("measurements") or {},
+        "contours": {"reference": reference_contour, "student": student_contour},
+    }
 
 
 def _score_block(evaluation: PronunciationEvaluation) -> dict[str, Any]:
@@ -66,7 +86,11 @@ def _words_block(evaluation: PronunciationEvaluation) -> list[dict[str, Any]]:
 
 def present_evaluation(evaluation: PronunciationEvaluation | RubricEvaluation, *, include_debug: bool) -> dict[str, Any]:
     if isinstance(evaluation, RubricEvaluation):
-        return {key: value for key, value in evaluation.body.items() if include_debug or key != "debug"}
+        body = {key: value for key, value in evaluation.body.items() if include_debug or key != "debug"}
+        comparison = (evaluation.body.get("debug") or {}).get("librosa_comparison")
+        if comparison:
+            body["reference_comparison"] = _reference_comparison(comparison)
+        return body
     feedback = evaluation.feedback
     provenance = evaluation.provenance()
     body: dict[str, Any] = {

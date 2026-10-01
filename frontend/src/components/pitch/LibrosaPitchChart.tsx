@@ -3,6 +3,13 @@ import Chart from "chart.js/auto";
 
 type Point = [number, number | null];
 type ChartPoint = { x: number; y: number };
+type Labels = { reference: string; student: string; time: string; pitch: string; description: string };
+
+const DEFAULT_LABELS: Labels = {
+  reference: "Teacher (librosa)", student: "Student (librosa)",
+  time: "Relative time", pitch: "Relative pitch (semitones)",
+  description: "Librosa teacher and student pitch contours",
+};
 
 const REFERENCE_COLOR = "rgba(28, 154, 91, 0.9)";
 const STUDENT_COLOR = "rgba(255, 167, 38, 0.95)";
@@ -17,10 +24,14 @@ export default function LibrosaPitchChart({
   reference,
   student,
   alignment,
+  labels = DEFAULT_LABELS,
+  className = "pron-chart",
 }: {
   reference: Point[];
   student: Point[];
   alignment?: Array<[number, number]>;
+  labels?: Labels;
+  className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -48,7 +59,7 @@ export default function LibrosaPitchChart({
       data: {
         datasets: [
           {
-            label: "Teacher (librosa)",
+            label: labels.reference,
             data: referenceData,
             borderColor: REFERENCE_COLOR,
             showLine: true,
@@ -57,12 +68,13 @@ export default function LibrosaPitchChart({
             tension: 0,
           },
           {
-            label: "Student (librosa)",
+            label: labels.student,
             data: studentData,
             borderColor: STUDENT_COLOR,
             showLine: true,
             pointRadius: 0,
             borderWidth: 2,
+            borderDash: [6, 4],
             tension: 0,
           },
         ],
@@ -71,14 +83,14 @@ export default function LibrosaPitchChart({
         animation: false,
         maintainAspectRatio: false,
         scales: {
-          x: { type: "linear", min: 0, max: 1, title: { display: true, text: alignment?.length ? "Teacher relative time (DTW aligned)" : "Relative time" } },
-          y: { title: { display: true, text: "Relative pitch (semitones)" } },
+          x: { type: "linear", min: 0, max: 1, title: { display: true, text: alignment?.length ? "Teacher relative time (DTW aligned)" : labels.time } },
+          y: { title: { display: true, text: labels.pitch } },
         },
         plugins: { legend: { position: "bottom" } },
       },
     });
     return () => chart.destroy();
-  }, [reference, student, alignment]);
+  }, [reference, student, alignment, labels]);
 
-  return <div className="pron-chart"><canvas ref={canvasRef} role="img" aria-label="Librosa teacher and student pitch contours" /></div>;
+  return <div className={className}><canvas ref={canvasRef} role="img" aria-label={labels.description} /></div>;
 }

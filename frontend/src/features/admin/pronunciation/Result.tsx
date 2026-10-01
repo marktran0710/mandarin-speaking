@@ -1,6 +1,6 @@
 import type { PronunciationEvaluation } from "@shared/api/pronunciation";
 import ContourOverlayChart from "./ContourOverlayChart";
-import LibrosaPitchChart from "./LibrosaPitchChart";
+import LibrosaPitchChart from "../../../components/pitch/LibrosaPitchChart";
 import { dimensionLabel, feedbackBadge, flagLabel, shapeLabel } from "./model";
 
 const UNSCORABLE_TITLE: Record<string, string> = {
