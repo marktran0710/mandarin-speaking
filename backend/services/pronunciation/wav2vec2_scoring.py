@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import os
 import re
+from functools import lru_cache
 from typing import Any, Optional
 
 import numpy as np
@@ -87,6 +88,12 @@ def _safe_similarity(value: Optional[float]) -> Optional[float]:
     return None if value is None or not math.isfinite(value) else round((value + 1.0) / 2.0, 4)
 
 
+@lru_cache(maxsize=4)
+def _embedder(model_name: str, layer: int, cache_dir: Optional[str]) -> SyllableEmbedder:
+    """Reuse the loaded Wav2Vec2 model across requests in this worker."""
+    return SyllableEmbedder(model_name=model_name, layer=layer, cache_dir=cache_dir)
+
+
 def analyze_wav2vec2(
     *,
     student_audio_path: str,
@@ -105,7 +112,7 @@ def analyze_wav2vec2(
         raise Wav2Vec2Unavailable("The student and reference have different syllable counts.")
     model_name, layer, cache_dir = _model_config()
     try:
-        embedder = SyllableEmbedder(model_name=model_name, layer=layer, cache_dir=cache_dir)
+        embedder = _embedder(model_name, layer, cache_dir)
         student_times, student_vectors = embedder.frame_embeddings(student_audio_path)
         reference_times, reference_vectors = embedder.frame_embeddings(reference_audio_path)
         loaded_model = embedder.model_name
