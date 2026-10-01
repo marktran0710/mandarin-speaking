@@ -1,4 +1,5 @@
 import type { PronunciationEvaluation } from "@shared/api/pronunciation";
+import OmpalComparison from "@entities/speech/OmpalComparison";
 import ContourOverlayChart from "./ContourOverlayChart";
 import LibrosaPitchChart from "../../../components/pitch/LibrosaPitchChart";
 import { dimensionLabel, feedbackBadge, flagLabel, shapeLabel } from "./model";
@@ -80,6 +81,7 @@ export default function PronunciationResult({ result }: { result: PronunciationE
         )}
       </section>
 
+      <OmpalComparison result={result} />
       <section className="pron-feedback" aria-label="Feedback">
         <header>
           <h3>Feedback</h3>

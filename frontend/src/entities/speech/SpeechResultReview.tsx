@@ -11,6 +11,7 @@ import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
 import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
 import ReferenceComparison from "./ReferenceComparison";
+import OmpalComparison from "./OmpalComparison";
 import "./SpeechResultReview.css";
 
 // Both speaking flows show separate rubric scores unless explicitly disabled.
@@ -190,6 +191,7 @@ export default function SpeechResultReview({
         )}
       </div>
 
+      {pronunciation && <OmpalComparison result={pronunciation} />}
       {pronunciation?.reference_comparison && <ReferenceComparison comparison={pronunciation.reference_comparison} />}
 
       {aiFeedback && (

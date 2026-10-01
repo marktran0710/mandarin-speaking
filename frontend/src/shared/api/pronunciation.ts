@@ -114,6 +114,17 @@ export interface PronunciationDebug {
 }
 
 export interface PronunciationEvaluation {
+  ompal_comparison?: {
+    status: "scored" | "unavailable";
+    source: "ompal_api";
+    reason?: string;
+    scores?: Record<"accuracy" | "fluency" | "prosody", number>;
+    out_of?: 5;
+    model_version?: string;
+    duration_seconds?: number;
+    feedback?: string;
+    validation_status?: string;
+  };
   target_text?: string;
   status: "scored" | "unscorable";
   reason: string | null;

@@ -1,9 +1,11 @@
 """Attach strict model coaching to a server-resolved speaking attempt."""
 
 import time
+import asyncio
 
 from services.pronunciation.rubric_evaluator import evaluate_rubric_pronunciation
 from services.pronunciation.presenter import present_evaluation
+from services.pronunciation.ompal import assess_ompal
 from services.pronunciation.reference_source import resolve_reference_source
 
 
@@ -16,11 +18,21 @@ async def attach_pronunciation_feedback(
         target["story_id"], target["scene_index"], difficulty_level=difficulty_level,
         conversation_id=conversation_id, turn_id=turn_id, expected_text=target["target_text"],
     )
-    evaluation = await evaluate_rubric_pronunciation(
+    local_task = asyncio.create_task(evaluate_rubric_pronunciation(
         student_audio=audio, reference_audio_path=reference.audio_path,
         reference_key=reference.reference_key, expected_text=target["target_text"],
-    )
+    ))
+    ompal_task = asyncio.create_task(assess_ompal(audio, target["target_text"]))
+    try:
+        evaluation = await local_task
+        ompal_comparison = await ompal_task
+    finally:
+        for task in (local_task, ompal_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(local_task, ompal_task, return_exceptions=True)
     result = present_evaluation(evaluation, include_debug=False)
+    result["ompal_comparison"] = ompal_comparison
     result["target_text"] = target["target_text"]
     result["reference"]["audio_url"] = reference.audio_url
     feedback = result["feedback"]

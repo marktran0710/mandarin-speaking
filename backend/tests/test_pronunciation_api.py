@@ -30,6 +30,7 @@ def isolated(monkeypatch, tmp_path):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PRONUNCIATION_FEEDBACK_API_KEY", "sk-test")
     monkeypatch.setenv("PRONUNCIATION_WAV2VEC2_ENABLED", "false")
+    monkeypatch.setenv("PRONUNCIATION_OMPAL_ENABLED", "false")
     # Real-librosa behavior is covered separately; keep API tests deterministic.
     monkeypatch.setattr(evaluator_module, "compare_recordings", lambda *args: {
         "status": "scored", "backend": "librosa", "evidence_quality": "full",
@@ -337,6 +338,31 @@ def test_gpt_failure_does_not_persist_a_successful_speaking_attempt(
     assert response.json()["detail"]["code"] == "llm_http_401"
     with db.connect_db() as conn:
         assert conn.execute("SELECT id FROM audio_records WHERE attempt_id = %s", ("failed-feedback",)).fetchone() is None
+
+
+def test_student_speaking_flow_includes_ompal_comparison(
+    isolated, logged_in_student, stable_speaking_analysis, monkeypatch,
+):
+    from services.pronunciation import speaking as speaking_module
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr(speaking_module, "assess_ompal", AsyncMock(return_value={
+        "status": "scored", "source": "ompal_api",
+        "scores": {"accuracy": 4.2, "fluency": 4.1, "prosody": 3.9},
+        "out_of": 5, "model_version": "v2",
+    }))
+    client, _ = logged_in_student
+    _publish_story()
+    _reference(isolated)
+    response = client.post(
+        "/api/analyze/verified",
+        files={"file": ("recording.wav", _wav(isolated), "audio/wav")},
+        data={"base_story_id": STORY_ID, "scene_index": "0", "pronunciation_feedback": "true", "attempt_id": "ompal-attempt"},
+    )
+    assert response.status_code == 200, response.text
+    comparison = response.json()["analysis"]["pronunciation_evaluation"]["ompal_comparison"]
+    assert comparison["scores"]["accuracy"] == 4.2
+    assert comparison["model_version"] == "v2"
 
 
 @pytest.mark.parametrize("matches", [True, False])

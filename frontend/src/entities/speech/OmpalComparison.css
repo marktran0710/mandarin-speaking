@@ -1,0 +1,17 @@
+.ompal-comparison {
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+.ompal-comparison__scroll { max-width: 100%; overflow-x: auto; }
+.ompal-comparison table { width: 100%; border-collapse: collapse; }
+.ompal-comparison th, .ompal-comparison td {
+  padding: var(--space-xs);
+  text-align: left;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+.ompal-comparison td { white-space: nowrap; }
+.ompal-comparison p { overflow-wrap: anywhere; }

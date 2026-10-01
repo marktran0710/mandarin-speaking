@@ -1,5 +1,26 @@
 # OMPAL integration
 
+## Live API comparison
+
+`/api/pronunciation/evaluate` also sends the same learner audio and server-resolved
+target sentence to `https://ompal.ntuompal.workers.dev/api/assess` (multipart
+`file` and `text`). The call runs alongside the existing scorer and returns a
+separate `ompal_comparison`. Students, teachers and admins see the three paired
+dimensions; accuracy is compared with our pronunciation proxy, not treated as
+the same measurement. No total or mastery decision is changed.
+
+`PRONUNCIATION_OMPAL_ENABLED=true` enables this external upload by default.
+Set it to `false` to disable uploads. `PRONUNCIATION_OMPAL_TIMEOUT_SECONDS=30`
+sets an overall deadline (maximum 40 seconds). Timeout, network, HTTP or invalid
+response errors yield `unavailable`, preserving the current assessment. There
+are no retries, authentication keys, or model downloads. The service currently
+advertises scores on a 0–5 scale; our local rubric uses 1–5. Scores retain their
+original values and returned model version. The deployed service's checkpoint
+and equivalence to the published research baseline are unverified. Confirm
+service usage conditions with the authors before a broad rollout.
+
+## Offline corpus benchmark
+
 The current Wav2Vec2/Praat pronunciation rubric can be evaluated offline against
 OMPAL's expert sentence ratings using `scripts.research.ompal.run_rubric`.
 This complements the older `prepare`, `run_system`, and `analyze` workflow,

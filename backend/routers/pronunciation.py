@@ -17,6 +17,7 @@ from routers.verified_speaking import resolve_verified_speaking_target
 from services.pronunciation.evaluator import EvaluationError
 from services.pronunciation.rubric_evaluator import evaluate_rubric_pronunciation
 from services.pronunciation.presenter import present_evaluation
+from services.pronunciation.ompal import assess_ompal
 from services.pronunciation.reference_source import resolve_reference_source
 
 router = APIRouter()
@@ -102,12 +103,22 @@ async def evaluate_speaking_pronunciation(
 
         async def run():
             async with app_main.acquire_analysis_slot():
-                return await evaluate_rubric_pronunciation(
+                local_task = asyncio.create_task(evaluate_rubric_pronunciation(
                     student_audio=content,
                     reference_audio_path=reference.audio_path,
                     reference_key=reference.reference_key,
                     expected_text=target["target_text"],
-                )
+                ))
+                ompal_task = asyncio.create_task(assess_ompal(content, target["target_text"]))
+                try:
+                    evaluation = await local_task
+                    evaluation.body["ompal_comparison"] = await ompal_task
+                    return evaluation
+                finally:
+                    for task in (local_task, ompal_task):
+                        if not task.done():
+                            task.cancel()
+                    await asyncio.gather(local_task, ompal_task, return_exceptions=True)
 
         evaluation = await asyncio.wait_for(run(), timeout=app_main.ANALYZE_TIMEOUT_SECONDS)
     except EvaluationError as exc:
