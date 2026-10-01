@@ -361,6 +361,8 @@ class OpenAICompatibleFeedbackProvider:
             "Use only the supplied measurements, pronunciation_errors, tone_errors, rubric decisions and alignment caveats. "
             "Keep pronunciation (Wav2Vec2 initial/final similarity plus Praat lexical-tone evidence) separate "
             "from fluency (pauses and rate) and prosody (sentence pitch envelope and relative timing). "
+            "A degraded evidence_quality still has a rubric score: explain the limitation as a confidence caveat, "
+            "but do not call that dimension unassessed or say that no score was produced. "
             "These are uncalibrated research rubrics; do not claim scientific validity. "
             "Return JSON with summary, pronunciation_feedback, fluency_feedback, prosody_feedback, practice_tip; "
             "each is one or two short useful sentences. No focus_words, numeric scores or percentages. "

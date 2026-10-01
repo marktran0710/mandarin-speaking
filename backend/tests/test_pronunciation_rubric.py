@@ -99,18 +99,28 @@ def test_configuration_cannot_label_thresholds_validated_without_evidence(overri
         RubricPolicy(**override)
 
 
-def test_weak_alignment_returns_unavailable_instead_of_full_marks():
+def test_weak_alignment_still_scores_and_exposes_degraded_evidence():
     ref = features()
     weak = replace(ref, alignment=AlignmentResult("equal", .25, True))
-    for dimension in (score_fluency(weak, ref, RubricPolicy()), score_prosody(weak, ref, RubricPolicy())):
-        assert dimension["score"] is None
-        assert "confidence" in dimension["reason"]
+    fluency = score_fluency(weak, ref, RubricPolicy())
+    prosody = score_prosody(weak, ref, RubricPolicy())
+    assert fluency["score"] == 5
+    assert fluency["evidence_quality"] == "degraded"
+    assert "alignment_confidence_below_policy_minimum" in fluency["evidence_reasons"]
+    assert prosody["score"] == 3
+    assert prosody["evidence_quality"] == "degraded"
+    assert "alignment_confidence_below_policy_minimum" in prosody["evidence_reasons"]
+    assert all(item["evidence"] == "degraded" for item in prosody["criteria"][:3])
 
 
-def test_insufficient_pitch_keeps_prosody_unavailable():
+def test_insufficient_pitch_uses_neutral_pitch_level_and_keeps_timing_score():
     ref = features()
     student = replace(ref, syllables=tuple(replace(s, f0_points=()) for s in ref.syllables))
-    assert score_prosody(student, ref, RubricPolicy())["score"] is None
+    prosody = score_prosody(student, ref, RubricPolicy())
+    assert prosody["score"] == 3
+    assert prosody["evidence_quality"] == "degraded"
+    assert "pitch_syllable_coverage_below_policy_minimum" in prosody["evidence_reasons"]
+    assert all(item["evidence"] == "degraded" for item in prosody["criteria"][:3])
     assert score_fluency(student, ref, RubricPolicy())["score"] == 5
 
 

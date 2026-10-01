@@ -43,9 +43,18 @@ export interface PronunciationRubricDimension {
   rubric_level: number | null;
   rubric_description: string | null;
   reason: string;
+  evidence_quality?: "full" | "degraded";
+  evidence_reasons?: string[];
   feedback?: string;
   measurements: Record<string, unknown>;
-  criteria: Array<{ feature: string; value: number | null; level: number | null; thresholds_levels_5_to_2: number[]; comparison: string }>;
+  criteria: Array<{
+    feature: string;
+    value: number | null;
+    level: number | null;
+    thresholds_levels_5_to_2: number[];
+    comparison: string;
+    evidence?: "measured" | "degraded";
+  }>;
   ai_result?: Record<string, unknown> | null;
   pronunciation_errors?: Array<Record<string, unknown>>;
   tone_errors?: Array<Record<string, unknown>>;

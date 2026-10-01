@@ -105,26 +105,53 @@ class RubricPolicy:
         return asdict(self)
 
 
-def _decision(key, measurements, limits, rubric, *, minimum=False, unavailable=None):
+def _decision(
+    key,
+    measurements,
+    limits,
+    rubric,
+    *,
+    minimum=False,
+    unavailable=None,
+    degraded_features=None,
+    evidence_quality="full",
+    evidence_reasons=(),
+    fallback_level=3,
+):
     if unavailable:
         return {"key": key, "score": None, "out_of": 5, "source": "praat",
                 "rubric_level": None, "rubric_description": None, "reason": unavailable,
                 "measurements": measurements, "criteria": []}
+    degraded_features = set(degraded_features or ())
     criteria = []
     for name, thresholds in limits.items():
         value = measurements[name]
-        level = next((5 - i for i, threshold in enumerate(thresholds)
-                      if value >= threshold), None) if minimum else next(
-            (5 - i for i, threshold in enumerate(thresholds) if value <= threshold), None)
-        criteria.append({"feature": name, "value": value, "level": level or 1,
+        if name in degraded_features:
+            # Keep the raw measurement, but do not turn missing evidence into a
+            # false perfect score. Level 3 is the rubric's neutral middle band
+            # until the recording is re-measured or thresholds are calibrated.
+            level = fallback_level
+            evidence = "degraded"
+        else:
+            level = next((5 - i for i, threshold in enumerate(thresholds)
+                          if value >= threshold), None) if minimum else next(
+                (5 - i for i, threshold in enumerate(thresholds) if value <= threshold), None)
+            level = level or 1
+            evidence = "measured"
+        criteria.append({"feature": name, "value": value, "level": level,
                          "thresholds_levels_5_to_2": list(thresholds),
-                         "comparison": ">=" if minimum else "<="})
+                         "comparison": ">=" if minimum else "<=",
+                         "evidence": evidence})
     score = min(c["level"] for c in criteria)
     limiting = ", ".join(c["feature"] for c in criteria if c["level"] == score)
+    reason = f"Level {score}: limiting criteria: {limiting}. All criteria must meet a level."
+    if evidence_reasons:
+        reason += " Evidence quality is degraded: " + ", ".join(evidence_reasons) + "."
     return {"key": key, "score": score, "out_of": 5, "source": "praat",
             "rubric_level": score, "rubric_description": rubric[score],
-            "reason": f"Level {score}: limiting criteria: {limiting}. All criteria must meet a level.",
-            "measurements": measurements, "criteria": criteria}
+            "reason": reason, "measurements": measurements, "criteria": criteria,
+            "evidence_quality": evidence_quality,
+            "evidence_reasons": list(evidence_reasons)}
 
 
 def _speech_seconds(features):
@@ -195,8 +222,10 @@ def score_fluency(student: UtteranceFeatures, reference: UtteranceFeatures, poli
         "speech_rate_log_deviation": abs(math.log(rate / reference_rate)),
     }
     unreliable = min(student.alignment.confidence, reference.alignment.confidence) < policy.min_alignment_confidence
+    evidence_reasons = ("alignment_confidence_below_policy_minimum",) if unreliable else ()
     return _decision("fluency", measurements, policy.fluency_limits, FLUENCY_RUBRIC,
-                     unavailable="Syllable alignment confidence is below the policy minimum." if unreliable else None)
+                     evidence_quality="degraded" if unreliable else "full",
+                     evidence_reasons=evidence_reasons)
 
 
 def _durations(features):
@@ -263,8 +292,27 @@ def score_prosody(student: UtteranceFeatures, reference: UtteranceFeatures, poli
         "speaking_rate_stability": math.exp(-rate_stability_error),
     }
     unreliable = min(student.alignment.confidence, reference.alignment.confidence) < policy.min_alignment_confidence
-    reason = ("Syllable alignment confidence is below the policy minimum." if unreliable else
-              "Insufficient paired syllable pitch or speech duration evidence." if
-              coverage < policy.min_pitch_syllable_coverage or not valid_durations or len(pairs) < 2 else None)
+    evidence_reasons = []
+    degraded_features = set()
+    if unreliable:
+        evidence_reasons.append("alignment_confidence_below_policy_minimum")
+        degraded_features.update({
+            "pitch_contour_similarity", "pitch_movement_similarity", "pitch_range_similarity",
+        })
+    if coverage < policy.min_pitch_syllable_coverage:
+        evidence_reasons.append("pitch_syllable_coverage_below_policy_minimum")
+        degraded_features.update({
+            "pitch_contour_similarity", "pitch_movement_similarity", "pitch_range_similarity",
+        })
+    if len(pairs) < 2:
+        evidence_reasons.append("fewer_than_two_paired_pitch_syllables")
+        degraded_features.update({
+            "pitch_contour_similarity", "pitch_movement_similarity", "pitch_range_similarity",
+        })
+    if not valid_durations:
+        evidence_reasons.append("invalid_syllable_duration_evidence")
+        degraded_features.update({"rhythm_similarity", "speaking_rate_stability"})
     return _decision("prosody", measurements, policy.prosody_limits, PROSODY_RUBRIC,
-                     minimum=True, unavailable=reason)
+                     minimum=True, degraded_features=degraded_features,
+                     evidence_quality="degraded" if evidence_reasons else "full",
+                     evidence_reasons=tuple(evidence_reasons))
