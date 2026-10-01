@@ -102,6 +102,33 @@ def create_student(db, name: str, password: str) -> dict:
     return row_to_student(created)
 
 
+# Display names a self-registered student may not take: the frontend treats a
+# student named "admin" as the progression-bypass admin (isAdminSession()).
+RESERVED_SIGNUP_NAMES = frozenset({"admin"})
+
+
+def register_student(db, name: str, password: str) -> dict:
+    """Public self-signup. Unlike ``create_student`` this is never idempotent:
+    a name that is already taken is a conflict, because the caller is about to
+    be signed in as whatever row comes back.
+
+    Returns the raw row so the router can issue a session from it.
+    """
+    name = name.strip()
+    if not name:
+        raise StudentServiceError(400, "Provide a student name.")
+    if name.lower() in RESERVED_SIGNUP_NAMES:
+        raise StudentServiceError(400, "That name can't be used.")
+    auth.validate_password_policy(password)
+
+    if repo.find_by_name_ci(db, name) is not None:
+        raise StudentServiceError(409, "That name is already taken.")
+    try:
+        return repo.insert(db, str(uuid.uuid4()), name, auth.hash_password(password))
+    except UniqueViolation as exc:
+        raise StudentServiceError(409, "That name is already taken.") from exc
+
+
 def authenticate_student(
     db, student_id: Optional[str], name: Optional[str], password: str
 ) -> dict:

@@ -62,6 +62,28 @@ def create_student(
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
+@router.post("/api/students/signup", status_code=201)
+def signup_student(
+    request: StudentCreateRequest,
+    response: Response,
+    http_request: Request,
+):
+    """Public self-signup: create a basic name + password account and sign the
+    student in. Open on purpose for now; the rate limit is the only guard."""
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    auth.check_login_rate_limit(f"student-signup:{client_ip}", max_attempts=5, window_seconds=600)
+
+    with connect_db() as db:
+        try:
+            row = student_service.register_student(db, request.name, request.password)
+        except student_service.StudentServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    token = auth.issue_token("student", row["id"], row.get("password_version", 0))
+    auth.set_session_cookie(response, token, "student")
+    return row_to_student(row)
+
+
 @router.post("/api/students/login")
 def login_student(
     request: StudentLoginRequest,
