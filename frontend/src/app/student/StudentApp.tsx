@@ -348,7 +348,9 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
       <CompletionPage
         topic={activeTopic}
         sceneCount={activeTopic.images.length}
-        hasConversation={conversationContentAvailable}
+        scenesRecorded={progressInput?.scenesRecorded ?? 0}
+        conversationTurnCount={progressInput?.turnCount ?? 0}
+        conversationTurnsRecorded={progressInput?.turnsRecorded ?? 0}
         quizStars={topicHasQuiz(activeTopic) ? activeStars : null}
         overallCompleted={overallCompleted}
         overallTotal={topics.length}

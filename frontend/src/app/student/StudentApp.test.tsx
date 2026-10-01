@@ -354,7 +354,7 @@ describe("StudentApp", () => {
     expect(screen.getByTestId("conversation-mock")).toBeInTheDocument();
   });
 
-  it("records the practice branch chosen from the unlocked sidebar before Submit", () => {
+  it("records the practice branch chosen from the unlocked sidebar before Submit", async () => {
     const s1 = makeTopic({ id: "s1", conversationTurns });
     recordLocalStars("s1", 3);
     sessionStorage.setItem("studentPhaseFlags:student-1:s1", JSON.stringify({ vocab: true }));
@@ -377,6 +377,10 @@ describe("StudentApp", () => {
 
     expect(screen.getByText(/對話已完成/)).toBeInTheDocument();
     expect(screen.getByText("1 / 1")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "提交給老師" }));
+    expect(await screen.findByText("完成！")).toBeInTheDocument();
+    expect(screen.getByText("0 / 1 場景")).toBeInTheDocument();
+    expect(screen.getByText("1 / 1 句對話")).toBeInTheDocument();
   });
 
   it("makes Placement a real, reachable section (not disabled) alongside Progress", () => {

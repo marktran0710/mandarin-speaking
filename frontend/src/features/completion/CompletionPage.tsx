@@ -11,7 +11,9 @@ import "./CompletionPage.css";
 interface CompletionPageProps {
   topic: Topic;
   sceneCount: number;
-  hasConversation: boolean;
+  scenesRecorded: number;
+  conversationTurnCount: number;
+  conversationTurnsRecorded: number;
   /** null when this story runs no quiz at all (see topicHasQuiz). */
   quizStars: 0 | 1 | 2 | 3 | null;
   overallCompleted: number;
@@ -25,7 +27,9 @@ interface CompletionPageProps {
 export default function CompletionPage({
   topic,
   sceneCount,
-  hasConversation,
+  scenesRecorded,
+  conversationTurnCount,
+  conversationTurnsRecorded,
   quizStars,
   overallCompleted,
   overallTotal,
@@ -53,12 +57,12 @@ export default function CompletionPage({
         )}
         <span className="sa-completion__stat">
           <StudentIcon name="check_circle" size={16} role="decorative" filled />
-          {sceneCount} / {sceneCount} 場景
+          {Math.min(scenesRecorded, sceneCount)} / {sceneCount} 場景
         </span>
-        {hasConversation && (
+        {conversationTurnCount > 0 && (
           <span className="sa-completion__stat">
             <StudentIcon name="check_circle" size={16} role="decorative" filled />
-            對話
+            {Math.min(conversationTurnsRecorded, conversationTurnCount)} / {conversationTurnCount} 句對話
           </span>
         )}
       </StudentSection>
