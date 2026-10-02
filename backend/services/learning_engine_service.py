@@ -19,7 +19,7 @@ Provenance tags used throughout (see docs/learning-engine.md):
 
 from typing import Any
 from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig
-from analytics.learner_model.bkt.deployment import config_for_version_row, load_active_deployment
+from analytics.learner_model.bkt.deployment import bkt_fit_provenance, config_for_version_row, load_active_deployment
 from analytics.learner_model.srs import (
     DAY_SECONDS,
     FIRST_INTERVAL_DAYS,
@@ -90,6 +90,7 @@ def _bkt_section(config: BktConfig = BKT_CONFIG, deployment: dict | None = None)
                 "provenance": "ENGINEERING_DEFAULT",
             },
         },
+        "fitProvenance": bkt_fit_provenance(deployment if fitted else None),
         "parameterStatus": "synthetic_test" if synthetic else "fitted" if fitted else "provisional",
         "activeDeployment": (
             {

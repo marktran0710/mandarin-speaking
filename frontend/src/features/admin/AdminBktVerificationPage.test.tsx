@@ -78,6 +78,18 @@ describe("AdminBktVerificationPage", () => {
     expect(screen.getAllByText("NOT_ASSESSED").length).toBeGreaterThan(0);
   });
 
+  it("labels the active synthetic fit independently of real trace evidence", async () => {
+    const fitProvenance = { modelVersion: "bkt-synthetic-active", evidenceOrigin: "SYNTHETIC" as const, synthetic: true, label: "Simulation fit only; not human pilot calibration." };
+    vi.mocked(getBktVerificationBootstrap).mockResolvedValue({ ...bootstrap, model: { ...model, activeDeployment: fitProvenance.modelVersion, fitProvenance }, students: bootstrap.students.map((student) => ({ ...student, isTestAccount: false })) });
+    vi.mocked(getBktVerificationTrace).mockResolvedValue({ ...trace, student: { ...trace.student, isTestAccount: false }, trace: { ...trace.trace, provenance: "REAL", syntheticTestData: false } });
+    render(<AdminBktVerificationPage />);
+    expect(await screen.findByText("SYNTHETIC FIT")).toBeInTheDocument();
+    expect(screen.getByLabelText("Active BKT fit")).toHaveTextContent("not human pilot calibration");
+    expect(screen.getAllByText("bkt-synthetic-active").length).toBeGreaterThan(0);
+    await waitFor(() => expect(getBktVerificationTrace).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText("Synthetic test data")).not.toBeInTheDocument());
+  });
+
   it("expands a golden scenario and exposes its step trace", async () => {
     render(<AdminBktVerificationPage />);
 

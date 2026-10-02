@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import time
+from dataclasses import replace
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,6 +21,7 @@ from pydantic import BaseModel, Field
 
 import security.auth as auth
 from analytics.learner_model.bkt.core import BKT_CONFIG
+from analytics.learner_model.bkt.deployment import bkt_fit_provenance, config_for_version_row, load_active_deployment
 from analytics.learner_model.bkt.assessment_resolver import _item_round, _published_assessment
 from analytics.learner_model.bkt.mastery import (
     mastery_trace_for_word,
@@ -101,9 +103,13 @@ def inject_bkt_debug_responses(request: BktDebugInjectRequest) -> dict[str, Any]
 
     with connect_db() as db:
         upsert_raw_responses(db, rows)
-        steps = mastery_trace_for_word(db, request.studentId, request.wordId)
+        deployment = load_active_deployment(db)
+        config = config_for_version_row(deployment)
+        steps = mastery_trace_for_word(db, request.studentId, request.wordId, replace(config))
+        fit_provenance = bkt_fit_provenance(deployment)
 
     return {
+        "fitProvenance": fit_provenance,
         "wordId": request.wordId,
         "targetWord": item.get("targetWord") or request.wordId,
         "steps": steps,

@@ -29,6 +29,13 @@ beforeEach(() => {
 });
 
 describe("BKT preset inputs", () => {
+  it("identifies the synthetic serving fit before any candidate is selected", async () => {
+    vi.mocked(getAlgorithmVerifierBootstrap).mockResolvedValue({ ...verifierBootstrap, model: { fitProvenance: { modelVersion: "bkt-synthetic-active", evidenceOrigin: "SYNTHETIC" as const, synthetic: true, label: "Simulation fit only; not human pilot calibration." } } });
+    render(<AdminAlgorithmVerifierPage />);
+    expect(await screen.findByText("SYNTHETIC FIT")).toBeInTheDocument();
+    expect(screen.getByLabelText("Active BKT fit")).toHaveTextContent("not human pilot calibration");
+  });
+
   it("selects a stored candidate for parameters, Recovery and live traces without activation", async () => {
     const modelVersion = "bkt-synthetic-candidate-demo";
     vi.mocked(getAlgorithmVerifierBootstrap).mockResolvedValueOnce({ ...verifierBootstrap, candidates: [{

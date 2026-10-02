@@ -16,6 +16,30 @@ from analytics.learner_model.bkt.deployment import (
 )
 from analytics.learner_model.bkt.format_aware_fit import config_from_parameters
 from analytics.learner_model.bkt.mastery import get_vocabulary_mastery
+from services.bkt_verification_service import get_bootstrap, get_trace
+from services.algorithm_verifier_service import calculate_bkt
+from services.learning_engine_service import get_learning_engine_metadata
+
+
+def _assert_reported_fit(conn, version, origin, student):
+    expected = {"modelVersion": version, "evidenceOrigin": origin, "synthetic": origin == "SYNTHETIC"}
+    bootstrap = get_bootstrap(conn)
+    preview = get_bootstrap(conn, version)
+    trace = get_trace(conn, student, "word-00")
+    calculation = calculate_bkt({"correct": True}, conn)
+    preview_calculation = calculate_bkt({"correct": True, "modelVersion": version}, conn)
+    metadata = get_learning_engine_metadata(conn)
+    for report in (bootstrap["model"], preview["model"], trace["model"], trace["trace"], calculation["model"], preview_calculation["model"], metadata["bkt"]):
+        provenance = report["fitProvenance"]
+        assert {key: provenance[key] for key in expected} == expected
+        if origin == "SYNTHETIC":
+            assert "not human pilot calibration" in provenance["label"]
+    assert preview["model"]["activeDeployment"] is None
+    assert bootstrap["model"]["activeDeployment"] == version
+    assert calculation["model"]["parametersOverridden"] is False
+    overridden = calculate_bkt({"correct": True, "learnRate": 0.123456789}, conn)
+    assert overridden["model"]["parametersOverridden"] is True
+
 
 
 TRUE_PARAMETERS = {
@@ -115,6 +139,7 @@ def test_real_candidate_activates_serves_and_deactivates():
             "guess": stored["guess_rate"], "slip": stored["slip_rate"],
             "guess_typed": stored["guess_rate_typed"], "slip_typed": stored["slip_rate_typed"],
         })
+        _assert_reported_fit(conn, result["modelVersion"], "REAL", student)
         assert load_active_deployment(conn)["model_version"] == result["modelVersion"]
         assert serving_bkt_config(conn, BKT_CONFIG) == fitted
         served = next(row for row in get_vocabulary_mastery(conn, student) if row["wordId"] == word)
@@ -163,8 +188,13 @@ def test_synthetic_candidate_requires_explicit_test_activation():
         )
         assert activated["syntheticTestDeployment"] is True
         assert load_active_deployment(conn)["evidence_origin"] == "synthetic"
+        # Human-labelled replay evidence does not turn the serving fit into a human fit.
+        conn.execute("UPDATE vocab_quiz_responses SET evidence_origin = 'real' WHERE student_id = 'synthetic-student-00'")
+        _assert_reported_fit(conn, result["modelVersion"], "SYNTHETIC", "synthetic-student-00")
+        assert get_trace(conn, "synthetic-student-00", "word-00")["trace"]["provenance"] == "REAL"
         deactivate_deployment(conn)
         assert load_active_deployment(conn) is None
+        assert get_bootstrap(conn)["model"]["fitProvenance"]["evidenceOrigin"] == "ENGINEERING_DEFAULT"
 
 
 def test_legacy_global_versions_cannot_serve():

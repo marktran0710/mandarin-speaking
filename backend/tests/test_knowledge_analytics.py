@@ -83,6 +83,8 @@ def test_knowledge_state_compares_models_and_applies_filters(admin_client):
     assert response.status_code == 200
     body = response.json()
     assert body["model"] == "compare"
+    assert body["servingBktFit"]["evidenceOrigin"] == "ENGINEERING_DEFAULT"
+    assert body["servingBktFit"]["modelVersion"] is None
     assert set(body["models"]) == {"pfa", "bkt"}
     assert body["dataQuality"]["eligibleResponses"] == 12
     assert body["dataQuality"]["skillCount"] == 1

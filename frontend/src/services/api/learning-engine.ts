@@ -1,4 +1,5 @@
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
+import type { BktFitProvenance } from "./bkt-fit-provenance";
 
 export interface LearningEngineParameter {
   value: number | string;
@@ -19,6 +20,7 @@ export interface LearningEngineReference {
 }
 
 export interface LearningEngineBkt {
+  fitProvenance?: BktFitProvenance;
   name: string;
   version: string;
   provenance: string;

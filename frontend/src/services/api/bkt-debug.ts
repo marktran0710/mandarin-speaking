@@ -1,4 +1,5 @@
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
+import type { BktFitProvenance } from "./bkt-fit-provenance";
 
 export interface BktDebugStep {
   index: number;
@@ -7,6 +8,7 @@ export interface BktDebugStep {
 }
 
 export interface BktDebugResult {
+  fitProvenance?: BktFitProvenance;
   wordId: string;
   targetWord: string;
   steps: BktDebugStep[];

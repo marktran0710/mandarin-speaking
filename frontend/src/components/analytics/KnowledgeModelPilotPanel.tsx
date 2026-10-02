@@ -1,3 +1,4 @@
+import BktFitNotice from "./BktFitNotice";
 import { useEffect, useMemo, useState } from "react";
 import {
   canUseDatabase,
@@ -159,6 +160,7 @@ export default function KnowledgeModelPilotPanel() {
         <span className="knowledge-provisional-badge">Admin-only · provisional</span>
       </div>
       <p className="knowledge-model-intro">Exploratory sequential predictions from vocabulary quiz history. This pilot does not change scoring, weak words, gating, or student feedback.</p>
+      {data && <><BktFitNotice provenance={data.servingBktFit} /><p>The active fit above is separate from the exploratory comparison fitted below.</p></>}
       <details className="knowledge-methodology" open>
         <summary>Papers &amp; formulas used in this pilot</summary>
         <p className="knowledge-methodology-intro">The formulas below mirror <code>backend/analytics/knowledge_tracing.py</code>. Parameters are fitted only for this comparison run; they are not a permanent production policy. Evaluation uses a chronological 50/50 split: the first half trains the pooled models, then each later response is predicted before the model updates. A lower-loss signal appears only after conservative evidence checks pass.</p>

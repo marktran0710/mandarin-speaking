@@ -19,7 +19,7 @@ from analytics.learner_model.bkt.core import (
     bkt_parameter_fingerprint,
     guess_slip_for,
 )
-from analytics.learner_model.bkt.deployment import config_for_version_row, load_active_deployment, preview_bkt_config
+from analytics.learner_model.bkt.deployment import bkt_fit_provenance, config_for_version_row, load_active_deployment, load_bkt_model_version
 from analytics.learner_model.bkt.mastery import (
     get_vocabulary_mastery,
     mastery_trace_for_word,
@@ -52,10 +52,11 @@ def _serving(db: Any) -> tuple[BktConfig, dict[str, Any] | None]:
     return config_for_version_row(deployment), deployment
 
 
-def _model_metadata(config: BktConfig = BKT_CONFIG, deployment: dict[str, Any] | None = None) -> dict[str, Any]:
+def _model_metadata(config: BktConfig = BKT_CONFIG, deployment: dict[str, Any] | None = None, *, fit_row: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         "version": BKT_MODEL_VERSION,
         "parameterFingerprint": bkt_parameter_fingerprint(config),
+        "fitProvenance": bkt_fit_provenance(fit_row if fit_row is not None else deployment),
         "activeDeployment": deployment["model_version"] if deployment and config is not BKT_CONFIG else None,
         "parameters": {
             "pL0": config.initial_mastery,
@@ -73,10 +74,12 @@ def _model_metadata(config: BktConfig = BKT_CONFIG, deployment: dict[str, Any] |
 
 def get_bootstrap(db: Any, model_version: str | None = None) -> dict[str, Any]:
     config, deployment = _serving(db)
+    fit_row = deployment
     if model_version:
-        config, deployment = preview_bkt_config(db, model_version), None
+        fit_row = load_bkt_model_version(db, model_version)
+        config, deployment = config_for_version_row(fit_row), None
     return {
-        "model": {**_model_metadata(config, deployment), "selectedModelVersion": model_version, "previewOnly": bool(model_version)},
+        "model": {**_model_metadata(config, deployment, fit_row=fit_row), "selectedModelVersion": model_version, "previewOnly": bool(model_version)},
         "golden": build_golden_report(),
         "students": [
             {
@@ -212,9 +215,11 @@ def get_trace(db: Any, student_id: str, word_id: str | None = None, *, model_ver
         raise BktVerificationNotFound("Student was not found.")
     rows = repo.list_bkt_response_rows(db, student_id)
     config, deployment = _serving(db)
+    fit_row = deployment
     if model_version:
-        config, deployment = preview_bkt_config(db, model_version), None
-    model_metadata = {**_model_metadata(config, deployment), "selectedModelVersion": model_version, "previewOnly": bool(model_version)}
+        fit_row = load_bkt_model_version(db, model_version)
+        config, deployment = config_for_version_row(fit_row), None
+    model_metadata = {**_model_metadata(config, deployment, fit_row=fit_row), "selectedModelVersion": model_version, "previewOnly": bool(model_version)}
     # Evaluate production with a copy so it uses exactly these values rather
     # than re-resolving the (cached) deployment on its own.
     serving = config if config is not BKT_CONFIG else replace(BKT_CONFIG)
@@ -295,6 +300,7 @@ def get_trace(db: Any, student_id: str, word_id: str | None = None, *, model_ver
             "evidence": [_format_evidence(row, index) for index, row in enumerate(history, start=1)],
             "evidenceCount": len(history),
             "provenance": _provenance(history),
+            "fitProvenance": model_metadata["fitProvenance"],
             "syntheticTestData": bool(student.get("is_test_account")) or _provenance(history) == "SYNTHETIC",
             "coldStart": _placement_prior_detail(db, student_id, selected_id, rows, config),
             "expectedTrace": expected_trace,

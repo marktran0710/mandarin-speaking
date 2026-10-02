@@ -66,6 +66,8 @@ def test_inject_replays_mastery_step_by_step_and_tags_evidence_synthetic(admin_c
     )
     assert response.status_code == 200
     body = response.json()
+    assert body["fitProvenance"]["evidenceOrigin"] == "ENGINEERING_DEFAULT"
+    assert body["fitProvenance"]["synthetic"] is False
     assert body["injectedCount"] == 4
     assert body["correctCount"] == 2
     assert body["totalCount"] == 4

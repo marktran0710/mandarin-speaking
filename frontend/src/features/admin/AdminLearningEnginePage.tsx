@@ -1,3 +1,4 @@
+import BktFitNotice from "../../components/analytics/BktFitNotice";
 import { useEffect, useState } from "react";
 import {
   getLearningEngineMetadata,
@@ -88,6 +89,7 @@ export default function AdminLearningEnginePage() {
           <span className="learning-engine-version">{bkt.version}</span>
         </header>
         <p className="learning-engine-purpose-text">{bkt.purpose}</p>
+        <BktFitNotice provenance={bkt.fitProvenance} />
         <CalibrationBanner text={bkt.calibrationStatus} />
         <div className="learning-engine-formula">
           <p>Correct: P(L|correct) = L(1−S) / [L(1−S) + (1−L)G]</p>

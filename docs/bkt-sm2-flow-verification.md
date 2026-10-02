@@ -162,3 +162,19 @@ before updates with learner-level holdouts, inspect dependence and subgroup
 misfit, and measure delayed recall by dimension and elapsed time. Existing
 synthetic fit metrics and passing application tests do not substitute for
 those measurements.
+
+## Fit provenance in reporting
+
+Learning Engine, the Algorithm Verifier, live BKT verification, debug replay,
+and pilot analytics now identify the registered active fit with its model version
+and evidence origin. The current local fit is **SYNTHETIC FIT**: simulation only,
+not human pilot calibration. This label comes from the model registry rather
+than the account or the response trace being viewed.
+
+JSON model reports expose `fitProvenance`; copied live traces retain that field.
+Pilot analytics reports expose the active fit as `servingBktFit`, separately from
+the exploratory real-evidence PFA/BKT comparison. Candidate previews report the
+selected candidate's provenance without describing it as deployed. Calculator
+reports also flag `parametersOverridden` when inputs change the selected fit's
+transition or observation parameters. Engineering defaults and unavailable fit
+provenance are labelled explicitly and do not imply human calibration.

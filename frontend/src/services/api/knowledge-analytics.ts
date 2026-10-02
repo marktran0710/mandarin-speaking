@@ -1,3 +1,4 @@
+import type { BktFitProvenance } from "./bkt-fit-provenance";
 import { BACKEND_URL, fetchWithRetry, REQUEST_TIMEOUT_MS } from "@shared/api/client";
 
 export type KnowledgeModelName = "pfa" | "bkt" | "compare";
@@ -64,6 +65,7 @@ export interface KnowledgeDataQuality {
 }
 
 export interface KnowledgeModelResult {
+  servingBktFit?: BktFitProvenance;
   model: "pfa" | "bkt";
   modelVersion: string;
   implementation: "restricted_pooled_baseline" | "pooled_bkt_pilot";
@@ -76,6 +78,7 @@ export interface KnowledgeModelResult {
 }
 
 export interface KnowledgeModelComparison {
+  servingBktFit?: BktFitProvenance;
   model: "compare";
   modelVersion: string;
   scope: { studentId: string | null; storyId: string | null; level: string | null };

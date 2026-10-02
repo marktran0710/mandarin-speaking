@@ -62,6 +62,14 @@ const mockMetadata = {
 };
 
 describe("AdminLearningEnginePage", () => {
+  it("shows the synthetic fit version and human-calibration distinction", async () => {
+    vi.mocked(getLearningEngineMetadata).mockResolvedValue({ ...mockMetadata, bkt: { ...mockMetadata.bkt, fitProvenance: { modelVersion: "bkt-synthetic-active", evidenceOrigin: "SYNTHETIC" as const, synthetic: true, label: "Simulation fit only; not human pilot calibration." } } });
+    render(<AdminLearningEnginePage />);
+    expect(await screen.findByText("SYNTHETIC FIT")).toBeInTheDocument();
+    expect(screen.getByLabelText("Active BKT fit")).toHaveTextContent("bkt-synthetic-active");
+    expect(screen.getByLabelText("Active BKT fit")).toHaveTextContent("not human pilot calibration");
+  });
+
   it("renders the BKT, retention and voice sections from live backend metadata", async () => {
     vi.mocked(getLearningEngineMetadata).mockResolvedValue(mockMetadata);
     render(<AdminLearningEnginePage />);

@@ -1,8 +1,11 @@
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
+import type { BktFitProvenance } from "./bkt-fit-provenance";
 
 export type VerificationResult = "PASS" | "FAIL" | "NOT TESTED" | "MODEL CONTRACT CHANGED";
 
 export interface BktVerificationModel {
+  fitProvenance?: BktFitProvenance;
+  activeDeployment?: string | null;
   version: string;
   parameterFingerprint: string;
   goldenFixtureVersion: string;
@@ -111,6 +114,7 @@ export interface PlacementPrior {
 }
 
 export interface LiveTrace {
+  fitProvenance?: BktFitProvenance;
   word: VerificationWord;
   evidence: EvidenceItem[];
   evidenceCount: number;

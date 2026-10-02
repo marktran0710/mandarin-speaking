@@ -70,14 +70,44 @@ def active_bkt_config(db: Any) -> BktConfig:
     return config_for_version_row(load_active_deployment(db))
 
 
-def preview_bkt_config(db: Any, model_version: str) -> BktConfig:
-    """Read a candidate for admin calculations without changing deployment."""
+def load_bkt_model_version(db: Any, model_version: str) -> dict[str, Any]:
+    """Read a valid candidate and its fit provenance without activating it."""
     row = db.execute("SELECT * FROM bkt_model_versions WHERE version = %s", (model_version,)).fetchone()
     if not row:
         raise ValueError(f"Unknown BKT model version: {model_version}")
     if row.get("model_scope") != FORMAT_AWARE_MODEL_SCOPE or row.get("guess_rate_typed") is None or row.get("slip_rate_typed") is None:
         raise ValueError(f"{model_version} does not contain a format-aware parameter set.")
-    return config_for_version_row(dict(row))
+    return dict(row)
+
+
+def preview_bkt_config(db: Any, model_version: str) -> BktConfig:
+    return config_for_version_row(load_bkt_model_version(db, model_version))
+
+
+def bkt_fit_provenance(row: dict[str, Any] | None) -> dict[str, Any]:
+    """Fit evidence, separate from the origins of responses being replayed.
+
+    Unsupported registry rows are ignored by serving and therefore report
+    engineering defaults. REAL identifies recorded evidence, not validation.
+    """
+    if row and config_for_version_row(row) is BKT_CONFIG:
+        row = None
+    origin = str(row.get("evidence_origin") or "UNKNOWN").upper() if row else "ENGINEERING_DEFAULT"
+    if origin not in {"REAL", "SYNTHETIC", "ENGINEERING_DEFAULT"}:
+        origin = "UNKNOWN"
+    labels = {
+        "SYNTHETIC": "Simulation fit only; not human pilot calibration.",
+        "REAL": "Fit from real-labelled responses; empirical validation must be assessed separately.",
+        "ENGINEERING_DEFAULT": "Engineering defaults; no fitted calibration.",
+        "UNKNOWN": "Fit provenance unavailable; do not treat as human pilot calibration.",
+    }
+    return {
+        "modelVersion": (row.get("model_version") or row.get("version")) if row else None,
+        "fitRunId": row.get("fit_run_id") if row else None,
+        "evidenceOrigin": origin,
+        "synthetic": origin == "SYNTHETIC",
+        "label": labels[origin],
+    }
 
 
 def list_calibration_candidates(db: Any) -> list[dict[str, Any]]:

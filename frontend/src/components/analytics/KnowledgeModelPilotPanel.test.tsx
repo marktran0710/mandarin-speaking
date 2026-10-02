@@ -61,6 +61,14 @@ describe("KnowledgeModelPilotPanel", () => {
     expect(screen.getByRole("link", { name: /Corbett & Anderson \(1994\)/ })).toHaveAttribute("href", "https://doi.org/10.1007/BF01099821");
   });
 
+  it("separates the synthetic serving fit from the exploratory comparison", async () => {
+    getKnowledgeModelAnalytics.mockResolvedValue({ ...readyData, servingBktFit: { modelVersion: "bkt-synthetic-active", evidenceOrigin: "SYNTHETIC" as const, synthetic: true, label: "Simulation fit only; not human pilot calibration." } });
+    render(<KnowledgeModelPilotPanel />);
+    expect(await screen.findByText("SYNTHETIC FIT")).toBeInTheDocument();
+    expect(screen.getByLabelText("Active BKT fit")).toHaveTextContent("not human pilot calibration");
+    expect(screen.getByText("The active fit above is separate from the exploratory comparison fitted below.")).toBeInTheDocument();
+  });
+
   it("shows an error state when the admin analytics request fails", async () => {
     getKnowledgeModelAnalytics.mockRejectedValue(new Error("Analytics unavailable"));
     render(<KnowledgeModelPilotPanel />);

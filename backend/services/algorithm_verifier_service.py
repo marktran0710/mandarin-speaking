@@ -17,7 +17,7 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 from analytics.learner_model.bkt.core import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, TYPED_QUESTION_TYPES, bkt_parameter_fingerprint, update_bkt_trace
-from analytics.learner_model.bkt.deployment import active_bkt_config, list_calibration_candidates, preview_bkt_config
+from analytics.learner_model.bkt.deployment import active_bkt_config, bkt_fit_provenance, config_for_version_row, list_calibration_candidates, load_active_deployment, load_bkt_model_version
 from analytics.learner_model.bkt.mastery import get_vocabulary_mastery
 from analytics.learner_model.review_queue import build_review_queue
 from analytics.learner_model.srs import DAY_SECONDS, SrsState, enrollment_state, review
@@ -372,13 +372,15 @@ def build_sm2_baseline_report() -> dict[str, Any]:
 
 
 def calculate_bkt(payload: dict[str, Any], db: Any = None, *, config: BktConfig | None = None) -> dict[str, Any]:
-    selected = config if config is not None else (active_bkt_config(db) if db is not None else BKT_CONFIG)
+    fit_row = load_active_deployment(db) if db is not None and config is None else None
+    selected = config if config is not None else config_for_version_row(fit_row)
     serving_config = selected
     model_version = payload.get("modelVersion")
     if model_version:
         if db is None or not isinstance(model_version, str):
             raise ValueError("A candidate modelVersion requires a database lookup.")
-        selected = preview_bkt_config(db, model_version)
+        fit_row = load_bkt_model_version(db, model_version)
+        selected = config_for_version_row(fit_row)
     prior = float(payload.get("prior", selected.initial_mastery))
     correct = bool(payload.get("correct"))
     question_format = str(payload.get("questionFormat", "mcq")).lower()
@@ -400,7 +402,12 @@ def calculate_bkt(payload: dict[str, Any], db: Any = None, *, config: BktConfig 
     ))
     learn_rate = effective.learn_rate
     guess, slip = (effective.guess_rate_typed, effective.slip_rate_typed) if typed else (effective.guess_rate, effective.slip_rate)
+    provenance = bkt_fit_provenance(fit_row)
+    if config is not None and config is not BKT_CONFIG and not model_version:
+        provenance = {**provenance, "evidenceOrigin": "UNKNOWN", "label": "Custom parameters; no registered fit provenance."}
     model = {"version": BKT_MODEL_VERSION, "selectedModelVersion": model_version,
+             "fitProvenance": provenance,
+             "parametersOverridden": bkt_parameter_fingerprint(effective) != bkt_parameter_fingerprint(selected),
              "previewOnly": bool(model_version), "parameterFingerprint": bkt_parameter_fingerprint(effective),
              "selectedParameterFingerprint": bkt_parameter_fingerprint(selected),
              "servingParameterFingerprint": bkt_parameter_fingerprint(serving_config),

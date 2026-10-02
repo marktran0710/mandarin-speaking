@@ -1,9 +1,10 @@
+import type { BktFitProvenance } from "./bkt-fit-provenance";
 import { BACKEND_URL, fetchWithRetry } from "@shared/api/client";
 
 export type AlgorithmResult = "PASS" | "FAIL" | "NOT RUN" | "BLOCKED" | "MODEL CONTRACT CHANGED";
 
 export interface AlgorithmVerifierBootstrap {
-  model: Record<string, unknown>;
+  model: Record<string, unknown> & { fitProvenance?: BktFitProvenance };
   candidates?: BktCalibrationCandidate[];
   golden: { summary: { passed: number; total: number } };
   contractStatus: string;

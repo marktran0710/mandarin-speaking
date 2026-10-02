@@ -1,3 +1,4 @@
+import BktFitNotice from "../../components/analytics/BktFitNotice";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import AdminBktVerificationPage from "./AdminBktVerificationPage";
 import {
@@ -142,6 +143,7 @@ function BktWorkbench({ bootstrap, refreshKey, onStatus }: { bootstrap: Algorith
   return <div className="algorithm-verifier-stack">
     <section className="algorithm-verifier-panel" aria-label="BKT parameter selection">
       <h2>Parameters to test</h2>
+      <BktFitNotice provenance={bootstrap.model.fitProvenance} />
       <label className="algorithm-verifier-model-select">BKT model<select value={modelVersion} onChange={(event) => selectModel(event.target.value)}>
         <option value="">Currently serving students</option>
         {(bootstrap.candidates ?? []).map((item) => <option key={item.modelVersion} value={item.modelVersion}>{item.evidenceOrigin.toUpperCase()} · {item.modelVersion}</option>)}

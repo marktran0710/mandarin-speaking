@@ -24,6 +24,7 @@ from analytics.learner_model.knowledge_tracing import (
 )
 from analytics.learner_model.bkt.calibration_store import CalibrationSnapshot, load_calibration_snapshot
 from db import connect_db
+from analytics.learner_model.bkt.deployment import bkt_fit_provenance, load_active_deployment
 from analytics.learner_model.bkt.question_validation import analyze_response_quality, validate_bkt_diagnostic_design
 from repositories import knowledge_analytics_repository as repo
 from scripts.export_quiz_questions import build_question_rows
@@ -221,14 +222,17 @@ def compute_knowledge_state(
 ) -> dict[str, Any]:
     records, names, snapshot = _load_records(student_id, story_id, level)
     quality = _quality(records, snapshot)
+    with connect_db() as db:
+        serving_fit = bkt_fit_provenance(load_active_deployment(db))
     scope = {"studentId": student_id, "storyId": story_id, "level": level}
     pfa = _build_model_result(records, names, "pfa", quality, scope)
     if model == "pfa":
-        return pfa
+        return {**pfa, "servingBktFit": serving_fit}
     bkt = _build_model_result(records, names, "bkt", quality, scope)
     if model == "bkt":
-        return bkt
+        return {**bkt, "servingBktFit": serving_fit}
     return {
+        "servingBktFit": serving_fit,
         "model": "compare",
         "modelVersion": MODEL_VERSION,
         "scope": scope,

@@ -1,7 +1,10 @@
+import BktFitNotice from "../../components/analytics/BktFitNotice";
 import { useEffect, useMemo, useState } from "react";
 import type { Student } from "../../services/api/roster-help";
 import { listCustomStories, type StoredCustomStory } from "../../services/api/stories-submissions";
 import { injectBktDebugResponses, type BktDebugResult } from "../../services/api/bkt-debug";
+import { getBktVerificationBootstrap } from "../../services/api/bkt-verification";
+import type { BktFitProvenance } from "../../services/api/bkt-fit-provenance";
 import { assessmentRound } from "../../entities/vocabulary/quizGeneration";
 import "./AdminBktDebugPage.css";
 
@@ -20,6 +23,7 @@ export default function AdminBktDebugPage({ students }: { students: Student[] })
   const [wordId, setWordId] = useState("");
   const [pattern, setPattern] = useState("1011010");
   const [result, setResult] = useState<BktDebugResult | null>(null);
+  const [fitProvenance, setFitProvenance] = useState<BktFitProvenance>();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,6 +31,14 @@ export default function AdminBktDebugPage({ students }: { students: Student[] })
     void listCustomStories().then((rows) => {
       setStories(rows.filter((story) => story.published && (story.vocabAssessment?.length ?? 0) > 0));
     });
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void getBktVerificationBootstrap()
+      .then((data) => { if (active) setFitProvenance(data.model.fitProvenance); })
+      .catch(() => { if (active) setFitProvenance(undefined); });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -72,6 +84,7 @@ export default function AdminBktDebugPage({ students }: { students: Student[] })
         never counted as real calibration evidence) and replays BKT mastery after each one. For debugging the
         pipeline, not for grading anyone.
       </p>
+      <BktFitNotice provenance={result?.fitProvenance ?? fitProvenance} />
       <div className="admin-bkt-debug-form">
         <label>
           Student
