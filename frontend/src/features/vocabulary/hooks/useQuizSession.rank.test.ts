@@ -25,4 +25,31 @@ describe("entriesInServerPriorityOrder", () => {
       { wordId: "b" }, { wordId: "a" },
     ]);
   });
+
+  it("carries the server's current corrective dimension, not a history of failed question types", () => {
+    const entries = [{ word: "w", wordId: "w" }] as never[];
+    const ranked = [{
+      wordId: "w", word: "w", status: "NEEDS_PRACTICE", observationCount: 5,
+      seenQuestionTypes: ["basic_meaning_mcq", "character_to_pinyin_typing"],
+      vocabularyState: { practice: { unresolvedDimensions: ["pinyin"], nextDimension: "pinyin" } },
+    }] as unknown as VocabPriorityReviewWord[];
+
+    const [entry] = entriesInServerPriorityOrder(entries, ranked) as Array<Record<string, unknown>>;
+
+    expect(entry.bktNextDimension).toBe("pinyin");
+    expect(entry.bktSeenQuestionKinds).toEqual(["basic_meaning_mcq", "character_to_pinyin_typing"]);
+    expect(entry).not.toHaveProperty("bktFailedQuestionKinds");
+  });
+
+  it("leaves the dimension unset when the server names none (nothing to repair)", () => {
+    const entries = [{ word: "w", wordId: "w" }] as never[];
+    const ranked = [{
+      wordId: "w", word: "w", status: "NEEDS_PRACTICE", seenQuestionTypes: ["basic_meaning_mcq"],
+      vocabularyState: { practice: { unresolvedDimensions: [], nextDimension: null } },
+    }] as unknown as VocabPriorityReviewWord[];
+
+    const [entry] = entriesInServerPriorityOrder(entries, ranked) as Array<Record<string, unknown>>;
+
+    expect(entry.bktNextDimension).toBeUndefined();
+  });
 });

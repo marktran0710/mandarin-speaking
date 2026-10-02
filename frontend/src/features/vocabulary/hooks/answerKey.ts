@@ -19,11 +19,14 @@ export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priority
     const entry = entries.find((candidate) => candidate.wordId === priorityWord.wordId)
       ?? entries.find((candidate) => candidate.word === priorityWord.word);
     if (!entry) return [];
-    return priorityWord.seenQuestionTypes?.length || priorityWord.failedQuestionTypes?.length
+    // Corrective targeting comes only from the server's current unresolved
+    // state (practice.nextDimension), never from a history of failed types.
+    const nextDimension = priorityWord.vocabularyState?.practice?.nextDimension ?? undefined;
+    return priorityWord.seenQuestionTypes?.length || nextDimension
       ? [{
         ...entry,
         bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
-        bktFailedQuestionKinds: priorityWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
+        bktNextDimension: nextDimension,
         bktObservationCount: priorityWord.observationCount,
         bktLastResponseAt: priorityWord.lastResponseAt,
       }]

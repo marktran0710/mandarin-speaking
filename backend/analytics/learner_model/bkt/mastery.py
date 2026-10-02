@@ -16,8 +16,10 @@ from analytics.learner_model.bkt.core import (
     BKT_MODEL_VERSION,
     BktConfig,
     bkt_parameter_fingerprint,
+    guess_slip_for,
     is_supported_bkt_question_shape,
     replay_bkt_typed,
+    update_bkt,
 )
 from analytics.learner_model.bkt.deployment import serving_bkt_config
 from analytics.learner_model.bkt.question_validation import classify_bkt_response
@@ -26,7 +28,11 @@ from analytics.learner_model.bkt.placement_prior import (
     initial_priors_by_word as placement_initial_priors_by_word,
     is_placement_response,
 )
-from analytics.learner_model.vocabulary_state import build_vocabulary_state
+from analytics.learner_model.vocabulary_state import (
+    CORRECTIVE_POLICY_VERSION,
+    build_vocabulary_state,
+    corrective_trace,
+)
 from domain.vocabulary.story_scope import canonical_story_id, story_scope_ids
 
 
@@ -380,11 +386,41 @@ def _mastery_states_from_responses(
             "last_question_type": last["question_type"],
             "last_lesson_id": last["lesson_id"],
             "seen_question_types": sorted({row["question_type"] for row in history if row.get("question_type")}),
-            "failed_question_types": sorted({row["question_type"] for row in history if not row["correct"] and row.get("question_type")}),
             "round_types": sorted({row.get("round_type") for row in history if row.get("round_type")}),
             "history": history,
         }
     return states
+
+
+def observation_trace(
+    history: list[dict[str, Any]], params: BktConfig, initial_mastery: float,
+) -> list[dict[str, Any]]:
+    """Reconstruct, observation by observation, why a word is in its state.
+
+    Pure and ledger-derived: nothing here is stored separately.  Each step
+    carries the pooled P(Learned) before/after (same arithmetic as the
+    production replay), the *predicted correctness* of that answer (a
+    different quantity: P(L)*(1-slip) + (1-P(L))*guess, never P(Learned)
+    itself), and the unresolved corrective dimensions before/after.
+    """
+    mastery = initial_mastery
+    steps: list[dict[str, Any]] = []
+    for row, corrective in zip(history, corrective_trace(history)):
+        correct = bool(row["correct"])
+        guess, slip = guess_slip_for(row.get("question_type"), params)
+        before = mastery
+        updated = update_bkt(before, correct, params, guess=guess, slip=slip)
+        steps.append({
+            **corrective,
+            "correct": correct,
+            "pLearnedBefore": before,
+            "pLearned": updated,
+            "pCorrectBefore": before * (1.0 - slip) + (1.0 - before) * guess,
+            "modelVersion": BKT_MODEL_VERSION,
+            "policyVersion": CORRECTIVE_POLICY_VERSION,
+        })
+        mastery = updated
+    return steps
 
 
 def mastery_trace_for_word(
@@ -402,17 +438,7 @@ def mastery_trace_for_word(
         if any(is_placement_response(row) for row in history)
         else initial_priors.get(word_id, params.initial_mastery)
     )
-    pairs = [(bool(row["correct"]), row.get("question_type")) for row in history]
-    return [
-        {
-            "index": i + 1,
-            "correct": pairs[i][0],
-            "pLearned": replay_bkt_typed(
-                pairs[: i + 1], params, initial_mastery=initial_mastery,
-            ),
-        }
-        for i in range(len(pairs))
-    ]
+    return observation_trace(history, params, initial_mastery)
 
 
 def _lock_student_bkt(db: Any, student_id: str) -> None:
@@ -817,7 +843,6 @@ def get_vocabulary_mastery(
             "lastItemId": state.get("last_item_id") if state else None,
             "lessonId": word.get("lessonId"),
             "seenQuestionTypes": [],
-            "failedQuestionTypes": [],
             "roundTypes": state.get("round_types", []) if state else [],
             "vocabularyState": vocabulary_state,
         })
@@ -826,8 +851,7 @@ def get_vocabulary_mastery(
         for row in db.execute(
             f"""
             SELECT word_id,
-                   ARRAY_AGG(DISTINCT question_type) AS types,
-                   ARRAY_AGG(DISTINCT question_type) FILTER (WHERE correct = FALSE) AS failed_types
+                   ARRAY_AGG(DISTINCT question_type) AS types
             FROM vocab_quiz_responses
             WHERE student_id = %s
               {scope_filter}
@@ -839,7 +863,6 @@ def get_vocabulary_mastery(
     for row in result:
         observed = seen_types.get(row["wordId"]) or {}
         row["seenQuestionTypes"] = [value for value in (observed.get("types") or []) if value]
-        row["failedQuestionTypes"] = [value for value in (observed.get("failed_types") or []) if value]
     return sorted(result, key=bottom_k_review_key)
 
 

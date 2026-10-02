@@ -30,6 +30,18 @@ An isolated state replay with meaning wrong, context right, pinyin wrong, follow
 
 If `STRONG` is intended to mean competence across all three dimensions, track unresolved corrective requirements per dimension. If it means a pooled word-level estimate, its presentation and research interpretation should state that scope.
 
+### Resolution of findings 1 and 2
+
+Both findings are fixed by one explicit corrective state beside the (unchanged) pooled `P(Learned)`. Implementation: `backend/analytics/learner_model/vocabulary_state.py`; selector: `buildPersonalizedAssessmentQuestions` in `frontend/src/entities/vocabulary/quizGeneration.ts`.
+
+- `unresolvedDimensions` ⊆ {meaning, pinyin, context} is derived from the response ledger. A failed response (diagnostic, practice, or scheduled maintenance) in a dimension marks it unresolved.
+- A dimension is repaired by **2 consecutive correct corrective-practice answers in that same dimension**. A later failure in that dimension reopens it with progress reset. Correct answers in other dimensions, and correct diagnostic/maintenance answers, never repair it.
+- Selection is deterministic and server-owned (`practice.nextDimension`): first unresolved dimension in the order meaning → pinyin → context; otherwise the first dimension never observed; otherwise rotate by observation count. The frontend no longer reads `failedQuestionTypes` (removed) and cannot choose a repaired dimension.
+- `STRONG` is a system classification, not certainty that the learner knows the word. It requires all of: lesson diagnostic complete and every dimension observed for the word, `observationCount >= 3`, `unresolvedDimensions` empty, and `P(Learned) >= 0.95`. Only `STRONG` words are enrolled in SM-2; corrective practice never advances a schedule.
+- `mastery_trace_for_word` now reports, per observation, `P(Learned)` before/after, predicted correctness of that answer (a different quantity), unresolved dimensions before/after, and what the policy would have selected.
+
+The BKT parameters, the 0.95 threshold, and minimum observations are unchanged policy defaults, not recalibrated.
+
 ## What code establishes about BKT assumptions
 
 | Assumption or modeling choice | Current implementation | Assessment |

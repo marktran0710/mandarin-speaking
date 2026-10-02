@@ -256,6 +256,26 @@ class TestSubmitProbeResponse:
             stored = repo.find_probe_response(conn, assignment_id)
         assert stored["correct"] is False
 
+    def test_probe_response_never_touches_the_learner_model_or_sm2(self):
+        # A delayed/fresh probe of a word is a MEASUREMENT of retention. It must
+        # not feed the BKT ledger, the pooled mastery cache, or either SM-2
+        # table, or "was this STRONG word retained?" would perturb the very
+        # classification it is meant to evaluate.
+        assignment_id = self._due_assignment("study-submit-readonly", correct_answer="B")
+        tables = ("vocab_quiz_responses", "student_vocab_mastery", "student_vocab_srs", "student_vocab_srs_events")
+
+        def counts(conn):
+            return {table: conn.execute(f"SELECT count(*) AS n FROM {table}").fetchone()["n"] for table in tables}
+
+        with db.connect_db() as conn:
+            before = counts(conn)
+            submit_probe_response(conn, "student-1", assignment_id, "C", source_response_id="src-ro", now=NOW)
+            after = counts(conn)
+            stored = repo.find_probe_response(conn, assignment_id)
+
+        assert stored is not None and stored["correct"] is False
+        assert after == before
+
     def test_is_idempotent_for_a_repeat_submission(self):
         assignment_id = self._due_assignment("study-submit-idempotent", correct_answer="B")
         with db.connect_db() as conn:

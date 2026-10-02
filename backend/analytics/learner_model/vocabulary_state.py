@@ -3,18 +3,52 @@
 This module deliberately contains presentation state, not a second learner
 model.  There is one BKT probability per word; the response ledger supplies
 the dimension evidence and corrective-practice history that explain it.
+
+Two different questions are answered separately, and BOTH gate ``STRONG``:
+
+* BKT, ``P(Learned)``: "how strong is the total, pooled evidence that the
+  learner knows this word?"  One probability per word, never per dimension.
+* Corrective state, ``unresolvedDimensions``: "is there a required dimension
+  (meaning / pinyin / context) with a demonstrated failure that has not yet
+  been repaired?"  It is derived from the ledger, not folded into P(Learned).
+
+``STRONG`` is a *system classification*, not a claim that the learner
+definitely knows the word.  A word is STRONG only when all of these hold:
+
+    diagnostic coverage complete   (lesson rounds done AND every dimension observed)
+    AND observation_count >= minimum_observations
+    AND unresolvedDimensions is empty
+    AND P(Learned) >= mastery_threshold
+
+``unresolvedDimensions`` is the single source of truth for "what to repair
+next".  The frontend question selector reads ``practice.nextDimension`` from
+here rather than recomputing anything from historical failures.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 from analytics.learner_model.srs import SrsState, is_due
 
 
 DIMENSION_KEYS = ("meaning", "pinyin", "context")
-PRACTICE_SUCCESS_TARGET = 2
+
+# Version of the corrective rules in this module (not the BKT model version).
+CORRECTIVE_POLICY_VERSION = "per-dimension-repair-v1"
+
+# The one repair rule: a dimension is repaired by this many CONSECUTIVE correct
+# corrective-practice answers in that same dimension.  Any later incorrect
+# answer in that dimension (diagnostic, practice or maintenance) reopens it
+# with progress reset to zero.  Correct answers in other dimensions never count.
+REPAIR_SUCCESSES_PER_DIMENSION = 2
+
+CORRECTIVE_ACTIVITY = "personalized_practice"
+# A failed response in one of these activities marks its dimension unresolved.
+# Scheduled maintenance is not corrective practice, but a failure there still
+# shows the learner which dimension needs repair.
+FAILURE_ACTIVITIES = frozenset({"diagnostic", "scheduled_maintenance", CORRECTIVE_ACTIVITY})
 
 
 def dimension_key(row: dict[str, Any]) -> str | None:
@@ -68,63 +102,140 @@ def build_evidence(history: Iterable[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _ordered(dimensions: Iterable[str]) -> list[str]:
+    """Stable ``meaning -> pinyin -> context`` order; unknown keys are dropped."""
+    present = set(dimensions)
+    return [key for key in DIMENSION_KEYS if key in present]
+
+
+def _replay_corrective(history: Iterable[dict[str, Any]]) -> Iterator[tuple[dict[str, Any], str | None, dict[str, int], dict[str, int]]]:
+    """Walk the ledger once, tracking repair progress per unresolved dimension.
+
+    Yields ``(row, dimension, progress_before, progress_after)`` where progress
+    maps each currently unresolved dimension to its consecutive corrective
+    successes so far.  This is the only place the repair rule is implemented.
+    """
+    progress: dict[str, int] = {}
+    for row in history:
+        before = dict(progress)
+        dimension = dimension_key(row)
+        activity = row.get("activity_type")
+        if dimension is not None and activity in FAILURE_ACTIVITIES:
+            if not bool(row.get("correct")):
+                progress[dimension] = 0
+            elif activity == CORRECTIVE_ACTIVITY and dimension in progress:
+                progress[dimension] += 1
+                if progress[dimension] >= REPAIR_SUCCESSES_PER_DIMENSION:
+                    del progress[dimension]
+        yield row, dimension, before, dict(progress)
+
+
+def failed_dimensions(history: Iterable[dict[str, Any]]) -> set[str]:
+    """Dimensions with at least one failed response, repaired or not (audit only;
+    never a selection input -- use ``unresolved_dimensions`` for that)."""
+    return {
+        dimension
+        for row in history
+        if (dimension := dimension_key(row)) is not None
+        and row.get("activity_type") in FAILURE_ACTIVITIES
+        and not bool(row.get("correct"))
+    }
+
+
+def unresolved_dimensions(history: Iterable[dict[str, Any]]) -> list[str]:
+    """Dimensions whose latest failure has not yet been repaired, in stable order."""
+    final: dict[str, int] = {}
+    for _row, _dimension, _before, final in _replay_corrective(history):
+        pass
+    return _ordered(final)
+
+
+def corrective_trace(history: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Per-observation audit trail of the corrective state (reconstructable
+    from the ledger; nothing here is stored separately).
+
+    ``nextDimensionBefore`` / ``selectionReasonBefore`` are what the policy
+    would have selected immediately before the observation, so a reviewer can
+    compare them with the dimension that was actually practiced.
+    """
+    steps: list[dict[str, Any]] = []
+    covered: set[str] = set()
+    for index, (row, dimension, before, after) in enumerate(_replay_corrective(history), start=1):
+        next_dimension, reason = select_corrective_dimension(before, covered, index - 1)
+        steps.append({
+            "index": index,
+            "itemId": row.get("item_id"),
+            "questionType": row.get("question_type"),
+            "dimension": dimension,
+            "activityType": row.get("activity_type"),
+            "correct": bool(row.get("correct")),
+            "occurredAt": row.get("occurred_at"),
+            "unresolvedBefore": _ordered(before),
+            "unresolvedAfter": _ordered(after),
+            "nextDimensionBefore": next_dimension,
+            "selectionReasonBefore": reason,
+        })
+        if dimension is not None:
+            covered.add(dimension)
+    return steps
+
+
+def covered_dimensions(history: Iterable[dict[str, Any]]) -> list[str]:
+    """Dimensions with at least one observation of any activity type."""
+    return _ordered({key for key in (dimension_key(row) for row in history) if key})
+
+
+def select_corrective_dimension(
+    unresolved: Iterable[str], covered: Iterable[str], observation_count: int,
+) -> tuple[str, str]:
+    """Deterministically choose the next practice dimension and say why.
+
+    1. ``repair_unresolved``: the first unresolved dimension (stable order).
+    2. ``complete_coverage``: the first dimension never observed for this word.
+    3. ``build_evidence``: nothing to repair and full coverage, but BKT is
+       still below threshold; rotate by observation count (no randomness).
+    """
+    pending = _ordered(unresolved)
+    if pending:
+        return pending[0], "repair_unresolved"
+    uncovered = [key for key in DIMENSION_KEYS if key not in set(covered)]
+    if uncovered:
+        return uncovered[0], "complete_coverage"
+    return DIMENSION_KEYS[max(0, observation_count) % len(DIMENSION_KEYS)], "build_evidence"
+
+
 def build_practice_state(
-    history: Iterable[dict[str, Any]],
-    failed_dimensions: Iterable[str],
+    history: list[dict[str, Any]],
     *,
     required: bool,
 ) -> dict[str, Any]:
-    """Return the explicit corrective-practice completion state.
+    """Return the explicit corrective-practice state derived from the ledger.
 
-    A corrective failure reopens the current requirement.  Successes before
-    that failure are not reused, which keeps a learner from being marked
-    complete after a later failed correction.  Dimension evidence is always
-    server-derived; unknown dimensions cannot accidentally satisfy targeting.
+    ``unresolvedDimensions`` is authoritative.  ``COMPLETE`` means every
+    dimension that ever failed has been repaired under the single repair rule
+    (``REPAIR_SUCCESSES_PER_DIMENSION``); it does not by itself imply STRONG.
     """
-    failed = sorted({key for key in failed_dimensions if key in DIMENSION_KEYS})
-    practice_rows = [row for row in history if row.get("activity_type") == "personalized_practice"]
-    remediation_activities = {"diagnostic", "scheduled_maintenance", "personalized_practice"}
-    # A later diagnostic or scheduled-maintenance failure starts a new
-    # corrective epoch too. Looking only at personalized-practice failures
-    # would leave a previously COMPLETE practice state visible after a failed
-    # maintenance review.
-    last_failure_index = max(
-        (
-            index
-            for index, row in enumerate(history)
-            if row.get("activity_type") in remediation_activities and not bool(row.get("correct"))
-        ),
-        default=-1,
-    )
-    current_rows = [
-        row for row in history[last_failure_index + 1:]
-        if row.get("activity_type") == "personalized_practice"
-    ]
-    if last_failure_index >= 0:
-        latest_failed_dimension = dimension_key(history[last_failure_index])
-        failed = [latest_failed_dimension] if latest_failed_dimension else []
-    successful_rows = [row for row in current_rows if bool(row.get("correct"))]
-    successful_dimensions = sorted({key for key in (dimension_key(row) for row in successful_rows) if key})
-    targeted_success = bool(set(successful_dimensions).intersection(failed))
-    successes = len(successful_rows)
-    complete = successes >= PRACTICE_SUCCESS_TARGET and targeted_success and bool(failed)
+    progress: dict[str, int] = {}
+    for _row, _dimension, _before, progress in _replay_corrective(history):
+        pass
+    unresolved = _ordered(progress)
+    ever_failed = failed_dimensions(history)
+    has_practice = any(row.get("activity_type") == CORRECTIVE_ACTIVITY for row in history)
     if not required:
         status = "NOT_REQUIRED"
-    elif complete:
+    elif not unresolved and ever_failed:
         status = "COMPLETE"
-    elif practice_rows:
+    elif has_practice:
         status = "IN_PROGRESS"
-    elif required:
-        status = "PENDING"
     else:
-        status = "NOT_REQUIRED"
+        status = "PENDING"
     return {
         "status": status,
-        "correctiveSuccesses": successes,
-        "requiredSuccesses": PRACTICE_SUCCESS_TARGET,
-        "failedDimensions": failed,
-        "successfulDimensions": successful_dimensions,
-        "targetedSuccess": targeted_success,
+        "unresolvedDimensions": unresolved,
+        "repairedDimensions": _ordered(ever_failed - set(unresolved)),
+        "repairProgress": {key: progress[key] for key in unresolved},
+        "requiredSuccesses": REPAIR_SUCCESSES_PER_DIMENSION,
+        "policyVersion": CORRECTIVE_POLICY_VERSION,
     }
 
 
@@ -162,36 +273,41 @@ def build_vocabulary_state(
     now: datetime | None = None,
 ) -> dict[str, Any]:
     evidence = build_evidence(history)
-    failed_dimensions: set[str] = set()
-    # Any incorrect response that opens or reopens remediation is a valid
-    # target for the next corrective practice. Maintenance failures matter
-    # here too: scheduled review is separate from corrective practice, but it
-    # still supplies the dimension the learner needs to repair.
-    remediation_activities = {"diagnostic", "scheduled_maintenance", "personalized_practice"}
-    for row in history:
-        if row.get("activity_type") not in remediation_activities:
-            continue
-        key = dimension_key(row)
-        if key and not bool(row.get("correct")):
-            failed_dimensions.add(key)
-    failed_dimensions_list = sorted(failed_dimensions)
-    practice_required = bool(failed_dimensions) or p_learned < mastery_threshold
-    practice = build_practice_state(history, failed_dimensions_list, required=practice_required)
-    if practice["status"] == "COMPLETE" and p_learned >= mastery_threshold:
+    unresolved = unresolved_dimensions(history)
+    covered = covered_dimensions(history)
+    # "Diagnostic coverage complete" is lesson-level (all three rounds run) AND
+    # word-level (every dimension actually observed for this word), so a high
+    # P(Learned) built from one dimension can never classify a word STRONG.
+    coverage_complete = diagnostic_complete and len(covered) == len(DIMENSION_KEYS)
+    # The mastery gate. STRONG is a system classification, not certainty that
+    # the learner knows the word: BKT strength AND no unrepaired dimension.
+    is_strong = (
+        coverage_complete
+        and observation_count >= minimum_observations
+        and not unresolved
+        and p_learned >= mastery_threshold
+    )
+    if is_strong:
         review_status = "STRONG"
     elif observation_count == 0:
         # A placement prior is an initialization estimate, not learner
         # evidence. Keep an unseen word semantically unassessed even after
         # the diagnostic gate is open.
         review_status = "NOT_ASSESSED"
-    elif diagnostic_complete and (p_learned < mastery_threshold or practice["status"] in {"PENDING", "IN_PROGRESS"}):
+    elif diagnostic_complete:
         review_status = "NEEDS_PRACTICE"
-    elif diagnostic_complete and observation_count >= 1:
-        review_status = "STRONG" if p_learned >= mastery_threshold else "NEEDS_PRACTICE"
     elif history:
         review_status = "PROVISIONAL_REVIEW"
     else:
         review_status = "NOT_ASSESSED"
+
+    practice_required = bool(failed_dimensions(history)) or p_learned < mastery_threshold or review_status == "NEEDS_PRACTICE"
+    practice = build_practice_state(history, required=practice_required)
+    next_dimension, selection_reason = (
+        (None, None) if is_strong else select_corrective_dimension(unresolved, covered, observation_count)
+    )
+    practice["nextDimension"] = next_dimension
+    practice["selectionReason"] = selection_reason
 
     bkt_status = (
         "UNASSESSED" if observation_count < minimum_observations
@@ -210,6 +326,8 @@ def build_vocabulary_state(
         "diagnostic": {
             "status": "COMPLETE" if diagnostic_complete else "INCOMPLETE",
             "completed": diagnostic_complete,
+            "coveredDimensions": covered,
+            "coverageComplete": coverage_complete,
         },
         "review": {
             "status": review_status,

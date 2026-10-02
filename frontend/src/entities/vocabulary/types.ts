@@ -33,6 +33,9 @@ export interface VocabAssessmentQuestion {
   audioUrl?: string;
 }
 
+/** The three required learning dimensions (Know it / Say it / Use it). */
+export type VocabQuizDimension = "meaning" | "pinyin" | "context";
+
 export type VocabQuizQuestionKind = "translation" | "cloze" | "pinyin" | "pos" | "synonym" | "reverse" | "listening" | "assessment";
 
 export interface VocabQuizEntry {
@@ -44,7 +47,13 @@ export interface VocabQuizEntry {
   assessmentQuestions?: VocabAssessmentQuestion[];
   bktValidationStatus?: "APPROVED" | "DRAFT";
   bktSeenQuestionKinds?: ReadonlyArray<string>;
-  bktFailedQuestionKinds?: ReadonlyArray<string>;
+  /**
+   * The dimension the SERVER says to practice next (practice.nextDimension).
+   * This is the only corrective-targeting input: it is derived server-side
+   * from the word's currently unresolved dimensions, never from a history of
+   * failed question types, so selection and completion cannot disagree.
+   */
+  bktNextDimension?: VocabQuizDimension;
   bktObservationCount?: number;
   bktLastResponseAt?: string | null;
   pinyin?: string;

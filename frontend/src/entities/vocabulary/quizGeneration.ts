@@ -1,6 +1,6 @@
 import { toPinyin } from "./api";
 import { DIAGNOSTIC_ROUNDS, type TierMode } from "./progression";
-import type { VocabAssessmentLevel, VocabAssessmentQuestion, VocabAssessmentRound, VocabQuizEntry } from "./types";
+import type { VocabAssessmentLevel, VocabAssessmentQuestion, VocabAssessmentRound, VocabQuizDimension, VocabQuizEntry } from "./types";
 import type { VocabQuizAssessmentQuestion } from "./quizTypes";
 import { CLOZE_BLANK, quizConceptId } from "./quizTypes";
 type StudentIconName = "star" | "stories";
@@ -97,25 +97,50 @@ export function assessmentRound(assessment: VocabAssessmentQuestion): VocabAsses
   return roundForQuestionType(assessment.questionType);
 }
 
-/** Build one published item per Bottom-K word without losing server order. */
+/** Stable dimension order shared with the server (vocabulary_state.DIMENSION_KEYS). */
+const DIMENSION_ORDER: readonly VocabQuizDimension[] = ["meaning", "pinyin", "context"];
+const DIMENSION_BY_ROUND: Record<VocabAssessmentRound, VocabQuizDimension> = { 1: "meaning", 2: "pinyin", 3: "context" };
+
+/** Which required dimension (Know it / Say it / Use it) a published item exercises. */
+export function assessmentDimension(assessment: VocabAssessmentQuestion): VocabQuizDimension | null {
+  const round = roundForQuestionType(assessment.questionType) ?? assessmentRound(assessment);
+  return round ? DIMENSION_BY_ROUND[round] : null;
+}
+
+/** The bank in stable meaning -> pinyin -> context order (unmapped items last). */
+function bankInDimensionOrder(bank: VocabAssessmentQuestion[]): VocabAssessmentQuestion[] {
+  const rank = (question: VocabAssessmentQuestion): number => {
+    const dimension = assessmentDimension(question);
+    return dimension ? DIMENSION_ORDER.indexOf(dimension) : DIMENSION_ORDER.length;
+  };
+  return [...bank].sort((left, right) => rank(left) - rank(right) || left.questionId.localeCompare(right.questionId));
+}
+
+/**
+ * Build one published item per Bottom-K word without losing server order.
+ *
+ * Corrective targeting has ONE source of truth: the server's current
+ * `practice.nextDimension` (derived from the word's unresolved dimensions).
+ * This selector never reads historical failures, so it cannot keep choosing a
+ * dimension that has already been repaired while the server waits on another.
+ * Only when the server names no dimension (older payloads) does it fall back
+ * to the first dimension not yet seen, in the same stable order.
+ */
 export function buildPersonalizedAssessmentQuestions(
   entries: VocabQuizEntry[],
 ): VocabQuizAssessmentQuestion[] {
   return entries.flatMap((entry) => {
-    const bank = entry.assessmentQuestions ?? [];
+    const bank = bankInDimensionOrder(entry.assessmentQuestions ?? []);
     if (!bank.length) return [];
-    const failedRounds = new Set(
-      (entry.bktFailedQuestionKinds ?? [])
-        .map((kind) => ASSESSMENT_ROUND_BY_DIAGNOSTIC_KIND[kind])
-        .filter((round): round is VocabAssessmentRound => Boolean(round)),
-    );
-    const seenRounds = new Set(
+    const seenDimensions = new Set(
       (entry.bktSeenQuestionKinds ?? [])
         .map((kind) => ASSESSMENT_ROUND_BY_DIAGNOSTIC_KIND[kind])
-        .filter((round): round is VocabAssessmentRound => Boolean(round)),
+        .filter((round): round is VocabAssessmentRound => Boolean(round))
+        .map((round) => DIMENSION_BY_ROUND[round]),
     );
-    const assessment = bank.find((candidate) => failedRounds.has(assessmentRound(candidate) as VocabAssessmentRound))
-      ?? bank.find((candidate) => !seenRounds.has(assessmentRound(candidate) as VocabAssessmentRound))
+    const assessment = (entry.bktNextDimension
+      ? bank.find((candidate) => assessmentDimension(candidate) === entry.bktNextDimension)
+      : bank.find((candidate) => !seenDimensions.has(assessmentDimension(candidate) as VocabQuizDimension)))
       ?? bank[0];
     return [{
       kind: "assessment" as const,

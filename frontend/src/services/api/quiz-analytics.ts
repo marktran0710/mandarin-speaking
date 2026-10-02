@@ -51,13 +51,28 @@ export interface VocabularyDimensionEvidence { total: number; correct: number; i
 export interface VocabularyState {
   evidence: { total: number; correct: number; incorrect: number; lastResponseAt: string | null; byDimension: Record<VocabularyDimension, VocabularyDimensionEvidence> };
   bkt: { pLearned: number; status: "UNASSESSED" | "DEVELOPING" | "STRONG"; modelVersion: string; parameterFingerprint: string };
-  diagnostic: { status: "INCOMPLETE" | "COMPLETE"; completed: boolean };
+  diagnostic: { status: "INCOMPLETE" | "COMPLETE"; completed: boolean; coveredDimensions: VocabularyDimension[]; coverageComplete: boolean };
   review: { status: VocabularyReviewStatus; candidate: boolean };
-  practice: { status: "NOT_REQUIRED" | "PENDING" | "IN_PROGRESS" | "COMPLETE"; correctiveSuccesses: number; requiredSuccesses: number; failedDimensions: VocabularyDimension[]; successfulDimensions: VocabularyDimension[]; targetedSuccess: boolean };
+  /**
+   * `unresolvedDimensions` is the single source of truth for what still needs
+   * repair (a dimension is repaired by `requiredSuccesses` consecutive correct
+   * corrective answers in that dimension). `nextDimension` is what the server
+   * says to practice next; the client must not recompute it from history.
+   */
+  practice: {
+    status: "NOT_REQUIRED" | "PENDING" | "IN_PROGRESS" | "COMPLETE";
+    unresolvedDimensions: VocabularyDimension[];
+    repairedDimensions: VocabularyDimension[];
+    repairProgress: Partial<Record<VocabularyDimension, number>>;
+    requiredSuccesses: number;
+    nextDimension: VocabularyDimension | null;
+    selectionReason: "repair_unresolved" | "complete_coverage" | "build_evidence" | null;
+    policyVersion: string;
+  };
   scheduling: { status: "NOT_SCHEDULED" | "SCHEDULED" | "DUE_FOR_REVIEW"; reps: number; ease: number | null; intervalDays: number; dueOn: string | null; lastReviewedOn: string | null };
 }
 /** Server vocabulary state. Legacy scalar fields remain optional only so old stored fixtures can render. */
-export interface VocabPriorityReviewWord { wordId: string; word: string; meaning?: string | null; status: VocabularyReviewStatus; vocabularyState?: VocabularyState; pLearned?: number; observationCount?: number; correctCount?: number; incorrectCount?: number; reviewRank?: number | null; lastResponseAt?: string | null; lastItemId?: string | null; lessonId?: string | null; seenQuestionTypes?: string[]; failedQuestionTypes?: string[]; }
+export interface VocabPriorityReviewWord { wordId: string; word: string; meaning?: string | null; status: VocabularyReviewStatus; vocabularyState?: VocabularyState; pLearned?: number; observationCount?: number; correctCount?: number; incorrectCount?: number; reviewRank?: number | null; lastResponseAt?: string | null; lastItemId?: string | null; lessonId?: string | null; seenQuestionTypes?: string[]; }
 export interface VocabPriorityReviewResponse {
   unlocked: boolean;
   requiredDiagnosticQuizzes: number;

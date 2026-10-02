@@ -364,6 +364,112 @@ def test_weak_review_is_a_new_bkt_observation_and_attempt_is_immutable(logged_in
     assert conflict.status_code == 409
 
 
+_E2E_WORD = "e2e-word"
+_E2E_ITEMS = {
+    "meaning": ("basic_meaning_mcq", "single_choice", "easy", 1, "tier1"),
+    "pinyin": ("character_to_pinyin_typing", "free_text", "medium", 2, "tier2"),
+    "context": ("context_cloze_mcq", "single_choice", "hard", 3, "tier3"),
+}
+
+
+def _publish_e2e_bank() -> None:
+    """One word with a real meaning / pinyin / context item (round-keyed)."""
+    items = [
+        {
+            "questionId": f"{_E2E_WORD}:round{round_number}:v1",
+            "wordId": _E2E_WORD,
+            "targetWord": _E2E_WORD,
+            "level": level,
+            "round": round_number,
+            "questionType": question_type,
+            "answerFormat": answer_format,
+            "pinyin": "right",
+            "options": ["right", "wrong"] if answer_format == "single_choice" else [],
+            "correctAnswer": "right",
+            "acceptedAnswers": ["right"],
+            "prompt": f"{dimension} for {_E2E_WORD}",
+        }
+        for dimension, (question_type, answer_format, level, round_number, _mode) in _E2E_ITEMS.items()
+    ]
+    with db.connect_db() as conn:
+        conn.execute(
+            "INSERT INTO custom_stories (id, title, frames, published, vocab_assessment) VALUES (%s, %s, %s, TRUE, %s) "
+            "ON CONFLICT (id) DO UPDATE SET published = TRUE, vocab_assessment = EXCLUDED.vocab_assessment",
+            ("lesson-1", "BKT e2e lesson", Jsonb([]), Jsonb(items)),
+        )
+
+
+def _post_e2e(client, attempt_id: str, mode: str, dimension: str, correct: bool, day: str):
+    question_type, _fmt, level, round_number, _tier = _E2E_ITEMS[dimension]
+    result = _response(
+        _E2E_WORD, correct, f"{_E2E_WORD}:round{round_number}:v1",
+        level=level, eligible=mode.startswith("tier"), question_kind=question_type,
+    )
+    attempt = _attempt(attempt_id, mode, f"{day}T00:00:00Z", [result])
+    attempt["level"] = level
+    with db.connect_db() as conn:
+        version = conn.execute("SELECT vocabulary_version FROM custom_stories WHERE id = 'lesson-1'").fetchone()["vocabulary_version"]
+    response = client.post("/api/vocab-quiz-attempts", params={"today": day}, json={**attempt, "vocabularyVersion": version})
+    assert response.status_code == 200, response.text
+
+
+def _e2e_word_state(client, student) -> dict:
+    words = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
+    return next(row for row in words if row["word"] == _E2E_WORD)
+
+
+def test_unresolved_dimensions_drive_practice_to_strong_and_sm2_enrollment(logged_in_student):
+    """meaning wrong, pinyin wrong, context right -> repair meaning, then
+    pinyin (never both at once, never a stale historical failure)."""
+    client, student = logged_in_student
+    _publish_e2e_bank()
+    _post_e2e(client, "e2e-d1", "tier1", "meaning", False, "2026-08-01")
+    _post_e2e(client, "e2e-d2", "tier2", "pinyin", False, "2026-08-02")
+    _post_e2e(client, "e2e-d3", "tier3", "context", True, "2026-08-03")
+
+    state = _e2e_word_state(client, student)
+    practice = state["vocabularyState"]["practice"]
+    assert practice["unresolvedDimensions"] == ["meaning", "pinyin"]
+    assert practice["nextDimension"] == "meaning"
+    assert practice["selectionReason"] == "repair_unresolved"
+    assert state["vocabularyState"]["review"] == {"status": "NEEDS_PRACTICE", "candidate": True}
+    # The historical failed-type list was the stale selector input; it is gone.
+    assert "failedQuestionTypes" not in state
+
+    _post_e2e(client, "e2e-p1", "weak_words", "meaning", True, "2026-08-04")
+    _post_e2e(client, "e2e-p2", "weak_words", "meaning", True, "2026-08-05")
+
+    state = _e2e_word_state(client, student)
+    practice = state["vocabularyState"]["practice"]
+    # Meaning is repaired and no longer selected; pinyin is still required even
+    # though pooled P(Learned) has crossed the threshold (the original bug: a
+    # selector stuck on meaning while completion waited on pinyin).
+    assert state["pLearned"] >= 0.95
+    assert practice["unresolvedDimensions"] == ["pinyin"]
+    assert practice["nextDimension"] == "pinyin"
+    assert practice["status"] == "IN_PROGRESS"
+    assert state["vocabularyState"]["review"]["status"] == "NEEDS_PRACTICE"
+    with db.connect_db() as conn:
+        assert conn.execute("SELECT 1 FROM student_vocab_srs WHERE student_id = %s", (student["id"],)).fetchone() is None
+
+    _post_e2e(client, "e2e-p3", "weak_words", "pinyin", True, "2026-08-06")
+    _post_e2e(client, "e2e-p4", "weak_words", "pinyin", True, "2026-08-07")
+
+    state = _e2e_word_state(client, student)
+    practice = state["vocabularyState"]["practice"]
+    assert practice["unresolvedDimensions"] == []
+    assert practice["status"] == "COMPLETE"
+    assert practice["nextDimension"] is None
+    assert state["vocabularyState"]["review"] == {"status": "STRONG", "candidate": False}
+    with db.connect_db() as conn:
+        scheduled = conn.execute(
+            "SELECT reps, interval_days FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], _E2E_WORD),
+        ).fetchone()
+    # STRONG enrolls exactly one SM-2 schedule; corrective answers never advanced it.
+    assert scheduled is not None and scheduled["reps"] == 1
+
+
 def test_personalized_practice_requires_two_successes_and_failed_dimension(logged_in_student):
     client, student = logged_in_student
     word = "practice-target"
@@ -387,8 +493,8 @@ def test_personalized_practice_requires_two_successes_and_failed_dimension(logge
     assert state["vocabularyState"]["bkt"]["status"] == "STRONG"
     assert state["vocabularyState"]["review"] == {"status": "NEEDS_PRACTICE", "candidate": True}
     assert state["vocabularyState"]["practice"]["status"] == "IN_PROGRESS"
-    assert state["vocabularyState"]["practice"]["correctiveSuccesses"] == 1
-    assert state["vocabularyState"]["practice"]["failedDimensions"] == ["meaning"]
+    assert state["vocabularyState"]["practice"]["repairProgress"] == {"meaning": 1}
+    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == ["meaning"]
 
     second_practice = _attempt(
         "practice-corrective-2", "weak_words", "2026-08-21T00:00:00Z",
@@ -397,8 +503,8 @@ def test_personalized_practice_requires_two_successes_and_failed_dimension(logge
     assert _post_attempt(client, second_practice, today="2026-08-21").status_code == 200
     state = next(row for row in client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"] if row["word"] == word)
     assert state["vocabularyState"]["practice"]["status"] == "COMPLETE"
-    assert state["vocabularyState"]["practice"]["correctiveSuccesses"] == 2
-    assert state["vocabularyState"]["practice"]["targetedSuccess"] is True
+    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == []
+    assert state["vocabularyState"]["practice"]["repairedDimensions"] == ["meaning"]
     assert state["status"] == "STRONG"
 
     with db.connect_db() as conn:
