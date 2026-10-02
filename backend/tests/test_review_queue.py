@@ -81,6 +81,29 @@ def test_combine_does_not_duplicate_a_word_that_is_both_weak_and_due():
     assert queue[0]["reviewReason"] == "weak"   # weak wins the dedup
 
 
+def test_due_word_outside_weak_shortlist_cannot_bypass_corrective_repair():
+    weak = [_mastery("A", 5)]
+    missed_shortlist = {
+        **_mastery("B", 8, "STRONG", 0.99),
+        # A high BKT probability does not override the dimension-repair gate.
+        "vocabularyState": {"review": {"status": "NEEDS_PRACTICE"}, "practice": {"unresolvedDimensions": ["pinyin"]}},
+    }
+    srs = {"B": SrsState(reps=2, ease=2.5, interval_days=6, due_on=_dt(2026, 2, 8))}
+    queue = combine_review_queue(weak, [*weak, missed_shortlist], srs, TODAY)
+    # A capped Bottom-K list must not turn an omitted weak word into maintenance.
+    assert [row["wordId"] for row in queue] == ["A"]
+    assert queue[0]["reviewReason"] == "weak"
+    # With includeAllWeak, the word is still available through corrective practice.
+    queue = combine_review_queue([*weak, missed_shortlist], [*weak, missed_shortlist], srs, TODAY)
+    assert [(row["wordId"], row["reviewReason"]) for row in queue] == [("A", "weak"), ("B", "weak")]
+
+
+def test_due_provisional_word_cannot_bypass_incomplete_diagnostic():
+    word = _mastery("B", 8, "PROVISIONAL_REVIEW", 0.99)
+    srs = {"B": SrsState(reps=1, ease=2.5, interval_days=1, due_on=_dt(2026, 2, 8))}
+    assert combine_review_queue([], [word], srs, TODAY) == []
+
+
 def test_store_loads_states_and_parses_dates():
     db = _FakeDB(rows=[{
         "word_id": "B", "reps": 3, "ease": 2.7, "interval_days": 16,

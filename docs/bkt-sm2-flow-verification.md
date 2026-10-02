@@ -192,3 +192,28 @@ the same metadata bridge as corrective practice. Hook regressions cover
 counts 3, 4, 5 and 6 selecting meaning, pinyin, context and meaning respectively.
 This fixes dimension selection; it does not establish delayed retention or
 calibrate the active synthetic fit.
+
+## Follow-up: due queue gating (2026-10-02)
+
+The queue previously deduplicated only against the selected Bottom-K weak
+list. An unresolved word omitted from that shortlist, or a provisional word
+with an existing schedule, could therefore be tagged `due` and sent to
+maintenance. Two regressions reproduced these cases on baseline `cc4c1ee2`.
+
+Due maintenance now requires the official review status `STRONG`, preferring
+the dimension-aware `vocabularyState.review.status` over legacy flat status.
+The corrective shortlist remains capped when requested; omitted weak words
+wait for corrective selection. `includeAllWeak` continues to surface them as
+`weak`. Existing schedules are preserved.
+
+Follow-up verification: 197 backend regressions passed on the reviewed
+baseline. After the queue guard, all 47 focused queue/BKT/SM-2 API regressions
+passed, including the two new reproductions. After the maintenance bridge
+fix, all 40 focused frontend regressions and the production build passed.
+
+A new repeatable-read, read-only local audit still found 4,480 diagnostic
+responses from the 40 SIM accounts, no maintenance responses, only three
+SRS enrollment events, and complete three-dimension banks for all 218
+word/lesson pairs in 12 published stories. The sampled live replay passed
+and reported the active fit as SYNTHETIC. These checks do not establish
+human fit validity, independent observations, or measured delayed retention.

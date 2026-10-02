@@ -44,6 +44,12 @@ def combine_review_queue(
         # (or zero observations) is stale scheduling, not a review candidate.
         if row is None or int(row.get("observationCount", 0)) <= 0:
             continue
+        # Bottom-K may omit some weak words. A schedule does not override
+        # their repair/diagnostic gate: only officially strong words enter
+        # maintenance; omitted weak words wait for corrective selection.
+        review_status = ((row.get("vocabularyState") or {}).get("review") or {}).get("status") or row.get("status")
+        if review_status != "STRONG":
+            continue
         item = {**row, "reviewReason": "due", "dueOn": state.due_on.isoformat() if state.due_on else None}
         due_extra.append((state.due_on or now, item))
 
