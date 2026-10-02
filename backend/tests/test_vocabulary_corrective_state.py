@@ -232,14 +232,18 @@ def test_case_f_all_repairs_completed_is_strong_and_sm2_enrollable():
 
 # ---- Repair rule details ----------------------------------------------------
 
-def test_a_failed_corrective_answer_resets_that_dimensions_progress():
+@pytest.mark.parametrize("dimension", ["meaning", "pinyin", "context"])
+def test_a_failed_corrective_answer_resets_that_dimensions_progress(dimension):
     history = _history(
-        (D, "meaning", False), (D, "pinyin", True), (D, "context", True),
-        (P, "meaning", True), (P, "meaning", False), (P, "meaning", True),
+        *((D, observed, observed != dimension) for observed in ("meaning", "pinyin", "context")),
+        (P, dimension, True), (P, dimension, False), (P, dimension, True),
     )
 
-    assert unresolved_dimensions(history) == ["meaning"]
-    assert _state(history)["practice"]["repairProgress"] == {"meaning": 1}
+    state = _state(history)
+    assert unresolved_dimensions(history) == [dimension]
+    assert state["practice"]["repairProgress"] == {dimension: 1}
+    assert state["practice"]["status"] == "IN_PROGRESS"
+    assert state["review"]["status"] == "NEEDS_PRACTICE"
 
 
 def test_corrective_success_in_another_dimension_never_repairs_a_failed_one():

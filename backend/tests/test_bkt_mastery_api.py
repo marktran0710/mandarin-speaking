@@ -5,6 +5,7 @@ from psycopg.types.json import Jsonb
 from types import SimpleNamespace
 
 import db
+import pytest
 from services.vocab_quiz_attempt_service import _srs_event_results
 
 
@@ -553,6 +554,31 @@ def test_due_failure_reopens_repair_without_practice_postponing_sm2(logged_in_st
         "enrollment", "maintenance_success", "maintenance_failure",
         "maintenance_success", "maintenance_success",
     ]
+
+
+@pytest.mark.parametrize("dimension", ["meaning", "pinyin", "context"])
+def test_interrupted_corrective_streak_cannot_complete_repair_or_enroll_sm2(logged_in_student, dimension):
+    client, student = logged_in_student
+    _publish_e2e_bank()
+    for index, observed in enumerate(("meaning", "pinyin", "context"), start=1):
+        _post_e2e(client, f"streak-d{index}", f"tier{index}", observed, observed != dimension, f"2026-10-0{index}")
+    for index, (correct, progress) in enumerate(((True, 1), (False, 0), (True, 1)), start=1):
+        _post_e2e(client, f"streak-p{index}", "weak_words", dimension, correct, f"2026-10-0{index + 3}")
+        state = _e2e_word_state(client, student)
+        practice = state["vocabularyState"]["practice"]
+        assert practice["unresolvedDimensions"] == [dimension]
+        assert practice["repairProgress"] == {dimension: progress}
+        assert practice["status"] == "IN_PROGRESS"
+        assert state["status"] == "NEEDS_PRACTICE"
+        with db.connect_db() as conn:
+            assert conn.execute("SELECT 1 FROM student_vocab_srs WHERE student_id = %s", (student["id"],)).fetchone() is None
+    _post_e2e(client, "streak-p4", "weak_words", dimension, True, "2026-10-07")
+    state = _e2e_word_state(client, student)
+    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == []
+    assert state["vocabularyState"]["practice"]["status"] == "COMPLETE"
+    assert state["status"] == "STRONG"
+    with db.connect_db() as conn:
+        assert conn.execute("SELECT count(*) AS n FROM student_vocab_srs WHERE student_id = %s", (student["id"],)).fetchone()["n"] == 1
 
 
 def test_personalized_practice_requires_two_successes_and_failed_dimension(logged_in_student):
