@@ -15,7 +15,10 @@ The developer database was inspected on 2026-10-02 (Asia/Taipei): 40 accounts
 were marked `is_test_account=true`, and all ten `vocab_research_*` tables were
 empty. These account and evidence-source labels remain intact. Calling the
 cohort a pilot describes how it is being used; it does not change the origin
-of imported or simulated responses. The user has not run calibration.
+of imported or simulated responses. A subsequent read-only audit found an
+existing synthetic BKT fit active in the local developer database. This is
+not established calibration on human learner responses; see the
+[BKT and SM-2 verification](bkt-sm2-flow-verification.md).
 
 This pilot can validate system behavior, persistence, progression, corrective
 completion and scheduling. Its existing source labels must remain available

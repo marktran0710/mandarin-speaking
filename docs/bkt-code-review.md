@@ -40,7 +40,11 @@ Both findings are fixed by one explicit corrective state beside the (unchanged) 
 - `STRONG` is a system classification, not certainty that the learner knows the word. It requires all of: lesson diagnostic complete and every dimension observed for the word, `observationCount >= 3`, `unresolvedDimensions` empty, and `P(Learned) >= 0.95`. Only `STRONG` words are enrolled in SM-2; corrective practice never advances a schedule.
 - `mastery_trace_for_word` now reports, per observation, `P(Learned)` before/after, predicted correctness of that answer (a different quantity), unresolved dimensions before/after, and what the policy would have selected.
 
-The BKT parameters, the 0.95 threshold, and minimum observations are unchanged policy defaults, not recalibrated.
+The corrective-policy change did not recalibrate BKT or change the 0.95 threshold
+or minimum observations. A subsequent read-only audit found an existing
+synthetic fitted model active in the developer database; see the
+[current BKT and SM-2 verification](bkt-sm2-flow-verification.md) for serving
+parameters and the limits of the pilot evidence.
 
 ## Removal of the dormant 2x2 layer
 

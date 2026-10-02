@@ -1,4 +1,6 @@
 from conftest import login_new_client
+from dataclasses import replace
+from datetime import datetime, timezone
 from psycopg.types.json import Jsonb
 from types import SimpleNamespace
 
@@ -468,6 +470,89 @@ def test_unresolved_dimensions_drive_practice_to_strong_and_sm2_enrollment(logge
         ).fetchone()
     # STRONG enrolls exactly one SM-2 schedule; corrective answers never advanced it.
     assert scheduled is not None and scheduled["reps"] == 1
+
+
+def test_due_failure_reopens_repair_without_practice_postponing_sm2(logged_in_student, monkeypatch):
+    """Exercise the production API through acquisition, lapse, repair and retention."""
+    import routers.vocab_quiz_attempts as attempt_routes
+
+    monkeypatch.setattr(attempt_routes, "settings", replace(
+        attempt_routes.settings, app_env="development", srs_day_seconds=86400.0,
+    ))
+    client, student = logged_in_student
+    _publish_e2e_bank()
+    for index, dimension in enumerate(("meaning", "pinyin", "context"), start=1):
+        _post_e2e(client, f"cycle-d{index}", f"tier{index}", dimension, True, f"2026-10-0{index}")
+
+    def schedule():
+        with db.connect_db() as conn:
+            return dict(conn.execute(
+                "SELECT reps, ease, interval_days, due_on, last_reviewed_on "
+                "FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+                (student["id"], _E2E_WORD),
+            ).fetchone())
+
+    def queue(day):
+        response = client.get(
+            f"/api/students/{student['id']}/review-queue",
+            params={"story_id": "lesson-1", "include_all": "true", "today": day},
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["queue"]
+
+    assert _e2e_word_state(client, student)["status"] == "STRONG"
+    assert schedule()["due_on"] == datetime(2026, 10, 4, tzinfo=timezone.utc)
+    assert queue("2026-10-04")[0]["reviewReason"] == "due"
+    _post_e2e(client, "cycle-maintenance-1", "maintenance_review", "context", True, "2026-10-04")
+    assert schedule()["reps"] == 2 and schedule()["interval_days"] == 6
+    assert schedule()["due_on"] == datetime(2026, 10, 10, tzinfo=timezone.utc)
+
+    # An early response is still BKT evidence but cannot move a due interval.
+    before_early = schedule()
+    observations = _e2e_word_state(client, student)["observationCount"]
+    _post_e2e(client, "cycle-early", "maintenance_review", "pinyin", True, "2026-10-05")
+    assert schedule() == before_early
+    assert _e2e_word_state(client, student)["observationCount"] == observations + 1
+
+    _post_e2e(client, "cycle-lapse", "maintenance_review", "meaning", False, "2026-10-10")
+    lapsed = _e2e_word_state(client, student)
+    assert lapsed["status"] == "NEEDS_PRACTICE"
+    assert lapsed["vocabularyState"]["practice"]["unresolvedDimensions"] == ["meaning"]
+    assert lapsed["vocabularyState"]["practice"]["nextDimension"] == "meaning"
+    after_lapse = schedule()
+    assert after_lapse["reps"] == 0 and after_lapse["interval_days"] == 1
+    assert after_lapse["ease"] < before_early["ease"]
+    assert after_lapse["due_on"] == datetime(2026, 10, 11, tzinfo=timezone.utc)
+    assert queue("2026-10-10")[0]["reviewReason"] == "weak"
+
+    for index in (1, 2):
+        _post_e2e(client, f"cycle-repair-{index}", "weak_words", "meaning", True, "2026-10-10")
+        assert schedule() == after_lapse
+        if index == 1:
+            assert _e2e_word_state(client, student)["status"] == "NEEDS_PRACTICE"
+    assert _e2e_word_state(client, student)["status"] == "STRONG"
+    assert queue("2026-10-10") == []
+    assert queue("2026-10-11")[0]["reviewReason"] == "due"
+
+    # A retry of the old lapse must not reopen the repaired dimension or reset SRS.
+    _post_e2e(client, "cycle-lapse", "maintenance_review", "meaning", False, "2026-10-10")
+    assert _e2e_word_state(client, student)["status"] == "STRONG"
+    assert schedule() == after_lapse
+    _post_e2e(client, "cycle-maintenance-2", "maintenance_review", "meaning", True, "2026-10-11")
+    assert schedule()["reps"] == 1 and schedule()["interval_days"] == 1
+    _post_e2e(client, "cycle-maintenance-3", "maintenance_review", "pinyin", True, "2026-10-12")
+    assert schedule()["reps"] == 2 and schedule()["interval_days"] == 6
+    assert schedule()["due_on"] == datetime(2026, 10, 18, tzinfo=timezone.utc)
+    with db.connect_db() as conn:
+        events = conn.execute(
+            "SELECT event_type FROM student_vocab_srs_events "
+            "WHERE student_id = %s AND word_id = %s ORDER BY id",
+            (student["id"], _E2E_WORD),
+        ).fetchall()
+    assert [event["event_type"] for event in events] == [
+        "enrollment", "maintenance_success", "maintenance_failure",
+        "maintenance_success", "maintenance_success",
+    ]
 
 
 def test_personalized_practice_requires_two_successes_and_failed_dimension(logged_in_student):
