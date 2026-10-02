@@ -44,8 +44,9 @@ vi.mock("../../features/speaking/StorySpeakingPage", () => ({
   ),
 }));
 vi.mock("../../features/conversation/ConversationPage", () => ({
-  default: ({ onDone }: { onDone: () => void }) => (
+  default: ({ onDone, onChooseSolo }: { onDone: () => void; onChooseSolo: () => void }) => (
     <div data-testid="conversation-mock">
+      <button onClick={onChooseSolo}>選擇自己說</button>
       <button onClick={onDone}>完成對話</button>
     </div>
   ),
@@ -352,6 +353,9 @@ describe("StudentApp", () => {
 
     fireEvent.click(phaseButton("對話練習"));
     expect(screen.getByTestId("conversation-mock")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "選擇自己說" }));
+    expect(screen.getByTestId("speaking-mock")).toBeInTheDocument();
   });
 
   it("records the practice branch chosen from the unlocked sidebar before Submit", async () => {

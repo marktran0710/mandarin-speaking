@@ -160,13 +160,47 @@ describe("ConversationPage", () => {
   it("keeps the page usable when a lesson has no authored conversation turns", () => {
     const onBack = vi.fn();
     render(
-      <ConversationPage topic={makeTopic()} turns={[]} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={onBack} />,
+      <ConversationPage topic={makeTopic()} turns={[]} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onChooseSolo={vi.fn()} onDone={vi.fn()} onBack={onBack} />,
     );
 
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(screen.getByText("對話內容尚未準備好")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "返回課程目錄" })[1]);
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers solo, male-partner, and female-partner roles before the first response", () => {
+    vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock());
+    const onChooseSolo = vi.fn();
+    render(
+      <ConversationPage
+        topic={makeTopic()}
+        turns={turns}
+        onAddRecord={vi.fn()}
+        onSceneSubmission={vi.fn()}
+        onChooseSolo={onChooseSolo}
+        onDone={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    const solo = screen.getByRole("radio", { name: /自己說/ });
+    const male = screen.getByRole("radio", { name: /跟男角色對話/ });
+    const female = screen.getByRole("radio", { name: /跟女角色對話/ });
+    expect(male).toBeChecked();
+    expect(female).not.toBeChecked();
+
+    fireEvent.click(female);
+    expect(female).toBeChecked();
+    expect(male).not.toBeChecked();
+
+    fireEvent.click(solo);
+    expect(onChooseSolo).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
+    expect(solo).toBeDisabled();
+    expect(male).toBeDisabled();
+    expect(female).toBeDisabled();
   });
 
   it("walks system -> student -> feedback -> summary, saving progress and finishing on the last turn", async () => {
@@ -177,7 +211,7 @@ describe("ConversationPage", () => {
     const onAddRecord = vi.fn();
     const onDone = vi.fn();
     render(
-      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={onAddRecord} onSceneSubmission={vi.fn()} onDone={onDone} onBack={vi.fn()} />,
+      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={onAddRecord} onSceneSubmission={vi.fn()} onChooseSolo={vi.fn()} onDone={onDone} onBack={vi.fn()} />,
     );
 
     // System turn: listen, then Continue moves to the student's turn.
@@ -214,7 +248,7 @@ describe("ConversationPage", () => {
     );
 
     render(
-      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
+      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onChooseSolo={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
@@ -253,6 +287,7 @@ describe("ConversationPage", () => {
         turns={turns}
         onAddRecord={onAddRecord}
         onSceneSubmission={onSceneSubmission}
+        onChooseSolo={vi.fn()}
         onDone={vi.fn()}
         onBack={vi.fn()}
       />,
@@ -310,6 +345,7 @@ describe("ConversationPage", () => {
         ]}
         onAddRecord={vi.fn()}
         onSceneSubmission={vi.fn()}
+        onChooseSolo={vi.fn()}
         onDone={vi.fn()}
         onBack={vi.fn()}
       />,
@@ -333,7 +369,7 @@ describe("ConversationPage", () => {
     vi.mocked(analyzeSpeakingResult).mockReturnValueOnce(makeAnalysis({ accepted: false }));
 
     render(
-      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
+      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onChooseSolo={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
     fireEvent.click(screen.getByRole("button", { name: "錄音" }));
@@ -353,7 +389,7 @@ describe("ConversationPage", () => {
     vi.mocked(analyzeSpeakingResult).mockReturnValueOnce(makeAnalysis({ accepted: true }));
 
     render(
-      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
+      <ConversationPage topic={makeTopic()} turns={turns} onAddRecord={vi.fn()} onSceneSubmission={vi.fn()} onChooseSolo={vi.fn()} onDone={vi.fn()} onBack={vi.fn()} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
     fireEvent.click(screen.getByRole("button", { name: "錄音" }));

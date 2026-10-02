@@ -7,12 +7,13 @@ import StudentSystemText from "@shared/ui/student/StudentSystemText";
 
 interface InterlocutorTurnProps {
   turn: ConversationTurn;
+  partnerGender: "male" | "female";
   onContinue: () => void;
 }
-export default function InterlocutorTurn({ turn, onContinue }: InterlocutorTurnProps) {
+export default function InterlocutorTurn({ turn, partnerGender, onContinue }: InterlocutorTurnProps) {
   return (
     <section className="sa-bubble-row is-character sa-conversation__current-turn" aria-label="對話夥伴回合">
-      <ConversationRoleHeader role="character" />
+      <ConversationRoleHeader role="character" partnerGender={partnerGender} />
       <div className="sa-bubble">
         <BilingualWord hanzi={turn.text} gloss={turn.translation} size="display" />
         <div className="sa-conversation__turn-actions">

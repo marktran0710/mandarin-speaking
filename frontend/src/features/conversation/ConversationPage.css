@@ -1,3 +1,100 @@
+.sa-conversation-role {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.sa-conversation-role legend {
+  padding: 0 var(--space-1);
+  color: var(--color-ink);
+  font-family: var(--font-hanzi);
+  font-size: var(--font-size-title-sm);
+  font-weight: 600;
+}
+
+.sa-conversation-role__hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
+  line-height: 1.5;
+}
+
+.sa-conversation-role__options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.sa-conversation-role__option {
+  position: relative;
+  display: flex;
+  min-height: 6.5rem;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control-md);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.sa-conversation-role__option:hover {
+  border-color: var(--color-primary);
+}
+
+.sa-conversation-role__option:has(input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.sa-conversation-role__option.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-sky);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.sa-conversation-role__option input {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.sa-conversation-role__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+  padding-right: var(--space-4);
+}
+
+.sa-conversation-role__copy strong {
+  font-family: var(--font-hanzi);
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+
+.sa-conversation-role__copy small {
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-small);
+  line-height: 1.45;
+}
+
+.sa-conversation-role:disabled .sa-conversation-role__option {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 .sa-conversation__progress {
   display: grid;
   flex: 0 0 auto;
@@ -321,6 +418,10 @@
 }
 
 @media (max-width: 900px) {
+  .sa-conversation-role__options {
+    grid-template-columns: 1fr;
+  }
+
   .sa-conversation__progress {
     width: 100%;
     min-width: 0;
@@ -348,6 +449,14 @@
 }
 
 @media (max-width: 560px) {
+  .sa-conversation-role {
+    padding: var(--space-3);
+  }
+
+  .sa-conversation-role__option {
+    min-height: 5.5rem;
+  }
+
   .sa-bubble-row.is-current .sa-conversation__mascot {
     transform: scale(0.833333);
     transform-origin: center;
@@ -386,5 +495,11 @@
 
   .sa-conversation__footer .sa-button {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-conversation-role__option {
+    transition: none;
   }
 }

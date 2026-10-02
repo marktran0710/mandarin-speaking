@@ -7,15 +7,22 @@ interface ConversationHistoryTurnProps {
   turn: ConversationTurn;
   showRoleHeader: boolean;
   studentAudioUrl?: string;
+  partnerGender?: "male" | "female";
 }
 
-export default function ConversationHistoryTurn({ turn, showRoleHeader, studentAudioUrl }: ConversationHistoryTurnProps) {
+export default function ConversationHistoryTurn({ turn, showRoleHeader, studentAudioUrl, partnerGender }: ConversationHistoryTurnProps) {
   const isStudent = turn.speaker === "student";
   const audioUrl = isStudent ? studentAudioUrl?.trim() : turn.audioUrl || turn.targetAudioUrl;
 
   return (
     <article className={`sa-bubble-row sa-bubble-row--compact ${!showRoleHeader ? "is-grouped" : ""} ${isStudent ? "is-student" : "is-character"}`}>
-      {showRoleHeader && <ConversationRoleHeader role={isStudent ? "student" : "character"} history />}
+      {showRoleHeader && (
+        <ConversationRoleHeader
+          role={isStudent ? "student" : "character"}
+          history
+          partnerGender={partnerGender}
+        />
+      )}
       <div className="sa-bubble sa-bubble--history">
         <BilingualWord
           hanzi={turn.targetText || turn.text}

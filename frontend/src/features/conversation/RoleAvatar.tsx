@@ -4,6 +4,7 @@ import { useStudentSettingsValue } from "@features/settings/StudentSettingsConte
 type RoleAvatarProps = {
   role: "character" | "student";
   compact?: boolean;
+  partnerGender?: "male" | "female";
 };
 
 type MascotProps = {
@@ -210,10 +211,10 @@ function SpriteMascot({ directions, reactions, size, label, className }: MascotP
   );
 }
 
-export default function RoleAvatar({ role, compact = false }: RoleAvatarProps) {
+export default function RoleAvatar({ role, compact = false, partnerGender }: RoleAvatarProps) {
   const settings = useStudentSettingsValue();
   const assets = role === "character"
-    ? mascotAssets[settings.partnerMascot]
+    ? mascotAssets[partnerGender ?? settings.partnerMascot]
     : mascotAssets[settings.studentMascot];
   return (
     <SpriteMascot

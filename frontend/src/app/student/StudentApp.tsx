@@ -355,6 +355,7 @@ export default function StudentApp({ studentName, topics, onAddRecord, onLogout 
         turns={availableConversationTurns}
         onAddRecord={onAddRecord}
         onSceneSubmission={handleSceneSubmission}
+        onChooseSolo={() => navigateTo("story-speaking")}
         onDone={() => {
           if (availableConversationTurns.length > 0) markPhaseSeen(topicStoryId(activeTopic), "conversation");
           bumpProgress();

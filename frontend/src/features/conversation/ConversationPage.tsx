@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { NewAudioRecord, ConversationTurn } from "../../components/story-recorder/StoryRecorder";
 import type { Topic } from "@entities/topic";
 import type { SceneSubmission } from "../../services/database";
@@ -5,6 +6,10 @@ import StudentPage from "@shared/ui/student/StudentPage";
 import StudentPageHeader from "@shared/ui/student/StudentPageHeader";
 import StudentButton from "@shared/ui/student/StudentButton";
 import ConversationHistoryTurn from "./ConversationHistoryTurn";
+import ConversationRolePicker, {
+  type ConversationPartnerGender,
+  type ConversationRoleChoice,
+} from "./ConversationRolePicker";
 import ConversationRoleHeader from "./ConversationRoleHeader";
 import InterlocutorTurn from "./InterlocutorTurn";
 import StudentTurn from "./StudentTurn";
@@ -12,6 +17,7 @@ import TurnFeedback from "./TurnFeedback";
 import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { useConversationSession } from "./useConversationSession";
 import { SpeechSelfEvaluation } from "@entities/speech";
+import { useStudentSettingsValue } from "@features/settings/StudentSettingsContext";
 import "./ConversationPage.css";
 
 interface ConversationPageProps {
@@ -19,6 +25,7 @@ interface ConversationPageProps {
   turns: ConversationTurn[];
   onAddRecord: (record: NewAudioRecord) => Promise<string | undefined> | void;
   onSceneSubmission: (key: string, submission: SceneSubmission) => void;
+  onChooseSolo: () => void;
   onDone: () => void;
   onBack: () => void;
 }
@@ -35,7 +42,7 @@ export function groupConversationTurns(turns: ConversationTurn[]) {
   }, []);
 }
 
-export default function ConversationPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
+export default function ConversationPage({ topic, turns, onAddRecord, onSceneSubmission, onChooseSolo, onDone, onBack }: ConversationPageProps) {
   if (turns.length === 0) {
     return <ConversationEmptyPage topic={topic} onBack={onBack} />;
   }
@@ -46,6 +53,7 @@ export default function ConversationPage({ topic, turns, onAddRecord, onSceneSub
       turns={turns}
       onAddRecord={onAddRecord}
       onSceneSubmission={onSceneSubmission}
+      onChooseSolo={onChooseSolo}
       onDone={onDone}
       onBack={onBack}
     />
@@ -75,11 +83,25 @@ function ConversationEmptyPage({ topic, onBack }: Pick<ConversationPageProps, "t
   );
 }
 
-function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission, onDone, onBack }: ConversationPageProps) {
+function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission, onChooseSolo, onDone, onBack }: ConversationPageProps) {
+  const settings = useStudentSettingsValue();
+  const [partnerGender, setPartnerGender] = useState<ConversationPartnerGender>(
+    () => settings.partnerMascot === "female" ? "female" : "male",
+  );
   const session = useConversationSession({ topic, turns, onAddRecord, onSceneSubmission, onDone });
   const { state, currentTurn, historyTurns, exchange } = session;
   const historyGroups = groupConversationTurns(historyTurns);
   const progress = exchange.total > 0 ? Math.min(100, (exchange.current / exchange.total) * 100) : 0;
+  const roleSelectionLocked = state.turnIndex > 0 || state.step !== "system";
+
+  const selectRole = (role: ConversationRoleChoice) => {
+    if (roleSelectionLocked) return;
+    if (role === "solo") {
+      onChooseSolo();
+      return;
+    }
+    setPartnerGender(role);
+  };
 
   const header = (
     <StudentPageHeader
@@ -113,6 +135,11 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
       <section className="sa-conversation__surface" aria-label="對話練習">
         <div className="sa-conversation__workspace">
           <div className="sa-conversation__column">
+            <ConversationRolePicker
+              partnerGender={partnerGender}
+              disabled={roleSelectionLocked}
+              onSelect={selectRole}
+            />
             {historyGroups.map((group) => (
               <div className="sa-conversation__history-group" key={group[0].id}>
                 {group.map((turn, index) => (
@@ -121,13 +148,18 @@ function ConversationSessionPage({ topic, turns, onAddRecord, onSceneSubmission,
                     turn={turn}
                     showRoleHeader={index === group.length - 1}
                     studentAudioUrl={session.studentAudioUrls[turn.id]}
+                    partnerGender={partnerGender}
                   />
                 ))}
               </div>
             ))}
 
             {currentTurn && state.step === "system" && (
-              <InterlocutorTurn turn={currentTurn} onContinue={session.handleListen} />
+              <InterlocutorTurn
+                turn={currentTurn}
+                partnerGender={partnerGender}
+                onContinue={session.handleListen}
+              />
             )}
 
             {currentTurn && state.step === "student" && (
