@@ -128,14 +128,6 @@ def test_mixed_attempt_is_rejected_without_deleting_current_answers(vocabulary, 
     assert not (tmp_path / "backup.json").exists()
 
 
-def test_research_linked_evidence_is_rejected(vocabulary, tmp_path):
-    with connect_db() as db:
-        db.execute("UPDATE vocab_quiz_responses SET research_study_id = 'study' WHERE word_id = %s", (OLD,))
-    with pytest.raises(ValueError, match="research-linked"), connect_db() as db:
-        purge(db, execute=True, backup=tmp_path / "backup.json")
-    assert not (tmp_path / "backup.json").exists()
-
-
 def test_empty_published_pool_is_rejected(vocabulary, tmp_path):
     with connect_db() as db:
         db.execute("UPDATE custom_stories SET published = FALSE")

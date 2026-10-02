@@ -644,7 +644,6 @@ def complete_attempt(db: Any, student_id: str, attempt_id: str, responses: list[
             "attempt_order": question["position"] - 1,
             "quiz_level": tier,
             "quiz_mode": tier,
-            "research_study_id": None,
         })
     upsert_raw_responses(db, rows)
     finished_at = _parse_answered_at(completed_at, _now())

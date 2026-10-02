@@ -37,7 +37,6 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Placement Data", label: "Placement Data", icon: "analytics", group: "Insights" },
   { id: "Speech diagnostics", label: "Speech diagnostics", icon: "debug", group: "Insights" },
   { id: "Learning Engine", label: "Learning Engine", icon: "analytics", group: "Insights" },
-  { id: "Research", label: "Research", icon: "analytics", group: "Insights" },
 ];
 
 const legacyIconMap: Record<string, UiIconName> = {

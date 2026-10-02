@@ -1,5 +1,9 @@
 # Canonical Content Migration — Dependency Audit
 
+> Historical audit: vocabulary 2x2 runtime modules and their empty tables
+> were removed in migration 0062. References below to research routing and
+> `vocab_research_*` describe the old architecture, not current behavior.
+
 **Status:** audit only (migration order step 1). No schema or runtime behavior has been
 changed by this document. Written against `ui/student-mode-speaking-refresh` at commit
 `6e9333d` (working tree clean at audit time).

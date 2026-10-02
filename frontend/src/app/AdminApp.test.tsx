@@ -27,7 +27,7 @@ describe("admin-only diagnostic navigation", () => {
 
     expect(screen.getByRole("heading", { name: "Admin overview", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Materials.*Stories and lesson content/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Research" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Research" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Student analytics" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Learning Engine" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Measurement" })).not.toBeInTheDocument();

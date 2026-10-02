@@ -25,6 +25,13 @@ throughout this code explicitly say so - see quotes below.
 
 ## 1. Personalized learning - Bayesian Knowledge Tracing
 
+Vocabulary uses one ordinary learner flow: diagnostic coverage, pooled BKT,
+per-dimension corrective practice, and modified SM-2 maintenance. The unused
+2x2 experiment (assignment, alternate progression, treatment BKT, research
+retention and participant probes) was removed in migration 0062. PFA remains
+admin analytics only. The 40-account cohort is retained as an operational
+pilot for exercising this flow; see [pilot scope](vocabulary-pilot.md).
+
 `analytics/learner_model/bkt/core.py`. Provenance: `STANDARD_ALGORITHM` (the equations);
 parameter values are `ENGINEERING_DEFAULT`.
 

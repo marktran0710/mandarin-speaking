@@ -39,7 +39,6 @@ def _attempt(mode, quiz_id, total=10, correct=0):
         "totalQuestions": total,
         # Deliberately wrong: progression must use the validated ledger below.
         "correctCount": correct,
-        "progressionPolicy": "production_accuracy",
         "questionResults": [{"quizId": quiz_id} for _ in range(total)],
     }
 

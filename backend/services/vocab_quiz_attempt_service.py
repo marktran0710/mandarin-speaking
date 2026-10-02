@@ -12,13 +12,6 @@ from uuid import uuid4
 from analytics.learner_model.bkt.assessment_resolver import resolve_assessment_response
 from analytics.learner_model.bkt.mastery import get_vocabulary_mastery, record_attempt_and_rebuild
 from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words
-from application.research.response_routing import (
-    apply_response_routing,
-    enroll_research_probes_for_attempt,
-    enroll_research_retention_for_attempt,
-    get_research_context,
-    log_core_completion_event,
-)
 from api.schemas.models import VocabQuizAttemptRequest
 from repositories import quiz_attempt_repository as repo
 from domain.vocabulary.story_scope import canonical_story_id
@@ -138,7 +131,6 @@ def record_attempt(
     raw_question_results = [
         result.model_dump(exclude_none=True, exclude_defaults=True) for result in attempt.questionResults
     ]
-    research_context = get_research_context(db, identity_id)
     question_results = _validated_question_results(db, attempt)
     existing = repo.find_attempt_by_id(db, attempt.id)
     if existing is not None and existing.get("student_id") != identity_id:
@@ -175,8 +167,6 @@ def record_attempt(
         correct_count=attempt.correctCount,
         total_time_ms=attempt.totalTimeMs,
         question_results=raw_question_results,
-        progression_policy=research_context.progression_policy.value,
-        research_study_id=research_context.study_id,
     )
 
     # JSONB remains the client-facing attempt source of truth, while this
@@ -188,29 +178,18 @@ def record_attempt(
         normalized_attempt,
         identity_id,
         response_results=question_results,
-        research_study_id=research_context.study_id,
         evidence_origin=evidence_origin,
     )
 
     # Spaced-repetition schedule update for review sessions. Scheduling only
     # (BKT already updated above); a review answer advances/resets the
     # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
-    if research_context.active and research_context.study_id:
-        apply_response_routing(
-            db, identity_id, research_context, attempt, question_results,
-            now_override=now, day_seconds=day_seconds,
-        )
-    elif attempt.mode == "maintenance_review":
+    if attempt.mode == "maintenance_review":
         apply_srs_updates(
             db, identity_id, _srs_event_results(attempt, question_results),
             now=now, day_seconds=day_seconds,
         )
     _enroll_newly_strong_words(db, identity_id, attempt, now, day_seconds)
-    log_core_completion_event(db, identity_id, research_context, attempt, now=now)
-    enroll_research_retention_for_attempt(
-        db, identity_id, research_context, attempt, now=now, day_seconds=day_seconds,
-    )
-    enroll_research_probes_for_attempt(db, identity_id, research_context, attempt, now=now)
     return question_results
 
 
@@ -232,7 +211,6 @@ def record_response(
     """
     attempt.studentId = identity_id
     evidence_origin = _server_evidence_origin(db, identity_id, evidence_origin)
-    research_context = get_research_context(db, identity_id)
     question_results = _validated_question_results(db, attempt)
     normalized_attempt = attempt.model_dump(exclude_none=True)
     normalized_attempt["questionResults"] = question_results
@@ -241,26 +219,15 @@ def record_response(
         normalized_attempt,
         identity_id,
         response_results=question_results,
-        research_study_id=research_context.study_id,
         evidence_origin=evidence_origin,
     )
     # Spaced-repetition schedule update for review sessions. Scheduling only
     # (BKT already updated above); a review answer advances/resets the
     # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
-    if research_context.active and research_context.study_id:
-        apply_response_routing(
-            db, identity_id, research_context, attempt, question_results,
-            now_override=now, day_seconds=day_seconds,
-        )
-    elif attempt.mode == "maintenance_review":
+    if attempt.mode == "maintenance_review":
         apply_srs_updates(
             db, identity_id, _srs_event_results(attempt, question_results),
             now=now, day_seconds=day_seconds,
         )
     _enroll_newly_strong_words(db, identity_id, attempt, now, day_seconds)
-    log_core_completion_event(db, identity_id, research_context, attempt, now=now)
-    enroll_research_retention_for_attempt(
-        db, identity_id, research_context, attempt, now=now, day_seconds=day_seconds,
-    )
-    enroll_research_probes_for_attempt(db, identity_id, research_context, attempt, now=now)
     return question_results

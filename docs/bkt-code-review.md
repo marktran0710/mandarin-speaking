@@ -42,6 +42,15 @@ Both findings are fixed by one explicit corrective state beside the (unchanged) 
 
 The BKT parameters, the 0.95 threshold, and minimum observations are unchanged policy defaults, not recalibrated.
 
+## Removal of the dormant 2x2 layer
+
+The unused vocabulary experiment was removed at the user's request: runtime
+routing, assignments, treatment BKT, alternate retention, participant probes
+and the admin Research screen. Migration 0062 removes its ten empty tables
+and experiment-only columns while preserving ordinary pilot records. The
+40-account dataset is retained as an operational system pilot; source labels
+are preserved. This removal does not calibrate BKT or change its parameters.
+
 ## What code establishes about BKT assumptions
 
 | Assumption or modeling choice | Current implementation | Assessment |
@@ -69,7 +78,7 @@ Three successful diagnostic answers in meaning, pinyin, context produce default 
 
 - Modified SM-2 (`srs.py`, `srs_store.py`): binary grades are mapped to `q=4` for correct and `q=2` for incorrect. Newly official `STRONG` words are enrolled. Existing schedules advance only for due maintenance reviews with the elapsed-time guard; corrective practice does not advance them. This corrects the older snapshot's description of fast-response grading and early weak-practice advancement. Interval choices remain an uncalibrated scheduling policy.
 - Review queue (`review_queue.py`): merges due words with selected weak words, labels the reason, and prevents duplicates. This is queue composition, not evidence of BKT validity.
-- Personalized selection (`quizGeneration.ts`): a heuristic using failed/seen question types, not an IRT selection model. Finding 1 concerns this active path.
+- Personalized selection (`quizGeneration.ts`): a heuristic following server-owned `practice.nextDimension`, not an IRT selection model. The old failure-history selector in finding 1 has been replaced.
 - PFA and the admin pilot BKT (`knowledge_tracing.py`, `knowledge_analytics_service.py`): predictions are made before applying the current outcome. PFA uses pooled intercept/success/failure coefficients. The admin BKT uses one guess/slip pair, unlike production's format-aware variant. Its metrics must not be presented as validation of the production configuration.
 - Rasch (`backend/analytics/irt.py`): MAP joint estimation of student ability and item difficulty; it is not the active weak-word selector identified in this review. The fit function does not return convergence diagnostics, uncertainty, or assumption checks.
 - Accuracy/time analysis (`backend/analytics/joint_time.py`): fits accuracy and response-time effects separately and then computes an ability/speed correlation. This is not a jointly estimated hierarchical speed-accuracy model.

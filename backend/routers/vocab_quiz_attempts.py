@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 import security.auth as auth
 import services.vocab_quiz_attempt_service as vocab_quiz_attempt_service
 from services import algorithm_verifier_service
-from application.research.response_routing import get_research_context
 from analytics.learner_model.srs import DAY_SECONDS
 from config import settings
 from db import connect_db
@@ -154,15 +153,12 @@ def create_vocab_quiz_attempt(
                 algorithm_verifier_service.advance_verifier_context(db, step=context.step or 0)
         except (vocab_quiz_attempt_service.AttemptConflictError, ValueError, algorithm_verifier_service.AlgorithmVerifierError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
-        research_context = get_research_context(db, context.identity.id)
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
     # round-trip representation of an attempt without a selected mode.
     payload.setdefault("mode", attempt.mode)
-    payload["progressionPolicy"] = research_context.progression_policy.value
     payload["roundCompleted"] = True
-    payload["researchStudyId"] = research_context.study_id
     return payload
 
 

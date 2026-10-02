@@ -91,8 +91,6 @@ def build_demo(db: Any, run_id: str) -> dict[str, Any]:
     ).fetchall()}
     if set(students) != set(COHORT) or not all(row["is_test_account"] for row in students.values()):
         raise ValueError("All 40 existing SIM accounts must be marked test accounts.")
-    if db.execute("SELECT 1 FROM vocab_research_participants WHERE student_id = ANY(%s) LIMIT 1", (COHORT,)).fetchone():
-        raise ValueError("SIM demo accounts must not participate in a research study.")
     stories = {row["id"]: row for row in db.execute(
         "SELECT id, vocab_assessment, vocabulary_version FROM custom_stories "
         "WHERE published=TRUE AND id = ANY(%s) FOR SHARE",

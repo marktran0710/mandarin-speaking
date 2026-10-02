@@ -6,8 +6,7 @@ The command is dry-run by default.  The complete local reset is explicit::
         --dependent-learning-state --execute
 
 It does not touch students, teachers, accounts, authentication, story rows,
-story images, or isolated ``vocab_research_*`` tables.  Research-tagged rows
-in the shared quiz-attempt/response tables are also retained.  Runtime audio
+story images. Runtime audio
 directories ``uploads/audio`` and ``uploads/story_audio`` are in scope; the
 separate ``uploads/examples`` fixture directory and all image directories are
 not.
@@ -103,14 +102,6 @@ def _delete(db: Any, table: str, where: str = "TRUE", params: tuple[Any, ...] = 
     if not _table_exists(db, table):
         return 0
     return int(db.execute(f"DELETE FROM {table} WHERE {where}", params).rowcount)
-
-
-def _research_scope(db: Any, table: str) -> str:
-    """Scope shared production tables without deleting research evidence."""
-
-    return "research_study_id IS NULL" if _column_exists(db, table, "research_study_id") else "TRUE"
-
-
 def _story_rows(db: Any) -> list[dict[str, Any]]:
     if not _table_exists(db, "custom_stories"):
         raise RuntimeError("custom_stories is required; refusing to reset an unexpected schema")
@@ -309,7 +300,7 @@ def _delete_audio_data(db: Any) -> dict[str, int]:
 def _delete_quiz_data(db: Any) -> dict[str, int]:
     counts: dict[str, int] = {}
     for table in QUIZ_TABLES:
-        counts[table] = _delete(db, table, _research_scope(db, table))
+        counts[table] = _delete(db, table)
     return counts
 
 
@@ -323,7 +314,6 @@ def _quiz_like_unknown_tables(db: Any) -> list[str]:
         table
         for table in _public_tables(db)
         if table not in known
-        and not table.startswith("vocab_research_")
         and ("quiz" in table.casefold() or "assessment" in table.casefold())
     )
     # Empty compatibility/retired tables do not contain reset scope. Only a
@@ -335,7 +325,7 @@ def _quiz_like_unknown_tables(db: Any) -> list[str]:
     ]
 
 
-def _snapshot_counts(db: Any, *, preserve_research: bool = True) -> dict[str, int]:
+def _snapshot_counts(db: Any) -> dict[str, int]:
     stories = _story_rows(db)
     counts = {
         "stories": _count(db, "custom_stories"),
@@ -349,8 +339,8 @@ def _snapshot_counts(db: Any, *, preserve_research: bool = True) -> dict[str, in
                 """SELECT COALESCE(sum(jsonb_array_length(COALESCE(vocab_assessment, '[]'::jsonb))), 0) AS count FROM custom_stories"""
             ).fetchone()["count"]
         ),
-        "quiz_attempts": _count(db, "vocab_quiz_attempts", _research_scope(db, "vocab_quiz_attempts")) if preserve_research else _count(db, "vocab_quiz_attempts"),
-        "quiz_responses": _count(db, "vocab_quiz_responses", _research_scope(db, "vocab_quiz_responses")) if preserve_research else _count(db, "vocab_quiz_responses"),
+        "quiz_attempts": _count(db, "vocab_quiz_attempts"),
+        "quiz_responses": _count(db, "vocab_quiz_responses"),
         "audio_records": _count(db, "audio_records"),
         "content_audio_references": sum(
             1
@@ -424,7 +414,6 @@ def reset_learning_content(
 
     audio_files_before = _audio_files() if remove_audio else []
     deleted: dict[str, int] = {}
-    research_tables_untouched: list[str] = []
     with connect_db() as db:
         unknown_tables = _quiz_like_unknown_tables(db)
         if unknown_tables:
@@ -446,9 +435,6 @@ def reset_learning_content(
                 f"Referenced story images are already missing; refusing reset: {missing_before[:5]}"
             )
         before = _snapshot_counts(db)
-        research_tables_untouched = sorted(
-            table for table in _public_tables(db) if table.startswith("vocab_research_")
-        )
 
         if not execute:
             return {
@@ -457,7 +443,6 @@ def reset_learning_content(
                 "audioFilesInScope": len(audio_files_before),
                 "preservedImages": len(image_paths),
                 "preservedStories": len(stories_before),
-                "researchTablesUntouched": research_tables_untouched,
             }
 
         _clean_story_rows(
@@ -501,7 +486,6 @@ def reset_learning_content(
         "audioFilesRemoved": files_removed,
         "preservedImages": len(image_paths),
         "preservedStories": len(stories_before),
-        "researchTablesUntouched": research_tables_untouched,
     }
 
 

@@ -208,7 +208,6 @@ def _real_response(student_id: str) -> dict:
         "occurred_at_utc": datetime(2026, 9, 1, tzinfo=timezone.utc), "evidence_origin": "real",
         "resolver_version": "vocab-quiz-v1", "attempt_order": 0, "quiz_level": "tier1", "quiz_mode": "tier1",
         "round_type": "1", "knowledge_dimension": "meaning", "activity_type": "diagnostic",
-        "research_study_id": None,
     }
 
 

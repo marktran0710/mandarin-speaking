@@ -70,8 +70,6 @@ def reset_lesson(
         ), (student_id, values)).fetchall())
         for table, (column, values) in scopes.items()
     }
-    if any(row.get("research_study_id") for table in ("vocab_quiz_responses", "vocab_quiz_attempts") for row in snapshots[table]):
-        raise ValueError("Lesson history is research-linked; refusing reset.")
     report = {
         "studentId": student_id, "storyId": canonical, "wordCount": len(known),
         "rows": {table: len(rows) for table, rows in snapshots.items()}, "executed": False,

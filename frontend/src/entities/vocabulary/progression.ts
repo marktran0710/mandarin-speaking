@@ -8,7 +8,6 @@
 // working off the same table; the localStorage mirror below covers the
 // no-database mode, following the storyLevelProgress.ts pattern.
 
-import { getCachedResearchContext } from "../../utils/researchContext";
 import { getStudentScopeKey, isAdminSession } from "../../utils/studentSession";
 import { topicHasQuiz, type QuizSourceTopic } from "./model";
 
@@ -57,12 +56,8 @@ export function tierConfigFromMode(mode: string | null | undefined): TierConfig 
   return null;
 }
 
-/** The time limit that actually applies to a tier right now (Epic 3, Task
- * 3.7): production uses the tier's configured limit (only tier3 has one);
- * an active research participant never gets a timer, so speed pressure
- * cannot become an uncontrolled confound in round completion. */
+/** The configured time limit for a tier; only tier3 is timed. */
 export function effectiveTimeLimitMs(mode: string | null | undefined): number | null {
-  if (getCachedResearchContext().coreCompletionPolicy === "research_coverage") return null;
   return tierConfigFromMode(mode)?.timeLimitMs ?? null;
 }
 
@@ -76,7 +71,7 @@ export function roundScore(correctCount: number, totalQuestions: number): number
 /** The star (round number) a finished attempt earns, or null if it wasn't a
  * finished tier run at all. Finishing the round is the only requirement —
  * the score is shown to the learner but does not gate the next round or the
- * speaking practice (the same rule research participants always had). This
+ * speaking practice. This
  * is the single point where star derivation is decided — every caller
  * (starsFromAttempts below, TopicSelector, StudentSidebar, MyStoriesPage,
  * the quiz session itself) inherits it. */

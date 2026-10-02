@@ -47,7 +47,7 @@ _RESPONSE_FINGERPRINT_FIELDS = (
     "diagnostic_exposure_id", "bkt_eligible", "bkt_eligibility_errors",
     "selected_answer", "correct_answer", "presented_options", "question_prompt",
     "answered_at", "correct", "response_time_ms", "attempt_order", "quiz_level",
-    "quiz_mode", "research_study_id",
+    "quiz_mode",
 )
 
 
@@ -69,17 +69,9 @@ def _word_id(result: dict[str, Any]) -> str | None:
 
 
 def response_rows_for_attempt(
-    attempt: Any, student_id: str, response_results: Iterable[Any] | None = None, research_study_id: str | None = None,
+    attempt: Any, student_id: str, response_results: Iterable[Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Convert the existing attempt payload to normalized immutable facts.
-
-    ``research_study_id`` stamps every row of this attempt with the study
-    that was active when it was recorded (server-resolved by the caller,
-    same as progression_policy on vocab_quiz_attempts - never trusted from
-    the client). This is what lets Epic 4's treatment-BKT replay scope
-    itself to exactly one study's own weak_words evidence instead of a
-    student's whole production history.
-    """
+    """Convert the existing attempt payload to normalized immutable facts."""
     def value(name: str, default: Any = None) -> Any:
         if isinstance(attempt, dict):
             return attempt.get(name, default)
@@ -157,7 +149,6 @@ def response_rows_for_attempt(
             "attempt_order": order,
             "quiz_level": result.get("tier") or result.get("level") or level,
             "quiz_mode": mode,
-            "research_study_id": research_study_id,
         })
     return rows
 
@@ -167,6 +158,9 @@ def _response_fingerprint(row: dict[str, Any]) -> str:
     # attempt id and fallback completion timestamp may differ, while the
     # learner answer and authoritative assessment facts must remain identical.
     immutable = {key: row.get(key) for key in _RESPONSE_FINGERPRINT_FIELDS}
+    # Preserve the canonical hash of pre-0062 non-experimental pilot rows.
+    # The removed nullable column contributed this key to their fingerprints.
+    immutable["research_study_id"] = None
     return sha256(json.dumps(immutable, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -196,7 +190,7 @@ def upsert_raw_responses(db: Any, rows: Iterable[dict[str, Any]]) -> None:
             "presented_options", "question_prompt", "answered_at", "bkt_eligible",
             "diagnostic_exposure_id", "bkt_eligibility_errors", "correct", "response_time_ms", "occurred_at",
             "occurred_at_utc", "evidence_origin", "resolver_version", "attempt_order", "quiz_level", "quiz_mode",
-            "round_type", "knowledge_dimension", "activity_type", "research_study_id",
+            "round_type", "knowledge_dimension", "activity_type",
         )]
         values[10] = Jsonb(values[10])
         values[15] = Jsonb(values[15])
@@ -209,8 +203,8 @@ def upsert_raw_responses(db: Any, rows: Iterable[dict[str, Any]]) -> None:
                 diagnostic_exposure_id, bkt_eligibility_errors, correct,
                 response_time_ms, occurred_at, occurred_at_utc, evidence_origin, resolver_version,
                 attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type,
-                research_study_id, response_fingerprint)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                response_fingerprint)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (student_id, quiz_id, attempt_order) DO NOTHING
             RETURNING id
             """,
@@ -262,75 +256,6 @@ def _ordered_responses(db: Any, student_id: str, story_id: str | None = None) ->
         """,
         [student_id, *scope_params],
     ).fetchall())
-
-
-def _treatment_ordered_responses(db: Any, student_id: str, study_id: str) -> list[dict[str, Any]]:
-    """Epic 4, Task 4.2: only core diagnostic evidence (tier1/2/3) plus this
-    student's OWN research-practice responses within THIS study - explicitly
-    never scheduled review (maintenance_review), a probe/posttest, or
-    pronunciation, and never a weak_words response from outside this study
-    (production practice, or a different study). This is a deliberately
-    narrower evidence set than production's _ordered_responses, which is the
-    whole point: production BKT recalibration must never retroactively alter
-    what a frozen study measured.
-    """
-    return list(db.execute(
-        """
-        SELECT id, student_id, word_id, word, lesson_id, quiz_id, attempt_id,
-               item_id, question_type, diagnostic_exposure_id, bkt_eligible, correct, response_time_ms, occurred_at,
-               occurred_at_utc, attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type,
-               evidence_origin, resolver_version
-        FROM vocab_quiz_responses
-        WHERE student_id = %s
-          AND (
-            (lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3') AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE)
-            OR (quiz_mode = 'weak_words' AND research_study_id = %s)
-          )
-          -- Imported synthetic placement is development evidence, not a real
-          -- participant's treatment history. Keep it out of frozen research
-          -- BKT state while retaining ordinary diagnostic replay semantics.
-          AND NOT (
-            evidence_origin = 'synthetic'
-            AND diagnostic_exposure_id LIKE 'placement:%%'
-          )
-        ORDER BY occurred_at_utc ASC NULLS LAST, id ASC, attempt_order ASC
-        """,
-        [student_id, study_id],
-    ).fetchall())
-
-
-def get_treatment_vocabulary_mastery(
-    db: Any, student_id: str, study_id: str, word_ids: Iterable[str], params: BktConfig = BKT_CONFIG,
-) -> dict[str, dict[str, Any]]:
-    """Replay Epic-4 treatment-scoped evidence into a p(learned) state per
-    requested word. A word with no treatment evidence yet gets the model's
-    prior (params.initial_mastery, 0 observations) rather than being absent -
-    the caller (a BKT-personalized practice-session selection) needs every
-    candidate word ranked, seen or not.
-    """
-    requested_word_ids = list(word_ids)
-    word_chapters = get_published_word_chapters(db, requested_word_ids)
-    initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
-    states = _mastery_states_from_responses(
-        _treatment_ordered_responses(db, student_id, study_id),
-        params,
-        initial_priors_by_word=initial_priors,
-    )
-    return {
-        word_id: states.get(word_id) or {
-            "word_id": word_id,
-            "p_learned": initial_priors.get(word_id, params.initial_mastery),
-            "observation_count": 0,
-            "correct_count": 0,
-            "incorrect_count": 0,
-            "last_response_at": None,
-            "last_item_id": None,
-            "last_question_type": None,
-        }
-        for word_id in requested_word_ids
-    }
-
-
 def _group_response_history(responses: Iterable[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     seen_diagnostic_exposures: set[tuple[str, str]] = set()
@@ -487,11 +412,11 @@ def rebuild_all_vocabulary_mastery(db: Any, params: BktConfig = BKT_CONFIG) -> N
 
 def record_attempt_and_rebuild(
     db: Any, attempt: Any, student_id: str, params: BktConfig = BKT_CONFIG,
-    response_results: Iterable[Any] | None = None, research_study_id: str | None = None,
+    response_results: Iterable[Any] | None = None,
     evidence_origin: str = "real",
 ) -> None:
     _lock_student_bkt(db, student_id)
-    rows = response_rows_for_attempt(attempt, student_id, response_results, research_study_id)
+    rows = response_rows_for_attempt(attempt, student_id, response_results)
     for row in rows:
         row["evidence_origin"] = evidence_origin
     upsert_raw_responses(db, rows)

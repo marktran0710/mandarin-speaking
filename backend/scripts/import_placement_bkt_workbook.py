@@ -269,7 +269,6 @@ def _response_row(
         "round_type": str(round_number),
         "knowledge_dimension": dimension,
         "activity_type": "diagnostic",
-        "research_study_id": None,
     }
 
 

@@ -45,7 +45,6 @@ def _response(student_id: str, order: int, *, tier: str, correct: bool) -> dict:
         "round_type": "1" if tier == "tier1" else "3",
         "knowledge_dimension": "meaning" if tier == "tier1" else "contextual_recall",
         "activity_type": "diagnostic",
-        "research_study_id": None,
     }
 
 

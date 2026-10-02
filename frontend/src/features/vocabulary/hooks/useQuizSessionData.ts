@@ -16,8 +16,6 @@ import {
 } from "../../../services/database";
 import { getStudentScopeKey } from "../../../utils/studentSession";
 import { syncServerVocabularyProgress } from "../../../utils/serverVocabularyProgress";
-import { getResearchReviewSession } from "../../../services/api/vocabulary-research";
-import { getCachedResearchContext } from "../../../utils/researchContext";
 import {
   buildLessonVocabularyProgress,
   loadLessonProgressSnapshot,
@@ -162,9 +160,7 @@ export function useQuizSessionData({
   // The weak-word card and the due-review list used to be two requests that
   // each replayed the student's whole BKT history on the server. The
   // review-queue payload contains the weak-words payload plus `queue`, so one
-  // read feeds both. An active research participant's due words come from the
-  // separate research retention schedule (researchDueWordIds below), never
-  // this production SM-2 queue, so they keep the weak-words-only read.
+  // read feeds both weak-word practice and scheduled maintenance.
   const reviewRequestRef = useRef<Promise<void> | null>(null);
   const readReview = useCallback((): Promise<void> => {
     const request = (async () => {
@@ -173,11 +169,6 @@ export function useQuizSessionData({
       const source = baseStoryId ?? storyId;
       if (!source) return;
       if (!studentId) {
-        applyWeakWords(await getVocabQuizWeakWords(source, { studentId, studentName }));
-        setDueWords([]);
-        return;
-      }
-      if (getCachedResearchContext().active) {
         applyWeakWords(await getVocabQuizWeakWords(source, { studentId, studentName }));
         setDueWords([]);
         return;
@@ -216,26 +207,6 @@ export function useQuizSessionData({
     return () => { cancelled = true; };
   }, [storyId, refreshReview]);
 
-  // Epic 5: a research participant's due words come from the separate
-  // research retention schedule, never production's SM-2 queue above. The
-  // review-session endpoint is read-only, so prefetching it just to size
-  // the "Review today" card (unlike the practice-session endpoint, which
-  // writes a treatment-BKT snapshot and is deliberately NOT prefetched) is
-  // safe.
-  const [researchDueWordIds, setResearchDueWordIds] = useState<string[]>([]);
-  useEffect(() => {
-    if (!getCachedResearchContext().active) { setResearchDueWordIds([]); return; }
-    let cancelled = false;
-    getResearchReviewSession()
-      .then((session) => { if (!cancelled) setResearchDueWordIds(session.wordIds); })
-      .catch(() => { if (!cancelled) setResearchDueWordIds([]); });
-    return () => { cancelled = true; };
-  }, [storyId]);
-  const researchDueEntries = useMemo(() => {
-    const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
-    return researchDueWordIds.map((wordId) => byWordId.get(wordId)).filter((entry): entry is VocabQuizEntry => Boolean(entry));
-  }, [entries, researchDueWordIds]);
-
   const sessionReady = starsReady && weakWordsReady;
   const lessonProgress: LessonVocabularyProgress = useMemo(() => buildLessonVocabularyProgress({
     lessonId: baseStoryId ?? storyId ?? "lesson",
@@ -264,7 +235,6 @@ export function useQuizSessionData({
     diagnosticComplete,
     roundPresence,
     dueWords,
-    researchDueEntries,
     sessionReady,
     lessonProgress,
     refreshReview,

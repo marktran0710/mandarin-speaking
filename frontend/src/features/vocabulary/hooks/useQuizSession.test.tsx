@@ -17,7 +17,6 @@ vi.mock("../../../utils/studentSession", () => ({
   getStudentScopeKey: () => "student-1",
   isAdminSession: () => false,
 }));
-vi.mock("../../../utils/researchContext", () => ({ getCachedResearchContext: () => ({ active: false }) }));
 vi.mock("../model/lesson-vocab-progress", () => ({ saveLessonAttempt: vi.fn() }));
 vi.mock("./useQuizSessionData", async () => {
   const { useState } = await import("react");
@@ -27,7 +26,7 @@ vi.mock("./useQuizSessionData", async () => {
       return {
         stars, setStars, setAttempts: vi.fn(), recordLessonEvent: vi.fn(),
         priorityReviewWords: [], weakWords: [], masteryWords: [], strongWords: [],
-        dueWords: [], researchDueEntries: [], sessionReady: true,
+        dueWords: [], sessionReady: true,
         refreshReview: vi.fn(async () => undefined),
         studentScope: "student-1",
         lessonProgress: { challenge: { bestScore: 0, attempts: [] } },

@@ -5,7 +5,6 @@ import { createVocabQuizAttempt, getVocabularyProgression, listVocabQuizAttempts
 import { useQuizSessionData } from "./useQuizSessionData";
 
 vi.mock("../../../utils/studentSession", () => ({ getStudentScopeKey: () => "student-1" }));
-vi.mock("../../../utils/researchContext", () => ({ getCachedResearchContext: () => ({ active: false }) }));
 vi.mock("../../../utils/measurement", () => ({ createMeasurementEvent: vi.fn(), recordMeasurementEvent: vi.fn() }));
 vi.mock("../../../services/database", () => ({
   canUseDatabase: () => true,

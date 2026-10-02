@@ -24,7 +24,7 @@ def list_attempts(
 ) -> list[dict]:
     columns = (
         "id, story_id, student_id, student_name, mode, completed_at, "
-        "total_questions, correct_count, total_time_ms, progression_policy"
+        "total_questions, correct_count, total_time_ms"
     )
     if include_results:
         columns += ", question_results"
@@ -75,16 +75,13 @@ def insert_attempt(
     correct_count: int,
     total_time_ms: int,
     question_results: list,
-    progression_policy: str = "production_accuracy",
-    research_study_id: Optional[str] = None,
 ) -> None:
     db.execute(
         """
         INSERT INTO vocab_quiz_attempts
             (id, story_id, student_name, student_id, mode, completed_at,
-             total_questions, correct_count, total_time_ms, question_results,
-             progression_policy, research_study_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             total_questions, correct_count, total_time_ms, question_results)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING
         """,
         (
@@ -98,7 +95,5 @@ def insert_attempt(
             correct_count,
             total_time_ms,
             Jsonb(question_results),
-            progression_policy,
-            research_study_id,
         ),
     )

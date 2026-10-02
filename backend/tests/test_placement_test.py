@@ -347,7 +347,7 @@ def test_real_placement_attempt_sets_chapter_priors_for_untested_words(admin_cli
             "occurred_at_utc": datetime(2026, 1, 1, tzinfo=timezone.utc),
             "evidence_origin": "real", "resolver_version": "test", "attempt_order": 0,
             "quiz_level": "tier1", "quiz_mode": "tier1", "round_type": "1",
-            "knowledge_dimension": "meaning", "activity_type": "diagnostic", "research_study_id": None,
+            "knowledge_dimension": "meaning", "activity_type": "diagnostic",
         }])
 
     attempt = admin_client.post("/api/placement-test/attempts").json()

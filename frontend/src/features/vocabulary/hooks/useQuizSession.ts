@@ -29,8 +29,6 @@ import {
   type VocabQuizQuestionResult,
   type VocabQuizSummary,
 } from "@entities/vocabulary";
-import { postResearchPracticeSession } from "../../../services/api/vocabulary-research";
-import { getCachedResearchContext } from "../../../utils/researchContext";
 import { saveLessonAttempt } from "../model/lesson-vocab-progress";
 import { VocabularyChangedError, type VocabQuizAttempt } from "../../../services/api/quiz-analytics";
 import { resetLocalVocabularyProgress } from "../../../utils/serverVocabularyProgress";
@@ -95,7 +93,6 @@ export function useQuizSession({
     masteryWords,
     strongWords,
     dueWords,
-    researchDueEntries,
     sessionReady,
     lessonProgress,
     refreshReview,
@@ -424,43 +421,11 @@ export function useQuizSession({
   // multiple-choice questions; the answer still feeds BKT, so getting it wrong
   // pulls the word back into the weak-word list on its own.
   const practiceWord = (target: VocabQuizEntry) => { setIsRetryRound(false); chooseMode("weak_words", [target], 1, entries); };
-  // Epic 4: a research participant's practice round uses server-selected
-  // words (the equal-budget BKT selection), never the client's own
-  // accuracy-derived weakEntries. The quiz-taking mechanics stay the
-  // existing "weak_words" flow - only word selection differs.
-  const startResearchPractice = async () => {
-    setIsRetryRound(false);
-    try {
-      const { wordIds } = await postResearchPracticeSession();
-      const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
-      const matched = wordIds.map((wordId) => byWordId.get(wordId)).filter((entry): entry is VocabQuizEntry => Boolean(entry));
-      if (matched.length > 0) chooseMode("weak_words", matched, matched.length, entries);
-    } catch {
-      // Never strand the student on a dead button if the research endpoint
-      // fails - fall back to the ordinary weak-words flow.
-      if (weakEntries.length > 0) chooseMode("weak_words", weakEntries, weakEntries.length);
-    }
-  };
-  // Epic 5: a research participant's "Review today" round uses the
-  // already-fetched research retention due list (read-only, prefetched
-  // above), never production's due-words queue.
-  const startResearchReview = () => {
-    setIsRetryRound(false);
-    if (researchDueEntries.length > 0) chooseMode("maintenance_review", researchDueEntries, researchDueEntries.length);
-  };
   const startWeakWords = async () => {
-    if (getCachedResearchContext().active) {
-      await startResearchPractice();
-      return;
-    }
     const entriesForRound = weakEntries.length > 0 ? weakEntries : interimReviewEntries;
     if (entriesForRound.length > 0) chooseMode("weak_words", entriesForRound, entriesForRound.length, entries);
   };
   const startDueReview = () => {
-    if (getCachedResearchContext().active) {
-      startResearchReview();
-      return;
-    }
     const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
     const entriesForRound = dueWords
       .map((item) => byWordId.get(item.wordId) ?? entries.find((entry) => entry.word === item.word))
@@ -483,7 +448,7 @@ export function useQuizSession({
     question, index, selected, results, isFinishing, vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
-    startResearchPractice, researchDueEntries, startResearchReview, startWeakWords, startDueReview, returnToModes, sessionReady,
+    startWeakWords, startDueReview, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }

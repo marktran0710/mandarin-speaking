@@ -7,7 +7,6 @@ import db
 from analytics.learner_model.bkt.core import BKT_CONFIG, replay_bkt_typed, update_bkt
 from analytics.learner_model.bkt.mastery import (
     _mastery_states_from_responses,
-    _treatment_ordered_responses,
     get_vocabulary_mastery,
     rebuild_student_vocabulary_mastery,
     upsert_raw_responses,
@@ -240,7 +239,6 @@ def _insert_placement_attempt(
             "round_type": "meaning",
             "knowledge_dimension": "meaning",
             "activity_type": "diagnostic",
-            "research_study_id": None,
         })
     upsert_raw_responses(conn, rows)
 
@@ -292,26 +290,6 @@ def test_mastery_projection_uses_dynamic_prior_and_keeps_unseen_words_out_of_cac
     assert srs_row is None
     assert tested_c5["observationCount"] == 1
     assert tested_c5["pLearned"] == pytest.approx(update_bkt(0.20, True))
-
-
-def test_synthetic_placement_is_excluded_from_real_treatment_replay():
-    with db.connect_db() as conn:
-        _insert_placement_attempt(
-            conn,
-            "synthetic-research-student",
-            5,
-            "synthetic-story-c5",
-            6,
-            evidence_origin="synthetic",
-        )
-
-        rows = _treatment_ordered_responses(
-            conn,
-            "synthetic-research-student",
-            "real-study",
-        )
-
-    assert rows == []
 
 
 def test_word_chapter_mapping_keeps_distinct_words_sharing_a_character():

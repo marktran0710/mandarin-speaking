@@ -3,7 +3,7 @@
 Run from backend/: ``python -m scripts.purge_legacy_vocab`` previews the scope.
 Use ``--execute --backup private-data/legacy-vocab-backup.json`` to delete.
 The caller owns the transaction; the backup must succeed before any deletion.
-Mixed old/current quiz attempts and research-linked evidence stop the operation.
+Mixed old/current quiz attempts stop the operation.
 """
 
 from __future__ import annotations
@@ -39,18 +39,13 @@ def _result_word_id(result: dict[str, Any]) -> str:
 
 def purge(db: Any, *, execute: bool = False, backup: Path | None = None) -> dict[str, Any]:
     """Plan, back up, and remove only IDs absent from the published pool."""
-    research_columns = db.execute(
-        """SELECT table_name, column_name FROM information_schema.columns
-           WHERE table_schema = 'public' AND table_name LIKE 'vocab_research_%%'
-             AND column_name IN ('word_id', 'yoke_source_word_id')"""
-    ).fetchall()
     if execute:
         if backup is None:
             raise ValueError("An explicit backup path is required before deletion.")
         db.execute("SET LOCAL lock_timeout = '5s'")
         tables = sorted({
             "custom_stories", "vocab_quiz_attempts", "learning_measurement_events",
-            *WORD_TABLES, *(row["table_name"] for row in research_columns),
+            *WORD_TABLES,
         })
         db.execute(sql.SQL("LOCK TABLE {} IN SHARE ROW EXCLUSIVE MODE").format(
             sql.SQL(", ").join(sql.Identifier(table) for table in tables)
@@ -70,15 +65,6 @@ def purge(db: Any, *, execute: bool = False, backup: Path | None = None) -> dict
         ), (obsolete,)).fetchall())
         for table in WORD_TABLES
     }
-    if any(row.get("research_study_id") for row in snapshots["vocab_quiz_responses"]):
-        raise ValueError("Obsolete IDs have research-linked responses; refusing deletion.")
-    for row in research_columns:
-        linked = db.execute(sql.SQL("SELECT 1 FROM {} WHERE {} = ANY(%s) LIMIT 1").format(
-            sql.Identifier(row["table_name"]), sql.Identifier(row["column_name"])
-        ), (obsolete,)).fetchone()
-        if linked:
-            raise ValueError(f"Obsolete IDs are referenced by {row['table_name']}; refusing deletion.")
-
     obsolete_set = set(obsolete)
     attempts = []
     for attempt in db.execute("SELECT * FROM vocab_quiz_attempts").fetchall():
@@ -88,8 +74,6 @@ def purge(db: Any, *, execute: bool = False, backup: Path | None = None) -> dict
             continue
         if len(old) != len(results):
             raise ValueError(f"Quiz {attempt['id']} mixes obsolete and current IDs; refusing deletion.")
-        if attempt.get("research_study_id"):
-            raise ValueError(f"Quiz {attempt['id']} is research-linked; refusing deletion.")
         attempts.append(attempt)
     snapshots["vocab_quiz_attempts"] = attempts
     attempt_ids = [row["id"] for row in attempts]
