@@ -134,6 +134,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
   return {
     view,
     vocabularyChanged: session.vocabularyChanged,
+    practiceError: session.practiceError,
     entries,
     tierPos,
     roundsDone,

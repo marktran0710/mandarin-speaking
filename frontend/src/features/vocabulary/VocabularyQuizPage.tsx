@@ -316,6 +316,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
 
   return (
     <StudentPage layout="task" wide header={header}>
+      {flow.practiceError && <StudentSection variant="panel"><p role="alert">{flow.practiceError}</p></StudentSection>}
       <QuizStatusBar flow={flow} question={question} />
       {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} hasConversation={hasConversation} onOpenPreview={onOpenPreview} /> : question ? (
         <div className="sa-quiz__workspace">

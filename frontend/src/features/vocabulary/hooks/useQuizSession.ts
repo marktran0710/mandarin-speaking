@@ -18,6 +18,7 @@ import {
   buildMaintenanceAssessmentQuestions,
   buildDiagnosticRoundQuestions,
   buildPersonalizedAssessmentQuestions,
+  MissingPracticeAssessmentError,
   buildQuizQuestion,
   quizConceptId,
   quizItemId,
@@ -68,6 +69,7 @@ export function useQuizSession({
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
   const [isFinishing, setIsFinishing] = useState(false);
   const [vocabularyChanged, setVocabularyChanged] = useState(false);
+  const [practiceError, setPracticeError] = useState<string | null>(null);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   // Lock answer handlers synchronously, including calls made before React renders.
   const questionStateRef = useRef({ index: 0, answered: false });
@@ -342,6 +344,20 @@ export function useQuizSession({
   }, [timeLimitMs, screen, selected, index]);
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
+    const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
+    let reviewQuestions: VocabQuizQuestion[] | null = null;
+    try {
+      if (picked === "weak_words" && (hasAssessmentBank || entriesForRound.some((entry) => entry.bktNextDimension))) {
+        reviewQuestions = buildPersonalizedAssessmentQuestions(entriesForRound);
+      } else if (picked === "maintenance_review" && hasAssessmentBank) {
+        reviewQuestions = buildMaintenanceAssessmentQuestions(entriesForRound);
+      }
+    } catch (error) {
+      if (!(error instanceof MissingPracticeAssessmentError)) throw error;
+      setPracticeError(error.message);
+      return;
+    }
+    setPracticeError(null);
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setIsFinishing(false); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
     questionStateRef.current = { index: 0, answered: false };
@@ -358,11 +374,8 @@ export function useQuizSession({
               ? "challenge_started"
               : null;
     if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
-    const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
-    if ((picked === "weak_words" || picked === "maintenance_review") && hasAssessmentBank) {
-      const questions = picked === "weak_words"
-        ? buildPersonalizedAssessmentQuestions(entriesForRound)
-        : buildMaintenanceAssessmentQuestions(entriesForRound);
+    if (reviewQuestions !== null) {
+      const questions = reviewQuestions;
       plannedQuestionCountRef.current = questions.length;
       setQuestions(questions);
       setQuestionLimit(questions.length);
@@ -433,6 +446,7 @@ export function useQuizSession({
     if (entriesForRound.length > 0) chooseMode("maintenance_review", entriesForRound, entriesForRound.length, entries);
   };
   const returnToModes = () => {
+    setPracticeError(null);
     setScreen("mode-select");
     if (lessonProgress.lessonCompleted) recordLessonEvent("lesson_completed", { strongWords: lessonProgress.strongWords, remainingWords: lessonProgress.remainingWords });
     // The attempt has been posted before the learner can leave the summary.
@@ -444,7 +458,7 @@ export function useQuizSession({
   };
 
   return {
-    screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
+    screen, setScreen, mode, practiceError, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, isFinishing, vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,

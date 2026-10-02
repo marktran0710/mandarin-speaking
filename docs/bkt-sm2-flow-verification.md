@@ -131,12 +131,12 @@ forgetting term in the BKT probability, and neither algorithm proves that the
 other's assumptions hold. One SRS schedule per word and rotating dimensions
 also do not measure delayed retention of every dimension separately.
 
-One existing selector limitation remains: if a word lacks a published item in
-the server's targeted dimension, the frontend falls back to its first bank
-item. That can prevent repair of the unresolved target. The frontend test
-currently documents this behavior; it is not a solution for incomplete banks.
-The read-only content audit found no incomplete bank in the current 12 lessons,
-so this is a remaining edge case rather than an observed pilot blocker.
+The frontend now fails explicitly if a word lacks a published item in the
+server's targeted dimension, including an empty bank. It shows an error before
+starting the round or recording a started event; it never substitutes an
+unrelated item. Regression tests cover this failure and a subsequent valid
+practice attempt. The read-only content audit found no incomplete bank in the
+current 12 lessons.
 
 ## Regression verification
 

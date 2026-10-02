@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPersonalizedAssessmentQuestions } from "./quizGeneration";
+import { buildPersonalizedAssessmentQuestions, MissingPracticeAssessmentError } from "./quizGeneration";
 import type { VocabAssessmentQuestion, VocabQuizEntry } from "./types";
 
 function question(
@@ -78,9 +78,16 @@ describe("personalized practice selection follows the server's current dimension
     expect(pick(entry({}))).toBe("meaning");
   });
 
-  it("falls back to a stable item when the targeted dimension has no published question", () => {
+  it("fails explicitly when the targeted dimension has no published question", () => {
     const meaningOnly = entry({ assessmentQuestions: [bank[2]], bktNextDimension: "pinyin" });
 
-    expect(pick(meaningOnly)).toBe("meaning");
+    expect(() => pick(meaningOnly)).toThrow(MissingPracticeAssessmentError);
+    expect(() => pick(meaningOnly)).toThrow(/no published pinyin question/);
+  });
+
+  it("fails for an empty or absent bank when a dimension is targeted", () => {
+    for (const assessmentQuestions of [[], undefined]) {
+      expect(() => pick(entry({ assessmentQuestions, bktNextDimension: "context" }))).toThrow(MissingPracticeAssessmentError);
+    }
   });
 });

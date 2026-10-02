@@ -54,6 +54,7 @@ export {
   buildDiagnosticRoundQuestions,
   buildMaintenanceAssessmentQuestions,
   buildPersonalizedAssessmentQuestions,
+  MissingPracticeAssessmentError,
   buildQuizQuestion,
   buildQuizQuestions,
   buildWordQuestionVariants,

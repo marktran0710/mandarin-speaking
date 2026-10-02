@@ -6,6 +6,9 @@ import { createVocabQuizAttempt, recordVocabQuizResponse } from "../../../servic
 import VocabularyQuizPage from "../VocabularyQuizPage";
 import { correctAnswer, useQuizSession } from "./useQuizSession";
 
+const recordLessonEvent = vi.hoisted(() => vi.fn());
+const reviewState = vi.hoisted(() => ({ targetDimension: null as "context" | null }));
+
 vi.mock("../../../services/database", () => ({
   canUseDatabase: () => true,
   createVocabQuizAttempt: vi.fn(),
@@ -24,8 +27,11 @@ vi.mock("./useQuizSessionData", async () => {
     useQuizSessionData: () => {
       const [stars, setStars] = useState(0);
       return {
-        stars, setStars, setAttempts: vi.fn(), recordLessonEvent: vi.fn(),
-        priorityReviewWords: [], weakWords: [], masteryWords: [], strongWords: [],
+        stars, setStars, setAttempts: vi.fn(), recordLessonEvent,
+        priorityReviewWords: reviewState.targetDimension ? [{
+          wordId: "word-1", word: "word-1",
+          vocabularyState: { practice: { nextDimension: reviewState.targetDimension } },
+        }] : [], weakWords: [], masteryWords: [], strongWords: [],
         dueWords: [], sessionReady: true,
         refreshReview: vi.fn(async () => undefined),
         studentScope: "student-1",
@@ -76,10 +82,31 @@ function deferredSave() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  reviewState.targetDimension = null;
   vi.mocked(createVocabQuizAttempt).mockResolvedValue(undefined as never);
 });
 
 describe("quiz answer and completion boundaries", () => {
+  it.each([false, true])("blocks targeted practice before any round starts (empty bank: %s)", (emptyBank) => {
+    const target: VocabQuizEntry = { ...makeEntries(1)[0], bktNextDimension: "context" };
+    if (emptyBank) target.assessmentQuestions = [];
+    const { result } = renderHook(() => useQuizSession({ entries: [target], storyId: "lesson-1", level: "easy", studentId: "student-1" }));
+    act(() => result.current.practiceWord(target));
+    expect(result.current.practiceError).toContain("no published context question");
+    expect(result.current.screen).toBe("mode-select");
+    expect(result.current.mode).toBeNull();
+    expect(result.current.question).toBeUndefined();
+    expect(recordLessonEvent).not.toHaveBeenCalled();
+    expect(recordVocabQuizResponse).not.toHaveBeenCalled();
+    expect(createVocabQuizAttempt).not.toHaveBeenCalled();
+
+    // A later valid attempt clears the error and selects the requested dimension.
+    act(() => result.current.practiceWord({ ...makeEntries(1)[0], bktNextDimension: "pinyin" }));
+    expect(result.current.practiceError).toBeNull();
+    expect(result.current.screen).toBe("quiz");
+    expect(result.current.question.kind === "assessment" && result.current.question.assessment.questionType).toBe("character_to_pinyin_typing");
+  });
+
   it.each([true, false])("advances directly after an answer (correct: %s)", (correct) => {
     const { result } = loadSession(2);
     const answer = correct ? correctAnswer(result.current.question) : "wrong";
@@ -165,6 +192,20 @@ describe("quiz answer and completion boundaries", () => {
     act(() => result.current.choose(correctAnswer(result.current.question)));
     expect(result.current.results).toHaveLength(1);
   });
+});
+
+it("shows a visible missing-dimension error and keeps the practice menu open", () => {
+  reviewState.targetDimension = "context";
+  const topic: Topic = {
+    id: "lesson-1", name: "Lesson", description: "", skillFocus: "conversation", images: [], vocabulary: {},
+    vocabAssessment: makeEntries(1).flatMap((entry) => entry.assessmentQuestions ?? []),
+  };
+  render(<VocabularyQuizPage topic={topic} lessonLabel="Lesson" onFinished={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "練習需要加強的詞語" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("no published context question");
+  expect(screen.getByRole("button", { name: "練習需要加強的詞語" })).toBeInTheDocument();
+  expect(recordLessonEvent).not.toHaveBeenCalled();
+  expect(recordVocabQuizResponse).not.toHaveBeenCalled();
 });
 
 it("shows 16/16 and a neutral saving state until persistence finishes", async () => {

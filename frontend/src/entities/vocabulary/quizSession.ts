@@ -7,11 +7,11 @@ import type {
   VocabQuizEntry,
   VocabQuizSynonymCandidate,
 } from "./types";
-import { MAX_QUESTIONS, OPTION_COUNT, FILLER_DISTRACTORS, buildDiagnosticRoundQuestions, shuffle } from "./quizGeneration";
+import { MAX_QUESTIONS, OPTION_COUNT, FILLER_DISTRACTORS, buildDiagnosticRoundQuestions, buildPersonalizedAssessmentQuestions, shuffle } from "./quizGeneration";
 import { CLOZE_BLANK, quizConceptId } from "./quizTypes";
 import { normalizeQuizAnswer } from "./quizValidation";
 import type { QuizQuestionBuildContext, QuizQuestionKind } from "./quizSessionPlanner";
-import type { VocabAssessmentQuestion, VocabQuizDimension } from "./types";
+import type { VocabAssessmentQuestion } from "./types";
 import type {
   VocabQuizClozeQuestion,
   VocabQuizListeningQuestion,
@@ -222,16 +222,6 @@ const TIER_KIND_WEIGHTS: Record<TierMode, KindWeights> = {
   tier3: [["translation", 15], ["pinyin", 15], ["reverse", 15], ["cloze", 15], ["synonym", 10], ["pos", 10]],
 };
 
-// Which required dimension each legacy practice kind exercises. pos/synonym
-// are enrichment, not one of the three dimensions, so they never target one.
-const QUESTION_KIND_DIMENSION: Partial<Record<QuizQuestionKind, VocabQuizDimension>> = {
-  translation: "meaning",
-  reverse: "meaning",
-  listening: "meaning",
-  pinyin: "pinyin",
-  cloze: "context",
-};
-
 function isKindAvailable(kind: QuizQuestionKind, entry: VocabQuizEntry, allEntries: VocabQuizEntry[]): boolean {
   switch (kind) {
     case "translation": return true;
@@ -250,16 +240,10 @@ function pickQuestionKind(entry: VocabQuizEntry, allEntries: VocabQuizEntry[], m
   const available = weights.filter(([kind]) => !excludedKinds.has(kind)
     && !entry.disabledQuestionKinds?.includes(kind as "pinyin" | "reverse") && isKindAvailable(kind, entry, allEntries));
   if (!available.length) return null;
-  // Personalized practice targets the dimension the SERVER names (its current
-  // unresolved state), never a history of failed kinds. Only when that
-  // dimension has no available legacy question does it prefer an unseen form.
-  const targeted = mode === "weak_words" && entry.bktNextDimension
-    ? available.filter(([kind]) => QUESTION_KIND_DIMENSION[kind] === entry.bktNextDimension)
-    : [];
   const unseen = mode === "weak_words"
     ? available.filter(([kind]) => !entry.bktSeenQuestionKinds?.includes(kind))
     : available;
-  const preferred = targeted.length ? targeted : unseen.length ? unseen : available;
+  const preferred = unseen.length ? unseen : available;
   let roll = Math.random() * preferred.reduce((sum, [, weight]) => sum + weight, 0);
   for (const [kind, weight] of preferred) {
     roll -= weight;
@@ -276,6 +260,9 @@ export function buildQuizQuestion(
   mode: VocabQuizMode,
   context?: QuizQuestionBuildContext,
 ): VocabQuizQuestion | null {
+  if (mode === "weak_words" && entry.bktNextDimension) {
+    return buildPersonalizedAssessmentQuestions([entry])[0];
+  }
   const questionEntries = context?.distractorEntries ?? allEntries;
   const forbiddenAnswers = context?.forbiddenAnswers ?? new Set<string>();
   const tier = tierConfigFromMode(mode)?.tier ?? null;

@@ -126,11 +126,21 @@ function bankInDimensionOrder(bank: VocabAssessmentQuestion[]): VocabAssessmentQ
  * Only when the server names no dimension (older payloads) does it fall back
  * to the first dimension not yet seen, in the same stable order.
  */
+export class MissingPracticeAssessmentError extends Error {
+  constructor(readonly word: string, readonly dimension: VocabQuizDimension) {
+    super(`Cannot start practice for "${word}": no published ${dimension} question. Please ask your teacher to add it.`);
+    this.name = "MissingPracticeAssessmentError";
+  }
+}
+
 export function buildPersonalizedAssessmentQuestions(
   entries: VocabQuizEntry[],
 ): VocabQuizAssessmentQuestion[] {
   return entries.flatMap((entry) => {
     const bank = bankInDimensionOrder(entry.assessmentQuestions ?? []);
+    if (entry.bktNextDimension && !bank.some((candidate) => assessmentDimension(candidate) === entry.bktNextDimension)) {
+      throw new MissingPracticeAssessmentError(entry.word, entry.bktNextDimension);
+    }
     if (!bank.length) return [];
     const seenDimensions = new Set(
       (entry.bktSeenQuestionKinds ?? [])
