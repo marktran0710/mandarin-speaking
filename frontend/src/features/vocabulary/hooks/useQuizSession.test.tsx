@@ -7,7 +7,10 @@ import VocabularyQuizPage from "../VocabularyQuizPage";
 import { correctAnswer, useQuizSession } from "./useQuizSession";
 
 const recordLessonEvent = vi.hoisted(() => vi.fn());
-const reviewState = vi.hoisted(() => ({ targetDimension: null as "context" | null }));
+const reviewState = vi.hoisted(() => ({
+  targetDimension: null as "context" | null,
+  dueWords: [] as Array<{ wordId: string; word: string; observationCount: number; seenQuestionTypes: string[] }>,
+}));
 
 vi.mock("../../../services/database", () => ({
   canUseDatabase: () => true,
@@ -32,7 +35,7 @@ vi.mock("./useQuizSessionData", async () => {
           wordId: "word-1", word: "word-1",
           vocabularyState: { practice: { nextDimension: reviewState.targetDimension } },
         }] : [], weakWords: [], masteryWords: [], strongWords: [],
-        dueWords: [], sessionReady: true,
+        dueWords: reviewState.dueWords, sessionReady: true,
         refreshReview: vi.fn(async () => undefined),
         studentScope: "student-1",
         lessonProgress: { challenge: { bestScore: 0, attempts: [] } },
@@ -83,10 +86,35 @@ function deferredSave() {
 beforeEach(() => {
   vi.clearAllMocks();
   reviewState.targetDimension = null;
+  reviewState.dueWords = [];
   vi.mocked(createVocabQuizAttempt).mockResolvedValue(undefined as never);
 });
 
 describe("quiz answer and completion boundaries", () => {
+  it.each([
+    [3, "basic_meaning_mcq"],
+    [4, "character_to_pinyin_typing"],
+    [5, "context_cloze_mcq"],
+    [6, "basic_meaning_mcq"],
+  ])("starts maintenance using server observation count %s to select %s", (observationCount, expectedKind) => {
+    const entries = makeEntries(1);
+    const meaning = entries[0].assessmentQuestions![0];
+    entries[0].assessmentQuestions!.push({
+      ...meaning, questionId: "word-1-round3", round: 3, tier: "tier3", questionType: "context_cloze_mcq",
+    });
+    reviewState.dueWords = [{
+      wordId: "word-1", word: "word-1", observationCount: Number(observationCount),
+      seenQuestionTypes: ["basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq"],
+    }];
+    const { result } = renderHook(() => useQuizSession({ entries, storyId: "lesson-1", level: "easy", studentId: "student-1" }));
+    act(() => result.current.startDueReview());
+    expect(result.current.mode).toBe("maintenance_review");
+    expect(result.current.question?.kind).toBe("assessment");
+    if (result.current.question?.kind !== "assessment") throw new Error("Expected published maintenance item");
+    expect(result.current.question.assessment.questionType).toBe(expectedKind);
+    expect(recordLessonEvent).not.toHaveBeenCalledWith("personalized_started", expect.anything());
+  });
+
   it.each([false, true])("blocks targeted practice before any round starts (empty bank: %s)", (emptyBank) => {
     const target: VocabQuizEntry = { ...makeEntries(1)[0], bktNextDimension: "context" };
     if (emptyBank) target.assessmentQuestions = [];

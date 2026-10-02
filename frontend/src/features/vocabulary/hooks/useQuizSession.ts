@@ -439,10 +439,9 @@ export function useQuizSession({
     if (entriesForRound.length > 0) chooseMode("weak_words", entriesForRound, entriesForRound.length, entries);
   };
   const startDueReview = () => {
-    const byWordId = new Map(entries.map((entry) => [entry.wordId ?? entry.word, entry]));
-    const entriesForRound = dueWords
-      .map((item) => byWordId.get(item.wordId) ?? entries.find((entry) => entry.word === item.word))
-      .filter((entry): entry is VocabQuizEntry => Boolean(entry));
+    // Preserve the server's coverage/count metadata so the maintenance
+    // selector rotates dimensions instead of treating every due word as unseen.
+    const entriesForRound = entriesInServerPriorityOrder(entries, dueWords);
     if (entriesForRound.length > 0) chooseMode("maintenance_review", entriesForRound, entriesForRound.length, entries);
   };
   const returnToModes = () => {

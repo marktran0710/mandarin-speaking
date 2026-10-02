@@ -178,3 +178,17 @@ selected candidate's provenance without describing it as deployed. Calculator
 reports also flag `parametersOverridden` when inputs change the selected fit's
 transition or observation parameters. Engineering defaults and unavailable fit
 provenance are labelled explicitly and do not imply human calibration.
+
+## Follow-up: maintenance startup metadata (2026-10-02)
+
+Reviewing baseline `d47fb552` found that the maintenance selector's rotation
+worked in isolation but the `startDueReview` hook discarded the queue's
+`seenQuestionTypes` and `observationCount`. Production startup consequently
+selected meaning repeatedly even when counts 4 and 5 should select pinyin
+and context. Two hook regressions reproduced the failure before the fix.
+
+Maintenance startup now hydrates lesson entries from the server queue using
+the same metadata bridge as corrective practice. Hook regressions cover
+counts 3, 4, 5 and 6 selecting meaning, pinyin, context and meaning respectively.
+This fixes dimension selection; it does not establish delayed retention or
+calibrate the active synthetic fit.
