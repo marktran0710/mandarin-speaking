@@ -119,7 +119,11 @@ def _verified_record_scene_result(record: dict[str, Any], progress: Any) -> tupl
     ]
     pron_score = fmean(word_scores) if word_scores else _metric_number(metrics, "tone_accuracy")
     rubric = metrics.get("pronunciation_evaluation")
-    if isinstance(rubric, dict) and rubric.get("dimensions"):
+    # OMPAL is retained as the raw 0–5 evaluation below. Do not silently
+    # replace it with the old word/tone percentage in the legacy score field.
+    if isinstance(rubric, dict) and (
+        rubric.get("ompal_comparison") is not None or rubric.get("dimensions")
+    ):
         pron_score = None
     pause_analysis = metrics.get("pause_analysis")
     if not isinstance(pause_analysis, dict):
@@ -133,7 +137,7 @@ def _verified_record_scene_result(record: dict[str, Any], progress: Any) -> tupl
         "vocabScore": _metric_number(coverage, "score"),
         "toneAccuracy": _metric_number(metrics, "tone_accuracy"),
         "pronScore": pron_score,
-        "pronunciationEvaluation": rubric if isinstance(rubric, dict) and rubric.get("dimensions") else None,
+        "pronunciationEvaluation": rubric if isinstance(rubric, dict) else None,
         "fluencyScore": _metric_number(metrics, "fluency_score"),
         "audioUrl": record.get("audio_url"),
         "pauseCount": pause_analysis.get("pause_count", 0),

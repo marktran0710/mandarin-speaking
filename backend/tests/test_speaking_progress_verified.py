@@ -11,7 +11,7 @@ from fastapi import HTTPException
 
 from main import SpeakingProgressRequest
 import routers.speaking_progress as speaking_progress
-from services.speaking_progress_service import _merge_latest_result
+from services.speaking_progress_service import _merge_latest_result, _verified_record_scene_result
 
 
 def test_new_rubric_replaces_old_same_attempt_pronunciation_percentage():
@@ -117,6 +117,35 @@ def _progress(record_id="audio-1", **overrides):
     }
     payload.update(overrides)
     return SpeakingProgressRequest.model_validate(payload)
+
+
+def test_ompal_record_keeps_external_evaluation_without_legacy_pron_score():
+    evaluation = {
+        "status": "scored",
+        "model": {"scoring_version": "ompal-praat-ai-v1"},
+        "ompal_comparison": {
+            "status": "scored",
+            "source": "ompal_api",
+            "scores": {"accuracy": 4.2, "fluency": 4.1, "prosody": 3.9},
+        },
+    }
+    record = _record(praat_metrics={
+        "tone_accuracy": 62.5,
+        "fluency_score": 54.0,
+        "content_match": True,
+        "pronunciation_mastery": {"passed": True},
+        "pronunciation_evaluation": evaluation,
+        "ai_feedback": {"vocabulary_coverage": {"score": 80, "used": [], "missing": []}},
+    })
+    result, _, _ = _verified_record_scene_result(
+        record,
+        SimpleNamespace(
+            difficultyLevel="easy", conversationId="", turnId="", turnIndex=None,
+            promptId="", latestResult=None,
+        ),
+    )
+    assert result["pronScore"] is None
+    assert result["pronunciationEvaluation"] == evaluation
 
 
 @pytest.mark.asyncio
