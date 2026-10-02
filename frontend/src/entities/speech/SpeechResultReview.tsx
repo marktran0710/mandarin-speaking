@@ -10,12 +10,8 @@ import StudentSystemText from "@shared/ui/student/StudentSystemText";
 import { studentUiCopy, type StudentUiCopyKey } from "../../i18n/student-ui-copy";
 import { scriptMismatchTokens, splitTeacherScriptIntoPhrases } from "./scriptAlignment";
 import { buildModelOverlay, type ModelOverlay, type SentenceModelContour } from "./modelOverlay";
-import ReferenceComparison from "./ReferenceComparison";
 import OmpalComparison from "./OmpalComparison";
 import "./SpeechResultReview.css";
-
-// Both speaking flows show separate rubric scores unless explicitly disabled.
-const SHOW_VOICE_RUBRIC_SCORES = import.meta.env.VITE_SHOW_VOICE_RUBRIC_SCORES !== "false";
 
 interface SpeechResultReviewProps {
   targetScript: string;
@@ -89,27 +85,6 @@ export default function SpeechResultReview({
       <div className="sa-result-review__summary" aria-label={studentUiCopy.resultStep.zh}>
         <ResultBadge ok={meaningPassed} />
       </div>
-
-      {SHOW_VOICE_RUBRIC_SCORES && pronunciation?.dimensions && (
-        <>
-          <p className="sa-result-review__rubric-note"><StudentSystemText k="rubricResearchStatus" /></p>
-          <div className="sa-result-review__rubrics" aria-label="Pronunciation dimensions">
-            {Object.values(pronunciation.dimensions).map((dimension) => (
-              <article key={dimension.key} className="sa-result-review__rubric">
-                <strong><StudentSystemText k={dimension.key === "accuracy" ? "accuracyLabel" : dimension.key === "pronunciation" ? "pronunciationLabel" : dimension.key === "fluency" ? "fluencyLabel" : "prosodyLabel"} /></strong>
-                <p>{dimension.score == null ? <StudentSystemText k="scoreNotAssessed" /> : <strong>{dimension.score}/5</strong>}</p>
-                <p>{dimension.key === "accuracy" ? <StudentSystemText k="accuracyNotAssessed" /> : dimension.feedback || dimension.reason}</p>
-                {dimension.key === "pronunciation" && (
-                  <small>
-                    {(dimension.pronunciation_errors?.length ?? 0) > 0 && `${dimension.pronunciation_errors?.length} segmental issues. `}
-                    {(dimension.tone_errors?.length ?? 0) > 0 && `${dimension.tone_errors?.length} tone issues.`}
-                  </small>
-                )}
-              </article>
-            ))}
-          </div>
-        </>
-      )}
 
       <div className="sa-result-review__script" aria-label={studentUiCopy.wordByWord.zh}>
         {scriptUnitGroups(units).map((group) => (
@@ -192,7 +167,6 @@ export default function SpeechResultReview({
       </div>
 
       {pronunciation && <OmpalComparison result={pronunciation} />}
-      {pronunciation?.reference_comparison && <ReferenceComparison comparison={pronunciation.reference_comparison} />}
 
       {aiFeedback && (
         <div className="sa-result-review__coach">

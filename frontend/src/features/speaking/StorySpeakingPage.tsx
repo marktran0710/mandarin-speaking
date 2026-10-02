@@ -117,7 +117,9 @@ export default function StorySpeakingPage({
       vocabMissing: coverage?.missing ?? [],
       vocabScore: coverage?.score ?? 0,
       toneAccuracy: Math.round(result.metrics.tone_accuracy ?? 0),
-      pronScore: result.metrics.pronunciation_evaluation?.dimensions ? null : Math.round(result.metrics.tone_accuracy ?? 0),
+      // Speaking uses OMPAL as the only pronunciation score. Praat remains
+      // diagnostic/visual evidence and is not copied into this score field.
+      pronScore: null,
       pronunciationEvaluation: result.metrics.pronunciation_evaluation,
       fluencyScore: Math.round(result.metrics.fluency_score ?? 0),
       audioUrl: result.audioUrl,

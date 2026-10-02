@@ -7,11 +7,11 @@ vi.mock("@entities/audio", () => ({ convertBlobToWav: vi.fn(async (audio: Blob) 
 vi.mock("@shared/api/speech-analysis", () => ({ postSpeechAnalysis: vi.fn() }));
 vi.mock("../../../utils/studentSession", () => ({ getStudentId: () => "student-1" }));
 
-const evaluation = { dimensions: { fluency: { score: 3 }, prosody: { score: 4 }, accuracy: { score: null } }, model: { feedback_model: "gpt-6-luna" } };
+const evaluation = { ompal_comparison: { status: "scored", source: "ompal_api", scores: { accuracy: 4.2, fluency: 3.8, prosody: 4.1 } }, model: { feedback_model: "groq" } };
 
 beforeEach(() => { vi.mocked(postSpeechAnalysis).mockReset(); });
 
-describe("GPT speaking recorder", () => {
+describe("OMPAL speaking recorder", () => {
   it.each([false, true])("requests strict feedback for conversation=%s", async (conversation) => {
     vi.mocked(postSpeechAnalysis).mockResolvedValue({
       analysis: { pronunciation_evaluation: evaluation }, progressionEligible: true,
@@ -36,12 +36,12 @@ describe("GPT speaking recorder", () => {
   });
 
   it("reports model errors without accepting an old result", async () => {
-    vi.mocked(postSpeechAnalysis).mockRejectedValue(new Error("GPT failed (llm_http_401)"));
+    vi.mocked(postSpeechAnalysis).mockRejectedValue(new Error("OMPAL failed (timeout)"));
     const { result } = renderHook(() => useSpeakingRecorder(() => ({ baseStoryId: "story-1", sceneIndex: 0 })));
     await act(async () => {
       expect(await result.current.uploadRecording(new File(["audio"], "sample.wav", { type: "audio/wav" }))).toBeNull();
     });
-    expect(result.current.error).toContain("llm_http_401");
+    expect(result.current.error).toContain("OMPAL failed");
     expect(result.current.attemptNumber).toBe(0);
     expect(result.current.isAnalyzing).toBe(false);
   });
@@ -52,6 +52,6 @@ describe("GPT speaking recorder", () => {
     await act(async () => {
       expect(await result.current.uploadRecording(new File(["audio"], "sample.wav", { type: "audio/wav" }))).toBeNull();
     });
-    expect(result.current.error).toContain("Restart the backend");
+    expect(result.current.error).toContain("OMPAL speaking score");
   });
 });

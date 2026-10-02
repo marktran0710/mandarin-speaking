@@ -163,20 +163,11 @@ describe("StorySpeakingPage", () => {
     const result = makeRecorderResult();
     result.metrics.pronunciation_evaluation = {
       status: "scored", reason: null,
-      dimensions: {
-        pronunciation: { key: "pronunciation", score: 4, out_of: 5, source: "wav2vec2_plus_praat", rubric_level: 4, rubric_description: "Close", reason: "Measured", measurements: {}, criteria: [], pronunciation_errors: [], tone_errors: [] },
-        fluency: { key: "fluency", score: 3, out_of: 5, source: "praat", rubric_level: 3, rubric_description: "Moderately fluent", reason: "Several pauses", feedback: "Practise continuous phrases.", measurements: { pause_count: 4 }, criteria: [] },
-        prosody: { key: "prosody", score: 4, out_of: 5, source: "praat", rubric_level: 4, rubric_description: "Minor deviations", reason: "Reference timing", feedback: "Match the sentence rhythm.", measurements: { rhythm_similarity: .8 }, criteria: [] },
-      },
+      ompal_comparison: { status: "scored", source: "ompal_api", scores: { accuracy: 4.2, fluency: 3.8, prosody: 4.1 }, model_version: "v2" },
       metrics: {}, words: [],
       feedback: { summary: "Keep the falling tone clear.", focus_words: [{ word: "好", feedback: "Let the pitch dip gently." }], practice_tip: "Repeat the sentence slowly.", source: "llm" },
-      model: { scoring_version: "pronunciation-rubric-v1", acoustic_pipeline_version: "v1", feedback_model: "gpt-6-luna", feedback_source: "llm" },
-      reference: { key: "reference-1", cache_hit: false, audio_url: "/uploads/sample.wav" },
-      reference_comparison: {
-        status: "scored", backend: "librosa", evidence_quality: "full",
-        measurements: { mfcc_similarity: .81, pitch_similarity: .92, timing_similarity: .73 },
-        contours: { reference: [[0, 0], [1, 2]], student: [[0, 0], [1, 1]] },
-      },
+      model: { scoring_version: "ompal-praat-ai-v1", acoustic_pipeline_version: "praat", feedback_model: "groq", feedback_source: "llm" },
+      reference: { key: "ompal_api", cache_hit: false },
     };
     const uploadRecording = vi.fn().mockResolvedValue(result);
     vi.mocked(useSpeakingRecorder).mockReturnValue(recorderMock({ uploadRecording }));
@@ -203,16 +194,13 @@ describe("StorySpeakingPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "略過自我評估" }));
     await screen.findByText("你的錄音");
     expect(screen.queryByText("87/100")).not.toBeInTheDocument();
-    expect(screen.getByText("3/5")).toBeInTheDocument();
-    expect(screen.getAllByText("4/5")).toHaveLength(2);
-    expect(screen.getByText(/研究試行分數/)).toBeInTheDocument();
-    expect(screen.getByText("聲音特徵相似度")).toBeInTheDocument();
-    expect(screen.getByText("81%")).toBeInTheDocument();
-    expect(await screen.findByRole("img", { name: "老師與學生音高比較" })).toBeInTheDocument();
-    expect(screen.getByText(/gpt-6-luna/)).toBeInTheDocument();
+    expect(screen.getByText("3.80 / 5")).toBeInTheDocument();
+    expect(screen.getAllByText(/4\.\d{2} \/ 5/)).toHaveLength(2);
+    expect(screen.getByText(/OMPAL 提供/)).toBeInTheDocument();
+    expect(document.querySelector(".praat-timeline")).toBeInTheDocument();
+    expect(screen.getByText(/groq/)).toBeInTheDocument();
     expect(screen.getByText("Keep the falling tone clear.")).toBeInTheDocument();
     expect(screen.getByText("Let the pitch dip gently.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "老師示範" })).toBeInTheDocument();
     expect(uploadRecording).toHaveBeenCalledWith(file);
     expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(onSceneSubmission).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pronScore: null, pronunciationEvaluation: result.metrics.pronunciation_evaluation }));

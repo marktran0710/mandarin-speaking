@@ -280,7 +280,7 @@ def stable_speaking_analysis(monkeypatch):
 
 
 @pytest.mark.parametrize("verified,conversation", [(True, False), (True, True), (False, False), (False, True)])
-def test_speaking_flows_return_and_save_gpt_feedback(
+def test_speaking_flows_return_and_save_ompal_score_and_praat_feedback(
     isolated, logged_in_student, stable_speaking_analysis, verified, conversation,
 ):
     client, _ = logged_in_student
@@ -298,20 +298,13 @@ def test_speaking_flows_return_and_save_gpt_feedback(
     assert response.status_code == 200, response.text
     body = response.json()
     analysis = body["analysis"] if verified else body
-    assert "score" not in analysis["pronunciation_evaluation"]
-    assert analysis["pronunciation_evaluation"]["dimensions"]["pronunciation"]["score"] is None
-    assert analysis["pronunciation_evaluation"]["dimensions"]["prosody"]["score"] == 5
-    assert analysis["pronunciation_evaluation"]["model"]["feedback_model"] == "gpt-6-luna"
-    assert analysis["pronunciation_evaluation"]["reference"]["audio_url"] == "/uploads/story_audio/ref.wav"
-    assert "debug" not in analysis["pronunciation_evaluation"]
-    comparison = analysis["pronunciation_evaluation"]["reference_comparison"]
-    assert comparison["status"] == "scored"
-    assert comparison["contours"]["student"] == [[0, 0], [0, 1], [1, 2]]
-    assert "parameters" not in comparison and "debug" not in comparison
-    assert analysis["feedback_provenance"]["fallback_used"] is False
-    assert analysis["processing_trace"]["stages"][-1]["model"] == "gpt-6-luna"
+    evaluation = analysis["pronunciation_evaluation"]
+    assert "dimensions" not in evaluation
+    assert evaluation["model"]["scoring_version"] == "ompal-praat-ai-v1"
+    assert evaluation["ompal_comparison"]["reason"] == "disabled"
+    assert evaluation["feedback"]["summary"] == "Old feedback"
     assert analysis["content_match"] is True
-    assert stable_speaking_analysis.call_args.kwargs["skip_language_feedback"] is True
+    assert stable_speaking_analysis.call_args.kwargs["skip_language_feedback"] is False
     if verified:
         with db.connect_db() as conn:
             saved = conn.execute("SELECT praat_metrics FROM audio_records WHERE attempt_id = %s", (data["attempt_id"],)).fetchone()
@@ -322,22 +315,19 @@ def test_speaking_flows_return_and_save_gpt_feedback(
         assert stable_speaking_analysis.await_count == 1
 
 
-def test_gpt_failure_does_not_persist_a_successful_speaking_attempt(
+def test_speaking_does_not_call_the_local_pronunciation_rubric(
     isolated, logged_in_student, stable_speaking_analysis, monkeypatch,
 ):
-    from services.pronunciation.feedback import FeedbackRejected
-    async def failed_http(*args):
-        raise FeedbackRejected("llm_http_401")
-    monkeypatch.setattr(evaluator_module, "build_feedback_provider", lambda config=None: OpenAICompatibleFeedbackProvider(config, failed_http))
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr(evaluator_module, "evaluate_rubric_pronunciation", AsyncMock(side_effect=AssertionError("local rubric called")))
     client, _ = logged_in_student
     _publish_story()
     _reference(isolated)
     response = client.post("/api/analyze/verified", files={"file": ("recording.wav", _wav(isolated), "audio/wav")},
-                           data={"base_story_id": STORY_ID, "scene_index": "0", "pronunciation_feedback": "true", "attempt_id": "failed-feedback"})
-    assert response.status_code == 502, response.text
-    assert response.json()["detail"]["code"] == "llm_http_401"
+                           data={"base_story_id": STORY_ID, "scene_index": "0", "pronunciation_feedback": "true", "attempt_id": "no-local-rubric"})
+    assert response.status_code == 200, response.text
     with db.connect_db() as conn:
-        assert conn.execute("SELECT id FROM audio_records WHERE attempt_id = %s", ("failed-feedback",)).fetchone() is None
+        assert conn.execute("SELECT id FROM audio_records WHERE attempt_id = %s", ("no-local-rubric",)).fetchone() is not None
 
 
 def test_student_speaking_flow_includes_ompal_comparison(

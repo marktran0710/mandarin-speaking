@@ -267,13 +267,11 @@ async def analyze_verified_speech(
         saved_payload = existing.get("praat_metrics") or {}
         if pronunciation_feedback is True:
             evaluation = saved_payload.get("pronunciation_evaluation")
-            expected_key = (f"story:{scene['story_id']}:turn:{turn_id}" if conversation_id or turn_id
-                            else f"story:{scene['story_id']}:scene:{scene['scene_index']}")
-            from domain.pronunciation.rubric import VERSION as RUBRIC_VERSION
-            if (not evaluation or evaluation.get("model", {}).get("scoring_version") != RUBRIC_VERSION
+            from services.pronunciation.speaking import SPEAKING_EVALUATION_VERSION
+            if (not evaluation or evaluation.get("model", {}).get("scoring_version") != SPEAKING_EVALUATION_VERSION
                     or evaluation.get("target_text") != scene["target_text"]
-                    or evaluation.get("reference", {}).get("key") != expected_key):
-                raise HTTPException(status_code=409, detail="This attempt has no matching GPT pronunciation result. Submit a new attempt.")
+                    or evaluation.get("reference", {}).get("key") != "ompal_api"):
+                raise HTTPException(status_code=409, detail="This attempt has no matching OMPAL speaking result. Submit a new attempt.")
         return _response(existing["id"], attempt_id, scene, difficulty_level, saved_payload, existing.get("audio_url"))
     if attempts:
         raise HTTPException(status_code=409, detail="Attempt ID already exists without server verification.")
@@ -295,7 +293,9 @@ async def analyze_verified_speech(
                     scene_target_text=scene["target_text"],
                     attempt_id=attempt_id,
                     pitch_profile_snapshot=pitch_profile_snapshot,
-                    skip_language_feedback=pronunciation_feedback is True,
+                    # Keep one Praat-grounded AI feedback call in the shared
+                    # analysis path; speaking evaluation adds only OMPAL.
+                    skip_language_feedback=False,
                 )
 
                 if pronunciation_feedback is True:

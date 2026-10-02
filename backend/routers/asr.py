@@ -166,7 +166,10 @@ async def analyze_speech(
                 attempt_id=attempt_id, attempt_number=attempt_number, attempt_type=attempt_type,
                 study_phase=study_phase,
                 pitch_profile_snapshot=pitch_profile_snapshot,
-                skip_language_feedback=pronunciation_feedback is True,
+                # Speaking keeps the shared Praat-grounded AI feedback. The
+                # strict speaking adapter adds only the OMPAL score; it no
+                # longer runs a second local rubric/LLM pipeline.
+                skip_language_feedback=False,
             )
 
             if target is not None:

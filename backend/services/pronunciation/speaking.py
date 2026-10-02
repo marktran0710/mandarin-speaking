@@ -1,70 +1,126 @@
-"""Attach strict model coaching to a server-resolved speaking attempt."""
+"""Compose the lightweight student speaking result.
+
+The student speaking flow deliberately has three outputs only: Praat/ASR
+metrics for visualisation, one OMPAL score request, and AI feedback grounded in
+those Praat measurements. The heavier local pronunciation rubric remains
+available through the dedicated pronunciation endpoint for staff/admin use.
+"""
+
+from __future__ import annotations
 
 import time
-import asyncio
+from typing import Any
 
-from services.pronunciation.rubric_evaluator import evaluate_rubric_pronunciation
-from services.pronunciation.presenter import present_evaluation
 from services.pronunciation.ompal import assess_ompal
-from services.pronunciation.reference_source import resolve_reference_source
+
+
+SPEAKING_EVALUATION_VERSION = "ompal-praat-ai-v1"
+
+
+def _text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _ai_feedback_view(payload: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the existing speaking AI payload to the pronunciation contract."""
+    ai_feedback = payload.get("ai_feedback") or {}
+    if not isinstance(ai_feedback, dict):
+        ai_feedback = {}
+    pronunciation_note = ai_feedback.get("pronunciation_note")
+    pronunciation_note = pronunciation_note if isinstance(pronunciation_note, dict) else {}
+    corrective = ai_feedback.get("corrective_feedback")
+    corrective = corrective if isinstance(corrective, dict) else {}
+    provenance = payload.get("feedback_provenance") or {}
+    provenance = provenance if isinstance(provenance, dict) else {}
+
+    summary = (
+        _text(ai_feedback.get("summary"))
+        or _text(corrective.get("hint"))
+        or _text(pronunciation_note.get("feedback"))
+        or _text(payload.get("feedback"))
+        or "Listen to the Praat voice visualisation and try the sentence again."
+    )
+    practice_tip = (
+        _text(ai_feedback.get("practice_prompt"))
+        or _text(corrective.get("hint"))
+        or "Repeat the sentence while matching the model's pitch and rhythm."
+    )
+    executed_provider = _text(provenance.get("executed_provider")) or _text(ai_feedback.get("provider")) or "local"
+    return {
+        "summary": summary,
+        "focus_words": [],
+        "practice_tip": practice_tip,
+        "source": "local" if executed_provider == "local" else "llm",
+        "model": executed_provider,
+    }
+
+
+def _evaluation_from_ompal(
+    *, target_text: str, ompal: dict[str, Any], ai_feedback: dict[str, Any],
+) -> dict[str, Any]:
+    scores = ompal.get("scores") if ompal.get("status") == "scored" else {}
+    scores = scores if isinstance(scores, dict) else {}
+    scored = ompal.get("status") == "scored"
+    return {
+        "target_text": target_text,
+        "status": "scored" if scored else "unscorable",
+        "reason": None if scored else ompal.get("reason", "ompal_unavailable"),
+        "pronunciation_score": scores.get("accuracy"),
+        "fluency_score": scores.get("fluency"),
+        "prosody_score": scores.get("prosody"),
+        "metrics": {},
+        "words": [],
+        "feedback": ai_feedback,
+        "model": {
+            "scoring_version": SPEAKING_EVALUATION_VERSION,
+            "acoustic_pipeline_version": "praat",
+            "feedback_model": ai_feedback.get("model"),
+            "feedback_source": ai_feedback.get("source", "local"),
+        },
+        "reference": {"key": "ompal_api", "cache_hit": False},
+        "ompal_comparison": ompal,
+    }
 
 
 async def attach_pronunciation_feedback(
-    payload: dict, audio: bytes, target: dict, difficulty_level: str,
+    payload: dict[str, Any], audio: bytes, target: dict[str, Any], difficulty_level: str,
     *, conversation_id: str = "", turn_id: str = "",
-) -> dict:
+) -> dict[str, Any]:
+    """Attach OMPAL and reuse the already-computed Praat AI feedback."""
+    del difficulty_level, conversation_id, turn_id
     started_at = time.perf_counter()
-    reference = resolve_reference_source(
-        target["story_id"], target["scene_index"], difficulty_level=difficulty_level,
-        conversation_id=conversation_id, turn_id=turn_id, expected_text=target["target_text"],
+    ompal = await assess_ompal(audio, target["target_text"])
+    ai_feedback = _ai_feedback_view(payload)
+    evaluation = _evaluation_from_ompal(
+        target_text=target["target_text"], ompal=ompal, ai_feedback=ai_feedback,
     )
-    local_task = asyncio.create_task(evaluate_rubric_pronunciation(
-        student_audio=audio, reference_audio_path=reference.audio_path,
-        reference_key=reference.reference_key, expected_text=target["target_text"],
-    ))
-    ompal_task = asyncio.create_task(assess_ompal(audio, target["target_text"]))
-    try:
-        evaluation = await local_task
-        ompal_comparison = await ompal_task
-    finally:
-        for task in (local_task, ompal_task):
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(local_task, ompal_task, return_exceptions=True)
-    result = present_evaluation(evaluation, include_debug=False)
-    result["ompal_comparison"] = ompal_comparison
-    result["target_text"] = target["target_text"]
-    result["reference"]["audio_url"] = reference.audio_url
-    feedback = result["feedback"]
-    provenance = {
-        "requested_provider": feedback["model"],
-        "executed_provider": feedback["model"],
-        "fallback_used": False, "fallback_reason": None,
-        "acoustic_context_used": True, "acoustic_context_supplied": True,
-        "pronunciation_source": "wav2vec2_plus_praat_f0",
-    }
-    language = {**(payload.get("ai_feedback") or {})}
-    pronunciation_dimension = result["dimensions"]["pronunciation"]
-    language.update({
-        "provider": feedback["model"],
-        "pronunciation_score": pronunciation_dimension["score"],
-        "pronunciation_errors": result.get("pronunciation_errors", []),
-        "tone_errors": result.get("tone_errors", []),
-        "pronunciation_note": {"score": pronunciation_dimension["score"], "feedback": feedback["summary"]},
-        "corrective_feedback": {"errors": [], "hint": feedback["summary"], "reveal_answer": False, "correct_version": ""},
-        "practice_prompt": feedback["practice_tip"],
-        "feedback_provenance": provenance,
-    })
+
     trace = {**(payload.get("processing_trace") or {})}
     elapsed_ms = round((time.perf_counter() - started_at) * 1000, 1)
     trace["stages"] = [*(trace.get("stages") or []), {
-        "stage": "pronunciation_feedback", "status": "passed", "duration_ms": elapsed_ms,
-        "model": feedback["model"], "provider": "openai",
-        "detail": "Wav2Vec2 scores initial/final similarity; Praat scores tone, Fluency and Prosody separately; Luna explains.",
-        "output": {"dimensions": result["dimensions"], "feedback_provenance": provenance},
+        "stage": "speaking_evaluation", "status": "passed", "duration_ms": elapsed_ms,
+        "model": ompal.get("model_version") if ompal.get("status") == "scored" else "ompal_api",
+        "provider": "ompal_api",
+        "detail": "OMPAL score attached; Praat visualisation and AI feedback came from the shared speaking pipeline.",
+        "output": {
+            "ompal_comparison": ompal,
+            "feedback_provenance": payload.get("feedback_provenance") or {},
+        },
     }]
     trace["total_duration_ms"] = round(trace.get("total_duration_ms", 0) + elapsed_ms, 1)
-    # Content verification and progression remain the server's existing verdicts.
-    return {**payload, "pronunciation_evaluation": result,
-            "ai_feedback": language, "feedback": feedback["summary"],
-            "feedback_provenance": provenance, "processing_trace": trace}
+
+    provenance = payload.get("feedback_provenance") or {
+        "requested_provider": "local",
+        "executed_provider": "local",
+        "fallback_used": False,
+        "fallback_reason": None,
+        "acoustic_context_used": True,
+        "acoustic_context_supplied": True,
+        "pronunciation_source": "praat_acoustic_measurements",
+    }
+    return {
+        **payload,
+        "pronunciation_evaluation": evaluation,
+        "feedback_provenance": provenance,
+        "processing_trace": trace,
+    }
