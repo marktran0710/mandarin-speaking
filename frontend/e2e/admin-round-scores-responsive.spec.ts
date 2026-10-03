@@ -44,7 +44,10 @@ const attempts = [
 ];
 
 async function mockAdminApi(page: Page) {
-  await page.route("**/api/**", async (route) => {
+  // Match backend endpoints by URL pathname. A broad `**/api/**` glob also
+  // catches Vite modules such as `/src/shared/api/client.ts` and serves JSON
+  // in place of JavaScript, leaving the admin page blank in Chromium.
+  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/roster-overview") {
       await route.fulfill({ json: { students, teachers: [], quizAttempts: attempts } });
