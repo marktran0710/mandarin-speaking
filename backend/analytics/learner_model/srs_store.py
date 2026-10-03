@@ -228,8 +228,9 @@ def apply_srs_updates(
             # Enrollment is exclusively driven by server-derived STRONG state.
             continue
         # A scheduled-maintenance caller may only grade a word once it is due.
-        # This guard is intentionally here as well as at the route boundary so
-        # a corrective weak-word response can never advance SRS accidentally.
+        # Whether the word is STRONG is settled earlier, before the write, in
+        # vocab_quiz_attempt_service; this guard keeps a corrective weak-word
+        # response from advancing SRS accidentally.
         if not is_due(state, now) or not should_advance(state, now, day_seconds=day_seconds):
             continue
         source_response_id = (

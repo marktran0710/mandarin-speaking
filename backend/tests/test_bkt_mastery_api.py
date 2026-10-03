@@ -402,17 +402,26 @@ def _publish_e2e_bank() -> None:
         )
 
 
-def _post_e2e(client, attempt_id: str, mode: str, dimension: str, correct: bool, day: str):
+def _e2e_payload(attempt_id: str, mode: str, dimension: str, correct: bool, day: str, *, quiz_id: str | None = None) -> dict:
     question_type, _fmt, level, round_number, _tier = _E2E_ITEMS[dimension]
     result = _response(
         _E2E_WORD, correct, f"{_E2E_WORD}:round{round_number}:v1",
         level=level, eligible=mode.startswith("tier"), question_kind=question_type,
     )
+    if quiz_id:
+        result["quizId"] = quiz_id
     attempt = _attempt(attempt_id, mode, f"{day}T00:00:00Z", [result])
     attempt["level"] = level
     with db.connect_db() as conn:
         version = conn.execute("SELECT vocabulary_version FROM custom_stories WHERE id = 'lesson-1'").fetchone()["vocabulary_version"]
-    response = client.post("/api/vocab-quiz-attempts", params={"today": day}, json={**attempt, "vocabularyVersion": version})
+    return {**attempt, "vocabularyVersion": version}
+
+
+def _post_e2e(client, attempt_id: str, mode: str, dimension: str, correct: bool, day: str):
+    response = client.post(
+        "/api/vocab-quiz-attempts", params={"today": day},
+        json=_e2e_payload(attempt_id, mode, dimension, correct, day),
+    )
     assert response.status_code == 200, response.text
 
 
@@ -769,3 +778,128 @@ def test_student_cannot_read_another_students_mastery(logged_in_student):
         assert other["id"] != student["id"]
         response = client.get(f"/api/students/{other['id']}/weak-words")
         assert response.status_code == 403
+
+
+# ── Maintenance is only for words the server currently calls STRONG ─────────
+
+_MAINTENANCE_ENDPOINTS = {
+    "completed": "/api/vocab-quiz-attempts",
+    "partial": "/api/vocab-quiz-responses",
+}
+
+
+@pytest.fixture
+def dev_clock(monkeypatch):
+    """Honour ``?today=`` and a real 24h SM-2 day, whatever the ambient APP_ENV."""
+    import routers.vocab_quiz_attempts as attempt_routes
+
+    monkeypatch.setattr(attempt_routes, "settings", replace(
+        attempt_routes.settings, app_env="development", srs_day_seconds=86400.0,
+    ))
+
+
+def _post_maintenance(client, endpoint, attempt_id, dimension, correct, day, *, quiz_id=None):
+    return client.post(
+        _MAINTENANCE_ENDPOINTS[endpoint], params={"today": day},
+        json=_e2e_payload(attempt_id, "maintenance_review", dimension, correct, day, quiz_id=quiz_id),
+    )
+
+
+def _acquire_strong_scheduled_word(client, student) -> None:
+    """Three correct diagnostics: STRONG, enrolled on 10-03 and due on 10-04."""
+    _publish_e2e_bank()
+    for index, dimension in enumerate(("meaning", "pinyin", "context"), start=1):
+        _post_e2e(client, f"guard-d{index}", f"tier{index}", dimension, True, f"2026-10-0{index}")
+    assert _e2e_word_state(client, student)["status"] == "STRONG"
+
+
+def _srs_footprint(student) -> dict:
+    """Everything a maintenance write can touch, for an exact before/after check."""
+    with db.connect_db() as conn:
+        schedule = conn.execute(
+            "SELECT * FROM student_vocab_srs WHERE student_id = %s", (student["id"],),
+        ).fetchall()
+        events = conn.execute(
+            "SELECT event_type FROM student_vocab_srs_events WHERE student_id = %s ORDER BY id",
+            (student["id"],),
+        ).fetchall()
+        responses = conn.execute(
+            "SELECT COUNT(*) AS n FROM vocab_quiz_responses WHERE student_id = %s", (student["id"],),
+        ).fetchone()["n"]
+        attempts = conn.execute(
+            "SELECT COUNT(*) AS n FROM vocab_quiz_attempts WHERE student_id = %s", (student["id"],),
+        ).fetchone()["n"]
+    return {
+        "schedule": [dict(row) for row in schedule],
+        "events": [row["event_type"] for row in events],
+        "responses": responses,
+        "attempts": attempts,
+    }
+
+
+@pytest.mark.parametrize("endpoint", ["completed", "partial"])
+def test_maintenance_is_rejected_for_a_word_that_is_not_strong(logged_in_student, dev_clock, endpoint):
+    client, student = logged_in_student
+    _acquire_strong_scheduled_word(client, student)
+    # A due lapse reopens the meaning repair, so the word leaves STRONG.
+    _post_e2e(client, "guard-lapse", "maintenance_review", "meaning", False, "2026-10-04")
+    lapsed = _e2e_word_state(client, student)
+    assert lapsed["status"] == "NEEDS_PRACTICE"
+    before = _srs_footprint(student)
+
+    # The word is due again on 10-05 but is still unrepaired. The UI never
+    # offers it, so only a direct API call can get here.
+    response = _post_maintenance(client, endpoint, "guard-direct", "pinyin", True, "2026-10-05")
+
+    assert response.status_code == 409, response.text
+    assert _srs_footprint(student) == before
+    assert _e2e_word_state(client, student)["observationCount"] == lapsed["observationCount"]
+
+
+@pytest.mark.parametrize("endpoint", ["completed", "partial"])
+def test_due_strong_word_answered_wrong_is_accepted_and_reopens_repair(logged_in_student, dev_clock, endpoint):
+    client, student = logged_in_student
+    _acquire_strong_scheduled_word(client, student)
+
+    # The wrong answer is what takes the word out of STRONG, so the guard has
+    # to judge the word as it stood before this write.
+    response = _post_maintenance(client, endpoint, "guard-wrong", "meaning", False, "2026-10-04")
+
+    assert response.status_code == 200, response.text
+    state = _e2e_word_state(client, student)
+    assert state["status"] == "NEEDS_PRACTICE"
+    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == ["meaning"]
+    footprint = _srs_footprint(student)
+    (schedule,) = footprint["schedule"]
+    assert schedule["reps"] == 0 and schedule["interval_days"] == 1
+    assert footprint["events"] == ["enrollment", "maintenance_failure"]
+
+
+@pytest.mark.parametrize("correct", [True, False])
+def test_maintenance_partial_save_completion_and_retry_apply_once(logged_in_student, dev_clock, correct):
+    client, student = logged_in_student
+    _acquire_strong_scheduled_word(client, student)
+    answer = ("meaning", correct, "2026-10-04")
+    round_id = "guard-round"
+
+    assert _post_maintenance(client, "partial", "guard-partial", *answer, quiz_id=round_id).status_code == 200
+    after_partial = _srs_footprint(student)
+    observed = _e2e_word_state(client, student)["observationCount"]
+
+    # A wrong answer has already taken the word out of STRONG. Replaying that
+    # same response in the completed attempt must not be mistaken for a new
+    # maintenance answer on a word that was never STRONG.
+    completed = _post_maintenance(client, "completed", "guard-completed", *answer, quiz_id=round_id)
+    assert completed.status_code == 200, completed.text
+    after_completed = _srs_footprint(student)
+    assert after_completed["attempts"] == after_partial["attempts"] + 1
+    assert {**after_completed, "attempts": after_partial["attempts"]} == after_partial
+
+    for endpoint, attempt_id in (("completed", "guard-completed"), ("partial", "guard-partial")):
+        retry = _post_maintenance(client, endpoint, attempt_id, *answer, quiz_id=round_id)
+        assert retry.status_code == 200, retry.text
+        assert _srs_footprint(student) == after_completed
+    assert _e2e_word_state(client, student)["observationCount"] == observed
+    assert after_completed["events"] == [
+        "enrollment", "maintenance_success" if correct else "maintenance_failure",
+    ]

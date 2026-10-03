@@ -371,6 +371,36 @@ def _lock_student_bkt(db: Any, student_id: str) -> None:
     db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (student_id,))
 
 
+def lock_student_bkt(db: Any, student_id: str) -> None:
+    """Take the learner's ledger lock ahead of ``record_attempt_and_rebuild``.
+
+    Re-entrant within a transaction, so a caller can read the learner's current
+    state under the same lock the write will use.
+    """
+    _lock_student_bkt(db, student_id)
+
+
+def unrecorded_response_rows(db: Any, rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The rows whose ledger slot is still empty; the rest are replays.
+
+    A slot is (student, quiz, answer order), the key ``upsert_raw_responses``
+    stores under. Retries and the completed-attempt replay of a partial save
+    land on an occupied slot.
+    """
+    rows = list(rows)
+    if not rows:
+        return []
+    student_id = rows[0]["student_id"]
+    recorded = {
+        (str(slot["quiz_id"]), int(slot["attempt_order"]))
+        for slot in db.execute(
+            "SELECT quiz_id, attempt_order FROM vocab_quiz_responses WHERE student_id = %s AND quiz_id = ANY(%s)",
+            (student_id, sorted({str(row["quiz_id"]) for row in rows})),
+        ).fetchall()
+    }
+    return [row for row in rows if (str(row["quiz_id"]), int(row["attempt_order"])) not in recorded]
+
+
 def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, *, acquire_lock: bool = True) -> None:
     """Rebuild one learner's cache entirely from the raw response ledger."""
     params = serving_bkt_config(db, params)

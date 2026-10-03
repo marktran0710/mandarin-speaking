@@ -10,7 +10,14 @@ from typing import Optional
 from uuid import uuid4
 
 from analytics.learner_model.bkt.assessment_resolver import resolve_assessment_response
-from analytics.learner_model.bkt.mastery import get_vocabulary_mastery, record_attempt_and_rebuild
+from analytics.learner_model.bkt.mastery import (
+    get_vocabulary_mastery,
+    lock_student_bkt,
+    normalize_word_id,
+    record_attempt_and_rebuild,
+    response_rows_for_attempt,
+    unrecorded_response_rows,
+)
 from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words
 from api.schemas.models import VocabQuizAttemptRequest
 from repositories import quiz_attempt_repository as repo
@@ -98,6 +105,40 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
     )
 
 
+def _require_strong_words_for_maintenance(
+    db, student_id: str, attempt: VocabQuizAttemptRequest, normalized_attempt: dict, question_results: list[dict],
+) -> None:
+    """Scheduled maintenance only revisits words the server calls STRONG.
+
+    Call this before the write reaches the ledger. A valid wrong answer takes
+    its word out of STRONG, so judging the word after the BKT update would turn
+    away exactly the lapse maintenance exists to catch. Answers whose ledger
+    slot is already taken (a retry, or the completed attempt replaying a
+    partial save) are not judged again for the same reason.
+    """
+    if attempt.mode != "maintenance_review":
+        return
+    # The same learner lock the ledger write takes, so the status read here
+    # cannot be overtaken by another write for this learner.
+    lock_student_bkt(db, student_id)
+    new_rows = unrecorded_response_rows(
+        db, response_rows_for_attempt(normalized_attempt, student_id, question_results),
+    )
+    if not new_rows:
+        return
+    strong = {
+        normalize_word_id(row["wordId"])
+        for row in get_vocabulary_mastery(db, student_id, story_id=attempt.baseStoryId or attempt.storyId)
+        if row["vocabularyState"]["review"]["status"] == "STRONG"
+    }
+    blocked = sorted({row["word_id"] for row in new_rows} - strong)
+    if blocked:
+        raise ValueError(
+            "Scheduled review only covers words that are currently strong. "
+            f"Practise these first: {', '.join(blocked)}."
+        )
+
+
 def _server_evidence_origin(db, student_id: str, requested: str) -> str:
     if requested not in {"real", "synthetic"}:
         raise ValueError("Evidence origin must be real or synthetic.")
@@ -155,6 +196,12 @@ def record_attempt(
             # the later block. A same-mode payload remains immutable.
             attempt.id = f"{attempt.id}-{uuid4().hex[:8]}"
 
+    # JSONB remains the client-facing attempt source of truth, while this
+    # normalized ledger makes every response replayable for BKT calibration.
+    normalized_attempt = attempt.model_dump(exclude_none=True)
+    normalized_attempt["questionResults"] = question_results
+    _require_strong_words_for_maintenance(db, identity_id, attempt, normalized_attempt, question_results)
+
     repo.insert_attempt(
         db,
         id=attempt.id,
@@ -169,10 +216,6 @@ def record_attempt(
         question_results=raw_question_results,
     )
 
-    # JSONB remains the client-facing attempt source of truth, while this
-    # normalized ledger makes every response replayable for BKT calibration.
-    normalized_attempt = attempt.model_dump(exclude_none=True)
-    normalized_attempt["questionResults"] = question_results
     record_attempt_and_rebuild(
         db,
         normalized_attempt,
@@ -214,6 +257,7 @@ def record_response(
     question_results = _validated_question_results(db, attempt)
     normalized_attempt = attempt.model_dump(exclude_none=True)
     normalized_attempt["questionResults"] = question_results
+    _require_strong_words_for_maintenance(db, identity_id, attempt, normalized_attempt, question_results)
     record_attempt_and_rebuild(
         db,
         normalized_attempt,
