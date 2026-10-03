@@ -666,17 +666,16 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
         params = [canonical or story_id, story_id]
     stories = db.execute(query, params).fetchall()
     for story in stories:
-        assessment_word_ids = {
-            normalize_word_id(item.get("targetWord")): item.get("wordId")
-            for item in (story.get("vocab_assessment") or [])
+        assessment_words = [
+            item for item in (story.get("vocab_assessment") or [])
             if isinstance(item, dict) and item.get("targetWord") and item.get("wordId")
-        }
+        ]
 
         def add_words(raw_words: Any, raw_translations: Any) -> None:
             word_list = [part.strip() for part in raw_words.split(",") if part.strip()] if isinstance(raw_words, str) else []
             meaning_list = [part.strip() for part in raw_translations.split(",") if part.strip()] if isinstance(raw_translations, str) else []
             for index, word in enumerate(word_list):
-                word_id = assessment_word_ids.get(normalize_word_id(word), normalize_word_id(word))
+                word_id = normalize_word_id(word)
                 known.setdefault(word_id, {
                     "word": word,
                     "meaning": meaning_list[index] if index < len(meaning_list) else None,
@@ -684,22 +683,27 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
                     "lessonNumber": story.get("lesson_number"),
                 })
 
-        for item in (story.get("vocab_assessment") or []):
-            if isinstance(item, dict) and item.get("wordId") and item.get("targetWord"):
-                known.setdefault(str(item["wordId"]), {
-                    "word": item["targetWord"],
-                    "meaning": item.get("simpleEnglishMeaning"),
-                    "lessonId": story["id"],
-                    "lessonNumber": story.get("lesson_number"),
-                })
+        for item in assessment_words:
+            known.setdefault(str(item["wordId"]), {
+                "word": item["targetWord"],
+                "meaning": item.get("simpleEnglishMeaning"),
+                "lessonId": story["id"],
+                "lessonNumber": story.get("lesson_number"),
+            })
 
-        for frame in story.get("frames") or []:
-            if not isinstance(frame, dict):
-                continue
-            add_words(frame.get("vocabulary"), frame.get("vocabularyTranslation"))
-        for tier_content in (story.get("story_vocabulary") or {}).values():
-            if isinstance(tier_content, dict):
-                add_words(tier_content.get("vocabulary"), tier_content.get("vocabularyTranslation"))
+        # The published assessment is the set the diagnostic rounds can
+        # actually ask about. Frame/story vocabulary often includes incidental
+        # words used in dialogue; adding those to the completion pool would make
+        # it impossible to finish the diagnostic because no quiz item exists.
+        # Keep the legacy metadata path only for stories without an assessment.
+        if not assessment_words:
+            for frame in story.get("frames") or []:
+                if not isinstance(frame, dict):
+                    continue
+                add_words(frame.get("vocabulary"), frame.get("vocabularyTranslation"))
+            for tier_content in (story.get("story_vocabulary") or {}).values():
+                if isinstance(tier_content, dict):
+                    add_words(tier_content.get("vocabulary"), tier_content.get("vocabularyTranslation"))
     return known
 
 

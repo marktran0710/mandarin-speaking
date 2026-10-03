@@ -13,10 +13,11 @@ class _Rows:
 
 
 class _Db:
-    def __init__(self, response_rows, conversation_turns, frames=None):
+    def __init__(self, response_rows, conversation_turns, frames=None, vocab_assessment=None):
         self.response_rows = response_rows
         self.conversation_turns = conversation_turns
         self.frames = frames
+        self.vocab_assessment = vocab_assessment
 
     def execute(self, query, params):
         if "FROM vocab_quiz_responses" in query:
@@ -24,7 +25,9 @@ class _Db:
         if "FROM custom_stories" in query:
             return _Rows([{
                 "id": "story-5-1", "conversation_turns": self.conversation_turns, "frames": self.frames,
-                "vocab_assessment": [{"wordId": f"word-{i}", "targetWord": f"Word {i}"} for i in range(10)],
+                "vocab_assessment": self.vocab_assessment if self.vocab_assessment is not None else [
+                    {"wordId": f"word-{i}", "targetWord": f"Word {i}"} for i in range(10)
+                ],
             }])
         raise AssertionError(f"Unexpected query: {query}")
 
@@ -69,6 +72,40 @@ def test_three_completed_tiers_derive_three_stars_from_server_responses(monkeypa
     assert result["conversationAvailable"] is True
     assert result["conversationUnlocked"] is True
     assert result["tiers"]["tier1"]["correctCount"] == 7
+
+
+def test_published_assessment_defines_diagnostic_pool_before_incidental_frame_vocab(monkeypatch):
+    attempts = [_attempt(tier, tier) for tier in ("tier1", "tier2", "tier3")]
+    responses = [row for tier in ("tier1", "tier2", "tier3") for row in _responses(tier, tier, 10)]
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+    db = _Db(responses, _conversation(), frames=[{
+        "vocabulary": "frame-only-word-a,frame-only-word-b",
+        "vocabularyTranslation": "incidental A,incidental B",
+    }])
+
+    result = progression.get_progression(db, "student-1", "story-5-1")
+
+    assert result["quizStars"] == 3
+    assert result["speakingUnlocked"] is True
+
+
+def test_legacy_story_without_assessment_uses_frame_vocab_as_diagnostic_pool(monkeypatch):
+    attempts = [_attempt(tier, tier, total=2) for tier in ("tier1", "tier2", "tier3")]
+    responses = [
+        {"quiz_id": tier, "quiz_mode": tier, "word_id": word, "quiz_level": tier,
+         "bkt_eligible": True, "correct": True}
+        for tier in ("tier1", "tier2", "tier3")
+        for word in ("茶", "水")
+    ]
+    monkeypatch.setattr(progression.quiz_attempt_repository, "list_attempts", lambda db, **kwargs: attempts)
+    db = _Db(responses, _conversation(), frames=[{
+        "vocabulary": "茶,水", "vocabularyTranslation": "tea,water",
+    }], vocab_assessment=[])
+
+    result = progression.get_progression(db, "student-1", "story-5-1")
+
+    assert result["quizStars"] == 3
+    assert result["speakingUnlocked"] is True
 
 
 def test_partial_response_without_completed_attempt_does_not_create_a_star(monkeypatch):
