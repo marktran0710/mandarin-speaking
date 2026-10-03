@@ -62,6 +62,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     globals: true,
+    // The UI suites are CPU-heavy under jsdom. Bound file fan-out so shared
+    // development/CI runners do not starve timers and hit false test timeouts.
+    maxWorkers: 2,
     // Playwright specs (frontend/e2e) use their own test runner/globals —
     // Vitest picking them up collides with Playwright's test.describe().
     exclude: ["**/node_modules/**", "e2e/**"],
