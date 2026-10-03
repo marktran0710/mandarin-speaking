@@ -134,7 +134,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                   width={width}
                   height={height}
                   decoding="async"
-                  fetchPriority={index === 0 ? "high" : undefined}
+                  {...(index === 0 ? { fetchpriority: "high" } : {})}
                   className={`story-preview-image ${className}${loadedScenes.has(className) ? " is-loaded" : ""}`}
                   onLoad={() => markSceneLoaded(className)}
                 />
