@@ -67,10 +67,10 @@ function makeEntries(count: number): VocabQuizEntry[] {
   });
 }
 
-function loadSession(count: number, mode: "tier1" | "tier2" = "tier1") {
+function loadSession(count: number, mode: "tier1" | "tier2" = "tier1", vocabularyVersion?: number) {
   const entries = makeEntries(count);
   const onComplete = vi.fn();
-  const session = renderHook(() => useQuizSession({ entries, storyId: "lesson-1", level: "easy", studentId: "student-1", onComplete }));
+  const session = renderHook(() => useQuizSession({ entries, storyId: "lesson-1", vocabularyVersion, level: "easy", studentId: "student-1", onComplete }));
   act(() => session.result.current.startTier(mode));
   return { ...session, onComplete };
 }
@@ -135,12 +135,12 @@ describe("quiz answer and completion boundaries", () => {
     expect(result.current.question.kind === "assessment" && result.current.question.assessment.questionType).toBe("character_to_pinyin_typing");
   });
 
-  it.each([true, false])("advances directly after an answer (correct: %s)", (correct) => {
+  it.each([true, false])("advances only after the answer is saved (correct: %s)", async (correct) => {
     const { result } = loadSession(2);
     const answer = correct ? correctAnswer(result.current.question) : "wrong";
-    act(() => result.current.choose(answer));
+    await act(async () => { result.current.choose(answer); });
 
-    expect(result.current.index).toBe(1);
+    await waitFor(() => expect(result.current.index).toBe(1));
     expect(result.current.selected).toBeNull();
     expect(result.current.results).toHaveLength(1);
     expect(result.current.results[0]).toMatchObject({ selectedAnswer: answer, correct });
@@ -149,9 +149,10 @@ describe("quiz answer and completion boundaries", () => {
     expect(recordVocabQuizResponse).toHaveBeenCalledTimes(1);
   });
 
-  it("advances after a typed pinyin answer and records its original score", () => {
+  it("advances after a typed pinyin answer and records its original score", async () => {
     const { result } = loadSession(2, "tier2");
-    act(() => result.current.choose("ci2"));
+    await act(async () => { result.current.choose("ci2"); });
+    await waitFor(() => expect(result.current.index).toBe(1));
     expect(result.current.index).toBe(1);
     expect(result.current.selected).toBeNull();
     expect(result.current.results).toHaveLength(1);
@@ -162,9 +163,12 @@ describe("quiz answer and completion boundaries", () => {
   it("keeps the final answer locked while the completed attempt is saving", async () => {
     const save = deferredSave();
     const { result, onComplete } = loadSession(16);
-    for (let index = 0; index < 16; index += 1) {
+    for (let index = 0; index < 15; index += 1) {
       act(() => result.current.choose(correctAnswer(result.current.question)));
+      await waitFor(() => expect(result.current.index).toBe(index + 1));
     }
+    act(() => result.current.choose(correctAnswer(result.current.question)));
+    await waitFor(() => expect(createVocabQuizAttempt).toHaveBeenCalledTimes(1));
 
     expect(result.current.screen).toBe("quiz");
     expect(result.current.results).toHaveLength(16);
@@ -182,43 +186,61 @@ describe("quiz answer and completion boundaries", () => {
     expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ totalQuestions: 16, correctCount: 16 }));
   });
 
-  it("records only one response when submit is called twice before React renders", () => {
+  it("records only one response when submit is called twice before React renders", async () => {
     const { result } = loadSession(2);
     const choose = result.current.choose;
     const answer = correctAnswer(result.current.question);
     act(() => { choose(answer); choose("wrong"); });
+    await waitFor(() => expect(result.current.index).toBe(1));
     expect(result.current.results).toHaveLength(1);
     expect(result.current.selected).toBeNull();
     expect(result.current.index).toBe(1);
     expect(recordVocabQuizResponse).toHaveBeenCalledTimes(1);
   });
 
-  it("does not reuse answer handlers from the previous question", () => {
+  it("does not reuse answer handlers from the previous question", async () => {
     const { result } = loadSession(3);
     expect(result.current.index).toBe(0);
     const choose = result.current.choose;
     act(() => result.current.choose(correctAnswer(result.current.question)));
+    await waitFor(() => expect(result.current.index).toBe(1));
     act(() => { choose("wrong"); choose("wrong"); });
     expect(result.current.index).toBe(1);
     expect(result.current.selected).toBeNull();
     expect(result.current.results).toHaveLength(1);
     act(() => result.current.choose(correctAnswer(result.current.question)));
+    await waitFor(() => expect(result.current.results).toHaveLength(2));
     expect(result.current.results).toHaveLength(2);
     expect(recordVocabQuizResponse).toHaveBeenCalledTimes(2);
   });
 
-  it("releases the completion state after a failed save and starts a fresh retry", async () => {
-    const save = deferredSave();
-    const { result } = loadSession(1);
+  it("does not report completion until a failed completed-attempt save is retried", async () => {
+    vi.mocked(createVocabQuizAttempt).mockRejectedValueOnce(new Error("Unavailable"));
+    const { result, onComplete } = loadSession(1);
     act(() => result.current.choose(correctAnswer(result.current.question)));
-    await act(async () => { save.reject(new Error("Unavailable")); await save.promise.catch(() => undefined); });
-    expect(result.current.screen).toBe("summary");
-    act(() => result.current.startTier("tier1"));
+    await waitFor(() => expect(result.current.saveError).toContain("not saved yet"));
+    expect(result.current.screen).toBe("quiz");
+    expect(onComplete).not.toHaveBeenCalled();
+    await act(async () => { await result.current.retrySave(); });
+    await waitFor(() => expect(result.current.screen).toBe("summary"));
+    expect(createVocabQuizAttempt).toHaveBeenCalledTimes(2);
+    expect(onComplete).toHaveBeenCalledOnce();
+  });
+
+  it("sends the current vocabulary version with a partial response and retries the same identity", async () => {
+    vi.mocked(recordVocabQuizResponse).mockRejectedValueOnce(new Error("Unavailable"));
+    const { result } = loadSession(2, "tier1", 12);
+    const answer = correctAnswer(result.current.question);
+    act(() => result.current.choose(answer));
+    await waitFor(() => expect(result.current.saveError).toContain("not saved yet"));
     expect(result.current.index).toBe(0);
-    expect(result.current.selected).toBeNull();
-    expect(result.current.results).toEqual([]);
-    act(() => result.current.choose(correctAnswer(result.current.question)));
-    expect(result.current.results).toHaveLength(1);
+    const firstPayload = vi.mocked(recordVocabQuizResponse).mock.calls[0][0];
+    expect(firstPayload.vocabularyVersion).toBe(12);
+    await act(async () => { await result.current.retrySave(); });
+    await waitFor(() => expect(result.current.index).toBe(1));
+    const retryPayload = vi.mocked(recordVocabQuizResponse).mock.calls[1][0];
+    expect(retryPayload.id).toBe(firstPayload.id);
+    expect(retryPayload.questionResults[0].quizId).toBe(firstPayload.questionResults[0].quizId);
   });
 });
 
@@ -236,7 +258,7 @@ it("shows a visible missing-dimension error and keeps the practice menu open", (
   expect(recordVocabQuizResponse).not.toHaveBeenCalled();
 });
 
-it("shows 16/16 and a neutral saving state until persistence finishes", async () => {
+it("shows a neutral saving state until persistence finishes", async () => {
   const save = deferredSave();
   const topic: Topic = {
     id: "lesson-1", name: "Lesson", description: "", skillFocus: "conversation", images: [], vocabulary: {},
@@ -244,8 +266,13 @@ it("shows 16/16 and a neutral saving state until persistence finishes", async ()
   };
   const { container } = render(<VocabularyQuizPage topic={topic} lessonLabel="Lesson" onFinished={vi.fn()} />);
   fireEvent.click(screen.getAllByRole("button", { name: "開始" })[0]);
+  let previousWord: string | null = null;
   for (let index = 0; index < 16; index += 1) {
+    if (previousWord) {
+      await waitFor(() => expect(container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word")).not.toBe(previousWord));
+    }
     const word = container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word");
+    previousWord = word ?? null;
     const answer = topic.vocabAssessment?.find((question) => question.targetWord === word)?.correctAnswer;
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`${answer}$`) }));
     fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
@@ -256,12 +283,12 @@ it("shows 16/16 and a neutral saving state until persistence finishes", async ()
   expect(container.querySelector(".sa-quiz__feedback")).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "答案選項" })).not.toBeInTheDocument();
   expect(container.querySelector(".sa-quiz__stats")).toHaveTextContent("16 / 16");
-  expect(createVocabQuizAttempt).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(createVocabQuizAttempt).toHaveBeenCalledTimes(1));
   await act(async () => { save.resolve(); await save.promise; });
   await waitFor(() => expect(container.querySelector(".sa-quiz__result-copy")).toHaveTextContent("16 / 16"));
 });
 
-it("advances after each answer without exposing correctness or disabling choices", () => {
+it("advances after each saved answer without exposing correctness or disabling choices", async () => {
   const topic: Topic = {
     id: "lesson-1", name: "Lesson", description: "", skillFocus: "conversation", images: [], vocabulary: {},
     vocabAssessment: makeEntries(3).flatMap((entry) => entry.assessmentQuestions ?? []),
@@ -275,6 +302,7 @@ it("advances after each answer without exposing correctness or disabling choices
     .find((button) => !button.getAttribute("aria-label")?.endsWith(`：${firstAnswer}`))!;
   fireEvent.click(incorrectOption);
   fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+  await waitFor(() => expect(container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word")).not.toBe(firstWord));
   expect(screen.getByRole("progressbar", { name: "測驗進度" })).toHaveAttribute("aria-valuenow", "1");
   screen.getAllByRole("button", { name: /^選項 / }).forEach((button) => expect(button).not.toBeDisabled());
   expect(container.querySelector(".sa-quiz__feedback, .sa-quiz__hint, .is-rejected")).not.toBeInTheDocument();
@@ -287,6 +315,7 @@ it("advances after each answer without exposing correctness or disabling choices
   const answer = topic.vocabAssessment?.find((question) => question.targetWord === word)?.correctAnswer;
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`${answer}$`) }));
   fireEvent.click(screen.getByRole("button", { name: "提交答案" }));
+  await waitFor(() => expect(container.querySelector("[data-verification-word]")?.getAttribute("data-verification-word")).not.toBe(word));
   expect(screen.getByRole("progressbar", { name: "測驗進度" })).toHaveAttribute("aria-valuenow", "2");
   expect(container.querySelector(".sa-quiz__feedback")).not.toBeInTheDocument();
   expect(screen.getByRole("listitem", { name: "第 2 題，已完成" })).toHaveClass("is-done");

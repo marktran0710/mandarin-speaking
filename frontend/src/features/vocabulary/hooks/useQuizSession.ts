@@ -54,6 +54,12 @@ type UseQuizSessionProps = {
 
 export { correctAnswer, entriesInServerPriorityOrder } from "./answerKey";
 
+type PendingResponseSave = {
+  attempt: VocabQuizAttempt;
+  results: VocabQuizQuestionResult[];
+  isLast: boolean;
+};
+
 export function useQuizSession({
   entries, storyId, baseStoryId, vocabularyVersion, level, studentId, studentName, onComplete,
 }: UseQuizSessionProps) {
@@ -70,6 +76,8 @@ export function useQuizSession({
   const [isFinishing, setIsFinishing] = useState(false);
   const [vocabularyChanged, setVocabularyChanged] = useState(false);
   const [practiceError, setPracticeError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSavingResponse, setIsSavingResponse] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   // Lock answer handlers synchronously, including calls made before React renders.
   const questionStateRef = useRef({ index: 0, answered: false });
@@ -84,6 +92,9 @@ export function useQuizSession({
   // answer: each refresh re-runs the full server BKT replay twice
   // (weak-words + review-queue), and nothing on the quiz screen reads it.
   const pendingResponsesRef = useRef(new Set<Promise<unknown>>());
+  const pendingResponseSaveRef = useRef<PendingResponseSave | null>(null);
+  const pendingFinalAttemptRef = useRef<VocabQuizAttempt | null>(null);
+  const responseSaveLockRef = useRef(false);
   const {
     stars,
     attempts,
@@ -157,16 +168,20 @@ export function useQuizSession({
     setIsFinishing(true);
     const correctCount = finalResults.filter((result) => result.correct).length;
     if (!isRetryRound) {
-      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
-      if (earned !== null) {
-        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
-        setStars((current) => earned > current ? earned : current);
-      }
-      const summary: VocabQuizSummary = {
-        mode: mode!, totalQuestions: finalResults.length, correctCount,
-        totalTimeMs: Date.now() - quizStartRef.current, questionResults: finalResults,
-      };
-      const attempt: VocabQuizAttempt = {
+      const pendingAttempt = pendingFinalAttemptRef.current;
+      const summary: VocabQuizSummary = pendingAttempt
+        ? {
+            mode: pendingAttempt.mode as VocabQuizMode,
+            totalQuestions: pendingAttempt.totalQuestions,
+            correctCount: pendingAttempt.correctCount,
+            totalTimeMs: pendingAttempt.totalTimeMs,
+            questionResults: pendingAttempt.questionResults as VocabQuizQuestionResult[],
+          }
+        : {
+            mode: mode!, totalQuestions: finalResults.length, correctCount,
+            totalTimeMs: Date.now() - quizStartRef.current, questionResults: finalResults,
+          };
+      const attempt: VocabQuizAttempt = pendingAttempt ?? {
         id: quizIdRef.current ?? `vocab-quiz-${Date.now()}`,
         storyId: baseStoryId ?? storyId ?? "lesson",
         studentName: studentName ?? "Student",
@@ -187,13 +202,26 @@ export function useQuizSession({
           await createVocabQuizAttempt(attempt);
         } catch (error) {
           if (error instanceof VocabularyChangedError) {
+            pendingFinalAttemptRef.current = null;
             revokeStaleSession();
             setIsFinishing(false);
             return;
           }
-          // The local snapshot remains a recoverable migration queue. It will
-          // be POST-validated the next time progression is read.
+          // Keep the exact payload and its identity so a retry is safe even if
+          // the server committed it but the response was lost in transit.
+          pendingFinalAttemptRef.current = attempt;
+          setSaveError("Your answers are not saved yet. Please try again.");
+          setIsFinishing(false);
+          finishedRef.current = false;
+          return;
         }
+      }
+      pendingFinalAttemptRef.current = null;
+      setSaveError(null);
+      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
+      if (earned !== null) {
+        if (baseStoryId ?? storyId) recordLocalStars(baseStoryId ?? storyId!, earned);
+        setStars((current) => earned > current ? earned : current);
       }
       setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
       saveLessonAttempt(studentScope, attempt.storyId, attempt);
@@ -212,6 +240,53 @@ export function useQuizSession({
       onComplete?.(summary);
     }
     setScreen("summary");
+  };
+
+  const advanceAfterSavedAnswer = (nextResults: VocabQuizQuestionResult[], wasLast: boolean) => {
+    if (wasLast) {
+      void refreshReview();
+      void finish(nextResults);
+      return;
+    }
+    setSelected(null);
+    questionStateRef.current = { index: index + 1, answered: false };
+    questionStartRef.current = Date.now();
+    setIndex(index + 1);
+  };
+
+  const persistPendingResponse = async () => {
+    const pending = pendingResponseSaveRef.current;
+    if (!pending || responseSaveLockRef.current) return;
+    responseSaveLockRef.current = true;
+    setIsSavingResponse(true);
+    setSaveError(null);
+    const saved: Promise<unknown> = recordVocabQuizResponse(pending.attempt);
+    pendingResponsesRef.current.add(saved);
+    try {
+      await saved;
+      pendingResponseSaveRef.current = null;
+      advanceAfterSavedAnswer(pending.results, pending.isLast);
+    } catch (error) {
+      pendingResponsesRef.current.delete(saved);
+      if (error instanceof VocabularyChangedError) {
+        pendingResponseSaveRef.current = null;
+        revokeStaleSession();
+      } else {
+        setSaveError("Your answer is not saved yet. Retry to continue.");
+      }
+    } finally {
+      pendingResponsesRef.current.delete(saved);
+      responseSaveLockRef.current = false;
+      setIsSavingResponse(false);
+    }
+  };
+
+  const retrySave = async () => {
+    if (pendingFinalAttemptRef.current) {
+      await finish(pendingFinalAttemptRef.current.questionResults as VocabQuizQuestionResult[]);
+      return;
+    }
+    await persistPendingResponse();
   };
 
   const choose = (option: string) => {
@@ -299,11 +374,12 @@ export function useQuizSession({
     // complete, but Weak Words can now reflect the learner's latest answer.
     const shouldRecordLearningResponse = isBktEligible || mode === "weak_words" || mode === "maintenance_review";
     if (storyId && studentId && canUseDatabase() && shouldRecordLearningResponse) {
-      const saved: Promise<unknown> = recordVocabQuizResponse({
+      const attempt: VocabQuizAttempt = {
         id: quizId,
         storyId,
         studentName: studentName ?? "Student",
         studentId,
+        vocabularyVersion,
         mode: mode!,
         baseStoryId: baseStoryId ?? storyId,
         level,
@@ -312,24 +388,15 @@ export function useQuizSession({
         correctCount: nextResults.filter((result) => result.correct).length,
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: nextResults,
-      })
-        .catch(() => { /* final attempt persistence remains the fallback */ })
-        .finally(() => { pendingResponsesRef.current.delete(saved); });
-      pendingResponsesRef.current.add(saved);
-      if (isLast) {
-        void saved
-          .then(() => refreshReview())
-          .catch(() => { /* retain the last known menu state */ });
-      }
+      };
+      pendingResponseSaveRef.current = { attempt, results: nextResults, isLast };
+      void persistPendingResponse();
+      return;
     }
 
     // Submit once, then advance without revealing correctness or offering a retry.
     // Keep the final answer locked until the completed attempt has been saved.
-    if (isLast) return void finish(nextResults);
-    setSelected(null);
-    questionStateRef.current = { index: index + 1, answered: false };
-    questionStartRef.current = Date.now();
-    setIndex(index + 1);
+    advanceAfterSavedAnswer(nextResults, isLast);
   };
 
   useEffect(() => {
@@ -359,7 +426,7 @@ export function useQuizSession({
     }
     setPracticeError(null);
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
-    setSelected(null); setResults([]); setIsFinishing(false); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
+    setSelected(null); setResults([]); setIsFinishing(false); setIsSavingResponse(false); setSaveError(null); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
     questionStateRef.current = { index: 0, answered: false };
     finishedRef.current = false;
     const startedEvent = picked === "tier1"
@@ -457,8 +524,8 @@ export function useQuizSession({
   };
 
   return {
-    screen, setScreen, mode, practiceError, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, isFinishing, vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
+    screen, setScreen, mode, practiceError, saveError, retrySave, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
+    question, index, selected, results, isFinishing: isFinishing || isSavingResponse || Boolean(saveError), vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, finish,
     chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
     startWeakWords, startDueReview, returnToModes, sessionReady,

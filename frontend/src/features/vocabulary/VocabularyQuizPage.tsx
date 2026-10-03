@@ -317,6 +317,7 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   return (
     <StudentPage layout="task" wide header={header}>
       {flow.practiceError && <StudentSection variant="panel"><p role="alert">{flow.practiceError}</p></StudentSection>}
+      {flow.saveError && <StudentSection variant="panel"><p role="alert">{flow.saveError}</p><StudentButton variant="secondary" icon="refresh" onClick={() => void flow.retrySave()}><StudentSystemText k="retry" withinControl /></StudentButton></StudentSection>}
       <QuizStatusBar flow={flow} question={question} />
       {flow.view === "mode-select" ? <ModePicker flow={flow} /> : flow.view === "round-result" || flow.view === "practice-result" ? <ResultView flow={flow} hasConversation={hasConversation} onOpenPreview={onOpenPreview} /> : question ? (
         <div className="sa-quiz__workspace">
