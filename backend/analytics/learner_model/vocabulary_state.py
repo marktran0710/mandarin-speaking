@@ -1,13 +1,12 @@
 """Normalized, server-derived vocabulary state.
 
 This module deliberately contains presentation state, not a second learner
-model.  There is one BKT probability per word; the response ledger supplies
-the dimension evidence and corrective-practice history that explain it.
+model. The response ledger supplies both independent BKT histories per word
+dimension and the corrective-practice history.
 
 Two different questions are answered separately, and BOTH gate ``STRONG``:
 
-* BKT, ``P(Learned)``: "how strong is the total, pooled evidence that the
-  learner knows this word?"  One probability per word, never per dimension.
+* BKT, ``P(Learned)``: one probability each for meaning, pinyin, and context.
 * Corrective state, ``unresolvedDimensions``: "is there a required dimension
   (meaning / pinyin / context) with a demonstrated failure that has not yet
   been repaired?"  It is derived from the ledger, not folded into P(Learned).
@@ -18,7 +17,7 @@ definitely knows the word.  A word is STRONG only when all of these hold:
     diagnostic coverage complete   (lesson rounds done AND every dimension observed)
     AND observation_count >= minimum_observations
     AND unresolvedDimensions is empty
-    AND P(Learned) >= mastery_threshold
+    AND pooled word P(Learned) >= mastery_threshold
 
 ``unresolvedDimensions`` is the single source of truth for "what to repair
 next".  The frontend question selector reads ``practice.nextDimension`` from
@@ -191,14 +190,20 @@ def covered_dimensions(history: Iterable[dict[str, Any]]) -> list[str]:
 
 
 def select_corrective_dimension(
-    unresolved: Iterable[str], covered: Iterable[str], observation_count: int,
+    unresolved: Iterable[str],
+    covered: Iterable[str],
+    observation_count: int,
+    *,
+    dimension_mastery: dict[str, dict[str, Any]] | None = None,
+    mastery_threshold: float | None = None,
 ) -> tuple[str, str]:
     """Deterministically choose the next practice dimension and say why.
 
     1. ``repair_unresolved``: the first unresolved dimension (stable order).
     2. ``complete_coverage``: the first dimension never observed for this word.
-    3. ``build_evidence``: nothing to repair and full coverage, but BKT is
-       still below threshold; rotate by observation count (no randomness).
+    3. ``build_evidence``: nothing to repair and full coverage, but one or more
+       dimension BKT states are below threshold; reinforce the weakest one.
+       Older callers without dimension probabilities keep stable rotation.
     """
     pending = _ordered(unresolved)
     if pending:
@@ -206,6 +211,19 @@ def select_corrective_dimension(
     uncovered = [key for key in DIMENSION_KEYS if key not in set(covered)]
     if uncovered:
         return uncovered[0], "complete_coverage"
+    if dimension_mastery and mastery_threshold is not None:
+        below_threshold = [
+            key for key in DIMENSION_KEYS
+            if float((dimension_mastery.get(key) or {}).get("pLearned", 0.0)) < mastery_threshold
+        ]
+        if below_threshold:
+            return min(
+                below_threshold,
+                key=lambda key: (
+                    float((dimension_mastery.get(key) or {}).get("pLearned", 0.0)),
+                    DIMENSION_KEYS.index(key),
+                ),
+            ), "build_evidence"
     return DIMENSION_KEYS[max(0, observation_count) % len(DIMENSION_KEYS)], "build_evidence"
 
 
@@ -272,20 +290,36 @@ def build_vocabulary_state(
     diagnostic_complete: bool,
     mastery_threshold: float,
     minimum_observations: int,
+    dimension_mastery: dict[str, dict[str, Any]] | None = None,
     model_version: str,
     parameter_fingerprint: str,
     srs_state: SrsState | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     evidence = build_evidence(history)
+    if dimension_mastery is None:
+        # Backward-compatible pure callers can still build state from the
+        # pooled probability. Production always supplies independent replayed
+        # dimension states from the authoritative response ledger.
+        dimension_mastery = {
+            key: {
+                "pLearned": p_learned,
+                "observationCount": evidence["byDimension"][key]["total"],
+                "correctCount": evidence["byDimension"][key]["correct"],
+                "incorrectCount": evidence["byDimension"][key]["incorrect"],
+            }
+            for key in DIMENSION_KEYS
+        }
     unresolved = unresolved_dimensions(history)
     covered = covered_dimensions(history)
     # "Diagnostic coverage complete" is lesson-level (all three rounds run) AND
     # word-level (every dimension actually observed for this word), so a high
     # P(Learned) built from one dimension can never classify a word STRONG.
     coverage_complete = diagnostic_complete and len(covered) == len(DIMENSION_KEYS)
-    # The mastery gate. STRONG is a system classification, not certainty that
-    # the learner knows the word: BKT strength AND no unrepaired dimension.
+    # Maintain dimension probabilities independently for feedback and repair
+    # targeting. The existing word-level BKT gate remains the pooled replay;
+    # this preserves the calibrated word threshold while making the three
+    # evidence dimensions independently inspectable.
     is_strong = (
         coverage_complete
         and observation_count >= minimum_observations
@@ -306,10 +340,20 @@ def build_vocabulary_state(
     else:
         review_status = "NOT_ASSESSED"
 
-    practice_required = bool(failed_dimensions(history)) or p_learned < mastery_threshold or review_status == "NEEDS_PRACTICE"
+    practice_required = (
+        bool(failed_dimensions(history))
+        or p_learned < mastery_threshold
+        or review_status == "NEEDS_PRACTICE"
+    )
     practice = build_practice_state(history, required=practice_required)
     next_dimension, selection_reason = (
-        (None, None) if is_strong else select_corrective_dimension(unresolved, covered, observation_count)
+        (None, None) if is_strong else select_corrective_dimension(
+            unresolved,
+            covered,
+            observation_count,
+            dimension_mastery=dimension_mastery,
+            mastery_threshold=mastery_threshold,
+        )
     )
     practice["nextDimension"] = next_dimension
     practice["selectionReason"] = selection_reason
@@ -325,6 +369,7 @@ def build_vocabulary_state(
         "bkt": {
             "pLearned": p_learned,
             "status": bkt_status,
+            "dimensions": dimension_mastery,
             "modelVersion": model_version,
             "parameterFingerprint": parameter_fingerprint,
         },

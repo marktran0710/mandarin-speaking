@@ -1,10 +1,11 @@
 """Development-only date/interval overrides for fast spaced-repetition UI checks."""
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import main  # noqa: F401  # Loads the router facade before the test patches it.
 from routers import vocab_quiz_attempts as attempt_routes
 from routers import vocab_quiz_mastery as mastery_routes
+from routers import vocab_review_sessions as review_session_routes
 from services import vocab_quiz_attempt_service as attempt_service
 
 
@@ -58,7 +59,7 @@ def test_today_override_is_ignored_when_missing_malformed_or_not_development(log
     assert captured == [None] * 8
 
 
-def test_development_today_override_reaches_completed_and_partial_review_updates(logged_in_student, monkeypatch):
+def test_legacy_client_selected_maintenance_is_rejected(logged_in_student, monkeypatch):
     client, _ = logged_in_student
     captured = []
 
@@ -71,60 +72,52 @@ def test_development_today_override_reaches_completed_and_partial_review_updates
     completed = client.post("/api/vocab-quiz-attempts?today=2026-09-17", json=_review_attempt("srs-completed"))
     partial = client.post("/api/vocab-quiz-responses?today=2026-09-23", json=_review_attempt("srs-partial"))
 
-    assert completed.status_code == 200, completed.text
-    assert partial.status_code == 200, partial.text
-    assert captured == [datetime(2026, 9, 17, tzinfo=timezone.utc), datetime(2026, 9, 23, tzinfo=timezone.utc)]
+    assert completed.status_code == 409 and partial.status_code == 409
+    assert completed.json()["detail"]["code"] == "SERVER_SELECTED_REVIEW_REQUIRED"
+    assert captured == []
 
 
-def test_production_today_override_does_not_change_review_update_date(logged_in_student, monkeypatch):
-    client, _ = logged_in_student
+def test_review_session_owns_date_and_interval_overrides(logged_in_student, monkeypatch):
+    client, student = logged_in_student
     captured = []
 
-    def fake_apply(db, student_id, question_results, now=None, day_seconds=86400.0):
-        captured.append(now)
-        return 0
+    def fake_answer(db, student_id, session_id, slot_id, selected_answer, response_time_ms, *, now, day_seconds):
+        captured.append((now, day_seconds))
+        return {"accepted": True}
 
-    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
-    monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, app_env="production"))
+    monkeypatch.setattr(review_session_routes.service, "answer_review_session_question", fake_answer)
+    monkeypatch.setattr(attempt_routes, "settings", replace(
+        attempt_routes.settings, app_env="development", srs_day_seconds=60.0,
+    ))
 
-    completed = client.post("/api/vocab-quiz-attempts?today=2026-09-17", json=_review_attempt("srs-production-completed"))
-    partial = client.post("/api/vocab-quiz-responses?today=2026-09-17", json=_review_attempt("srs-production-partial"))
-
-    assert completed.status_code == 200, completed.text
-    assert partial.status_code == 200, partial.text
-    assert captured == [None, None]
-
-
-def test_development_day_seconds_override_reaches_review_updates(logged_in_student, monkeypatch):
-    """SRS_DAY_SECONDS compresses the SM-2 cycle for live testing/demos, only in development."""
-    client, _ = logged_in_student
-    captured = []
-
-    def fake_apply(db, student_id, question_results, now=None, day_seconds=86400.0):
-        captured.append(day_seconds)
-        return 0
-
-    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
-    monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, srs_day_seconds=60.0))
-
-    response = client.post("/api/vocab-quiz-attempts", json=_review_attempt("srs-day-seconds"))
+    response = client.post(
+        f"/api/students/{student['id']}/review-sessions/session-1/answers?today=2026-09-17",
+        json={"slotId": "slot-1", "selectedAnswer": "answer", "responseTimeMs": 500},
+    )
 
     assert response.status_code == 200, response.text
-    assert captured == [60.0]
+    assert captured == [(datetime(2026, 9, 17, tzinfo=timezone.utc), 60.0)]
 
 
-def test_production_ignores_day_seconds_override(logged_in_student, monkeypatch):
-    client, _ = logged_in_student
+def test_production_review_session_ignores_date_and_day_seconds_overrides(logged_in_student, monkeypatch):
+    client, student = logged_in_student
     captured = []
 
-    def fake_apply(db, student_id, question_results, now=None, day_seconds=86400.0):
-        captured.append(day_seconds)
-        return 0
+    def fake_answer(db, student_id, session_id, slot_id, selected_answer, response_time_ms, *, now, day_seconds):
+        captured.append((now, day_seconds))
+        return {"accepted": True}
 
-    monkeypatch.setattr(attempt_service, "apply_srs_updates", fake_apply)
-    monkeypatch.setattr(attempt_routes, "settings", replace(attempt_routes.settings, app_env="production", srs_day_seconds=60.0))
+    monkeypatch.setattr(review_session_routes.service, "answer_review_session_question", fake_answer)
+    monkeypatch.setattr(attempt_routes, "settings", replace(
+        attempt_routes.settings, app_env="production", srs_day_seconds=60.0,
+    ))
 
-    response = client.post("/api/vocab-quiz-attempts", json=_review_attempt("srs-day-seconds-prod"))
+    response = client.post(
+        f"/api/students/{student['id']}/review-sessions/session-1/answers?today=2026-09-17",
+        json={"slotId": "slot-1", "selectedAnswer": "answer", "responseTimeMs": 500},
+    )
 
     assert response.status_code == 200, response.text
-    assert captured == [86400.0]
+    assert len(captured) == 1
+    assert captured[0][0].date() != date(2026, 9, 17)
+    assert captured[0][1] == 86400.0

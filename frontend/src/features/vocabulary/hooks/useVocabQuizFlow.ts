@@ -107,16 +107,6 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
     else onFinished();
   };
 
-  const startWeakWords = () => {
-    setPracticeResult(null);
-    void session.startWeakWords?.();
-  };
-
-  const startDueReview = () => {
-    setPracticeResult(null);
-    session.startDueReview?.();
-  };
-
   const startReview = async () => {
     const started = await reviewSession.start();
     if (started) setReviewActive(true);
@@ -175,8 +165,6 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
     choosePractice,
     startTier,
     startRound,
-    startWeakWords,
-    startDueReview,
     startReview,
     closeReview,
     discardStaleReview,

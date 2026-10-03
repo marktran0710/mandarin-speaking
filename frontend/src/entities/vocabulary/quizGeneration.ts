@@ -166,47 +166,6 @@ export function buildPersonalizedAssessmentQuestions(
   });
 }
 
-/** Scheduled maintenance uses the published bank without corrective targeting. */
-export function buildMaintenanceAssessmentQuestions(
-  entries: VocabQuizEntry[],
-): VocabQuizAssessmentQuestion[] {
-  return entries.flatMap((entry) => {
-    const bank = [...(entry.assessmentQuestions ?? [])].sort((left, right) => {
-      const dimensionOrder = (question: VocabAssessmentQuestion): number => (
-        question.questionType === "basic_meaning_mcq"
-          ? 0
-          : question.questionType === "character_to_pinyin_typing"
-            ? 1
-            : 2
-      );
-      return dimensionOrder(left) - dimensionOrder(right) || left.questionId.localeCompare(right.questionId);
-    });
-    if (!bank.length) return [];
-    const seen = new Set(entry.bktSeenQuestionKinds ?? []);
-    const unseen = bank.filter((question) => !seen.has(question.questionType));
-    // Finish covering every diagnostic dimension before rotating through the
-    // already-seen bank. Observation count is only a tie-breaker after the
-    // server evidence confirms that all dimensions have appeared.
-    const candidates = unseen.length ? unseen : bank;
-    const rotation = unseen.length
-      ? 0
-      : Math.max(0, entry.bktObservationCount ?? 0) % candidates.length;
-    const assessment = candidates[rotation];
-    if (!assessment) return [];
-    return [{
-      kind: "assessment" as const,
-      word: assessment.targetWord,
-      prompt: assessment.prompt,
-      options: shuffle([...assessment.options]),
-      correctAnswer: assessment.correctAnswer,
-      acceptedAnswers: assessment.acceptedAnswers,
-      explanation: assessment.explanation,
-      assessment,
-      isAiGenerated: false as const,
-    }];
-  });
-}
-
 function seededShuffle<T>(items: T[], seed: string): T[] {
   const result = [...items];
   let state = Array.from(seed).reduce((hash, character) => ((hash * 31) + character.charCodeAt(0)) >>> 0, 2166136261);

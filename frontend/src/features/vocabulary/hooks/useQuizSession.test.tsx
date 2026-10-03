@@ -92,48 +92,17 @@ beforeEach(() => {
 });
 
 describe("quiz answer and completion boundaries", () => {
-  it.each([
-    [3, "basic_meaning_mcq"],
-    [4, "character_to_pinyin_typing"],
-    [5, "context_cloze_mcq"],
-    [6, "basic_meaning_mcq"],
-  ])("starts maintenance using server observation count %s to select %s", (observationCount, expectedKind) => {
-    const entries = makeEntries(1);
-    const meaning = entries[0].assessmentQuestions![0];
-    entries[0].assessmentQuestions!.push({
-      ...meaning, questionId: "word-1-round3", round: 3, tier: "tier3", questionType: "context_cloze_mcq",
-    });
-    reviewState.dueWords = [{
-      wordId: "word-1", word: "word-1", observationCount: Number(observationCount),
-      seenQuestionTypes: ["basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq"],
-    }];
-    const { result } = renderHook(() => useQuizSession({ entries, storyId: "lesson-1", level: "easy", studentId: "student-1" }));
-    act(() => result.current.startDueReview());
-    expect(result.current.mode).toBe("maintenance_review");
-    expect(result.current.question?.kind).toBe("assessment");
-    if (result.current.question?.kind !== "assessment") throw new Error("Expected published maintenance item");
-    expect(result.current.question.assessment.questionType).toBe(expectedKind);
-    expect(recordLessonEvent).not.toHaveBeenCalledWith("personalized_started", expect.anything());
-  });
-
-  it.each([false, true])("blocks targeted practice before any round starts (empty bank: %s)", (emptyBank) => {
-    const target: VocabQuizEntry = { ...makeEntries(1)[0], bktNextDimension: "context" };
-    if (emptyBank) target.assessmentQuestions = [];
-    const { result } = renderHook(() => useQuizSession({ entries: [target], storyId: "lesson-1", level: "easy", studentId: "student-1" }));
-    act(() => result.current.practiceWord(target));
-    expect(result.current.practiceError).toContain("no published context question");
-    expect(result.current.screen).toBe("mode-select");
-    expect(result.current.mode).toBeNull();
-    expect(result.current.question).toBeUndefined();
-    expect(recordLessonEvent).not.toHaveBeenCalled();
-    expect(recordVocabQuizResponse).not.toHaveBeenCalled();
-    expect(createVocabQuizAttempt).not.toHaveBeenCalled();
-
-    // A later valid attempt clears the error and selects the requested dimension.
-    act(() => result.current.practiceWord({ ...makeEntries(1)[0], bktNextDimension: "pinyin" }));
-    expect(result.current.practiceError).toBeNull();
-    expect(result.current.screen).toBe("quiz");
-    expect(result.current.question.kind === "assessment" && result.current.question.assessment.questionType).toBe("character_to_pinyin_typing");
+  it("routes personalized and due review through the server-owned session", () => {
+    const { result } = renderHook(() => useQuizSession({ entries: makeEntries(1), storyId: "lesson-1", level: "easy", studentId: "student-1" }));
+    expect(result.current).not.toHaveProperty("startDueReview");
+    expect(result.current).not.toHaveProperty("startWeakWords");
+    expect(result.current).not.toHaveProperty("practiceWord");
+    for (const mode of ["weak_words", "maintenance_review"] as const) {
+      act(() => result.current.chooseMode(mode, makeEntries(1), 1));
+      expect(result.current.mode).toBeNull();
+      expect(result.current.screen).toBe("mode-select");
+      expect(result.current.practiceError).toContain("server-owned review session");
+    }
   });
 
   it.each([true, false])("advances only after the answer is saved (correct: %s)", async (correct) => {

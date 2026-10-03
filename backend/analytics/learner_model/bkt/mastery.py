@@ -30,8 +30,10 @@ from analytics.learner_model.bkt.placement_prior import (
 )
 from analytics.learner_model.vocabulary_state import (
     CORRECTIVE_POLICY_VERSION,
+    DIMENSION_KEYS,
     build_vocabulary_state,
     corrective_trace,
+    dimension_key,
 )
 from domain.vocabulary.story_scope import canonical_story_id, story_scope_ids
 
@@ -298,11 +300,41 @@ def _mastery_states_from_responses(
             params,
             initial_mastery=initial_mastery,
         )
+        histories_by_dimension: dict[str, list[dict[str, Any]]] = {key: [] for key in DIMENSION_KEYS}
+        for response in history:
+            key = dimension_key(response)
+            if key is not None:
+                histories_by_dimension[key].append(response)
+        dimension_states: dict[str, dict[str, Any]] = {}
+        for key in DIMENSION_KEYS:
+            dimension_history = histories_by_dimension[key]
+            dimension_p = replay_bkt_typed(
+                ((bool(row["correct"]), row.get("question_type")) for row in dimension_history),
+                params,
+                initial_mastery=initial_mastery,
+            )
+            dimension_correct = sum(1 for row in dimension_history if row["correct"])
+            dimension_states[key] = {
+                "pLearned": dimension_p,
+                "observationCount": len(dimension_history),
+                "correctCount": dimension_correct,
+                "incorrectCount": len(dimension_history) - dimension_correct,
+                "status": (
+                    "UNASSESSED" if not dimension_history
+                    else "STRONG" if dimension_p >= params.mastery_threshold
+                    else "DEVELOPING"
+                ),
+                "lastResponseAt": dimension_history[-1].get("occurred_at") if dimension_history else None,
+            }
         last = history[-1]
         correct_count = sum(1 for row in history if row["correct"])
         states[word_id] = {
             "word_id": word_id,
+            # Retain the pooled value as the existing word-level gate and
+            # report the three independent component estimates alongside it.
             "p_learned": p_learned,
+            "weakest_dimension_p_learned": min(value["pLearned"] for value in dimension_states.values()),
+            "dimension_states": dimension_states,
             "observation_count": len(history),
             "correct_count": correct_count,
             "incorrect_count": len(history) - correct_count,
@@ -423,13 +455,15 @@ def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConf
             INSERT INTO student_vocab_mastery
                 (student_id, word_id, p_learned, observation_count, correct_count,
                  incorrect_count, last_response_at, last_item_id, last_question_type,
-                 last_lesson_id, model_version, parameter_fingerprint, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 last_lesson_id, model_version, parameter_fingerprint, dimension_states,
+                 created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 student_id, state["word_id"], state["p_learned"], state["observation_count"], state["correct_count"],
                 state["incorrect_count"], state["last_response_at"], state["last_item_id"],
-                state["last_question_type"], state["last_lesson_id"], BKT_MODEL_VERSION, bkt_parameter_fingerprint(params), now, now,
+                state["last_question_type"], state["last_lesson_id"], BKT_MODEL_VERSION,
+                bkt_parameter_fingerprint(params), Jsonb(state["dimension_states"]), now, now,
             ),
         )
 
@@ -782,10 +816,22 @@ def get_vocabulary_mastery(
         state = states.get(word_id)
         observations = int(state["observation_count"]) if state else 0
         p_learned = float(state["p_learned"]) if state else initial_priors.get(word_id, params.initial_mastery)
+        dimension_mastery = state["dimension_states"] if state else {
+            key: {
+                "pLearned": p_learned,
+                "observationCount": 0,
+                "correctCount": 0,
+                "incorrectCount": 0,
+                "status": "UNASSESSED",
+                "lastResponseAt": None,
+            }
+            for key in DIMENSION_KEYS
+        }
         vocabulary_state = build_vocabulary_state(
             history=list(state.get("history") or []) if state else [],
             p_learned=p_learned,
             observation_count=observations,
+            dimension_mastery=dimension_mastery,
             diagnostic_complete=diagnostic_complete,
             mastery_threshold=params.mastery_threshold,
             minimum_observations=params.minimum_observations,
@@ -830,7 +876,14 @@ def get_vocabulary_mastery(
 
 def bottom_k_review_key(row: dict[str, Any]) -> tuple[Any, ...]:
     """Stable production ordering for review candidates."""
-    return (row["pLearned"], row["observationCount"], row["lastResponseAt"] or "", row["wordId"])
+    dimensions = ((row.get("vocabularyState") or {}).get("bkt") or {}).get("dimensions") or {}
+    dimension_probabilities = [
+        float(value["pLearned"])
+        for value in dimensions.values()
+        if isinstance(value, dict) and value.get("pLearned") is not None
+    ]
+    weakest = min(dimension_probabilities) if dimension_probabilities else row["pLearned"]
+    return (weakest, row["observationCount"], row["lastResponseAt"] or "", row["wordId"])
 
 
 def rank_review_candidates(candidates: Iterable[dict[str, Any]], review_count: int, include_all: bool) -> list[dict[str, Any]]:

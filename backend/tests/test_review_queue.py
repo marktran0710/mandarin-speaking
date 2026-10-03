@@ -78,30 +78,33 @@ def test_combine_does_not_duplicate_a_word_that_is_both_weak_and_due():
     srs = {"A": SrsState(reps=1, ease=2.5, interval_days=1, due_on=_dt(2026, 2, 1))}
     queue = combine_review_queue(weak, [_mastery("A", 5)], srs, TODAY)
     assert [row["wordId"] for row in queue] == ["A"]
-    assert queue[0]["reviewReason"] == "weak"   # weak wins the dedup
+    assert queue[0]["reviewReason"] == "due"   # an enrolled due item gets its SM-2 question
 
 
-def test_due_word_outside_weak_shortlist_cannot_bypass_corrective_repair():
+def test_due_enrolled_word_uses_sm2_even_after_bkt_reopens_corrective_repair():
     weak = [_mastery("A", 5)]
     missed_shortlist = {
         **_mastery("B", 8, "STRONG", 0.99),
-        # A high BKT probability does not override the dimension-repair gate.
+        # The learner has lapsed since enrollment; SM-2 still owns due timing.
         "vocabularyState": {"review": {"status": "NEEDS_PRACTICE"}, "practice": {"unresolvedDimensions": ["pinyin"]}},
     }
     srs = {"B": SrsState(reps=2, ease=2.5, interval_days=6, due_on=_dt(2026, 2, 8))}
     queue = combine_review_queue(weak, [*weak, missed_shortlist], srs, TODAY)
-    # A capped Bottom-K list must not turn an omitted weak word into maintenance.
-    assert [row["wordId"] for row in queue] == ["A"]
-    assert queue[0]["reviewReason"] == "weak"
-    # With includeAllWeak, the word is still available through corrective practice.
-    queue = combine_review_queue([*weak, missed_shortlist], [*weak, missed_shortlist], srs, TODAY)
+    # An enrolled due item is maintenance even if BKT now says repair is needed.
+    assert [(row["wordId"], row["reviewReason"]) for row in queue] == [
+        ("B", "due"), ("A", "weak"),
+    ]
+    # If the due date has not arrived, it can still appear as weak practice.
+    not_due = {"B": SrsState(reps=2, ease=2.5, interval_days=6, due_on=_dt(2026, 2, 20))}
+    queue = combine_review_queue([*weak, missed_shortlist], [*weak, missed_shortlist], not_due, TODAY)
     assert [(row["wordId"], row["reviewReason"]) for row in queue] == [("A", "weak"), ("B", "weak")]
 
 
-def test_due_provisional_word_cannot_bypass_incomplete_diagnostic():
+def test_existing_schedule_remains_due_after_mastery_status_changes():
     word = _mastery("B", 8, "PROVISIONAL_REVIEW", 0.99)
     srs = {"B": SrsState(reps=1, ease=2.5, interval_days=1, due_on=_dt(2026, 2, 8))}
-    assert combine_review_queue([], [word], srs, TODAY) == []
+    queue = combine_review_queue([], [word], srs, TODAY)
+    assert [(row["wordId"], row["reviewReason"]) for row in queue] == [("B", "due")]
 
 
 def test_store_loads_states_and_parses_dates():

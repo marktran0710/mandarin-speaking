@@ -8,7 +8,13 @@ bkt_mastery (BKT mastery is untouched by scheduling).
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+from hashlib import sha256
+import json
+import random
+import secrets
 from typing import Any, Iterable
+
+from psycopg.types.json import Jsonb
 
 from analytics.learner_model.srs import (
     DAY_SECONDS,
@@ -22,6 +28,10 @@ from analytics.learner_model.srs import (
     enrollment_state,
     should_advance,
 )
+
+
+REVIEW_ACTIVITIES = ("meaning", "pinyin", "context")
+_REVIEW_ACTIVITY_BAG_VERSION = 1
 
 
 def _to_datetime(value: Any) -> datetime | None:
@@ -66,6 +76,111 @@ def load_srs_states(db: Any, student_id: str, word_ids: Iterable[str] | None = N
     else:
         rows = db.execute(_SELECT, (student_id,)).fetchall()
     return {str(row["word_id"]): _row_to_state(row) for row in rows}
+
+
+def _decode_bag(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            value = {}
+    if not isinstance(value, dict) or value.get("version") != _REVIEW_ACTIVITY_BAG_VERSION:
+        return {}
+    return value
+
+
+def _shuffle_activity_cycle(seed: str, cycle: int) -> list[str]:
+    """Build a reproducible pseudorandom order for one persisted bag cycle."""
+    cycle_seed = int.from_bytes(sha256(f"{seed}:{cycle}".encode("utf-8")).digest(), "big")
+    activities = list(REVIEW_ACTIVITIES)
+    random.Random(cycle_seed).shuffle(activities)
+    return activities
+
+
+def reserve_review_activity(
+    db: Any,
+    student_id: str,
+    word_id: str,
+    *,
+    seed: str | None = None,
+) -> str:
+    """Reserve the next item activity without consuming it until it is answered.
+
+    The seed, cycle order, remaining bag, and pending activity live with the
+    word's SRS schedule. A resumed/deferred session therefore receives the
+    same activity, and tests can pass a fixed seed to assert the full cycle.
+    """
+    row = db.execute(
+        "SELECT review_activity_bag FROM student_vocab_srs "
+        "WHERE student_id = %s AND word_id = %s FOR UPDATE",
+        (student_id, word_id),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Cannot select a review activity for a word without an SM-2 schedule.")
+
+    bag = _decode_bag(row.get("review_activity_bag"))
+    bag_seed = str(bag.get("seed") or seed or secrets.token_hex(16))
+    remaining = bag.get("remaining")
+    if not isinstance(remaining, list) or any(value not in REVIEW_ACTIVITIES for value in remaining):
+        remaining = []
+    pending = bag.get("pendingActivity")
+    if pending in REVIEW_ACTIVITIES:
+        return str(pending)
+
+    cycle = max(0, int(bag.get("cycle") or 0))
+    order = bag.get("order")
+    if not remaining:
+        cycle += 1
+        order = _shuffle_activity_cycle(bag_seed, cycle)
+        remaining = list(order)
+    elif not isinstance(order, list) or set(order) != set(REVIEW_ACTIVITIES):
+        # Recover a partially initialized/older bag without losing any valid
+        # activity already queued in ``remaining``.
+        order = [*remaining, *(value for value in REVIEW_ACTIVITIES if value not in remaining)]
+
+    pending = remaining[0]
+    updated_bag = {
+        "version": _REVIEW_ACTIVITY_BAG_VERSION,
+        "seed": bag_seed,
+        "cycle": cycle,
+        "order": order,
+        "remaining": remaining,
+        "pendingActivity": pending,
+    }
+    db.execute(
+        "UPDATE student_vocab_srs SET review_activity_bag = %s, updated_at = %s "
+        "WHERE student_id = %s AND word_id = %s",
+        (Jsonb(updated_bag), datetime.now(timezone.utc).isoformat(), student_id, word_id),
+    )
+    return str(pending)
+
+
+def complete_review_activity(db: Any, student_id: str, word_id: str, activity: str) -> bool:
+    """Consume a reserved activity once its corresponding response is saved."""
+    if activity not in REVIEW_ACTIVITIES:
+        raise ValueError(f"Unsupported review activity: {activity}")
+    row = db.execute(
+        "SELECT review_activity_bag FROM student_vocab_srs "
+        "WHERE student_id = %s AND word_id = %s FOR UPDATE",
+        (student_id, word_id),
+    ).fetchone()
+    if row is None:
+        return False
+    bag = _decode_bag(row.get("review_activity_bag"))
+    remaining = bag.get("remaining")
+    if bag.get("pendingActivity") != activity or not isinstance(remaining, list) or not remaining or remaining[0] != activity:
+        return False
+    updated_bag = {
+        **bag,
+        "remaining": remaining[1:],
+        "pendingActivity": None,
+    }
+    db.execute(
+        "UPDATE student_vocab_srs SET review_activity_bag = %s, updated_at = %s "
+        "WHERE student_id = %s AND word_id = %s",
+        (Jsonb(updated_bag), datetime.now(timezone.utc).isoformat(), student_id, word_id),
+    )
+    return True
 
 
 def upsert_srs_state(db: Any, student_id: str, word_id: str, state: SrsState) -> None:

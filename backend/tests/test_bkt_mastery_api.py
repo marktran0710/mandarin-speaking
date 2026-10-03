@@ -46,15 +46,25 @@ def _publish_attempt_items(attempt: dict) -> None:
         for result in attempt.get("questionResults") or []:
             item_id = str(result["itemId"])
             word = str(result["word"])
+            question_type = result.get("questionKind")
+            if question_type not in {
+                "basic_meaning_mcq", "context_cloze_mcq", "character_to_pinyin_typing",
+                "contextual_productive_recall", "productive_recall",
+            }:
+                question_type = "basic_meaning_mcq" if level == "easy" else "productive_recall"
+            answer_format = (
+                "free_text" if question_type in {"character_to_pinyin_typing", "contextual_productive_recall", "productive_recall"}
+                else "single_choice"
+            )
             by_identity[(item_id, level)] = {
                 "questionId": item_id,
                 "wordId": word,
                 "targetWord": word,
                 "level": level,
-                "questionType": "basic_meaning_mcq" if level == "easy" else "productive_recall",
-                "answerFormat": "single_choice" if level == "easy" else "free_text",
+                "questionType": question_type,
+                "answerFormat": answer_format,
                 "pinyin": "right",
-                "options": ["right", "wrong"] if level == "easy" else [],
+                "options": ["right", "wrong"] if answer_format == "single_choice" else [],
                 "correctAnswer": "right",
                 "acceptedAnswers": ["right"],
                 "prompt": f"Answer for {word}",
@@ -470,6 +480,43 @@ def _e2e_word_state(client, student) -> dict:
     return next(row for row in words if row["word"] == _E2E_WORD)
 
 
+def _start_due_review_session(client, student, day: str):
+    response = client.post(
+        f"/api/students/{student['id']}/review-sessions", params={"today": day},
+    )
+    assert response.status_code == 200, response.text
+    session = response.json()["session"]
+    assert session is not None
+    question = session["currentQuestion"]
+    assert question["reviewReason"] == "due"
+    return session, question
+
+
+def _answer_server_selected_review(client, student, session, question, day: str, *, correct: bool):
+    with db.connect_db() as conn:
+        assessment = conn.execute(
+            "SELECT vocab_assessment FROM custom_stories WHERE id = %s",
+            (question["sourceStoryId"],),
+        ).fetchone()["vocab_assessment"]
+    item = next(
+        value for value in assessment
+        if value["questionType"] == question["questionType"]
+        and value["targetWord"] == question["word"]
+    )
+    accepted = item.get("acceptedAnswers") or [item["correctAnswer"]]
+    if correct:
+        answer = accepted[0]
+    elif item.get("answerFormat") == "single_choice":
+        answer = next(value for value in item.get("options", []) if value not in accepted)
+    else:
+        answer = "definitely-not-the-pinyin"
+    payload = {"slotId": question["slotId"], "selectedAnswer": answer, "responseTimeMs": 700}
+    answer_url = f"/api/students/{student['id']}/review-sessions/{session['sessionId']}/answers"
+    response = client.post(answer_url, params={"today": day}, json=payload)
+    assert response.status_code == 200, response.text
+    return response, answer_url, payload
+
+
 def test_unresolved_dimensions_drive_practice_to_strong_and_sm2_enrollment(logged_in_student):
     """meaning wrong, pinyin wrong, context right -> repair meaning, then
     pinyin (never both at once, never a stale historical failure)."""
@@ -523,7 +570,7 @@ def test_unresolved_dimensions_drive_practice_to_strong_and_sm2_enrollment(logge
 
 
 def test_due_failure_reopens_repair_without_practice_postponing_sm2(logged_in_student, monkeypatch):
-    """Exercise the production API through acquisition, lapse, repair and retention."""
+    """Exercise server-selected due activity through acquisition, lapse and retention."""
     import routers.vocab_quiz_attempts as attempt_routes
 
     monkeypatch.setattr(attempt_routes, "settings", replace(
@@ -553,30 +600,39 @@ def test_due_failure_reopens_repair_without_practice_postponing_sm2(logged_in_st
     assert _e2e_word_state(client, student)["status"] == "STRONG"
     assert schedule()["due_on"] == datetime(2026, 10, 4, tzinfo=timezone.utc)
     assert queue("2026-10-04")[0]["reviewReason"] == "due"
-    _post_e2e(client, "cycle-maintenance-1", "maintenance_review", "context", True, "2026-10-04")
+    first_session, first_question = _start_due_review_session(client, student, "2026-10-04")
+    assert first_question["dimension"] in {"meaning", "pinyin", "context"}
+    _answer_server_selected_review(client, student, first_session, first_question, "2026-10-04", correct=True)
     assert schedule()["reps"] == 2 and schedule()["interval_days"] == 6
     assert schedule()["due_on"] == datetime(2026, 10, 10, tzinfo=timezone.utc)
 
-    # An early response is still BKT evidence but cannot move a due interval.
+    # Before the next due date the server creates no maintenance question.
     before_early = schedule()
     observations = _e2e_word_state(client, student)["observationCount"]
-    _post_e2e(client, "cycle-early", "maintenance_review", "pinyin", True, "2026-10-05")
+    early = client.post(
+        f"/api/students/{student['id']}/review-sessions", params={"today": "2026-10-05"},
+    )
+    assert early.status_code == 200 and early.json()["session"] is None
     assert schedule() == before_early
-    assert _e2e_word_state(client, student)["observationCount"] == observations + 1
+    assert _e2e_word_state(client, student)["observationCount"] == observations
 
-    _post_e2e(client, "cycle-lapse", "maintenance_review", "meaning", False, "2026-10-10")
+    lapse_session, lapse_question = _start_due_review_session(client, student, "2026-10-10")
+    failed, lapse_url, lapse_payload = _answer_server_selected_review(
+        client, student, lapse_session, lapse_question, "2026-10-10", correct=False,
+    )
+    assert failed.json()["result"]["correct"] is False
     lapsed = _e2e_word_state(client, student)
     assert lapsed["status"] == "NEEDS_PRACTICE"
-    assert lapsed["vocabularyState"]["practice"]["unresolvedDimensions"] == ["meaning"]
-    assert lapsed["vocabularyState"]["practice"]["nextDimension"] == "meaning"
+    assert lapsed["vocabularyState"]["practice"]["unresolvedDimensions"] == [lapse_question["dimension"]]
+    assert lapsed["vocabularyState"]["practice"]["nextDimension"] == lapse_question["dimension"]
     after_lapse = schedule()
     assert after_lapse["reps"] == 0 and after_lapse["interval_days"] == 1
     assert after_lapse["ease"] < before_early["ease"]
     assert after_lapse["due_on"] == datetime(2026, 10, 11, tzinfo=timezone.utc)
-    assert queue("2026-10-10")[0]["reviewReason"] == "weak"
+    assert queue("2026-10-10")[0]["reviewReason"] == "weak"  # next SM-2 due time is tomorrow
 
     for index in (1, 2):
-        _post_e2e(client, f"cycle-repair-{index}", "weak_words", "meaning", True, "2026-10-10")
+        _post_e2e(client, f"cycle-repair-{index}", "weak_words", lapse_question["dimension"], True, "2026-10-10")
         assert schedule() == after_lapse
         if index == 1:
             assert _e2e_word_state(client, student)["status"] == "NEEDS_PRACTICE"
@@ -584,13 +640,20 @@ def test_due_failure_reopens_repair_without_practice_postponing_sm2(logged_in_st
     assert queue("2026-10-10") == []
     assert queue("2026-10-11")[0]["reviewReason"] == "due"
 
-    # A retry of the old lapse must not reopen the repaired dimension or reset SRS.
-    _post_e2e(client, "cycle-lapse", "maintenance_review", "meaning", False, "2026-10-10")
+    # A retry of the same server slot returns its saved result and cannot add
+    # another BKT observation or SRS event.
+    observations_after_lapse = _e2e_word_state(client, student)["observationCount"] - 2
+    retried = client.post(lapse_url, params={"today": "2026-10-10"}, json=lapse_payload)
+    assert retried.status_code == 200, retried.text
     assert _e2e_word_state(client, student)["status"] == "STRONG"
     assert schedule() == after_lapse
-    _post_e2e(client, "cycle-maintenance-2", "maintenance_review", "meaning", True, "2026-10-11")
+    assert _e2e_word_state(client, student)["observationCount"] == observations_after_lapse + 2
+
+    next_session, next_question = _start_due_review_session(client, student, "2026-10-11")
+    _answer_server_selected_review(client, student, next_session, next_question, "2026-10-11", correct=True)
     assert schedule()["reps"] == 1 and schedule()["interval_days"] == 1
-    _post_e2e(client, "cycle-maintenance-3", "maintenance_review", "pinyin", True, "2026-10-12")
+    final_session, final_question = _start_due_review_session(client, student, "2026-10-12")
+    _answer_server_selected_review(client, student, final_session, final_question, "2026-10-12", correct=True)
     assert schedule()["reps"] == 2 and schedule()["interval_days"] == 6
     assert schedule()["due_on"] == datetime(2026, 10, 18, tzinfo=timezone.utc)
     with db.connect_db() as conn:
@@ -630,119 +693,64 @@ def test_interrupted_corrective_streak_cannot_complete_repair_or_enroll_sm2(logg
         assert conn.execute("SELECT count(*) AS n FROM student_vocab_srs WHERE student_id = %s", (student["id"],)).fetchone()["n"] == 1
 
 
-def test_personalized_practice_requires_two_successes_and_failed_dimension(logged_in_student):
+def test_personalized_repairs_enroll_once_and_due_answer_is_idempotent(logged_in_student, monkeypatch):
+    import routers.vocab_quiz_attempts as attempt_routes
+
+    monkeypatch.setattr(attempt_routes, "settings", replace(
+        attempt_routes.settings, app_env="development", srs_day_seconds=86400.0,
+    ))
     client, student = logged_in_student
-    word = "practice-target"
-    for index, (mode, level, question_kind, dimension) in enumerate((
-        ("tier1", "easy", "basic_meaning_mcq", "meaning"),
-        ("tier2", "medium", "character_to_pinyin_typing", "pinyin_production"),
-        ("tier3", "hard", "context_cloze_mcq", "contextual_recall"),
-    ), start=1):
-        result = _response(word, mode != "tier1", f"practice-diagnostic-{index}", level=level, question_kind=question_kind)
-        result.update({"knowledgeDimension": dimension, "quizId": f"practice-diagnostic-{index}"})
-        attempt = _attempt(f"practice-diagnostic-{index}", mode, f"2026-08-1{index}T00:00:00Z", [result])
-        attempt["level"] = level
-        assert _post_attempt(client, attempt, today=f"2026-08-1{index}").status_code == 200
+    _publish_e2e_bank()
+    _post_e2e(client, "practice-d1", "tier1", "meaning", False, "2026-08-01")
+    _post_e2e(client, "practice-d2", "tier2", "pinyin", True, "2026-08-02")
+    _post_e2e(client, "practice-d3", "tier3", "context", True, "2026-08-03")
+    _post_e2e(client, "practice-p1", "weak_words", "meaning", True, "2026-08-20")
+    _post_e2e(client, "practice-p2", "weak_words", "meaning", True, "2026-08-21")
 
-    first_practice = _attempt(
-        "practice-corrective-1", "weak_words", "2026-08-20T00:00:00Z",
-        [_response(word, True, "practice-corrective-item-1", eligible=False)],
-    )
-    assert _post_attempt(client, first_practice, today="2026-08-20").status_code == 200
-    state = next(row for row in client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"] if row["word"] == word)
-    assert state["vocabularyState"]["bkt"]["status"] == "STRONG"
-    assert state["vocabularyState"]["review"] == {"status": "NEEDS_PRACTICE", "candidate": True}
-    assert state["vocabularyState"]["practice"]["status"] == "IN_PROGRESS"
-    assert state["vocabularyState"]["practice"]["repairProgress"] == {"meaning": 1}
-    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == ["meaning"]
-
-    second_practice = _attempt(
-        "practice-corrective-2", "weak_words", "2026-08-21T00:00:00Z",
-        [_response(word, True, "practice-corrective-item-2", eligible=False)],
-    )
-    assert _post_attempt(client, second_practice, today="2026-08-21").status_code == 200
-    state = next(row for row in client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"] if row["word"] == word)
+    state = _e2e_word_state(client, student)
     assert state["vocabularyState"]["practice"]["status"] == "COMPLETE"
-    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == []
-    assert state["vocabularyState"]["practice"]["repairedDimensions"] == ["meaning"]
     assert state["status"] == "STRONG"
-
     with db.connect_db() as conn:
         scheduled = conn.execute(
             "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
-            (student["id"], word),
+            (student["id"], _E2E_WORD),
         ).fetchone()
-    assert scheduled is not None
-    assert scheduled["reps"] == 1
-    assert scheduled["interval_days"] == 1
+    assert scheduled is not None and scheduled["reps"] == 1 and scheduled["interval_days"] == 1
+    assert scheduled["due_on"] == datetime(2026, 8, 22, tzinfo=timezone.utc)
 
-    due = client.get(
-        f"/api/students/{student['id']}/review-queue",
-        params={"story_id": "lesson-1", "include_all": "true", "today": "2026-08-22"},
+    due_session, question = _start_due_review_session(client, student, "2026-08-22")
+    first, answer_url, payload = _answer_server_selected_review(
+        client, student, due_session, question, "2026-08-22", correct=True,
     )
-    assert due.status_code == 200, due.text
-    assert [row["wordId"] for row in due.json()["queue"]] == [word]
-    assert due.json()["queue"][0]["reviewReason"] == "due"
-    assert next(row for row in due.json()["mastery"] if row["word"] == word)["vocabularyState"]["scheduling"]["status"] == "DUE_FOR_REVIEW"
-
-    maintenance = _attempt(
-        "practice-maintenance", "maintenance_review", "2026-08-22T00:00:00Z",
-        [_response(word, True, "practice-maintenance-item", eligible=False, question_kind="basic_meaning_mcq")],
-    )
-    maintenance["questionResults"][0]["quizId"] = "maintenance-round-stable-id"
-    partial_maintenance = {**maintenance, "id": "maintenance-partial-id"}
-    assert _post_attempt(client, partial_maintenance, partial=True, today="2026-08-22").status_code == 200
-    assert _post_attempt(client, maintenance, today="2026-08-22").status_code == 200
-    after = client.get(
-        f"/api/students/{student['id']}/review-queue",
-        params={"story_id": "lesson-1", "include_all": "true", "today": "2026-08-22"},
-    )
-    assert after.status_code == 200, after.text
-    assert after.json()["queue"] == []
-
+    assert first.json()["result"]["correct"] is True
     with db.connect_db() as conn:
-        events = conn.execute(
-            """
-            SELECT event_type, correct, quality, old_reps, new_reps,
-                   algorithm_version
-            FROM student_vocab_srs_events
-            WHERE student_id = %s AND word_id = %s
-            ORDER BY id
-            """,
-            (student["id"], word),
-        ).fetchall()
-    assert [event["event_type"] for event in events] == ["enrollment", "maintenance_success"]
-    assert events[0]["correct"] is None and events[0]["quality"] is None
-    assert events[1]["correct"] is True and events[1]["quality"] == 4
-    assert events[1]["old_reps"] == 1 and events[1]["new_reps"] == 2
-    assert all(event["algorithm_version"] == "modified-sm2-v1" for event in events)
-
-    # Retrying the same immutable API attempt must not append another SRS
-    # transition, even if the request is persisted twice by the client.
-    assert _post_attempt(client, maintenance, today="2026-08-22").status_code == 200
-    with db.connect_db() as conn:
-        event_count = conn.execute(
-            "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
-            (student["id"], word),
-        ).fetchone()["count"]
-    assert event_count == 2
-
-    # The same immutable response must remain a no-op even after the word's
-    # next due date. Otherwise a replay after a reconnect could advance the
-    # schedule from the current projection a second time.
-    assert _post_attempt(client, maintenance, today="2026-08-29").status_code == 200
-    with db.connect_db() as conn:
-        scheduled = conn.execute(
+        after = dict(conn.execute(
             "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
-            (student["id"], word),
-        ).fetchone()
+            (student["id"], _E2E_WORD),
+        ).fetchone())
         event_count = conn.execute(
             "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
-            (student["id"], word),
+            (student["id"], _E2E_WORD),
         ).fetchone()["count"]
-    assert scheduled["reps"] == 2
-    assert scheduled["interval_days"] == 6
+    assert after["reps"] == 2 and after["interval_days"] == 6
+    assert after["due_on"] == datetime(2026, 8, 28, tzinfo=timezone.utc)
     assert event_count == 2
+
+    # A retry of the same session slot remains a no-op, including after the
+    # schedule has moved on to another due date.
+    retry = client.post(answer_url, params={"today": "2026-08-29"}, json=payload)
+    assert retry.status_code == 200
+    with db.connect_db() as conn:
+        final = dict(conn.execute(
+            "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], _E2E_WORD),
+        ).fetchone())
+        final_events = conn.execute(
+            "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
+            (student["id"], _E2E_WORD),
+        ).fetchone()["count"]
+    assert final == after
+    assert final_events == event_count
 
 
 def test_repeated_exact_item_exposure_counts_only_first_response(logged_in_student):
@@ -878,68 +886,16 @@ def _srs_footprint(student) -> dict:
 
 
 @pytest.mark.parametrize("endpoint", ["completed", "partial"])
-def test_maintenance_is_rejected_for_a_word_that_is_not_strong(logged_in_student, dev_clock, endpoint):
+def test_client_cannot_choose_a_due_maintenance_activity(logged_in_student, dev_clock, endpoint):
     client, student = logged_in_student
     _acquire_strong_scheduled_word(client, student)
-    # A due lapse reopens the meaning repair, so the word leaves STRONG.
-    _post_e2e(client, "guard-lapse", "maintenance_review", "meaning", False, "2026-10-04")
-    lapsed = _e2e_word_state(client, student)
-    assert lapsed["status"] == "NEEDS_PRACTICE"
     before = _srs_footprint(student)
 
-    # The word is due again on 10-05 but is still unrepaired. The UI never
-    # offers it, so only a direct API call can get here.
-    response = _post_maintenance(client, endpoint, "guard-direct", "pinyin", True, "2026-10-05")
+    # Even an enrolled, due, strong word can only enter through the persisted
+    # session slot, which owns activity selection and response identity.
+    response = _post_maintenance(client, endpoint, "guard-direct", "pinyin", True, "2026-10-04")
 
     assert response.status_code == 409, response.text
+    assert response.json()["detail"]["code"] == "SERVER_SELECTED_REVIEW_REQUIRED"
     assert _srs_footprint(student) == before
-    assert _e2e_word_state(client, student)["observationCount"] == lapsed["observationCount"]
-
-
-@pytest.mark.parametrize("endpoint", ["completed", "partial"])
-def test_due_strong_word_answered_wrong_is_accepted_and_reopens_repair(logged_in_student, dev_clock, endpoint):
-    client, student = logged_in_student
-    _acquire_strong_scheduled_word(client, student)
-
-    # The wrong answer is what takes the word out of STRONG, so the guard has
-    # to judge the word as it stood before this write.
-    response = _post_maintenance(client, endpoint, "guard-wrong", "meaning", False, "2026-10-04")
-
-    assert response.status_code == 200, response.text
-    state = _e2e_word_state(client, student)
-    assert state["status"] == "NEEDS_PRACTICE"
-    assert state["vocabularyState"]["practice"]["unresolvedDimensions"] == ["meaning"]
-    footprint = _srs_footprint(student)
-    (schedule,) = footprint["schedule"]
-    assert schedule["reps"] == 0 and schedule["interval_days"] == 1
-    assert footprint["events"] == ["enrollment", "maintenance_failure"]
-
-
-@pytest.mark.parametrize("correct", [True, False])
-def test_maintenance_partial_save_completion_and_retry_apply_once(logged_in_student, dev_clock, correct):
-    client, student = logged_in_student
-    _acquire_strong_scheduled_word(client, student)
-    answer = ("meaning", correct, "2026-10-04")
-    round_id = "guard-round"
-
-    assert _post_maintenance(client, "partial", "guard-partial", *answer, quiz_id=round_id).status_code == 200
-    after_partial = _srs_footprint(student)
-    observed = _e2e_word_state(client, student)["observationCount"]
-
-    # A wrong answer has already taken the word out of STRONG. Replaying that
-    # same response in the completed attempt must not be mistaken for a new
-    # maintenance answer on a word that was never STRONG.
-    completed = _post_maintenance(client, "completed", "guard-completed", *answer, quiz_id=round_id)
-    assert completed.status_code == 200, completed.text
-    after_completed = _srs_footprint(student)
-    assert after_completed["attempts"] == after_partial["attempts"] + 1
-    assert {**after_completed, "attempts": after_partial["attempts"]} == after_partial
-
-    for endpoint, attempt_id in (("completed", "guard-completed"), ("partial", "guard-partial")):
-        retry = _post_maintenance(client, endpoint, attempt_id, *answer, quiz_id=round_id)
-        assert retry.status_code == 200, retry.text
-        assert _srs_footprint(student) == after_completed
-    assert _e2e_word_state(client, student)["observationCount"] == observed
-    assert after_completed["events"] == [
-        "enrollment", "maintenance_success" if correct else "maintenance_failure",
-    ]
+    assert _e2e_word_state(client, student)["status"] == "STRONG"

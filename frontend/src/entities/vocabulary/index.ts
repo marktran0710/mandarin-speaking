@@ -52,7 +52,6 @@ export {
   assessmentAnswerIsCorrect,
   buildAssessmentQuestions,
   buildDiagnosticRoundQuestions,
-  buildMaintenanceAssessmentQuestions,
   buildPersonalizedAssessmentQuestions,
   MissingPracticeAssessmentError,
   buildQuizQuestion,

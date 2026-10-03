@@ -93,6 +93,18 @@ def _effective_srs_day_seconds() -> float:
     return settings.srs_day_seconds
 
 
+def _reject_client_selected_maintenance(attempt: VocabQuizAttemptRequest) -> None:
+    """Maintenance questions must come from the persisted review session."""
+    if attempt.mode == "maintenance_review":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "SERVER_SELECTED_REVIEW_REQUIRED",
+                "message": "Start or resume the review session to receive the server-selected due activity.",
+            },
+        )
+
+
 @router.get("/api/vocab-quiz-attempts")
 def list_vocab_quiz_attempts(
     story_id: Optional[str] = None,
@@ -130,6 +142,7 @@ def create_vocab_quiz_attempt(
     today: Optional[str] = None,
     context: _QuizWriteContext = Depends(_quiz_write_context),
 ):
+    _reject_client_selected_maintenance(attempt)
     # The client-facing response echoes exactly what the client sent, not the
     # server-resolved/authoritative version the service validates internally.
     raw_question_results = [
@@ -169,6 +182,7 @@ def record_vocab_quiz_response(
     context: _QuizWriteContext = Depends(_quiz_write_context),
 ):
     """Persist the answers seen so far without creating a completed attempt."""
+    _reject_client_selected_maintenance(attempt)
     with connect_db() as db:
         try:
             if context.evidence_origin == "synthetic":

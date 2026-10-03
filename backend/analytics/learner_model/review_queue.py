@@ -31,31 +31,33 @@ def combine_review_queue(
     is that call's per-word snapshot (used to hydrate due words not already weak).
     Inputs are not mutated.
     """
-    weak_ids = {w["wordId"] for w in weak_words}
-    tagged_weak = [{**w, "reviewReason": "weak"} for w in weak_words]
-
     mastery_by_id = {m["wordId"]: m for m in mastery}
     due_extra: list[tuple[datetime, dict[str, Any]]] = []
     for word_id, state in srs_states.items():
-        if word_id in weak_ids or not is_due(state, now):
+        if not is_due(state, now):
             continue
         row = mastery_by_id.get(word_id)
         # Only surface real, observed words; a due entry with no mastery record
         # (or zero observations) is stale scheduling, not a review candidate.
         if row is None or int(row.get("observationCount", 0)) <= 0:
             continue
-        # Bottom-K may omit some weak words. A schedule does not override
-        # their repair/diagnostic gate: only officially strong words enter
-        # maintenance; omitted weak words wait for corrective selection.
-        review_status = ((row.get("vocabularyState") or {}).get("review") or {}).get("status") or row.get("status")
-        if review_status != "STRONG":
-            continue
+        # Enrollment is the BKT/diagnostic gate. After enrollment, SM-2 owns
+        # due timing even if a later maintenance answer lowers one BKT
+        # component. A lapse must not silently unenroll the word.
         item = {**row, "reviewReason": "due", "dueOn": state.due_on.isoformat() if state.due_on else None}
         due_extra.append((state.due_on or now, item))
 
     # Earliest due time first (most overdue), stable by wordId.
     due_extra.sort(key=lambda pair: (pair[0], pair[1]["wordId"]))
     ordered_due = [item for _, item in due_extra]
+    due_ids = {item["wordId"] for item in ordered_due}
+    # An enrolled word that is due gets one maintenance question. Do not
+    # duplicate it in the personalized part of the same queue.
+    tagged_weak = [
+        {**word, "reviewReason": "weak"}
+        for word in weak_words
+        if word["wordId"] not in due_ids
+    ]
     return ordered_due + tagged_weak
 
 
@@ -131,15 +133,21 @@ def build_all_learned_review_queue(
         for row in review.get("mastery", []):
             word_id = row["wordId"]
             source_ids = [*mastery_by_id.get(word_id, {}).get("sourceStoryIds", []), story_id]
+            source_versions = {
+                **mastery_by_id.get(word_id, {}).get("sourceStoryVersions", {}),
+                story_id: story.get("vocabulary_version"),
+            }
             if word_id not in mastery_by_id:
                 mastery_by_id[word_id] = {
                     **row,
                     "sourceStoryId": story_id,
                     "sourceStoryIds": source_ids,
+                    "sourceStoryVersions": source_versions,
                     "vocabularyVersion": story.get("vocabulary_version"),
                 }
             else:
                 mastery_by_id[word_id]["sourceStoryIds"] = list(dict.fromkeys(source_ids))
+                mastery_by_id[word_id]["sourceStoryVersions"] = source_versions
         for row in review.get("words", []):
             existing_weak = weak_by_id.get(row["wordId"])
             if existing_weak is None:

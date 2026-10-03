@@ -24,6 +24,8 @@ JSONB_COLUMNS = [
     ("vocab_quiz_attempts", "question_results"),
     ("vocab_review_sessions", "slots"),
     ("vocab_review_sessions", "responses"),
+    ("student_vocab_mastery", "dimension_states"),
+    ("student_vocab_srs", "review_activity_bag"),
     ("audio_records", "praat_metrics"),
     ("custom_stories", "conversation_turns"),
     ("speaking_progress", "cleared_words"),

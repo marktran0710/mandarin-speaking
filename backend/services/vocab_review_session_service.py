@@ -10,6 +10,7 @@ from psycopg.types.json import Jsonb
 
 from analytics.learner_model.bkt.mastery import lock_student_bkt, normalize_word_id
 from analytics.learner_model.review_queue import build_all_learned_review_queue
+from analytics.learner_model.srs_store import complete_review_activity, reserve_review_activity
 from api.schemas.models import VocabQuizAttemptRequest, VocabQuizQuestionResult
 from services import vocab_quiz_attempt_service
 
@@ -72,52 +73,60 @@ def _mix_queue(queue: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
     return selected
 
 
-def _requested_question_type(row: dict[str, Any]) -> str | None:
+def _requested_question_type(row: dict[str, Any], db: Any, student_id: str) -> str | None:
     if row.get("reviewReason") == "weak":
         dimension = ((row.get("vocabularyState") or {}).get("practice") or {}).get("nextDimension")
         return _QUESTION_TYPE_FOR_DIMENSION.get(str(dimension))
-
-    seen_types = {str(value) for value in row.get("seenQuestionTypes", [])}
-    choices = list(_QUESTION_TYPE_FOR_DIMENSION.values())
-    repetitions = int((((row.get("vocabularyState") or {}).get("scheduling") or {}).get("reps")) or 0)
-    start = repetitions % len(choices)
-    choices = choices[start:] + choices[:start]
-    unseen = [question_type for question_type in choices if question_type not in seen_types]
-    return (unseen or choices)[0]
+    dimension = reserve_review_activity(db, student_id, str(row["wordId"]))
+    return _QUESTION_TYPE_FOR_DIMENSION[dimension]
 
 
 def _load_session_question(
     db: Any,
+    student_id: str,
     row: dict[str, Any],
     position: int,
 ) -> dict[str, Any] | None:
     story_id = row.get("sourceStoryId")
     if not story_id:
         return None
-    story = db.execute(
-        "SELECT id, vocabulary_version, vocab_assessment FROM custom_stories "
-        "WHERE id = %s AND published = TRUE FOR SHARE",
-        (story_id,),
-    ).fetchone()
-    if not story:
-        raise ReviewSessionStaleError("Lesson content changed. Reload the lesson and start a new review session.")
-    expected_version = row.get("vocabularyVersion")
-    if expected_version is not None and story.get("vocabulary_version") != expected_version:
-        raise ReviewSessionStaleError("Lesson vocabulary changed. Reload the lesson and start a new review session.")
-
-    requested_type = _requested_question_type(row)
+    requested_type = _requested_question_type(row, db, student_id)
     if not requested_type:
         return None
     word_id = normalize_word_id(str(row.get("wordId") or ""))
-    assessment = _json_value(story.get("vocab_assessment")) or []
-    item = next((
-        candidate for candidate in assessment
-        if isinstance(candidate, dict)
-        and candidate.get("questionType") == requested_type
-        and normalize_word_id(str(candidate.get("wordId") or "")) == word_id
-        and candidate.get("questionId")
-    ), None)
-    if not item:
+    story_ids = list(dict.fromkeys(str(value) for value in (row.get("sourceStoryIds") or [story_id])))
+    expected_versions = row.get("sourceStoryVersions") or {}
+    if not isinstance(expected_versions, dict):
+        expected_versions = {}
+    selected_story = None
+    item = None
+    for candidate_story_id in story_ids:
+        story = db.execute(
+            "SELECT id, vocabulary_version, vocab_assessment FROM custom_stories "
+            "WHERE id = %s AND published = TRUE FOR SHARE",
+            (candidate_story_id,),
+        ).fetchone()
+        if not story:
+            continue
+        expected_version = expected_versions.get(candidate_story_id)
+        if expected_version is None and candidate_story_id == story_id:
+            expected_version = row.get("vocabularyVersion")
+        if expected_version is not None and story.get("vocabulary_version") != expected_version:
+            continue
+        assessment = _json_value(story.get("vocab_assessment")) or []
+        found = next((
+            candidate for candidate in assessment
+            if isinstance(candidate, dict)
+            and candidate.get("questionType") == requested_type
+            and normalize_word_id(str(candidate.get("wordId") or "")) == word_id
+            and candidate.get("questionId")
+        ), None)
+        if found is not None:
+            selected_story, item = story, found
+            break
+    if not selected_story:
+        if row.get("reviewReason") == "due":
+            raise ReviewSessionStaleError("A due word no longer has a published question for its selected review activity.")
         # A weak dimension should have a published diagnostic item because
         # the lesson gate requires all three rounds. A missing item is not a
         # reason to substitute an unrelated skill or mark the learner wrong.
@@ -131,8 +140,8 @@ def _load_session_question(
         "slotId": f"slot-{position + 1}-{uuid4().hex[:10]}",
         "wordId": word_id,
         "word": str(item.get("targetWord") or row.get("word") or ""),
-        "sourceStoryId": str(story["id"]),
-        "vocabularyVersion": story.get("vocabulary_version"),
+        "sourceStoryId": str(selected_story["id"]),
+        "vocabularyVersion": selected_story.get("vocabulary_version"),
         "itemId": str(item["questionId"]),
         "questionType": requested_type,
         "dimension": dimension,
@@ -209,7 +218,7 @@ def create_or_resume_review_session(db: Any, student_id: str, *, now: datetime |
     )
     slots: list[dict[str, Any]] = []
     for candidate in _mix_queue(review.get("queue", []), MAX_REVIEW_SESSION_QUESTIONS):
-        slot = _load_session_question(db, candidate, len(slots))
+        slot = _load_session_question(db, student_id, candidate, len(slots))
         if slot is not None:
             slots.append(slot)
     if not slots:
@@ -339,6 +348,10 @@ def answer_review_session_question(
         day_seconds=day_seconds,
     )
     resolved = authoritative[0]
+    if slot["reviewReason"] == "due" and not complete_review_activity(
+        db, student_id, slot["wordId"], slot["dimension"],
+    ):
+        raise ReviewSessionConflictError("The scheduled review activity reservation is no longer current.")
     result = {
         "slotId": slot_id,
         "position": slot_index + 1,

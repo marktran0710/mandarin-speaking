@@ -18,7 +18,7 @@ from analytics.learner_model.bkt.mastery import (
     response_rows_for_attempt,
     unrecorded_response_rows,
 )
-from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words
+from analytics.learner_model.srs_store import apply_srs_updates, enroll_strong_words, load_srs_states
 from api.schemas.models import VocabQuizAttemptRequest
 from repositories import quiz_attempt_repository as repo
 from domain.vocabulary.story_scope import canonical_story_id
@@ -108,13 +108,12 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
 def _require_strong_words_for_maintenance(
     db, student_id: str, attempt: VocabQuizAttemptRequest, normalized_attempt: dict, question_results: list[dict],
 ) -> None:
-    """Scheduled maintenance only revisits words the server calls STRONG.
+    """Scheduled maintenance only revisits words enrolled in SM-2.
 
-    Call this before the write reaches the ledger. A valid wrong answer takes
-    its word out of STRONG, so judging the word after the BKT update would turn
-    away exactly the lapse maintenance exists to catch. Answers whose ledger
-    slot is already taken (a retry, or the completed attempt replaying a
-    partial save) are not judged again for the same reason.
+    Enrollment was gated by BKT strength and all three diagnostic rounds. Once
+    enrolled, a low later BKT component is a lapse signal, not grounds for
+    removing the word from its schedule. Answers whose ledger slot is already
+    taken (a retry, or a partial-save replay) are not judged again.
     """
     if attempt.mode != "maintenance_review":
         return
@@ -126,16 +125,12 @@ def _require_strong_words_for_maintenance(
     )
     if not new_rows:
         return
-    strong = {
-        normalize_word_id(row["wordId"])
-        for row in get_vocabulary_mastery(db, student_id, story_id=attempt.baseStoryId or attempt.storyId)
-        if row["vocabularyState"]["review"]["status"] == "STRONG"
-    }
-    blocked = sorted({row["word_id"] for row in new_rows} - strong)
+    enrolled = set(load_srs_states(db, student_id, {row["word_id"] for row in new_rows}))
+    blocked = sorted({row["word_id"] for row in new_rows} - enrolled)
     if blocked:
         raise ValueError(
-            "Scheduled review only covers words that are currently strong. "
-            f"Practise these first: {', '.join(blocked)}."
+            "Scheduled review only covers words already enrolled in SM-2. "
+            f"These words are not enrolled: {', '.join(blocked)}."
         )
 
 

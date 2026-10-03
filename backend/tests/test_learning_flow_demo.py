@@ -100,6 +100,34 @@ def _review(attempt_id: str, mode: str, answers: dict, day: str) -> dict:
     return _attempt(attempt_id, mode, f"{day}T00:00:00Z", results)
 
 
+def _answer_review_question(client, student_id: str, session_id: str, question: dict, day: str, *, correct: bool):
+    with db.connect_db() as conn:
+        assessment = conn.execute(
+            "SELECT vocab_assessment FROM custom_stories WHERE id = %s",
+            (question["sourceStoryId"],),
+        ).fetchone()["vocab_assessment"]
+    item = next(
+        value for value in assessment
+        if value["questionType"] == question["questionType"]
+        and value["targetWord"] == question["word"]
+    )
+    accepted = item.get("acceptedAnswers") or [item["correctAnswer"]]
+    if correct:
+        answer = accepted[0]
+    elif question["answerFormat"] == "single_choice":
+        answer = next(value for value in item.get("options", []) if value not in accepted)
+    else:
+        answer = "definitely-wrong-pinyin"
+    payload = {"slotId": question["slotId"], "selectedAnswer": answer, "responseTimeMs": 700}
+    response = client.post(
+        f"/api/students/{student_id}/review-sessions/{session_id}/answers",
+        params={"today": day},
+        json=payload,
+    )
+    assert response.status_code == 200, response.text
+    return response.json(), item
+
+
 def test_bkt_and_sm2_collaborate_end_to_end(logged_in_student):
     client, student = logged_in_student
     sid = student["id"]
@@ -162,12 +190,19 @@ def test_bkt_and_sm2_collaborate_end_to_end(logged_in_student):
     assert {"word": WORD_A, "reason": "due"} in trace[-1]["reviewQueue"]
     assert {"word": WORD_B, "reason": "weak"} in trace[-1]["reviewQueue"]
 
-    assert _post_attempt(client, _review("practice-1", "weak_words", {WORD_B: True}, "2026-08-14"),
-                         today="2026-08-14").status_code == 200
-    expected[WORD_B] = bkt_step(expected[WORD_B], True, "single_choice")
-    assert _post_attempt(client, _review("maintenance-1", "maintenance_review", {WORD_A: True}, "2026-08-14"),
-                         today="2026-08-14").status_code == 200
-    expected[WORD_A] = bkt_step(expected[WORD_A], True, "single_choice")
+    started = client.post(
+        f"/api/students/{sid}/review-sessions", params={"today": "2026-08-14"},
+    )
+    assert started.status_code == 200, started.text
+    session = started.json()["session"]
+    due_question = session["currentQuestion"]
+    assert due_question["word"] == WORD_A and due_question["reviewReason"] == "due"
+    answered, item = _answer_review_question(client, sid, session["sessionId"], due_question, "2026-08-14", correct=True)
+    expected[WORD_A] = bkt_step(expected[WORD_A], True, item["answerFormat"])
+    weak_question = answered["session"]["currentQuestion"]
+    assert weak_question["word"] == WORD_B and weak_question["reviewReason"] == "weak"
+    answered, item = _answer_review_question(client, sid, session["sessionId"], weak_question, "2026-08-14", correct=True)
+    expected[WORD_B] = bkt_step(expected[WORD_B], True, item["answerFormat"])
     snapshot("5. Practice 房間 ✓ + review 附近 ✓",
              "Practice updates BKT only. The due review updates BKT and moves SM-2 (q=4): interval 1 → 6 days.",
              today="2026-08-14")
@@ -190,10 +225,21 @@ def test_bkt_and_sm2_collaborate_end_to_end(logged_in_student):
     snapshot("7. Six days later: review queue", "Both words are due by their SM-2 schedules.",
              today="2026-08-20", queue_day="2026-08-20")
     assert {item["word"] for item in trace[-1]["reviewQueue"]} == {WORD_A, WORD_B}
-    assert _post_attempt(client, _review("maintenance-2", "maintenance_review", {WORD_A: False, WORD_B: True}, "2026-08-20"),
-                         today="2026-08-20").status_code == 200
-    expected[WORD_A] = bkt_step(expected[WORD_A], False, "single_choice")
-    expected[WORD_B] = bkt_step(expected[WORD_B], True, "single_choice")
+    started = client.post(
+        f"/api/students/{sid}/review-sessions", params={"today": "2026-08-20"},
+    )
+    assert started.status_code == 200, started.text
+    session = started.json()["session"]
+    question = session["currentQuestion"]
+    while question is not None:
+        should_be_correct = question["word"] == WORD_B
+        answered, item = _answer_review_question(
+            client, sid, session["sessionId"], question, "2026-08-20", correct=should_be_correct,
+        )
+        expected[question["word"]] = bkt_step(
+            expected[question["word"]], should_be_correct, item["answerFormat"],
+        )
+        question = answered["session"]["currentQuestion"]
     snapshot("8. Review: 附近 ✗, 房間 ✓",
              "附近 forgotten: SM-2 resets (q=2, interval 1, ease drops) and BKT lowers p(learned) and re-opens practice. "
              "房間 remembered: interval 1 → 6.",

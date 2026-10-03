@@ -74,7 +74,7 @@ def test_a_success_in_an_unrelated_dimension_does_not_count_toward_the_repair():
     assert state["practice"]["status"] == "IN_PROGRESS"
 
 
-def test_dimension_evidence_is_persisted_as_explanatory_state_not_separate_bkt_probabilities():
+def test_each_dimension_has_its_own_bkt_probability_and_response_evidence():
     state = _state([
         _row(correct=False, dimension="meaning"),
         _row(correct=True, dimension="pinyin_production"),
@@ -87,7 +87,48 @@ def test_dimension_evidence_is_persisted_as_explanatory_state_not_separate_bkt_p
     assert state["evidence"]["byDimension"]["meaning"]["incorrect"] == 1
     assert state["evidence"]["byDimension"]["pinyin"]["correct"] == 1
     assert state["evidence"]["byDimension"]["context"]["correct"] == 1
-    assert set(state["bkt"]) == {"pLearned", "status", "modelVersion", "parameterFingerprint"}
+    assert state["bkt"]["dimensions"]["meaning"]["pLearned"] == 0.4
+    assert state["bkt"]["dimensions"]["meaning"]["observationCount"] == 2
+    assert state["bkt"]["dimensions"]["pinyin"]["pLearned"] == 0.4
+    assert state["bkt"]["dimensions"]["context"]["pLearned"] == 0.4
+
+
+def test_runtime_replays_each_bkt_component_from_only_its_own_responses():
+    from analytics.learner_model.bkt.core import BKT_CONFIG, replay_bkt_typed
+    from analytics.learner_model.bkt.mastery import _mastery_states_from_responses
+
+    responses = [
+        {
+            "word_id": "same-word",
+            "item_id": f"item-{dimension}",
+            "question_type": question_type,
+            "knowledge_dimension": dimension,
+            "correct": correct,
+            "occurred_at": f"2026-09-0{index}T00:00:00+00:00",
+            "bkt_eligible": False,
+            "diagnostic_exposure_id": None,
+            "activity_type": "diagnostic",
+            "round_type": None,
+            "lesson_id": "lesson-1",
+        }
+        for index, (dimension, question_type, correct) in enumerate((
+            ("meaning", "basic_meaning_mcq", True),
+            ("pinyin_production", "character_to_pinyin_typing", False),
+            ("contextual_recall", "context_cloze_mcq", True),
+        ), start=1)
+    ]
+
+    state = _mastery_states_from_responses(responses, BKT_CONFIG)["same-word"]
+
+    assert state["dimension_states"]["meaning"]["pLearned"] == replay_bkt_typed([(True, "basic_meaning_mcq")])
+    assert state["dimension_states"]["pinyin"]["pLearned"] == replay_bkt_typed([(False, "character_to_pinyin_typing")])
+    assert state["dimension_states"]["context"]["pLearned"] == replay_bkt_typed([(True, "context_cloze_mcq")])
+    assert [state["dimension_states"][key]["observationCount"] for key in ("meaning", "pinyin", "context")] == [1, 1, 1]
+    assert state["p_learned"] == replay_bkt_typed([
+        (True, "basic_meaning_mcq"),
+        (False, "character_to_pinyin_typing"),
+        (True, "context_cloze_mcq"),
+    ])
 
 
 def test_wrong_dimension_successes_do_not_satisfy_targeted_practice_requirement():

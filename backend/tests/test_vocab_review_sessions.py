@@ -4,7 +4,11 @@ from uuid import uuid4
 from psycopg.types.json import Jsonb
 
 from analytics.learner_model.srs import SrsState
-from analytics.learner_model.srs_store import upsert_srs_state
+from analytics.learner_model.srs_store import (
+    complete_review_activity,
+    reserve_review_activity,
+    upsert_srs_state,
+)
 from db import connect_db
 from services.vocab_review_session_service import _mix_queue
 
@@ -113,6 +117,45 @@ def test_session_mix_uses_two_due_then_one_weak_and_never_repeats_a_word():
     assert len({row["wordId"] for row in selected}) == len(selected)
 
 
+def test_review_activity_shuffle_bag_reserves_until_answer_and_uses_each_once(logged_in_student):
+    _client, student = logged_in_student
+    with connect_db() as db:
+        upsert_srs_state(
+            db,
+            student["id"],
+            "bag-word",
+            SrsState(reps=1, ease=2.5, interval_days=1, due_on=datetime.now(timezone.utc)),
+        )
+
+        first = reserve_review_activity(db, student["id"], "bag-word", seed="fixed-test-seed")
+        assert reserve_review_activity(db, student["id"], "bag-word", seed="ignored-after-persist") == first
+        seen = [first]
+        assert complete_review_activity(db, student["id"], "bag-word", first) is True
+
+        for _ in range(2):
+            activity = reserve_review_activity(db, student["id"], "bag-word")
+            assert activity not in seen
+            seen.append(activity)
+            assert complete_review_activity(db, student["id"], "bag-word", activity) is True
+
+        assert set(seen) == {"meaning", "pinyin", "context"}
+        bag = db.execute(
+            "SELECT review_activity_bag FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], "bag-word"),
+        ).fetchone()["review_activity_bag"]
+        assert bag["cycle"] == 1
+        assert bag["remaining"] == []
+        assert bag["pendingActivity"] is None
+
+        next_cycle = reserve_review_activity(db, student["id"], "bag-word")
+        next_bag = db.execute(
+            "SELECT review_activity_bag FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], "bag-word"),
+        ).fetchone()["review_activity_bag"]
+        assert next_bag["cycle"] == 2
+        assert next_bag["remaining"][0] == next_cycle
+
+
 def test_weak_session_resumes_and_answer_retry_is_idempotent(logged_in_student):
     client, student = logged_in_student
     story_id = f"review-weak-{uuid4()}"
@@ -155,12 +198,19 @@ def test_weak_session_resumes_and_answer_retry_is_idempotent(logged_in_student):
     assert count == 1
 
 
-def test_due_failure_creates_one_srs_lapse_without_advancing_on_retry(logged_in_student):
+def test_due_failure_lapses_once_and_remains_due_after_bkt_drops(logged_in_student, monkeypatch):
+    from dataclasses import replace
+    import routers.vocab_quiz_attempts as attempt_routes
+
+    monkeypatch.setattr(
+        attempt_routes,
+        "settings",
+        replace(attempt_routes.settings, app_env="development", srs_day_seconds=86400.0),
+    )
     client, student = logged_in_student
     story_id = f"review-due-{uuid4()}"
     _publish_lesson(story_id)
     _complete_diagnostics(client, story_id, correct=True)
-    now = datetime.now(timezone.utc)
     with connect_db() as db:
         upsert_srs_state(
             db,
@@ -170,19 +220,23 @@ def test_due_failure_creates_one_srs_lapse_without_advancing_on_retry(logged_in_
                 reps=2,
                 ease=2.5,
                 interval_days=6,
-                due_on=date.today() - timedelta(days=2),
-                last_reviewed_on=date.today() - timedelta(days=3),
+                due_on=date(2026, 10, 1),
+                last_reviewed_on=date(2026, 9, 28),
             ),
         )
 
-    started = client.post(f"/api/students/{student['id']}/review-sessions")
+    started = client.post(f"/api/students/{student['id']}/review-sessions", params={"today": "2026-10-03"})
     assert started.status_code == 200, started.text
     session = started.json()["session"]
     question = session["currentQuestion"]
     assert question["reviewReason"] == "due"
+    assert question["dimension"] in {"meaning", "pinyin", "context"}
+    before_mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
+    before_word = next(row for row in before_mastery if row["word"] == question["word"])
+    before_dimension = before_word["vocabularyState"]["bkt"]["dimensions"][question["dimension"]]["pLearned"]
     answer_url = f"/api/students/{student['id']}/review-sessions/{session['sessionId']}/answers"
-    answer_payload = {"slotId": question["slotId"], "selectedAnswer": "ni hao", "responseTimeMs": 700}
-    failed = client.post(answer_url, json=answer_payload)
+    answer_payload = {"slotId": question["slotId"], "selectedAnswer": "definitely-wrong", "responseTimeMs": 700}
+    failed = client.post(answer_url, params={"today": "2026-10-03"}, json=answer_payload)
     assert failed.status_code == 200, failed.text
     assert failed.json()["result"]["correct"] is False
 
@@ -197,8 +251,20 @@ def test_due_failure_creates_one_srs_lapse_without_advancing_on_retry(logged_in_
         ).fetchone()["count"]
     assert srs["reps"] == 0
     assert events == 1
+    after_word = next(
+        row for row in client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
+        if row["word"] == question["word"]
+    )
+    assert after_word["vocabularyState"]["bkt"]["dimensions"][question["dimension"]]["pLearned"] < before_dimension
+    with connect_db() as db:
+        bag = db.execute(
+            "SELECT review_activity_bag FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], "hello-word"),
+        ).fetchone()["review_activity_bag"]
+    assert bag["pendingActivity"] is None
+    assert len(bag["remaining"]) == 2
 
-    replay = client.post(answer_url, json=answer_payload)
+    replay = client.post(answer_url, params={"today": "2026-10-03"}, json=answer_payload)
     assert replay.status_code == 200, replay.text
     with connect_db() as db:
         replayed_events = db.execute(
@@ -206,6 +272,29 @@ def test_due_failure_creates_one_srs_lapse_without_advancing_on_retry(logged_in_
             (student["id"], "hello-word"),
         ).fetchone()["count"]
     assert replayed_events == 1
+
+    due_queue = client.get(
+        f"/api/students/{student['id']}/review-queue",
+        params={"scope": "all_learned", "today": "2026-10-04"},
+    )
+    assert due_queue.status_code == 200, due_queue.text
+    assert [(row["wordId"], row["reviewReason"]) for row in due_queue.json()["queue"]] == [
+        ("hello-word", "due"),
+    ], due_queue.json()
+    # The weak BKT state does not block an enrolled item from coming due.
+    next_session = client.post(
+        f"/api/students/{student['id']}/review-sessions", params={"today": "2026-10-04"},
+    )
+    assert next_session.status_code == 200, next_session.text
+    next_question = next_session.json()["session"]["currentQuestion"]
+    assert next_question["reviewReason"] == "due"
+    assert next_question["dimension"] != question["dimension"]
+    with connect_db() as db:
+        saved_bag = db.execute(
+            "SELECT review_activity_bag FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], "hello-word"),
+        ).fetchone()["review_activity_bag"]
+    assert saved_bag["pendingActivity"] == next_question["dimension"]
 
 
 

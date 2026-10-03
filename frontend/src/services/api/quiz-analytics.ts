@@ -48,9 +48,17 @@ export async function getVocabularyProgression(storyId: string, studentId: strin
 export type VocabularyReviewStatus = "NOT_ASSESSED" | "PROVISIONAL_REVIEW" | "NEEDS_PRACTICE" | "STRONG";
 export type VocabularyDimension = "meaning" | "pinyin" | "context";
 export interface VocabularyDimensionEvidence { total: number; correct: number; incorrect: number; lastResponseAt: string | null; }
+export interface VocabularyDimensionMastery {
+  pLearned: number;
+  observationCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  status: "UNASSESSED" | "DEVELOPING" | "STRONG";
+  lastResponseAt: string | null;
+}
 export interface VocabularyState {
   evidence: { total: number; correct: number; incorrect: number; lastResponseAt: string | null; byDimension: Record<VocabularyDimension, VocabularyDimensionEvidence> };
-  bkt: { pLearned: number; status: "UNASSESSED" | "DEVELOPING" | "STRONG"; modelVersion: string; parameterFingerprint: string };
+  bkt: { pLearned: number; status: "UNASSESSED" | "DEVELOPING" | "STRONG"; dimensions?: Record<VocabularyDimension, VocabularyDimensionMastery>; modelVersion: string; parameterFingerprint: string };
   diagnostic: { status: "INCOMPLETE" | "COMPLETE"; completed: boolean; coveredDimensions: VocabularyDimension[]; coverageComplete: boolean };
   review: { status: VocabularyReviewStatus; candidate: boolean };
   /**

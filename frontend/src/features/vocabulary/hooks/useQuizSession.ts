@@ -15,10 +15,7 @@ import {
 import {
   TIMER_TICK_MS,
   assessmentAnswerIsCorrect,
-  buildMaintenanceAssessmentQuestions,
   buildDiagnosticRoundQuestions,
-  buildPersonalizedAssessmentQuestions,
-  MissingPracticeAssessmentError,
   buildQuizQuestion,
   quizConceptId,
   quizItemId,
@@ -411,19 +408,11 @@ export function useQuizSession({
   }, [timeLimitMs, screen, selected, index]);
 
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
-    const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
-    let reviewQuestions: VocabQuizQuestion[] | null = null;
-    try {
-      if (picked === "weak_words" && (hasAssessmentBank || entriesForRound.some((entry) => entry.bktNextDimension))) {
-        reviewQuestions = buildPersonalizedAssessmentQuestions(entriesForRound);
-      } else if (picked === "maintenance_review" && hasAssessmentBank) {
-        reviewQuestions = buildMaintenanceAssessmentQuestions(entriesForRound);
-      }
-    } catch (error) {
-      if (!(error instanceof MissingPracticeAssessmentError)) throw error;
-      setPracticeError(error.message);
+    if (picked === "weak_words" || picked === "maintenance_review") {
+      setPracticeError("Personalized and scheduled review must use the server-owned review session.");
       return;
     }
+    const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
     setPracticeError(null);
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setIsFinishing(false); setIsSavingResponse(false); setSaveError(null); setTimeLeftMs(effectiveTimeLimitMs(picked) ?? 0);
@@ -435,23 +424,10 @@ export function useQuizSession({
         ? "round2_started"
         : picked === "tier3"
           ? "round3_started"
-          : picked === "weak_words"
-            ? "personalized_started"
-            : picked === "challenge"
-              ? "challenge_started"
-              : null;
+          : picked === "challenge"
+            ? "challenge_started"
+            : null;
     if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
-    if (reviewQuestions !== null) {
-      const questions = reviewQuestions;
-      plannedQuestionCountRef.current = questions.length;
-      setQuestions(questions);
-      setQuestionLimit(questions.length);
-      setRequestedQuestionCount(questions.length);
-      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      attemptStartedAtRef.current = new Date().toISOString();
-      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
-      return;
-    }
     const importedQuestions = hasAssessmentBank && (picked === "tier1" || picked === "tier2" || picked === "tier3")
       ? buildDiagnosticRoundQuestions(entriesForRound, picked)
       : [];
@@ -495,22 +471,6 @@ export function useQuizSession({
     setIsRetryRound(false); chooseMode("challenge", entries, entries.length);
   };
   const practiceMissedWords = () => { setIsRetryRound(true); chooseMode("free", missedEntries, missedEntries.length); };
-  // Practice one specific word on demand — e.g. a strong word that dropped
-  // off the weak-word list but the learner still wants to review. Distractors
-  // are drawn from the whole lesson so a single-word round still forms real
-  // multiple-choice questions; the answer still feeds BKT, so getting it wrong
-  // pulls the word back into the weak-word list on its own.
-  const practiceWord = (target: VocabQuizEntry) => { setIsRetryRound(false); chooseMode("weak_words", [target], 1, entries); };
-  const startWeakWords = async () => {
-    const entriesForRound = weakEntries.length > 0 ? weakEntries : interimReviewEntries;
-    if (entriesForRound.length > 0) chooseMode("weak_words", entriesForRound, entriesForRound.length, entries);
-  };
-  const startDueReview = () => {
-    // Preserve the server's coverage/count metadata so the maintenance
-    // selector rotates dimensions instead of treating every due word as unseen.
-    const entriesForRound = entriesInServerPriorityOrder(entries, dueWords);
-    if (entriesForRound.length > 0) chooseMode("maintenance_review", entriesForRound, entriesForRound.length, entries);
-  };
   const returnToModes = () => {
     setPracticeError(null);
     setScreen("mode-select");
@@ -527,8 +487,8 @@ export function useQuizSession({
     screen, setScreen, mode, practiceError, saveError, retrySave, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, isFinishing: isFinishing || isSavingResponse || Boolean(saveError), vocabularyChanged, timeLeftMs, stars, attempts, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, finish,
-    chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord,
-    startWeakWords, startDueReview, returnToModes, sessionReady,
+    chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords,
+    returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }
