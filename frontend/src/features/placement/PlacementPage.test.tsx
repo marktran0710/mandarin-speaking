@@ -13,7 +13,7 @@ const { blueprint, attempt } = vi.hoisted(() => {
     { questionId: "q2", sourceStoryId: "s1", sourceStoryTitle: "Daily", sourceWordId: "w2", round: 1, tier: "tier1", position: 2, questionType: "basic_meaning_mcq", answerFormat: "single_choice", targetWord: "水", prompt: "Choose", options: ["water", "fire"] },
   ],
   };
-  const attempt: PlacementAttempt = { attemptId: "a1", revision: 1, totalQuestions: 2, questions: blueprint.questions };
+  const attempt: PlacementAttempt = { attemptId: "a1", revision: 1, totalQuestions: 2, questions: blueprint.questions, responses: [] };
   return { blueprint, attempt };
 });
 vi.mock("@shared/api/placement-test", async () => {
@@ -22,6 +22,7 @@ vi.mock("@shared/api/placement-test", async () => {
     ...actual,
     getPlacementBlueprint: vi.fn().mockResolvedValue(blueprint),
     startPlacementAttempt: vi.fn().mockResolvedValue(attempt),
+    savePlacementAttemptResponses: vi.fn().mockResolvedValue(undefined),
     completePlacementAttempt: vi.fn().mockResolvedValue({
       attemptId: "a1", totalQuestions: 2, correctCount: 2, percentage: 100, messageKey: "CONGRATULATIONS",
     }),

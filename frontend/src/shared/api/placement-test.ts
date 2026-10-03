@@ -40,6 +40,7 @@ export interface PlacementAttempt {
   revision: number;
   totalQuestions: number;
   questions: PlacementQuestion[];
+  responses: PlacementAnswer[];
 }
 
 export interface PlacementAnswer {
@@ -199,6 +200,15 @@ export async function completePlacementAttempt(attemptId: string, responses: Pla
   }, 1);
   if (!response.ok) throw await parseError(response, "Could not submit the placement test");
   return response.json() as Promise<PlacementResult>;
+}
+
+export async function savePlacementAttemptResponses(attemptId: string, responses: PlacementAnswer[]): Promise<void> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/placement-test/attempts/${encodeURIComponent(attemptId)}/responses`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ responses }),
+  }, 2, undefined, [502, 503, 504]);
+  if (!response.ok) throw await parseError(response, "Could not save placement answers");
 }
 
 export async function getAdminPlacementBlueprint(): Promise<PlacementBlueprint> {

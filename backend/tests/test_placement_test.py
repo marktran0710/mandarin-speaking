@@ -213,6 +213,66 @@ def test_placement_grades_from_snapshot_and_writes_real_diagnostic_bkt_evidence(
         ]
 
 
+def test_placement_start_resumes_saved_answers_and_blocks_a_second_baseline(admin_client):
+    _publish("placement-resume-story", "RESUME")
+    assert admin_client.post(
+        "/api/admin/placement-test/import/confirm",
+        files={"file": ("placement.csv", b"Word Key,Round\nRESUME-W001,1\nRESUME-W002,2\nRESUME-W003,3\n", "text/csv")},
+    ).status_code == 200
+    _student_session(admin_client)
+
+    attempt = admin_client.post("/api/placement-test/attempts").json()
+    saved = admin_client.put(
+        f"/api/placement-test/attempts/{attempt['attemptId']}/responses",
+        json={"responses": [{"questionId": "Q-RESUME-001", "selectedAnswer": "book", "timeMs": 321}]},
+    )
+    assert saved.status_code == 200
+
+    resumed = admin_client.post("/api/placement-test/attempts")
+    assert resumed.status_code == 200
+    assert resumed.json()["attemptId"] == attempt["attemptId"]
+    assert resumed.json()["responses"][0]["selectedAnswer"] == "book"
+    assert resumed.json()["questions"] == attempt["questions"]
+
+    complete = admin_client.post(
+        f"/api/placement-test/attempts/{attempt['attemptId']}/complete",
+        json={"responses": [
+            {"questionId": "Q-RESUME-001", "selectedAnswer": "book", "timeMs": 321},
+            {"questionId": "Q-RESUME-002", "selectedAnswer": "ni3 hao3", "timeMs": 10},
+            {"questionId": "Q-RESUME-003", "selectedAnswer": "摰?, ", "timeMs": 10},
+        ]},
+    )
+    assert complete.status_code == 200
+    assert admin_client.post("/api/placement-test/attempts").status_code == 409
+
+
+def test_placement_test_accounts_are_marked_synthetic(admin_client):
+    _publish("placement-synthetic-story", "SYNTH")
+    assert admin_client.post(
+        "/api/admin/placement-test/import/confirm",
+        files={"file": ("placement.csv", b"Word Key,Round\nSYNTH-W001,1\nSYNTH-W002,2\nSYNTH-W003,3\n", "text/csv")},
+    ).status_code == 200
+    student = _student_session(admin_client, "Synthetic placement student")
+    with db.connect_db() as conn:
+        conn.execute("UPDATE students SET is_test_account = TRUE WHERE id = %s", (student["id"],))
+    attempt = admin_client.post("/api/placement-test/attempts").json()
+    response = admin_client.post(
+        f"/api/placement-test/attempts/{attempt['attemptId']}/complete",
+        json={"responses": [
+            {"questionId": "Q-SYNTH-001", "selectedAnswer": "book", "timeMs": 10},
+            {"questionId": "Q-SYNTH-002", "selectedAnswer": "ni3 hao3", "timeMs": 10},
+            {"questionId": "Q-SYNTH-003", "selectedAnswer": "摰?, ", "timeMs": 10},
+        ]},
+    )
+    assert response.status_code == 200
+    with db.connect_db() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT evidence_origin FROM vocab_quiz_responses WHERE student_id = %s",
+            (student["id"],),
+        ).fetchall()
+    assert {row["evidence_origin"] for row in rows} == {"synthetic"}
+
+
 def test_placement_rejects_duplicate_unknown_unpublished_and_ambiguous_ids(admin_client):
     _publish("placement-published", "PUBLISHED")
     _publish("placement-hidden", "HIDDEN", published=False)

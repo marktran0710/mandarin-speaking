@@ -27,6 +27,10 @@ class PlacementCompleteRequest(BaseModel):
     completedAt: str | None = None
 
 
+class PlacementSaveResponsesRequest(BaseModel):
+    responses: list[PlacementResponse] = Field(default_factory=list)
+
+
 class PlacementQuestionIdsRequest(BaseModel):
     questionIds: list[str] = Field(..., min_length=1)
 
@@ -188,6 +192,28 @@ def start_student_placement_test(
             return service.start_attempt(db, identity.id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except service.PlacementAlreadyCompletedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.put("/api/placement-test/attempts/{attempt_id}/responses")
+def save_student_placement_responses(
+    attempt_id: str,
+    payload: PlacementSaveResponsesRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    try:
+        with connect_db() as db:
+            return service.save_attempt_responses(
+                db, identity.id, attempt_id,
+                [response.model_dump(exclude_none=True) for response in payload.responses],
+            )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except service.PlacementAlreadyCompletedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

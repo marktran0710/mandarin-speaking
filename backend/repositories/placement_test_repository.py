@@ -35,6 +35,16 @@ def get_student_gate_facts(db: Any, student_id: str) -> dict[str, Any] | None:
     ).fetchone()
 
 
+def get_latest_attempt(db: Any, student_id: str, *, status: str | None = None) -> dict[str, Any] | None:
+    query = "SELECT * FROM placement_test_attempts WHERE student_id = %s"
+    params: list[Any] = [student_id]
+    if status is not None:
+        query += " AND status = %s"
+        params.append(status)
+    query += " ORDER BY started_at DESC, id DESC LIMIT 1 FOR UPDATE"
+    return db.execute(query, params).fetchone()
+
+
 def replace_active_blueprint(db: Any, questions: list[dict[str, Any]], now: str) -> dict[str, Any]:
     # The advisory lock serializes the first insert as well as later revisions,
     # so two admins cannot both publish revision 1.
@@ -121,6 +131,14 @@ def complete_attempt(
         WHERE id = %s
         """,
         (Jsonb(response_snapshot), completed_at, correct_count, total_time_ms, completed_at, attempt_id),
+    )
+
+
+def save_attempt_responses(db: Any, attempt_id: str, responses: list[dict[str, Any]], updated_at: str) -> None:
+    db.execute(
+        "UPDATE placement_test_attempts SET response_snapshot = %s, updated_at = %s "
+        "WHERE id = %s AND status = 'in_progress'",
+        (Jsonb(responses), updated_at, attempt_id),
     )
 
 

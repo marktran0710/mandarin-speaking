@@ -518,6 +518,25 @@ def _iso_timestamp(value: Any) -> str:
 
 
 def start_attempt(db: Any, student_id: str) -> dict[str, Any]:
+    # Serialize start requests per learner. A refresh resumes the current
+    # immutable snapshot; completing placement makes it a one-time baseline.
+    db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (f"placement:{student_id}",))
+    current = repo.get_latest_attempt(db, student_id, status="in_progress")
+    if current:
+        questions = current["question_snapshot"] or []
+        return {
+            "attemptId": current["id"],
+            "revision": current["blueprint_revision"],
+            "totalQuestions": len(questions),
+            "questions": [_public_question(question) for question in questions],
+            "responses": current.get("response_snapshot") or [],
+        }
+    completed = db.execute(
+        "SELECT 1 FROM placement_test_attempts WHERE student_id = %s AND status = 'completed' LIMIT 1",
+        (student_id,),
+    ).fetchone()
+    if completed:
+        raise PlacementAlreadyCompletedError("Placement has already been completed for this account.")
     blueprint = repo.get_active_blueprint(db)
     questions = blueprint.get("questions") if blueprint else None
     if not questions:
@@ -537,7 +556,47 @@ def start_attempt(db: Any, student_id: str) -> dict[str, Any]:
         "revision": blueprint["revision"],
         "totalQuestions": len(questions),
         "questions": [_public_question(question) for question in questions],
+        "responses": [],
     }
+
+
+class PlacementAlreadyCompletedError(ValueError):
+    """Placement is a one-time learner baseline and cannot be retaken."""
+
+
+def save_attempt_responses(
+    db: Any, student_id: str, attempt_id: str, responses: list[dict[str, Any]],
+) -> dict[str, Any]:
+    attempt = repo.get_attempt_for_update(db, attempt_id, student_id)
+    if not attempt:
+        raise LookupError("Placement attempt was not found.")
+    if attempt["status"] != "in_progress":
+        raise PlacementAlreadyCompletedError("Placement attempt is already complete.")
+    questions = attempt["question_snapshot"] or []
+    by_id = {str(question["questionId"]): question for question in questions}
+    stored = {str(row["questionId"]): row for row in (attempt.get("response_snapshot") or [])}
+    seen: set[str] = set()
+    for raw in responses:
+        question_id = str(raw.get("questionId") or "").strip()
+        selected_answer = raw.get("selectedAnswer")
+        time_ms = raw.get("timeMs", 0)
+        if question_id not in by_id or question_id in seen:
+            raise ValueError(f"Response has unknown or duplicate Question ID: {question_id or '<empty>'}.")
+        if not isinstance(selected_answer, str) or not selected_answer.strip():
+            raise ValueError(f"Question {question_id} needs a selected answer.")
+        if not isinstance(time_ms, int) or time_ms < 0:
+            raise ValueError(f"Question {question_id} has invalid timeMs.")
+        seen.add(question_id)
+        stored[question_id] = {
+            "questionId": question_id,
+            "selectedAnswer": selected_answer.strip(),
+            "timeMs": time_ms,
+            "answeredAt": _parse_answered_at(raw.get("answeredAt"), _now()),
+            "position": by_id[question_id]["position"],
+        }
+    ordered = sorted(stored.values(), key=lambda row: row["position"])
+    repo.save_attempt_responses(db, attempt_id, ordered, _now())
+    return {"attemptId": attempt_id, "savedResponses": len(ordered), "totalQuestions": len(questions)}
 
 
 def _parse_answered_at(value: Any, fallback: str) -> str:
@@ -609,6 +668,8 @@ def complete_attempt(db: Any, student_id: str, attempt_id: str, responses: list[
         raise ValueError("Missing responses for: " + ", ".join(missing[:20]))
     normalized_responses.sort(key=lambda response: response["position"])
     correct_count = sum(1 for response in normalized_responses if response["correct"])
+    student = db.execute("SELECT is_test_account FROM students WHERE id = %s FOR SHARE", (student_id,)).fetchone()
+    evidence_origin = "synthetic" if student and student.get("is_test_account") else "real"
     for response in normalized_responses:
         question = by_id[response["questionId"]]
         round_number, tier, dimension = SUPPORTED_TYPES[question["questionType"]]
@@ -639,7 +700,7 @@ def complete_attempt(db: Any, student_id: str, attempt_id: str, responses: list[
             "response_time_ms": response["timeMs"],
             "occurred_at": response["answeredAt"],
             "occurred_at_utc": datetime.fromisoformat(response["answeredAt"].replace("Z", "+00:00")).astimezone(timezone.utc),
-            "evidence_origin": "real",
+            "evidence_origin": evidence_origin,
             "resolver_version": PLACEMENT_RESOLVER_VERSION,
             "attempt_order": question["position"] - 1,
             "quiz_level": tier,

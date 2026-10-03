@@ -17,6 +17,7 @@ import "./PlacementPage.css";
 import {
   completePlacementAttempt,
   getPlacementBlueprint,
+  savePlacementAttemptResponses,
   startPlacementAttempt,
   type PlacementAnswer,
   type PlacementBlueprint,
@@ -190,12 +191,25 @@ function PlacementAssessmentPage({ gated, onCompleted, onStartLearning }: Placem
       const attempt = await startPlacementAttempt();
       setAttemptId(attempt.attemptId);
       setQuestions(attempt.questions);
-      setAnswers({});
-      setTimes({});
-      setAnsweredAt({});
-      setIndex(0);
+      const restoredAnswers = Object.fromEntries(attempt.responses.map((row) => [row.questionId, row.selectedAnswer]));
+      const restoredTimes = Object.fromEntries(attempt.responses.map((row) => [row.questionId, row.timeMs]));
+      const restoredAt = Object.fromEntries(attempt.responses.map((row) => [row.questionId, row.answeredAt]));
+      setAnswers(restoredAnswers);
+      setTimes(restoredTimes);
+      setAnsweredAt(restoredAt);
+      if (attempt.responses.length > 0) setRandomize(false);
+      const nextQuestion = attempt.questions.findIndex((item) => !restoredAnswers[item.questionId]);
+      setIndex(nextQuestion < 0 ? attempt.questions.length - 1 : nextQuestion);
       setResult(null);
-      setStatus("answering");
+      if (attempt.responses.length === attempt.totalQuestions) {
+        setStatus("submitting");
+        const completed = await completePlacementAttempt(attempt.attemptId, attempt.responses);
+        setResult(completed);
+        setStatus("result");
+        onCompleted?.();
+      } else {
+        setStatus("answering");
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "入門測驗無法開始。請再試一次。");
       setStatus("error");
@@ -209,16 +223,39 @@ function PlacementAssessmentPage({ gated, onCompleted, onStartLearning }: Placem
     setAnsweredAt((current) => ({ ...current, [question.questionId]: new Date().toISOString() }));
   };
 
-  const next = () => {
+  const next = async () => {
     if (!question || !(answers[question.questionId] ?? pinyinDraft).trim()) return;
-    saveCurrentAnswer(question.questionType === "character_to_pinyin_typing" ? pinyinDraft.trim() : answers[question.questionId]);
+    const selectedAnswer = question.questionType === "character_to_pinyin_typing" ? pinyinDraft.trim() : answers[question.questionId];
+    const nextAnswers = { ...answers, [question.questionId]: selectedAnswer };
+    const nextTimes = { ...times, [question.questionId]: Math.max(times[question.questionId] ?? 0, Date.now() - questionStartedAt) };
+    const nextAnsweredAt = { ...answeredAt, [question.questionId]: new Date().toISOString() };
+    const pendingResponses = displayedQuestions
+      .filter((item) => nextAnswers[item.questionId])
+      .map((item) => ({
+        questionId: item.questionId,
+        selectedAnswer: nextAnswers[item.questionId],
+        timeMs: nextTimes[item.questionId] ?? 0,
+        answeredAt: nextAnsweredAt[item.questionId],
+      }));
+    setStatus("submitting");
+    setError("");
+    try {
+      await savePlacementAttemptResponses(attemptId, pendingResponses);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save this answer.");
+      setStatus("answering");
+      return;
+    }
+    setAnswers(nextAnswers);
+    setTimes(nextTimes);
+    setAnsweredAt(nextAnsweredAt);
     if (index + 1 < displayedQuestions.length) {
       const nextQuestion = displayedQuestions[index + 1];
-      setAnswers((current) => ({ ...current, [question.questionId]: question.questionType === "character_to_pinyin_typing" ? pinyinDraft.trim() : current[question.questionId] }));
       setIndex(index + 1);
       setQuestionStartedAt(Date.now());
-      setPinyinDraft(answers[nextQuestion.questionId] ?? "");
+      setPinyinDraft(nextAnswers[nextQuestion.questionId] ?? "");
     }
+    setStatus("answering");
   };
 
   const finish = async () => {
@@ -237,6 +274,7 @@ function PlacementAssessmentPage({ gated, onCompleted, onStartLearning }: Placem
     setStatus("submitting");
     setError("");
     try {
+      await savePlacementAttemptResponses(attemptId, responseAnswers);
       const completed = await completePlacementAttempt(attemptId, responseAnswers);
       setResult(completed);
       setStatus("result");
@@ -300,7 +338,7 @@ function PlacementAssessmentPage({ gated, onCompleted, onStartLearning }: Placem
 
   const questionAction = isLastQuestion
     ? <StudentButton variant="primary" disabled={!selected.trim()} onClick={() => void finish()}><StudentSystemText k="finishQuiz" withinControl /></StudentButton>
-    : <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={!selected.trim()} onClick={next}><StudentSystemText k="nextQuestion" withinControl /></StudentButton>;
+    : <StudentButton variant="primary" iconTrailing="arrow_forward" disabled={!selected.trim()} onClick={() => void next()}><StudentSystemText k="nextQuestion" withinControl /></StudentButton>;
 
   return (
     <StudentPage
@@ -311,7 +349,7 @@ function PlacementAssessmentPage({ gated, onCompleted, onStartLearning }: Placem
       {(status === "starting" || status === "submitting") && <StudentSection variant="panel" className="sa-placement__start"><p role="status">{status === "starting" ? <StudentSystemText k="startingAssessment" /> : <StudentSystemText k="saveAnswers" />}</p></StudentSection>}
       {status === "answering" && activeQuestion && <div className="sa-placement">
         <div className="sa-placement__progress" role="progressbar" aria-label="入門測驗進度" aria-valuemin={0} aria-valuemax={displayedQuestions.length} aria-valuenow={index + 1}><span style={{ width: `${progress}%` }} /></div>
-        <StudentSection variant="panel" className="sa-placement__question"><div className="sa-placement__question-meta"><span><StudentSystemText k={labelFor(activeQuestion)} /></span><small>{activeQuestion.sourceStoryTitle}</small></div><p className="sa-placement__question-prompt">{activeQuestion.prompt || (activeQuestion.questionType === "character_to_pinyin_typing" ? <><StudentSystemText k="typePinyinReading" />：{activeQuestion.targetWord}</> : <StudentSystemText k="chooseOption" />)}</p><h2 lang="zh-Hant">{activeQuestion.targetWord}</h2>{activeQuestion.questionType === "character_to_pinyin_typing" ? <label className="sa-placement__input"><StudentSystemText k="pinyinWithTones" /><input autoFocus value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="例如：nǐ hǎo 或 ni3 hao3" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) { if (isLastQuestion) void finish(); else next(); } }} /></label> : <div className="sa-placement__options" role="group" aria-label="答案選項">{activeQuestion.options.map((option, optionIndex) => <button key={option} type="button" className={`sa-placement__option${selected === option ? " is-selected" : ""}`} onClick={() => saveCurrentAnswer(option)}><span>{optionIndex + 1}</span>{option}</button>)}</div>}<div className="sa-placement__question-footer">{error && <p role="alert" className="sa-placement__error">{error}</p>}{questionAction}</div></StudentSection>
+        <StudentSection variant="panel" className="sa-placement__question"><div className="sa-placement__question-meta"><span><StudentSystemText k={labelFor(activeQuestion)} /></span><small>{activeQuestion.sourceStoryTitle}</small></div><p className="sa-placement__question-prompt">{activeQuestion.prompt || (activeQuestion.questionType === "character_to_pinyin_typing" ? <><StudentSystemText k="typePinyinReading" />：{activeQuestion.targetWord}</> : <StudentSystemText k="chooseOption" />)}</p><h2 lang="zh-Hant">{activeQuestion.targetWord}</h2>{activeQuestion.questionType === "character_to_pinyin_typing" ? <label className="sa-placement__input"><StudentSystemText k="pinyinWithTones" /><input autoFocus value={pinyinDraft} onChange={(event) => setPinyinDraft(event.target.value)} placeholder="例如：nǐ hǎo 或 ni3 hao3" onKeyDown={(event) => { if (event.key === "Enter" && pinyinDraft.trim()) { if (isLastQuestion) void finish(); else void next(); } }} /></label> : <div className="sa-placement__options" role="group" aria-label="答案選項">{activeQuestion.options.map((option, optionIndex) => <button key={option} type="button" className={`sa-placement__option${selected === option ? " is-selected" : ""}`} onClick={() => saveCurrentAnswer(option)}><span>{optionIndex + 1}</span>{option}</button>)}</div>}<div className="sa-placement__question-footer">{error && <p role="alert" className="sa-placement__error">{error}</p>}{questionAction}</div></StudentSection>
       </div>}
     </StudentPage>
   );
