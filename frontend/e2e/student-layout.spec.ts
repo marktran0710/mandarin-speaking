@@ -28,7 +28,9 @@ interface ScreenCheck {
 
 async function login(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: /Student Login/i }).click();
+  // The home navigation is localized; selecting its student entry avoids
+  // coupling this test to the current Chinese accessible label.
+  await page.locator(".navbar-menu-student .nav-link").nth(1).click();
   await page.waitForSelector("#student-name", { timeout: 15000 });
   await page.fill("#student-name", STUDENT_NAME);
   await page.fill("#student-password", STUDENT_PASSWORD);
@@ -155,12 +157,13 @@ for (const viewport of [
       }
 
       await openMobileSidebarIfNeeded(page, viewport.name === "mobile");
-      await page.getByRole("button", { name: /Progress/i }).click();
+      const sectionNav = page.locator(".sa-sidebar__nav:not(.sa-sidebar__phase-nav) .sa-sidebar__nav-item");
+      await sectionNav.nth(1).click();
       await page.waitForSelector(".sa-page--hub", { timeout: 15000 });
       checks.push(await assertScreenInvariants(page, "Progress"));
 
       await openMobileSidebarIfNeeded(page, viewport.name === "mobile");
-      await page.getByRole("button", { name: /Placement/i }).click();
+      await sectionNav.nth(2).click();
       await page.waitForSelector(".sa-page--task", { timeout: 15000 });
       checks.push(await assertScreenInvariants(page, "Placement"));
 
