@@ -1,13 +1,9 @@
 """Locks the migrated schema: table set, the JSONB columns the row_to_*
 helpers depend on, and the boolean columns the API wraps in bool()."""
-import os
-
 import psycopg
 import pytest
 
-TEST_URL = os.getenv(
-    "TEST_DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin_test"
-)
+from conftest import TEST_DATABASE_URL as TEST_URL  # validated by conftest before any test runs
 
 EXPECTED_TABLES = {
     "audio_records",

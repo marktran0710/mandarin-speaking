@@ -21,6 +21,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env.local"))
 if len(os.getenv("JWT_SECRET_KEY", "")) < 16:
     os.environ["JWT_SECRET_KEY"] = "pytest-only-jwt-secret-not-for-production-7f3a"
 
+from database_guard import UnsafeTestDatabase, require_test_database_url, verify_connected_database
 from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV  # noqa: F401
 
 
@@ -77,9 +78,10 @@ def no_groq_key(monkeypatch):
 # analytics were polluted with 29 junk quiz attempts. Every test now runs
 # against the separate `mandarin_test` database, truncated between tests.
 
-TEST_DATABASE_URL = os.getenv(
-    "TEST_DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin_test"
-)
+# No fallback URL: the suite truncates this database, so it has to be named on
+# purpose (backend/.env on a dev machine, the compose file in Docker, the CI
+# environment). `use_test_database` validates it before any test can reach it.
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 
 TRUNCATED_TABLES = (
     "bkt_model_active_deployment",
@@ -111,7 +113,14 @@ TRUNCATED_TABLES = (
 def use_test_database():
     import db
 
-    db.reset_pool_for_tests(TEST_DATABASE_URL)
+    try:
+        url = require_test_database_url(TEST_DATABASE_URL)
+        db.reset_pool_for_tests(url)
+        with db.connect_db() as conn:
+            verify_connected_database(conn, url)
+    except UnsafeTestDatabase as exc:
+        db.close_db()
+        pytest.exit(f"Refusing to run the suite: {exc}", returncode=2)
     yield
     db.close_db()
 

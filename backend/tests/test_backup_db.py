@@ -16,9 +16,7 @@ import pytest
 from db import connect_db
 from scripts import backup_db
 
-TEST_URL = os.getenv(
-    "TEST_DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin_test"
-)
+from conftest import TEST_DATABASE_URL as TEST_URL  # validated by conftest before any test runs
 
 
 def test_dump_command_uses_the_container_when_the_host_has_no_pg_dump(monkeypatch):
