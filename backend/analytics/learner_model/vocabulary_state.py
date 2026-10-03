@@ -31,12 +31,13 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Iterator
 
 from analytics.learner_model.srs import SrsState, is_due
+from analytics.learner_model.bkt.placement_prior import is_placement_response
 
 
 DIMENSION_KEYS = ("meaning", "pinyin", "context")
 
 # Version of the corrective rules in this module (not the BKT model version).
-CORRECTIVE_POLICY_VERSION = "per-dimension-repair-v1"
+CORRECTIVE_POLICY_VERSION = "per-dimension-repair-v2-placement-initialization"
 
 # The one repair rule: a dimension is repaired by this many CONSECUTIVE correct
 # corrective-practice answers in that same dimension.  Any later incorrect
@@ -120,7 +121,10 @@ def _replay_corrective(history: Iterable[dict[str, Any]]) -> Iterator[tuple[dict
         before = dict(progress)
         dimension = dimension_key(row)
         activity = row.get("activity_type")
-        if dimension is not None and activity in FAILURE_ACTIVITIES:
+        # Placement initializes the learner model. An incorrect baseline
+        # answer is evidence about starting knowledge, not a learning failure
+        # that should create corrective work after the lesson's diagnostics.
+        if dimension is not None and activity in FAILURE_ACTIVITIES and not is_placement_response(row):
             if not bool(row.get("correct")):
                 progress[dimension] = 0
             elif activity == CORRECTIVE_ACTIVITY and dimension in progress:
@@ -138,6 +142,7 @@ def failed_dimensions(history: Iterable[dict[str, Any]]) -> set[str]:
         for row in history
         if (dimension := dimension_key(row)) is not None
         and row.get("activity_type") in FAILURE_ACTIVITIES
+        and not is_placement_response(row)
         and not bool(row.get("correct"))
     }
 

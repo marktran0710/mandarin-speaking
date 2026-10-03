@@ -118,6 +118,25 @@ def test_case_b_single_failed_dimension_is_unresolved_and_selected():
     assert state["review"] == {"status": "NEEDS_PRACTICE", "candidate": True}
 
 
+def test_placement_failure_initializes_bkt_but_does_not_create_corrective_debt():
+    placement = _history((D, "meaning", False))[0]
+    placement.update({
+        "diagnostic_exposure_id": "placement:attempt-1:item-1",
+        "resolver_version": "placement-assessment-v1",
+        "evidence_origin": "real",
+        "bkt_eligible": True,
+    })
+    learned = _history(
+        (D, "meaning", True), (D, "pinyin", True), (D, "context", True),
+    )
+
+    state = _state([placement, *learned])
+
+    assert state["practice"]["unresolvedDimensions"] == []
+    assert state["practice"]["status"] == "NOT_REQUIRED"
+    assert state["review"]["status"] == "STRONG"
+
+
 def test_case_b_word_becomes_strong_only_after_the_dimension_is_repaired():
     base = [(D, "meaning", False), (D, "pinyin", True), (D, "context", True)]
 

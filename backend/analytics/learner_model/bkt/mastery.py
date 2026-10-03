@@ -755,8 +755,12 @@ def get_vocabulary_mastery(
         )
     )
     initial_priors = placement_initial_priors_by_word(db, student_id, word_chapters, params)
+    # A word is one canonical knowledge component for this learner. When the
+    # same word occurs in more than one published lesson, its BKT estimate
+    # must replay all valid evidence for that word; ``story_id`` scopes which
+    # words are being presented and which lesson's diagnostic gate is applied.
     states = _mastery_states_from_responses(
-        _ordered_responses(db, student_id, story_id=story_id),
+        _ordered_responses(db, student_id),
         params,
         initial_priors_by_word=initial_priors,
     )
@@ -805,14 +809,13 @@ def get_vocabulary_mastery(
         row["word_id"]: row
         for row in db.execute(
             f"""
-            SELECT word_id,
+        SELECT word_id,
                    ARRAY_AGG(DISTINCT question_type) AS types
             FROM vocab_quiz_responses
             WHERE student_id = %s
-              {scope_filter}
             GROUP BY word_id
             """,
-            [student_id, *scope_params],
+            [student_id],
         ).fetchall()
     }
     for row in result:
