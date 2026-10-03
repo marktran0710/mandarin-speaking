@@ -240,6 +240,46 @@ def test_story_weak_words_are_cumulative_across_all_three_rounds(logged_in_stude
     assert all(word["word"] != "已學會" for word in body["words"])
 
 
+def test_all_learned_review_queue_includes_only_lessons_with_three_completed_rounds(logged_in_student):
+    client, student = logged_in_student
+    for round_number, mode in enumerate(("tier1", "tier2", "tier3"), start=1):
+        completed_lesson = _attempt(
+            f"global-completed-{round_number}", mode, f"2026-08-0{round_number}T00:00:00Z",
+            [_response("global-weak-word", False, f"global-item-{round_number}")],
+        )
+        completed_lesson["storyId"] = "global-learned-lesson"
+        completed_lesson["questionResults"][0]["baseStoryId"] = "global-learned-lesson"
+        response = _post_attempt(client, completed_lesson)
+        assert response.status_code == 200, response.text
+
+    unfinished = _attempt("global-unfinished", "tier1", "2026-08-04T00:00:00Z", [
+        _response("global-not-yet-learned", False, "global-unfinished-item"),
+    ])
+    unfinished["storyId"] = "global-unfinished-lesson"
+    unfinished["questionResults"][0]["baseStoryId"] = "global-unfinished-lesson"
+    assert _post_attempt(client, unfinished).status_code == 200
+
+    response = client.get(
+        f"/api/students/{student['id']}/review-queue",
+        params={"scope": "all_learned", "include_all": "true"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["scope"] == "all_learned"
+    assert [row["storyId"] for row in body["learnedStories"]] == ["global-learned-lesson"]
+    assert {row["wordId"] for row in body["queue"]} == {"global-weak-word"}
+    assert body["queue"][0]["reviewReason"] == "weak"
+
+
+def test_all_learned_scope_rejects_a_single_story_filter(logged_in_student):
+    client, student = logged_in_student
+    response = client.get(
+        f"/api/students/{student['id']}/review-queue",
+        params={"scope": "all_learned", "story_id": "lesson-1"},
+    )
+    assert response.status_code == 422
+
+
 def test_medium_and_hard_rounds_update_the_same_word_level_kc(logged_in_student):
     client, student = logged_in_student
     round_data = (

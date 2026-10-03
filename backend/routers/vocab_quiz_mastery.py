@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -9,7 +9,7 @@ from analytics.learner_model.bkt.mastery import (
     get_vocabulary_mastery,
     seen_item_ids,
 )
-from analytics.learner_model.review_queue import build_review_queue
+from analytics.learner_model.review_queue import build_all_learned_review_queue, build_review_queue
 from db import connect_db
 from routers.vocab_quiz_attempts import _dev_srs_today
 
@@ -45,6 +45,7 @@ def get_student_review_queue(
     review_count: Optional[int] = None,
     story_id: Optional[str] = None,
     include_all: bool = False,
+    scope: Literal["lesson", "all_learned"] = "lesson",
     today: Optional[str] = None,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
@@ -53,6 +54,11 @@ def get_student_review_queue(
     options = {key: value for key, value in (("reviewCount", review_count), ("storyId", story_id)) if value is not None}
     if include_all:
         options["includeAllWeak"] = True
+    if scope == "all_learned":
+        if story_id is not None:
+            raise HTTPException(status_code=422, detail="story_id cannot be combined with scope=all_learned.")
+        with connect_db() as db:
+            return build_all_learned_review_queue(db, student_id, options, now=_dev_srs_today(today))
     with connect_db() as db:
         return build_review_queue(db, student_id, options, now=_dev_srs_today(today))
 

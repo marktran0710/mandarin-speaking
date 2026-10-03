@@ -55,6 +55,14 @@ describe("development SRS today override", () => {
     ]);
   });
 
+  it("requests the all-learned queue without pinning it to one lesson", async () => {
+    await getVocabQuizReviewQueue(undefined, "student-1", { includeAllWeak: true, scope: "all_learned" });
+
+    expect(fetchWithRetry).toHaveBeenLastCalledWith(
+      "http://backend.test/api/students/student-1/review-queue?include_all=true&scope=all_learned&today=2026-09-17",
+    );
+  });
+
   it("does not forward malformed values or values outside development", async () => {
     window.history.replaceState({}, "", "/?today=not-a-date");
     await getVocabQuizReviewQueue("lesson-1", "student-1");

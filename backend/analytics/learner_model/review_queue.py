@@ -86,3 +86,97 @@ def build_review_queue(
             row["vocabularyState"]["scheduling"]["status"] = "DUE_FOR_REVIEW" if is_due(state, now) else "SCHEDULED"
     queue = combine_review_queue(review.get("words", []), mastery, states, now)
     return {**review, "queue": queue}
+
+
+def build_all_learned_review_queue(
+    db: Any,
+    student_id: str,
+    options: dict[str, Any] | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Combine due and weak words from lessons with completed diagnostics.
+
+    Diagnostic completion remains scoped to each lesson. BKT states are
+    replayed by canonical word across the learner's whole history, so a
+    repeated word is not treated as a new skill in each lesson.
+    """
+    from analytics.learner_model.bkt.mastery import (
+        bottom_k_review_key,
+        get_priority_review_words,
+        serving_bkt_config,
+    )
+    from analytics.learner_model.bkt.core import BKT_CONFIG
+
+    options = options or {}
+    now = now or datetime.now(timezone.utc)
+    active_config = serving_bkt_config(db, BKT_CONFIG)
+    review_count = max(1, min(int(options.get("reviewCount", active_config.review_count)), 50))
+    stories = db.execute(
+        "SELECT id, vocabulary_version FROM custom_stories WHERE published = TRUE ORDER BY id"
+    ).fetchall()
+    learned_stories: list[dict[str, Any]] = []
+    mastery_by_id: dict[str, dict[str, Any]] = {}
+    weak_by_id: dict[str, dict[str, Any]] = {}
+
+    for story in stories:
+        story_id = str(story["id"])
+        review = get_priority_review_words(
+            db,
+            student_id,
+            {"storyId": story_id, "includeAllWeak": True, "reviewCount": review_count},
+        )
+        if not review.get("unlocked"):
+            continue
+        learned_stories.append({"storyId": story_id, "vocabularyVersion": story.get("vocabulary_version")})
+        for row in review.get("mastery", []):
+            word_id = row["wordId"]
+            source_ids = [*mastery_by_id.get(word_id, {}).get("sourceStoryIds", []), story_id]
+            if word_id not in mastery_by_id:
+                mastery_by_id[word_id] = {
+                    **row,
+                    "sourceStoryId": story_id,
+                    "sourceStoryIds": source_ids,
+                    "vocabularyVersion": story.get("vocabulary_version"),
+                }
+            else:
+                mastery_by_id[word_id]["sourceStoryIds"] = list(dict.fromkeys(source_ids))
+        for row in review.get("words", []):
+            existing_weak = weak_by_id.get(row["wordId"])
+            if existing_weak is None:
+                weak_by_id[row["wordId"]] = {
+                    **row,
+                    "sourceStoryId": story_id,
+                    "sourceStoryIds": [story_id],
+                    "vocabularyVersion": story.get("vocabulary_version"),
+                }
+            else:
+                existing_weak["sourceStoryIds"] = list(dict.fromkeys([*existing_weak["sourceStoryIds"], story_id]))
+
+    mastery = sorted(mastery_by_id.values(), key=bottom_k_review_key)
+    ordered_weak = sorted(weak_by_id.values(), key=bottom_k_review_key)
+    weak = ordered_weak if options.get("includeAllWeak") else ordered_weak[:review_count]
+    for rank, row in enumerate(weak, start=1):
+        row["reviewRank"] = rank
+    for row in mastery:
+        if row["wordId"] not in weak_by_id:
+            row["reviewRank"] = None
+
+    states = load_srs_states(db, student_id, [row["wordId"] for row in mastery])
+    for row in mastery:
+        state = states.get(row["wordId"])
+        if state is not None and row.get("vocabularyState"):
+            row["vocabularyState"]["scheduling"]["status"] = "DUE_FOR_REVIEW" if is_due(state, now) else "SCHEDULED"
+    queue = combine_review_queue(weak, mastery, states, now)
+    return {
+        "scope": "all_learned",
+        "unlocked": bool(learned_stories),
+        "requiredDiagnosticQuizzes": 3,
+        "completedDiagnosticQuizzes": 3 if learned_stories else 0,
+        "diagnosticComplete": bool(learned_stories),
+        "learnedStories": learned_stories,
+        "learnedStoryCount": len(learned_stories),
+        "reviewCount": review_count,
+        "words": weak,
+        "mastery": mastery,
+        "queue": queue,
+    }
