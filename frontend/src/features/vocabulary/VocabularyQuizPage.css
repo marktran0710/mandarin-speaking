@@ -115,6 +115,9 @@
 .sa-quiz__mode-copy > p:not(.sa-quiz__mode-kicker) { margin: 0; color: var(--color-ink-variant); font-family: var(--font-hanzi); font-size: var(--font-size-body); line-height: var(--font-size-body); }
 .sa-quiz__mode-detail { gap: var(--space-1); margin-top: var(--space-2); color: var(--color-muted); font-family: var(--font-ui); font-size: var(--font-size-body); }
 .sa-quiz__mode-detail .sa-icon { color: var(--color-primary); }
+.sa-quiz__mode-detail--counts { flex-wrap: wrap; gap: var(--space-3); }
+.sa-quiz__review-error { margin-top: var(--space-2) !important; color: var(--clay-error-deep) !important; }
+.sa-quiz__empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 
 .sa-quiz__rail-card { padding: var(--space-4); box-shadow: var(--shadow-soft); }
 .sa-quiz__rail-heading { justify-content: space-between; gap: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--color-border); color: var(--color-ink); font-family: var(--font-ui); font-size: var(--font-size-body); font-weight: 700; }

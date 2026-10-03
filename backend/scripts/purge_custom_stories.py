@@ -225,6 +225,7 @@ def deletion_order() -> tuple[str, ...]:
         "story_submissions",
         "vocab_quiz_attempts",
         "vocab_quiz_responses",
+        "vocab_review_sessions",
         "custom_stories",
     )
 
@@ -261,6 +262,12 @@ def count_candidates(db: Any, target_ids: tuple[str, ...] = TARGET_IDS) -> dict[
             db,
             f"SELECT count(*) AS count FROM vocab_quiz_responses WHERE {response_where}",
             response_params,
+        )
+    if _table_exists(db, "vocab_review_sessions"):
+        counts["vocab_review_sessions"] = _count(
+            db,
+            "SELECT count(*) AS count FROM vocab_review_sessions WHERE story_ids && %s",
+            (list(target_ids),),
         )
     if _table_exists(db, "teacher_pronunciation_ratings"):
         rating_where: list[str] = []
@@ -353,6 +360,10 @@ def execute_purge(db: Any, target_ids: tuple[str, ...] = TARGET_IDS) -> dict[str
             "vocab_quiz_responses",
             response_where,
             response_params,
+        )
+    if _table_exists(db, "vocab_review_sessions"):
+        deleted["vocab_review_sessions"] = _delete(
+            db, "vocab_review_sessions", "story_ids && %s", (list(target_ids),),
         )
     _rebuild_affected_mastery(db, affected_students)
     if _table_exists(db, "custom_stories"):

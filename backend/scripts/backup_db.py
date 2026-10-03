@@ -54,6 +54,7 @@ APP_TABLES = (
     "story_submissions",
     "students",
     "vocab_quiz_attempts",
+    "vocab_review_sessions",
 )
 
 

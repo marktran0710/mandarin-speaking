@@ -13,6 +13,8 @@ vi.mock("@shared/api/client", () => ({
 
 import {
   createVocabQuizAttempt,
+  answerVocabReviewSessionQuestion,
+  startOrResumeVocabReviewSession,
   getVocabQuizReviewQueue,
   recordVocabQuizResponse,
   type VocabQuizAttempt,
@@ -61,6 +63,23 @@ describe("development SRS today override", () => {
     expect(fetchWithRetry).toHaveBeenLastCalledWith(
       "http://backend.test/api/students/student-1/review-queue?include_all=true&scope=all_learned&today=2026-09-17",
     );
+  });
+
+  it("uses the stable slot identity when saving a combined-review answer", async () => {
+    await startOrResumeVocabReviewSession("student-1");
+    await answerVocabReviewSessionQuestion("student-1", "session-1", {
+      slotId: "slot-1",
+      selectedAnswer: "你好",
+      responseTimeMs: 750,
+    });
+
+    expect(fetchWithRetry.mock.calls).toEqual([
+      ["http://backend.test/api/students/student-1/review-sessions?today=2026-09-17", { method: "POST" }],
+      [
+        "http://backend.test/api/students/student-1/review-sessions/session-1/answers?today=2026-09-17",
+        expect.objectContaining({ method: "POST", body: JSON.stringify({ slotId: "slot-1", selectedAnswer: "你好", responseTimeMs: 750 }) }),
+      ],
+    ]);
   });
 
   it("does not forward malformed values or values outside development", async () => {

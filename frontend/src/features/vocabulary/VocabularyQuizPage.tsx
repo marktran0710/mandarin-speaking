@@ -9,6 +9,7 @@ import { useVocabQuizFlow } from "./hooks/useVocabQuizFlow";
 import { ROUND_LABEL, TIER_SEQUENCE } from "./model/tierRounds";
 import QuizQuestionSurface from "./quiz/QuestionSurface";
 import QuizRail from "./quiz/Rail";
+import CombinedReviewSession from "./quiz/CombinedReviewSession";
 import StudentButton from "@shared/ui/student/StudentButton";
 import StudentIcon from "@shared/ui/student/StudentIcon";
 import StudentPage from "@shared/ui/student/StudentPage";
@@ -96,8 +97,8 @@ function QuizStatusBar({
 function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
   const tier = TIER_SEQUENCE[flow.tierPos];
   const tierCopyKey = roundCopyKey(null, flow.tierPos);
-  const weakCount = flow.weakEntries.length || flow.interimReviewEntries.length;
-  const dueCount = flow.dueWords.length;
+  const weakCount = flow.review.weakCount;
+  const dueCount = flow.review.dueCount;
 
   return (
     <div className="sa-quiz__mode-layout">
@@ -157,29 +158,31 @@ function ModePicker({ flow }: { flow: ReturnType<typeof useVocabQuizFlow> }) {
             </div>
           </StudentSection>
 
-          <StudentSection variant="panel" className="sa-quiz__mode-card">
+          <StudentSection variant="panel" className="sa-quiz__mode-card sa-quiz__mode-card--review">
             <div className="sa-quiz__mode-index">02</div>
             <div className="sa-quiz__mode-copy">
               <p className="sa-quiz__mode-kicker"><StudentSystemText k="personalisedPractice" /></p>
-              <h3><StudentSystemText k="weakWords" /></h3>
+              <h3><StudentSystemText k="reviewForYou" /></h3>
               <p><StudentSystemText k="practiceFromRecord" /></p>
-              <div className="sa-quiz__mode-detail"><StudentIcon name="psychology" size={15} role="decorative" /><span>{weakCount > 0 ? `${weakCount} 個詞語可以練習` : <StudentSystemText k="noWordsQueued" />}</span></div>
+              <div className="sa-quiz__mode-detail">
+                <StudentIcon name="psychology" size={15} role="decorative" />
+                <span><strong>{flow.review.availableCount}</strong> <StudentSystemText k="practiceReady" /></span>
+              </div>
+              {flow.review.queueReady && flow.review.availableCount > 0 && (
+                <div className="sa-quiz__mode-detail sa-quiz__mode-detail--counts">
+                  <span><strong>{weakCount}</strong> <StudentSystemText k="weakWords" /></span>
+                  {dueCount > 0 && <span><strong>{dueCount}</strong> <StudentSystemText k="wordsDue" /> </span>}
+                </div>
+              )}
+              {flow.review.error && <p className="sa-quiz__review-error" role="alert"><StudentSystemText k={flow.review.stale ? "lessonVocabularyUpdated" : "retryNetwork"} /></p>}
             </div>
-            <StudentButton variant="secondary" icon="fitness_center" disabled={weakCount === 0} onClick={flow.startWeakWords}>
-              <StudentSystemText k="practiceWeakWords" withinControl />
-            </StudentButton>
-          </StudentSection>
-
-          <StudentSection variant="panel" className="sa-quiz__mode-card">
-            <div className="sa-quiz__mode-index">03</div>
-            <div className="sa-quiz__mode-copy">
-              <p className="sa-quiz__mode-kicker"><StudentSystemText k="spacedReview" /></p>
-              <h3><StudentSystemText k="reviewToday" /></h3>
-              <p><StudentSystemText k="dueSchedule" /></p>
-              <div className="sa-quiz__mode-detail"><StudentIcon name="event_repeat" size={15} role="decorative" /><span>{dueCount > 0 ? `${dueCount} 個詞語到期` : <StudentSystemText k="nothingDue" />}</span></div>
-            </div>
-            <StudentButton variant="secondary" icon="schedule" disabled={dueCount === 0} onClick={flow.startDueReview}>
-              <StudentSystemText k="reviewDueWords" withinControl />
+            <StudentButton
+              variant="secondary"
+              icon="fitness_center"
+              disabled={!flow.review.queueReady || flow.review.availableCount === 0 || flow.review.isStarting}
+              onClick={() => void flow.startReview()}
+            >
+              <StudentSystemText k="startReviewForYou" withinControl />
             </StudentButton>
           </StudentSection>
         </div>
@@ -234,6 +237,7 @@ function ResultView({ flow, hasConversation, onOpenPreview }: { flow: ReturnType
             <div className="sa-quiz__practice-choice" role="group" aria-label="Choose a practice path">
               <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("story-speaking")}><StudentSystemText k="storySpeaking" withinControl /></StudentButton>
               {hasConversation && <StudentButton variant="secondary" iconTrailing="arrow_forward" onClick={() => flow.choosePractice("conversation")}><StudentSystemText k="conversation" withinControl /></StudentButton>}
+              {flow.review.availableCount > 0 && <StudentButton variant="secondary" icon="fitness_center" onClick={() => void flow.startReview()}><StudentSystemText k="startReviewForYou" withinControl /></StudentButton>}
               <StudentButton variant="subtle" icon="replay" onClick={flow.returnToModes}><StudentSystemText k="backToRounds" withinControl /></StudentButton>
             </div>
           ) : (
@@ -275,11 +279,23 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
   const header = (
     <StudentPageHeader
       eyebrowKey="study"
-      context={<><span lang="zh-Hant">{lessonLabel}</span> · <StudentSystemText k="vocabularyQuizTitle" /></>}
-      titleKey="vocabularyQuizTitle"
-      aside={flow.entries.length > 0 ? <span className="sa-quiz__round-tag">{roundName(flow.mode, flow.tierPos)}</span> : undefined}
+      context={<><span lang="zh-Hant">{lessonLabel}</span> · <StudentSystemText k={flow.view === "review-session" ? "reviewForYou" : "vocabularyQuizTitle"} /></>}
+      titleKey={flow.view === "review-session" ? "reviewForYou" : "vocabularyQuizTitle"}
+      aside={flow.view !== "review-session" && flow.entries.length > 0 ? <span className="sa-quiz__round-tag">{roundName(flow.mode, flow.tierPos)}</span> : undefined}
     />
   );
+
+  if (flow.view === "review-session") {
+    return (
+      <StudentPage layout="task" header={header} wide>
+        <CombinedReviewSession
+          review={flow.review}
+          onClose={() => void flow.closeReview()}
+          onDiscardStale={() => void flow.discardStaleReview()}
+        />
+      </StudentPage>
+    );
+  }
 
   if (flow.entries.length === 0) {
     return (
@@ -288,7 +304,10 @@ export default function VocabularyQuizPage({ topic, lessonLabel, onFinished, onS
         header={header}
         state="empty"
         emptyTitle={<StudentSystemText k="noQuiz" />}
-        emptyAction={<StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}><StudentSystemText k="continueToSpeaking" withinControl /></StudentButton>}
+        emptyAction={<div className="sa-quiz__empty-actions">
+          <StudentButton variant="primary" iconTrailing="arrow_forward" onClick={onFinished}><StudentSystemText k="continueToSpeaking" withinControl /></StudentButton>
+          {flow.review.availableCount > 0 && <StudentButton variant="secondary" icon="fitness_center" onClick={() => void flow.startReview()}><StudentSystemText k="startReviewForYou" withinControl /></StudentButton>}
+        </div>}
       />
     );
   }

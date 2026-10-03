@@ -2,6 +2,7 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-li
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "@entities/topic";
 import type { VocabAssessmentQuestion, VocabQuizEntry } from "@entities/vocabulary";
+import { studentUiCopy } from "../../../i18n/student-ui-copy";
 import { createVocabQuizAttempt, recordVocabQuizResponse } from "../../../services/database";
 import VocabularyQuizPage from "../VocabularyQuizPage";
 import { correctAnswer, useQuizSession } from "./useQuizSession";
@@ -244,16 +245,16 @@ describe("quiz answer and completion boundaries", () => {
   });
 });
 
-it("shows a visible missing-dimension error and keeps the practice menu open", () => {
+it("shows one optional combined-review entry when no server queue is available", () => {
   reviewState.targetDimension = "context";
   const topic: Topic = {
     id: "lesson-1", name: "Lesson", description: "", skillFocus: "conversation", images: [], vocabulary: {},
     vocabAssessment: makeEntries(1).flatMap((entry) => entry.assessmentQuestions ?? []),
   };
   render(<VocabularyQuizPage topic={topic} lessonLabel="Lesson" onFinished={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: "練習需要加強的詞語" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("no published context question");
-  expect(screen.getByRole("button", { name: "練習需要加強的詞語" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: studentUiCopy.reviewForYou.zh })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: studentUiCopy.startReviewForYou.zh })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: studentUiCopy.practiceWeakWords.zh })).not.toBeInTheDocument();
   expect(recordLessonEvent).not.toHaveBeenCalled();
   expect(recordVocabQuizResponse).not.toHaveBeenCalled();
 });

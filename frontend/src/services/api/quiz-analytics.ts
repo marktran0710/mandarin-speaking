@@ -98,6 +98,83 @@ export async function getVocabQuizPriorityReview(storyId: string | undefined, st
 export interface ReviewQueueItem extends VocabPriorityReviewWord { reviewReason: "weak" | "due"; dueOn?: string | null; sourceStoryId?: string; sourceStoryIds?: string[]; vocabularyVersion?: number | null; }
 export interface VocabReviewQueueResponse extends VocabPriorityReviewResponse { scope?: "lesson" | "all_learned"; queue: ReviewQueueItem[]; learnedStories?: Array<{ storyId: string; vocabularyVersion: number | null }>; learnedStoryCount?: number; }
 export async function getVocabQuizReviewQueue(storyId: string | undefined, studentId: string, options?: { includeAllWeak?: boolean; scope?: "lesson" | "all_learned" }): Promise<VocabReviewQueueResponse> { const params = new URLSearchParams(); if (storyId) params.set("story_id", storyId); if (options?.includeAllWeak) params.set("include_all", "true"); if (options?.scope) params.set("scope", options.scope); const query = params.toString(); const response = await fetchWithRetry(withDevSrsToday(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/review-queue${query ? `?${query}` : ""}`)); if (!response.ok) throw new Error("Could not load the review queue."); return response.json() as Promise<VocabReviewQueueResponse>; }
+
+export interface VocabReviewSessionQuestion {
+  slotId: string;
+  position: number;
+  totalQuestions: number;
+  word: string;
+  sourceStoryId: string;
+  questionType: string;
+  dimension: "meaning" | "pinyin" | "context";
+  reviewReason: "weak" | "due";
+  answerFormat: "single_choice" | "free_text";
+  prompt: string;
+  options: string[];
+}
+export interface VocabReviewSession {
+  sessionId: string;
+  status: "active" | "completed" | "deferred" | "expired";
+  questionCount: number;
+  completedCount: number;
+  currentQuestion: VocabReviewSessionQuestion | null;
+}
+export interface VocabReviewSessionStartResponse { session: VocabReviewSession | null; availableCount: number; }
+export interface VocabReviewSessionAnswerResult {
+  slotId: string;
+  position: number;
+  word: string;
+  reviewReason: "weak" | "due";
+  dimension: "meaning" | "pinyin" | "context";
+  correct: boolean;
+  correctAnswer: string;
+  explanation: string;
+  selectedAnswer: string;
+  answeredAt: string;
+}
+export interface VocabReviewSessionAnswerResponse { result: VocabReviewSessionAnswerResult; session: VocabReviewSession; }
+export class VocabReviewSessionError extends Error {
+  constructor(message: string, readonly code?: string) { super(message); }
+}
+async function reviewSessionError(response: Response): Promise<VocabReviewSessionError> {
+  const data = await response.json().catch(() => ({})) as { detail?: string | { code?: string; message?: string } };
+  const detail = data.detail;
+  if (typeof detail === "string") return new VocabReviewSessionError(detail);
+  return new VocabReviewSessionError(
+    detail?.message ?? "Could not save this review answer.",
+    detail?.code,
+  );
+}
+export async function startOrResumeVocabReviewSession(studentId: string): Promise<VocabReviewSessionStartResponse> {
+  const response = await fetchWithRetry(withDevSrsToday(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/review-sessions`), {
+    method: "POST",
+  });
+  if (!response.ok) throw await reviewSessionError(response);
+  return response.json() as Promise<VocabReviewSessionStartResponse>;
+}
+export async function getVocabReviewSession(studentId: string, sessionId: string): Promise<VocabReviewSession> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/review-sessions/${encodeURIComponent(sessionId)}`);
+  if (!response.ok) throw await reviewSessionError(response);
+  return response.json() as Promise<VocabReviewSession>;
+}
+export async function answerVocabReviewSessionQuestion(
+  studentId: string,
+  sessionId: string,
+  answer: { slotId: string; selectedAnswer: string; responseTimeMs: number },
+): Promise<VocabReviewSessionAnswerResponse> {
+  const response = await fetchWithRetry(withDevSrsToday(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/review-sessions/${encodeURIComponent(sessionId)}/answers`), {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(answer),
+  });
+  if (!response.ok) throw await reviewSessionError(response);
+  return response.json() as Promise<VocabReviewSessionAnswerResponse>;
+}
+export async function deferVocabReviewSession(studentId: string, sessionId: string): Promise<VocabReviewSession> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/review-sessions/${encodeURIComponent(sessionId)}/defer`, {
+    method: "POST",
+  });
+  if (!response.ok) throw await reviewSessionError(response);
+  return response.json() as Promise<VocabReviewSession>;
+}
 /** Compatibility-shaped helper used by the existing per-story quiz picker.
  * The story picker asks for the complete cumulative weak-word set, while the
  * endpoint can still serve a smaller Bottom-K result to other callers. */

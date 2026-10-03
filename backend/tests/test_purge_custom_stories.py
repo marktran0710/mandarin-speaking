@@ -35,6 +35,7 @@ def test_deletion_order_removes_dependents_before_story_rows():
     assert order.index("audio_records") < order.index("custom_stories")
     assert order.index("vocab_quiz_attempts") < order.index("custom_stories")
     assert order.index("vocab_quiz_responses") < order.index("custom_stories")
+    assert order.index("vocab_review_sessions") < order.index("custom_stories")
 
 
 def test_pronunciation_rating_scope_uses_audio_and_item_id_only(monkeypatch):
@@ -80,7 +81,7 @@ def test_execute_purge_deletes_dependents_before_custom_stories(monkeypatch):
     tables = {
         "teacher_pronunciation_ratings", "media_assets", "learning_measurement_events",
         "speaking_progress", "audio_records", "story_submissions", "vocab_quiz_attempts",
-        "vocab_quiz_responses", "custom_stories",
+        "vocab_quiz_responses", "vocab_review_sessions", "custom_stories",
     }
     monkeypatch.setattr(purge, "_table_exists", lambda _db, table: table in tables)
     monkeypatch.setattr(purge, "_column_exists", lambda _db, _table, column: column in {"audio_record_id", "item_id"})
@@ -94,6 +95,7 @@ def test_execute_purge_deletes_dependents_before_custom_stories(monkeypatch):
     delete_tables = [name for name, _ in calls if name != "query"]
     assert delete_tables[-1] == "custom_stories"
     assert delete_tables.index("vocab_quiz_responses") < delete_tables.index("custom_stories")
+    assert delete_tables.index("vocab_review_sessions") < delete_tables.index("custom_stories")
     rating_where = next(where for name, where in calls if name == "teacher_pronunciation_ratings")
     assert "audio_record_id = ANY" in rating_where
     assert "item_id LIKE ANY" in rating_where

@@ -268,6 +268,7 @@ STUDENT_OWNED_TABLES = (
     "student_vocab_srs_events",
     "vocab_quiz_attempts",
     "vocab_quiz_responses",
+    "vocab_review_sessions",
     "placement_test_attempts",
 )
 

@@ -13,6 +13,7 @@ EXPECTED_TABLES = {
     "story_submissions",
     "students",
     "vocab_quiz_attempts",
+    "vocab_review_sessions",
 }
 
 JSONB_COLUMNS = [
@@ -21,6 +22,8 @@ JSONB_COLUMNS = [
     ("story_submissions", "scenes"),
     ("story_submissions", "story_feedback"),
     ("vocab_quiz_attempts", "question_results"),
+    ("vocab_review_sessions", "slots"),
+    ("vocab_review_sessions", "responses"),
     ("audio_records", "praat_metrics"),
     ("custom_stories", "conversation_turns"),
     ("speaking_progress", "cleared_words"),

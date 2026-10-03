@@ -4,7 +4,7 @@ import security.auth as auth
 from fastapi.routing import APIRoute
 
 from routers import vocab_quiz
-from routers import vocab_quiz_analytics, vocab_quiz_attempts, vocab_quiz_mastery, vocab_quiz_progression
+from routers import vocab_quiz_analytics, vocab_quiz_attempts, vocab_quiz_mastery, vocab_quiz_progression, vocab_review_sessions
 
 
 EXPECTED_OPERATIONS = {
@@ -17,6 +17,10 @@ EXPECTED_OPERATIONS = {
     ("GET", "/api/students/{student_id}/vocabulary-progression"),
     ("GET", "/api/students/{student_id}/vocabulary-mastery/{word_id:path}/seen-items"),
     ("GET", "/api/vocab-quiz-attempts/weak-words"),
+    ("POST", "/api/students/{student_id}/review-sessions"),
+    ("GET", "/api/students/{student_id}/review-sessions/{session_id}"),
+    ("POST", "/api/students/{student_id}/review-sessions/{session_id}/answers"),
+    ("POST", "/api/students/{student_id}/review-sessions/{session_id}/defer"),
     ("GET", "/api/analytics/vocab-quiz/frex"),
 }
 
@@ -56,9 +60,15 @@ def test_facade_exposes_exact_vocab_quiz_operations_without_duplicates():
         ("POST", "/api/vocab-quiz-responses"),
         ("GET", "/api/analytics/vocab-quiz/frex"),
         ("GET", "/api/students/{student_id}/vocabulary-progression"),
-    }
+    } - _operations(vocab_review_sessions.router.routes)
     assert _operations(vocab_quiz_progression.router.routes) == {
         ("GET", "/api/students/{student_id}/vocabulary-progression"),
+    }
+    assert _operations(vocab_review_sessions.router.routes) == {
+        ("POST", "/api/students/{student_id}/review-sessions"),
+        ("GET", "/api/students/{student_id}/review-sessions/{session_id}"),
+        ("POST", "/api/students/{student_id}/review-sessions/{session_id}/answers"),
+        ("POST", "/api/students/{student_id}/review-sessions/{session_id}/defer"),
     }
     assert _operations(vocab_quiz_analytics.router.routes) == {
         ("GET", "/api/analytics/vocab-quiz/frex")
@@ -71,6 +81,10 @@ def test_facade_preserves_auth_chain_and_endpoint_shapes():
         ("POST", "/api/vocab-quiz-attempts"),
         ("POST", "/api/vocab-quiz-responses"),
         ("GET", "/api/vocab-quiz-attempts/weak-words"),
+        ("POST", "/api/students/{student_id}/review-sessions"),
+        ("GET", "/api/students/{student_id}/review-sessions/{session_id}"),
+        ("POST", "/api/students/{student_id}/review-sessions/{session_id}/answers"),
+        ("POST", "/api/students/{student_id}/review-sessions/{session_id}/defer"),
     }
     for route in vocab_quiz.router.routes:
         if not isinstance(route, APIRoute):

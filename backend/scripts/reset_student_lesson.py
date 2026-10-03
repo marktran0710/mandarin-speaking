@@ -33,7 +33,8 @@ def reset_lesson(
         db.execute("SET LOCAL lock_timeout = '5s'")
         db.execute("""LOCK TABLE students, custom_stories, vocab_quiz_attempts,
             vocab_quiz_responses, student_vocab_mastery, student_vocab_srs,
-            student_vocab_srs_events, speaking_progress, story_submissions
+            student_vocab_srs_events, speaking_progress, story_submissions,
+            vocab_review_sessions
             IN SHARE ROW EXCLUSIVE MODE""")
     student = db.execute("SELECT id FROM students WHERE id = %s", (student_id,)).fetchone()
     if not student:
@@ -70,6 +71,10 @@ def reset_lesson(
         ), (student_id, values)).fetchall())
         for table, (column, values) in scopes.items()
     }
+    snapshots["vocab_review_sessions"] = list(db.execute(
+        "SELECT * FROM vocab_review_sessions WHERE student_id = %s AND story_ids && %s",
+        (student_id, scope),
+    ).fetchall())
     report = {
         "studentId": student_id, "storyId": canonical, "wordCount": len(known),
         "rows": {table: len(rows) for table, rows in snapshots.items()}, "executed": False,
@@ -87,6 +92,12 @@ def reset_lesson(
         ), (student_id, values)).rowcount
         if removed != len(snapshots[table]):
             raise RuntimeError(f"Deletion scope changed for {table}; roll back the transaction.")
+    removed_sessions = db.execute(
+        "DELETE FROM vocab_review_sessions WHERE student_id = %s AND story_ids && %s",
+        (student_id, scope),
+    ).rowcount
+    if removed_sessions != len(snapshots["vocab_review_sessions"]):
+        raise RuntimeError("Review-session scope changed; roll back the transaction.")
     progression = get_progression(db, student_id, canonical)
     if progression["quizStars"] != 0 or progression["speakingUnlocked"] or progression["conversationUnlocked"]:
         raise RuntimeError("Lesson did not relock; roll back the transaction.")

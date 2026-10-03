@@ -7,6 +7,7 @@ import { topicStoryId } from "../../../utils/lessonGroups";
 import { markPhaseSeen } from "@shared/lib/studyProgressFlags";
 import { computeRoundResult, TIER_SEQUENCE, type RoundResult } from "../model/tierRounds";
 import { useQuizSession } from "./useQuizSession";
+import { useCombinedReviewSession } from "./useCombinedReviewSession";
 
 interface UseVocabQuizFlowArgs {
   topic: Topic;
@@ -22,26 +23,29 @@ export interface PracticeResult {
   totalQuestions: number;
 }
 
-export type VocabQuizFlowView = "loading" | "mode-select" | "quiz" | "round-result" | "practice-result";
+export type VocabQuizFlowView = "loading" | "mode-select" | "quiz" | "round-result" | "practice-result" | "review-session";
 
 /** Production quiz navigation: three diagnostic rounds finished in order
  * (the score is shown, never a gate), then any round can be redone, plus
  * server-selected weak-word practice and due SM-2 maintenance review. */
 export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCompleted }: UseVocabQuizFlowArgs) {
   const entries = useMemo(() => topicQuizEntries(topic), [topic]);
+  const studentId = getStudentId();
   const session = useQuizSession({
     entries,
     storyId: topic.id,
     baseStoryId: topic.sourceStory?.id,
     vocabularyVersion: topic.sourceStory?.vocabularyVersion ?? topic.vocabularyVersion,
     level: "easy",
-    studentId: getStudentId(),
+    studentId,
     studentName: getStudentName(),
   });
   const roundsDone = session.stars ?? 0;
   const [tierPos, setTierPos] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [practiceResult, setPracticeResult] = useState<PracticeResult | null>(null);
+  const [reviewActive, setReviewActive] = useState(false);
+  const reviewSession = useCombinedReviewSession(studentId);
   const latestScores = latestRoundScores(session.attempts ?? []);
 
   useEffect(() => {
@@ -55,6 +59,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
     const diagnosticMode = session.mode === "tier1" || session.mode === "tier2" || session.mode === "tier3";
     if (diagnosticMode) {
       setRoundResult(computeRoundResult(tierPos, session.results));
+      if (roundsDone >= TIER_SEQUENCE.length) void reviewSession.refreshQueue();
       onRoundCompleted?.();
     } else if (session.mode) {
       setPracticeResult({
@@ -64,7 +69,7 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.screen]);
+  }, [roundsDone, session.screen, reviewSession.refreshQueue]);
 
   const startRound = (tier: TierMode) => {
     const position = TIER_SEQUENCE.indexOf(tier);
@@ -112,6 +117,23 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
     session.startDueReview?.();
   };
 
+  const startReview = async () => {
+    const started = await reviewSession.start();
+    if (started) setReviewActive(true);
+  };
+
+  const closeReview = async () => {
+    if (reviewSession.session?.status === "active") {
+      const closed = await reviewSession.defer();
+      if (!closed) return;
+    }
+    setReviewActive(false);
+  };
+
+  const discardStaleReview = async () => {
+    if (await reviewSession.discardStaleSession()) setReviewActive(false);
+  };
+
   function returnToModes() {
     setRoundResult(null);
     setPracticeResult(null);
@@ -119,7 +141,9 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
   }
 
   const ready = session.sessionReady !== false;
-  const view: VocabQuizFlowView = !ready
+  const view: VocabQuizFlowView = reviewActive
+    ? "review-session"
+    : !ready
     ? "loading"
     : roundResult
       ? "round-result"
@@ -153,6 +177,10 @@ export function useVocabQuizFlow({ topic, onFinished, onStartPractice, onRoundCo
     startRound,
     startWeakWords,
     startDueReview,
+    startReview,
+    closeReview,
+    discardStaleReview,
+    review: reviewSession,
     returnToModes,
     question: session.question,
     index: session.index,

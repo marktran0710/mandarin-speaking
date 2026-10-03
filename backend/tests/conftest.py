@@ -100,6 +100,7 @@ TRUNCATED_TABLES = (
     "teachers",
     "vocab_quiz_attempts",
     "vocab_quiz_responses",
+    "vocab_review_sessions",
     "algorithm_verifier_runs",
     "placement_test_attempts",
     "placement_test_blueprints",

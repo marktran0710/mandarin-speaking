@@ -30,12 +30,14 @@ from routers.vocab_quiz_mastery import (
     router as vocab_quiz_mastery_router,
 )
 from routers.vocab_quiz_progression import router as vocab_quiz_progression_router
+from routers.vocab_review_sessions import router as vocab_review_sessions_router
 
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 router.include_router(vocab_quiz_attempts_router)
 router.include_router(vocab_quiz_mastery_router)
 router.include_router(vocab_quiz_progression_router)
+router.include_router(vocab_review_sessions_router)
 router.include_router(vocab_quiz_analytics_router)
 
 

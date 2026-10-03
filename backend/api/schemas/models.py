@@ -234,6 +234,16 @@ class VocabQuizAttemptRequest(BaseModel):
     correctCount: int = Field(..., ge=0)
     totalTimeMs: int = Field(..., ge=0)
     questionResults: List[VocabQuizQuestionResult] = []
+
+
+class VocabReviewSessionAnswerRequest(BaseModel):
+    """Only learner input; session, slot, item and activity stay server-owned."""
+
+    slotId: str = Field(..., min_length=1, max_length=80)
+    selectedAnswer: str = Field(..., min_length=1, max_length=500)
+    responseTimeMs: int = Field(default=0, ge=0, le=600_000)
+
+
 class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=6, max_length=100)
