@@ -1,5 +1,16 @@
-import type { VocabPriorityReviewWord } from "../../../services/database";
 import type { VocabQuizEntry, VocabQuizQuestion } from "@entities/vocabulary";
+import type { VocabQuizDimension } from "@entities/vocabulary/types";
+
+type PriorityReviewSnapshot = {
+  wordId: string;
+  word: string;
+  seenQuestionTypes?: readonly string[];
+  observationCount?: number;
+  lastResponseAt?: string | null;
+  vocabularyState?: {
+    practice?: { nextDimension?: VocabQuizDimension | null } | null;
+  } | null;
+};
 
 export function correctAnswer(question: VocabQuizQuestion) {
   switch (question.kind) {
@@ -14,7 +25,7 @@ export function correctAnswer(question: VocabQuizQuestion) {
   }
 }
 
-export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priorityReviewWords: VocabPriorityReviewWord[]): VocabQuizEntry[] {
+export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priorityReviewWords: readonly PriorityReviewSnapshot[]): VocabQuizEntry[] {
   return priorityReviewWords.flatMap((priorityWord) => {
     const entry = entries.find((candidate) => candidate.wordId === priorityWord.wordId)
       ?? entries.find((candidate) => candidate.word === priorityWord.word);
@@ -25,7 +36,7 @@ export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priority
     return priorityWord.seenQuestionTypes?.length || nextDimension
       ? [{
         ...entry,
-        bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
+        bktSeenQuestionKinds: priorityWord.seenQuestionTypes,
         bktNextDimension: nextDimension,
         bktObservationCount: priorityWord.observationCount,
         bktLastResponseAt: priorityWord.lastResponseAt,

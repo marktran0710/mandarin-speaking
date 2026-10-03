@@ -1,24 +1,19 @@
 import { describe, expect, it } from "vitest";
-import type { VocabPriorityReviewWord } from "../../../services/api/quiz-analytics";
+import type { VocabQuizEntry } from "@entities/vocabulary";
 import { entriesInServerPriorityOrder } from "./useQuizSession";
+
+type PriorityReviewSnapshot = Parameters<typeof entriesInServerPriorityOrder>[1][number];
+
+function makeEntry(word: string, wordId: string): VocabQuizEntry {
+  return { word, translation: word, wordId };
+}
 
 describe("entriesInServerPriorityOrder", () => {
   it("keeps the server Bottom-K order instead of the local vocabulary order", () => {
-    const entries = [
-      { word: "first locally", wordId: "a" },
-      { word: "second locally", wordId: "b" },
-    ] as never[];
-    const ranked: VocabPriorityReviewWord[] = [
-      {
-        wordId: "b", word: "second locally", reviewRank: 1,
-        pLearned: 0.1, status: "NEEDS_PRACTICE", observationCount: 3,
-        correctCount: 1, incorrectCount: 2,
-      },
-      {
-        wordId: "a", word: "first locally", reviewRank: 2,
-        pLearned: 0.2, status: "NEEDS_PRACTICE", observationCount: 3,
-        correctCount: 1, incorrectCount: 2,
-      },
+    const entries = [makeEntry("first locally", "a"), makeEntry("second locally", "b")];
+    const ranked: PriorityReviewSnapshot[] = [
+      { wordId: "b", word: "second locally" },
+      { wordId: "a", word: "first locally" },
     ];
 
     expect(entriesInServerPriorityOrder(entries, ranked)).toMatchObject([
@@ -27,14 +22,14 @@ describe("entriesInServerPriorityOrder", () => {
   });
 
   it("carries the server's current corrective dimension, not a history of failed question types", () => {
-    const entries = [{ word: "w", wordId: "w" }] as never[];
-    const ranked = [{
-      wordId: "w", word: "w", status: "NEEDS_PRACTICE", observationCount: 5,
+    const entries = [makeEntry("w", "w")];
+    const ranked: PriorityReviewSnapshot[] = [{
+      wordId: "w", word: "w", observationCount: 5,
       seenQuestionTypes: ["basic_meaning_mcq", "character_to_pinyin_typing"],
-      vocabularyState: { practice: { unresolvedDimensions: ["pinyin"], nextDimension: "pinyin" } },
-    }] as unknown as VocabPriorityReviewWord[];
+      vocabularyState: { practice: { nextDimension: "pinyin" } },
+    }];
 
-    const [entry] = entriesInServerPriorityOrder(entries, ranked) as Array<Record<string, unknown>>;
+    const [entry] = entriesInServerPriorityOrder(entries, ranked);
 
     expect(entry.bktNextDimension).toBe("pinyin");
     expect(entry.bktSeenQuestionKinds).toEqual(["basic_meaning_mcq", "character_to_pinyin_typing"]);
@@ -42,13 +37,13 @@ describe("entriesInServerPriorityOrder", () => {
   });
 
   it("leaves the dimension unset when the server names none (nothing to repair)", () => {
-    const entries = [{ word: "w", wordId: "w" }] as never[];
-    const ranked = [{
-      wordId: "w", word: "w", status: "NEEDS_PRACTICE", seenQuestionTypes: ["basic_meaning_mcq"],
-      vocabularyState: { practice: { unresolvedDimensions: [], nextDimension: null } },
-    }] as unknown as VocabPriorityReviewWord[];
+    const entries = [makeEntry("w", "w")];
+    const ranked: PriorityReviewSnapshot[] = [{
+      wordId: "w", word: "w", seenQuestionTypes: ["basic_meaning_mcq"],
+      vocabularyState: { practice: { nextDimension: null } },
+    }];
 
-    const [entry] = entriesInServerPriorityOrder(entries, ranked) as Array<Record<string, unknown>>;
+    const [entry] = entriesInServerPriorityOrder(entries, ranked);
 
     expect(entry.bktNextDimension).toBeUndefined();
   });
