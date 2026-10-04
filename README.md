@@ -31,7 +31,11 @@ flowchart TD
     S2 --> S3[Story Concept Map\nDrag all vocab words into\n4 category boxes]
     S3 --> S4{Check answers}
     S4 -->|Wrong words| S3
-    S4 -->|All correct| S5[Continue to Speaking]
+    S4 -->|All correct| S18[Round 1: Meaning]
+    S18 -->|Completed and saved| S19[Round 2: Pinyin]
+    S19 -->|Completed and saved| S20[Round 3: Context]
+    S20 -->|Completed and saved| S5[Continue to Speaking]
+    S20 -.->|Optional| S21[Review for you\nBKT weak words + SM-2 due words]
 
     S5 --> S6[Select a scene / picture cue]
     S6 --> S7[Read scene prompt + vocabulary chips]
@@ -187,59 +191,246 @@ produces it.
 
 ---
 
-## Student Progression & Unlock Ladder
+## Vocabulary Learning Flow: BKT + SM-2
 
-Students never skip ahead: every stage is unlocked by measured performance, in a fixed
-chain. There are three stacked quality gates — **know the words** (quiz stars), **say them
-right** (pronunciation mastery), **level up the language** (story difficulty tiers).
+**BKT theo dõi kiến thức → từ đủ `STRONG` được đưa vào SM-2 → SM-2 quyết định khi nào ôn →
+shuffle-bag chọn một loại câu hỏi → đáp án cập nhật BKT và lịch SM-2.**
+
+Phần này mô tả **code hiện tại**, bao gồm các trường hợp đúng/sai. `STRONG` là trạng thái
+của hệ thống, không phải bằng chứng rằng student đã nhớ từ vĩnh viễn.
+`Dimension` là một phần kiến thức của từ: nghĩa, pinyin hoặc ngữ cảnh. `Corrective debt`
+/ `unresolved dimension` là phần đã trả lời sai trong quá trình học và còn cần sửa;
+`personalized/corrective` là luyện phần đó, còn `maintenance` là ôn từ đã đến hạn.
+
+### 1. Placement, ba round và điều kiện vào SM-2
 
 ```mermaid
 flowchart TD
-    P([Pick a story]) --> L{Difficulty tier}
-    L -->|"🌱 Easy (always open)"| Q
-
-    subgraph Q["1 · Vocabulary quiz — star ladder"]
-        direction LR
-        T1["⭐ Tier 1\n20 questions · pass 14"] --> T2["⭐⭐ Tier 2\n22 questions · pass 18"]
-        T2 --> T3["⭐⭐⭐ Tier 3\n25 questions · 150s · traps"]
-    end
-
-    T3 -->|"⭐⭐⭐ earned"| SP
-
-    subgraph SP["2 · Speaking practice — mastery gate"]
-        direction TB
-        R[Record the scene sentence] --> V{Every word passes\nper-syllable tone check?}
-        V -->|no| D[Drill each failed word\nthen re-record the sentence] --> R
-        V -->|yes| N[Next scene] --> R
-    end
-
-    SP -->|all scenes passed| SUB[Submit story]
-    SUB -->|"unlocks 🌿 Medium"| L
-    SUB -->|"Medium submitted → unlocks 🌳 Hard"| L
+    LOGIN["Student đăng nhập"] --> PLACED{"Đã hoàn tất placement?"}
+    PLACED -->|Chưa| PLACEMENT["Làm placement và lưu đáp án"]
+    PLACEMENT --> INIT["Khởi tạo BKT và lưu baseline placement"]
+    PLACED -->|Rồi| LOAD["Tải BKT từ lịch sử đã lưu"]
+    INIT --> LESSON["Chọn bài published"]
+    LOAD --> LESSON
+    LESSON --> R1["Round 1: Meaning MCQ"]
+    R1 -->|Hoàn tất và lưu| R2["Round 2: Gõ pinyin"]
+    R2 -->|Hoàn tất và lưu| R3["Round 3: Context MCQ"]
+    R3 -->|Hoàn tất và lưu| SPEAK["Speaking mở; điểm không khóa speaking"]
+    R3 -->|Hoàn tất và lưu| CHECK{"Từ đủ STRONG?"}
+    CHECK -->|Chưa| WEAK["NEEDS_PRACTICE<br/>Ôn tự nguyện dimension cần sửa"]
+    WEAK --> PRACTICE["Một câu personalized do server chọn"]
+    PRACTICE --> UPDATE["Cập nhật BKT và tiến độ corrective<br/>Không đẩy lịch SM-2 ra xa"]
+    UPDATE --> CHECK
+    CHECK -->|Rồi| EXISTING{"Từ đã có lịch SM-2?"}
+    EXISTING -->|Chưa| ENROLL["Enrollment đúng một lần<br/>Lần ôn đầu sau 1 ngày"]
+    EXISTING -->|Rồi| KEEP["Giữ nguyên enrollment và lịch hiện có"]
+    ENROLL --> SRS["Đợi đến hạn SM-2"]
+    KEEP --> SRS
 ```
 
-### 1. Vocabulary quiz — the star ladder (`frontend/src/utils/quizTiers.ts`)
+Placement khởi tạo kiến thức của từng student; không tự fit lại sáu tham số BKT cho mỗi
+account mới. Với từ được hỏi trực tiếp, đáp án placement được replay từ prior chung.
+Với từ chưa được hỏi, kết quả placement hợp lệ cùng chương có thể khởi tạo prior.
+Lỗi placement không tạo corrective debt, và placement không thay thế ba round của bài học.
 
-| Tier | Questions | Must answer right | Time limit | Character |
+| Round | Student làm gì với từng từ? | BKT component nhận evidence | Điều kiện sang bước tiếp |
+|---|---|---|---|
+| 1 — Meaning | Chọn nghĩa đúng (`basic_meaning_mcq`) | `meaning` | Hoàn tất round và lưu attempt; không cần đạt tỷ lệ đúng cố định |
+| 2 — Pinyin | Tự gõ pinyin (`character_to_pinyin_typing`) | `pinyin` | Hoàn tất round và lưu attempt |
+| 3 — Context | Chọn từ phù hợp ngữ cảnh (`context_cloze_mcq`) | `context` | Hoàn tất round và lưu attempt để mở speaking |
+
+Mỗi round diagnostic dùng câu hỏi published cho các từ trong bài; số câu theo vocabulary
+của bài, không cố định 20/22/25 câu. Round 1 và 2 không có giới hạn thời gian toàn round;
+Round 3 hiện có giới hạn 150 giây trên giao diện. Backend vẫn kiểm tra coverage hợp lệ:
+hết timer hoặc có một đáp án đúng không tự chứng minh rằng cả diagnostic đã đầy đủ.
+
+Student có thể hoàn tất cả ba round dù có đáp án sai và tiếp tục speaking.
+Điều kiện mở speaking và điều kiện enrollment SM-2 là hai kiểm tra riêng.
+Sau mỗi đáp án được server lưu/xác nhận, BKT được cập nhật; không cần chờ hết ba round
+mới bắt đầu tính. Gate enrollment chỉ mở khi diagnostic của bài đã đầy đủ.
+
+**Cách đọc BKT hiện tại:** mỗi student × canonical word ID có ba mastery state riêng:
+`P_meaning`, `P_pinyin`, `P_context`. Ngoài ra, code giữ `P_word`, là xác suất pooled replay
+từ toàn bộ evidence hợp lệ của từ, để dùng cho gate `STRONG` hiện có.
+Một đáp án cập nhật component được hỏi và `P_word`; hai component còn lại giữ nguyên khi
+prior và bộ tham số không đổi. **Gate hiện tại chưa yêu cầu cả ba component riêng đều ≥ 0,95.**
+
+Từ đủ điều kiện enrollment khi đồng thời thỏa mãn:
+
+- Bài đã hoàn tất đủ ba round diagnostic hợp lệ; từ có evidence ở cả ba dimension.
+- Có ít nhất 3 observation BKT hợp lệ sau khi deduplicate exposure.
+- `P_word ≥ mastery_threshold` (ngưỡng mặc định hiện tại: `0,95`).
+- Không còn dimension unresolved từ lỗi trong quá trình học/ôn.
+
+Do đó, `P_word` cao sau Round 2 vẫn chưa đủ để enrollment. Nếu đúng cả ba round, không có
+lỗi học cũ và đã đạt ngưỡng, từ chuyển `STRONG` rồi enrollment ngay khi backend xác nhận;
+không bắt làm thêm corrective. Placement và lịch sử trước đó có thể làm xác suất khác nhau.
+
+### 2. Nếu sai Round 1, Round 2 hoặc Round 3
+
+Sai dimension nào thì mở yêu cầu sửa dimension đó. Student không phải làm lại cả ba round
+để sửa một từ. Bảng giả định từ chưa có lỗi học cũ; số câu bổ sung là **tối thiểu để sửa
+corrective debt**, khi mọi corrective tiếp theo đều đúng.
+
+| Round 1 | Round 2 | Round 3 | Dimension cần sửa | Corrective success cần có |
 |---|---|---|---|---|
-| ⭐ Tier 1 (第一關) | 20 | 14 (70%) | none | baseline questions |
-| ⭐⭐ Tier 2 (第二關) | 22 | 18 (~82%) | none | trickier distractors |
-| ⭐⭐⭐ Tier 3 (第三關) | 25 | 22 (88%) | 150 s whole run | tone traps, timed |
+| Đúng | Đúng | Đúng | Không | 0; enrollment nếu các gate khác cũng đạt |
+| Sai | Đúng | Đúng | Meaning | 2 câu meaning đúng |
+| Đúng | Sai | Đúng | Pinyin | 2 câu pinyin đúng |
+| Đúng | Đúng | Sai | Context | 2 câu context đúng |
+| Sai | Sai | Đúng | Meaning + pinyin | 2 câu đúng cho mỗi dimension, tổng 4 |
+| Sai | Đúng | Sai | Meaning + context | 2 câu đúng cho mỗi dimension, tổng 4 |
+| Đúng | Sai | Sai | Pinyin + context | 2 câu đúng cho mỗi dimension, tổng 4 |
+| Sai | Sai | Sai | Cả ba | 2 câu đúng cho mỗi dimension, tổng 6 |
 
-- Tier 1 is always open; each later tier opens once the previous star is earned
-  (`isTierUnlocked`).
-- Passing a tier earns its star **permanently** — a later failed run never demotes it
-  (`recordLocalStars` only ever raises).
-- **⭐⭐⭐ is the gate into speaking practice** (`PRACTICE_UNLOCK_STARS = 3`): the results
-  screen only shows *Continue to practice* after all three stars; below that it shows a
-  lock note plus *Try again* / *Challenge next tier*.
-- Stars are **derived, not stored**: computed from the `vocab_quiz_attempts` history
-  (`mode = tier1/2/3`, `starsFromAttempts`), so they follow the student across devices;
-  a localStorage mirror (`vocabQuizStars`) gives an instant first paint and covers
-  offline/no-database mode.
-- Legacy two-star completion flags do not bypass the current three-star requirement.
+Hai success được tính trong **cùng từ và cùng dimension**, và có thể tích lũy qua nhiều
+phiên. Ví dụ pinyin: `sai → corrective đúng (1/2) → corrective sai (reset 0/2) →
+corrective đúng (1/2) → corrective đúng (đã sửa)`. Đáp án của từ khác hoặc dimension khác
+không cộng và không reset tiến độ pinyin đó.
 
-### 2. Speaking practice — the pronunciation mastery gate
+Hết debt nhưng `P_word` vẫn dưới ngưỡng thì từ còn cần evidence. Server chọn dimension
+cần củng cố; speaking vẫn mở. Luyện lại đúng item diagnostic cũ có exposure deduplication,
+nên không tương đương một corrective observation mới.
+
+### 3. Từ đã vào SM-2: khi nào ôn và chọn loại câu hỏi nào?
+
+```mermaid
+flowchart TD
+    ENROLLED["Từ đã enrollment SM-2"] --> DUE{"Đã tới due_on?"}
+    DUE -->|Chưa| WAIT["Đợi đến hạn<br/>Nếu BKT yếu: có thể corrective tự nguyện"]
+    WAIT --> DUE
+    DUE -->|Rồi| BAG["Server lấy một activity từ shuffle-bag<br/>meaning / pinyin / context"]
+    BAG --> SLOT["Persist một slot cho từ<br/>Resume giữ cùng activity chưa trả lời"]
+    SLOT --> ANSWER{"Đáp án do backend chấm"}
+    ANSWER -->|Đúng| PASS["Cập nhật BKT component + P_word<br/>SM-2 q=4: tính lịch theo reps"]
+    ANSWER -->|Sai| FAIL["Cập nhật BKT component + P_word<br/>Mở debt ở dimension vừa sai<br/>SM-2 q=2: reps=0, hẹn sau 1 ngày"]
+    PASS --> SAVE["Lưu response, BKT, SRS event và session<br/>trong cùng transaction; tiêu thụ activity"]
+    FAIL --> SAVE
+    SAVE --> RETAIN["Giữ enrollment kể cả BKT giảm<br/>Retry cùng slot không tạo event thứ hai"]
+    RETAIN --> DUE
+    RETAIN -.->|BKT yếu và chưa due; tự nguyện| REPAIR["Personalized: sửa dimension sai<br/>Cập nhật BKT và corrective debt<br/>Giữ nguyên lịch SM-2"]
+    REPAIR --> RETAIN
+```
+
+SM-2 giữ **một lịch cho cả từ**, không tạo ba lịch meaning/pinyin/context riêng.
+Khi đến hạn, server tạo đúng một câu hỏi cho từ, bằng một activity từ shuffle-bag riêng
+của student × word. Không dùng component có `P(L)` thấp nhất để chọn activity due.
+
+Ví dụ một bag được xáo thành `pinyin → context → meaning`: ba lần ôn đến hạn tiếp theo
+dùng lần lượt ba loại đó, rồi mới xáo bag mới. Bag mới có thể là
+`meaning → pinyin → context`; lặp ở **ranh giới giữa hai bag** vẫn có thể xảy ra.
+Sự cân bằng được đảm bảo trong mỗi chu kỳ ba activity đã trả lời, không phải giữa mọi
+hai lần ôn liên tiếp hoặc giữa tất cả các từ trong cùng phiên.
+
+Seed, cycle, order, remaining và pending activity được lưu trên server. Trả lời đúng hoặc
+sai đều tiêu thụ một activity sau khi response đã lưu thành công. Đóng/resume phiên trước
+khi trả lời không tiêu thụ thêm activity và không đổi lịch. Request lỗi/stale không được
+chấm thành sai; retry cùng slot không cộng thêm evidence hoặc SRS event.
+
+Phiên “Ôn dành cho bạn” lấy từ các bài published đã hoàn tất diagnostic, gộp `due` và
+`weak` theo canonical word ID. Một từ vừa due vừa weak được xử lý **một lần dưới dạng due**.
+Khi chưa due, từ yếu có thể được chọn làm corrective; corrective chỉ cập nhật BKT và debt.
+Session hiện lấy tối đa 12 từ/câu, mỗi từ xuất hiện tối đa một lần trong phiên, trộn
+`due:weak` khoảng `2:1` nếu đủ dữ liệu. Hai giới hạn này là policy UX đang triển khai;
+không phải số suy ra từ BKT/SM-2 hay ngưỡng tối ưu đã được kiểm chứng.
+
+### 4. Ví dụ ngày ôn: đúng liên tục, sai ngày đầu, sai lặp lại
+
+Trong các bảng dưới, **Ngày 0 là thời điểm từ vừa đủ `STRONG` và được enrollment**.
+Student trả lời đúng thời điểm đến hạn. Một ngày là 24 giờ trong production; nếu enrollment
+lúc 09:00 thì lần đầu due lúc 09:00 hôm sau, không tự due từ 00:00.
+
+Enrollment tạo `reps=1`, `ease=2,50`, `interval=1`, `due_on=Ngày 1`. Đây là sự kiện
+enrollment, không phải một câu maintenance giả. Scheduler đang dùng modified SM-2:
+
+- `interval`: số ngày phải chờ từ lần review vừa diễn ra tới lần tiếp theo.
+- `ease`: hệ số giãn khoảng cách; sai làm hệ số này giảm để các lần ôn xa hơn gần lại.
+- `reps`: bộ đếm của scheduler, tăng khi maintenance đúng và reset về 0 khi sai.
+  Vì enrollment khởi tạo `reps=1`, nó không phải tổng số câu student đã trả lời đúng.
+
+| Đáp án maintenance | Quy tắc lịch tiếp theo |
+|---|---|
+| Đúng (`q=4`), `reps` trước đáp án bằng 0 | Interval = 1 ngày; `reps` thành 1 |
+| Đúng (`q=4`), `reps` trước đáp án bằng 1 | Interval = 6 ngày; `reps` thành 2 |
+| Đúng (`q=4`), `reps` trước đáp án ≥ 2 | Interval = `max(1, round(interval cũ × ease trước đáp án))`; `reps` tăng 1 |
+| Sai (`q=2`) ở bất kỳ lần nào | Interval = 1 ngày; `reps=0`; ease giảm 0,32, tối thiểu 1,30 |
+
+`q=4` giữ ease hiện tại; thời gian trả lời không thay đổi quality grade.
+**Due mới luôn bằng thời điểm vừa review + interval mới.**
+
+**A. Đúng mọi lần:**
+
+| Ngày trả lời | Kết quả | `reps` sau đáp án | Ease | Interval mới | Due tiếp theo |
+|---|---|---|---|---|---|
+| 0 | Enrollment | 1 | 2,50 | 1 ngày | Ngày 1 |
+| 1 | Đúng | 2 | 2,50 | 6 ngày | Ngày 7 |
+| 7 | Đúng | 3 | 2,50 | 15 ngày | Ngày 22 |
+| 22 | Đúng | 4 | 2,50 | 38 ngày | Ngày 60 |
+
+Vì vậy, `1 → 6 → 15 → 38` là **khoảng cách giữa các lần ôn**, còn `1 → 7 → 22 → 60`
+là các mốc ngày tính từ enrollment.
+
+**B. Sai ở Ngày 1, sau đó đúng:**
+
+| Ngày trả lời | Kết quả | `reps` sau đáp án | Ease | Interval mới | Due tiếp theo |
+|---|---|---|---|---|---|
+| 1 | Sai | 0 | 2,18 | 1 ngày | Ngày 2 |
+| 2 | Đúng | 1 | 2,18 | 1 ngày | Ngày 3 |
+| 3 | Đúng | 2 | 2,18 | 6 ngày | Ngày 9 |
+| 9 | Đúng | 3 | 2,18 | 13 ngày | Ngày 22 |
+
+Giả sử bag là `pinyin → context → meaning`: Ngày 1 sai pinyin sẽ mở debt pinyin;
+Ngày 2 hỏi context và Ngày 3 hỏi meaning. Từ vẫn enrolled và đến hạn dù BKT giảm.
+Student có thể sửa pinyin bằng hai corrective success khi từ chưa due, qua các phiên
+ngắn. Những corrective đó không đổi due Ngày 2/3/9.
+
+**Maintenance đúng không được tính là corrective success trong policy hiện tại.**
+Ngay cả khi lần due sau hỏi pinyin và student trả lời đúng, BKT pinyin tăng và SM-2 cập
+nhật, nhưng debt pinyin vẫn cần hai success ở activity `personalized_practice` để đóng.
+Vì vậy, từ có thể vừa có lịch SM-2 đang chạy vừa có trạng thái BKT/review `NEEDS_PRACTICE`.
+
+**C. Sai cả Ngày 1 và Ngày 2:**
+
+| Ngày trả lời | Kết quả | `reps` sau đáp án | Ease | Interval mới | Due tiếp theo |
+|---|---|---|---|---|---|
+| 1 | Sai | 0 | 2,18 | 1 ngày | Ngày 2 |
+| 2 | Sai | 0 | 1,86 | 1 ngày | Ngày 3 |
+| 3 | Đúng | 1 | 1,86 | 1 ngày | Ngày 4 |
+| 4 | Đúng | 2 | 1,86 | 6 ngày | Ngày 10 |
+| 10 | Đúng | 3 | 1,86 | 11 ngày | Ngày 21 |
+
+Nếu hai lần sai hỏi hai dimension khác nhau, mỗi dimension có debt riêng. Sai lại cùng
+dimension reset corrective progress của dimension đó; không reset debt của từ khác.
+
+**D. Ban đầu đúng, rồi sai ở lần ôn xa hơn:** Ngày 1 đúng → due Ngày 7. Ngày 7 sai →
+`reps=0`, ease `2,18`, due Ngày 8. Ngày 8 đúng → due Ngày 9. Ngày 9 đúng → due Ngày 15.
+Student chỉ sửa dimension vừa sai; không phải học lại toàn bộ ba round và không re-enroll từ.
+
+Nếu student bỏ lỡ Ngày 7, từ vẫn overdue; chưa có đáp án thì BKT và lịch chưa cập nhật.
+Ví dụ theo nhánh A, đến Ngày 10 mới trả lời đúng lần đó thì interval mới là 15 ngày,
+due mới ở **Ngày 25**, tính từ lần review thực tế.
+
+### 5. Code dùng để đối chiếu và giới hạn diễn giải
+
+| Phần logic | Nguồn trong repo |
+|---|---|
+| Loại câu hỏi ba round và mở speaking theo completion | [`progression.ts`](frontend/src/entities/vocabulary/progression.ts) |
+| Prior từ placement | [`placement_prior.py`](backend/analytics/learner_model/bkt/placement_prior.py) |
+| Replay BKT theo component và xác suất pooled của từ | [`mastery.py`](backend/analytics/learner_model/bkt/mastery.py) |
+| Gate `STRONG`, unresolved dimension và hai corrective success | [`vocabulary_state.py`](backend/analytics/learner_model/vocabulary_state.py) |
+| Công thức interval, ease và quality của SM-2 | [`srs.py`](backend/analytics/learner_model/srs.py) |
+| Enrollment, SRS event và shuffle-bag đã persist | [`srs_store.py`](backend/analytics/learner_model/srs_store.py) |
+| Session, activity selection, response identity và transaction | [`vocab_review_session_service.py`](backend/services/vocab_review_session_service.py) |
+| Gộp due/weak, diagnostic gate theo từng bài | [`review_queue.py`](backend/analytics/learner_model/review_queue.py) |
+
+Các ví dụ lịch dùng `modified-sm2-v1` và ngày production 24 giờ; cấu hình development có
+thể nén ngày để demo. Xác suất BKT thực tế phụ thuộc prior, lịch sử và bộ tham số đang
+active. Ngưỡng `0,95` và hai corrective success là policy hiện tại; không có nghĩa student
+có 95% khả năng trả lời đúng câu tiếp theo hoặc đã nhớ lâu dài. Meaning MCQ đo nhận biết
+nghĩa, typed pinyin đo khả năng gõ pinyin, context MCQ đo chọn từ trong ngữ cảnh; kết quả
+ba round không thay thế đánh giá speaking bằng âm thanh.
+
+### Speaking practice — the pronunciation mastery gate
 
 Each scene recording is scored **per syllable** (directional pitch check against the
 expected tone, `backend/praat_analyzer.py`): a word passes only if its *weakest* syllable
@@ -251,14 +442,6 @@ clears the bar — an average can't hide one wrong-direction tone.
 - *Next scene*, *View summary*, and *Submit* stay locked until the latest full-sentence
   recording passes every word; the old 4-attempts escape hatch no longer bypasses
   failing words.
-
-### 3. Story difficulty tiers — Easy → Medium → Hard (`frontend/src/utils/storyLevelProgress.ts`)
-
-Each teacher story is authored at three language tiers of the **same plot**. 🌱 Easy is
-always open; 🌿 Medium unlocks when Easy has been **submitted**; 🌳 Hard unlocks when
-Medium has been submitted (`StoryLevelPicker`). Because submission itself sits behind the
-mastery gate, "submitted" always means "spoken to standard" — so tier progression is
-earned by data, never by clicking through.
 
 ---
 
